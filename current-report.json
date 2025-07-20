@@ -1,0 +1,408 @@
+{
+  "metadata": {
+    "repository": "/home/user/go/src/github.com/opd-ai/go-stats-generator/testdata/simple",
+    "generated_at": "2025-07-20T18:48:13.050325185-04:00",
+    "analysis_time": 831286,
+    "files_processed": 2,
+    "tool_version": "1.0.0",
+    "go_version": ""
+  },
+  "overview": {
+    "total_lines_of_code": 66,
+    "total_functions": 1,
+    "total_methods": 8,
+    "total_structs": 0,
+    "total_interfaces": 0,
+    "total_packages": 0,
+    "total_files": 2
+  },
+  "functions": [
+    {
+      "name": "NewUserService",
+      "package": "simple",
+      "file": "simple",
+      "line": 23,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 3,
+        "code": 3,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 0,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.3
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 42,
+        "has_example": false,
+        "quality_score": 0.168
+      }
+    },
+    {
+      "name": "CreateUser",
+      "package": "simple",
+      "file": "simple",
+      "line": 30,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 18,
+        "code": 18,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 2,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1.1
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 30,
+        "has_example": false,
+        "quality_score": 0.12
+      }
+    },
+    {
+      "name": "GetUser",
+      "package": "simple",
+      "file": "simple",
+      "line": 52,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 5,
+        "code": 5,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 2,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1.1
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 31,
+        "has_example": false,
+        "quality_score": 0.124
+      }
+    },
+    {
+      "name": "GetAllUsers",
+      "package": "simple",
+      "file": "simple",
+      "line": 61,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 5,
+        "code": 5,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 0,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.3
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 30,
+        "has_example": false,
+        "quality_score": 0.22
+      }
+    },
+    {
+      "name": "UpdateUser",
+      "package": "simple",
+      "file": "simple",
+      "line": 70,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 14,
+        "code": 14,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1.3
+      },
+      "complexity": {
+        "cyclomatic": 4,
+        "cognitive": 4,
+        "nesting_depth": 4,
+        "overall": 7.2
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 36,
+        "has_example": false,
+        "quality_score": 0.144
+      }
+    },
+    {
+      "name": "DeleteUser",
+      "package": "simple",
+      "file": "simple",
+      "line": 88,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 7,
+        "code": 7,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 32,
+        "has_example": false,
+        "quality_score": 0.128
+      }
+    },
+    {
+      "name": "DeactivateUser",
+      "package": "simple",
+      "file": "simple",
+      "line": 99,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 7,
+        "code": 7,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 34,
+        "has_example": false,
+        "quality_score": 0.136
+      }
+    },
+    {
+      "name": "GetActiveUsers",
+      "package": "simple",
+      "file": "simple",
+      "line": 110,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 7,
+        "code": 7,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 0,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.3
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 41,
+        "has_example": false,
+        "quality_score": 0.264
+      }
+    },
+    {
+      "name": "ComplexFunction",
+      "package": "simple",
+      "file": "simple",
+      "line": 121,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*UserService",
+      "lines": {
+        "total": 43,
+        "code": 43,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 2,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1.1
+      },
+      "complexity": {
+        "cyclomatic": 15,
+        "cognitive": 15,
+        "nesting_depth": 15,
+        "overall": 27
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 63,
+        "has_example": false,
+        "quality_score": 0.252
+      }
+    }
+  ],
+  "structs": null,
+  "interfaces": null,
+  "packages": null,
+  "patterns": {
+    "design_patterns": {
+      "singleton": null,
+      "factory": null,
+      "builder": null,
+      "observer": null,
+      "strategy": null
+    },
+    "concurrency_patterns": {
+      "worker_pools": null,
+      "pipelines": null,
+      "fan_out": null,
+      "fan_in": null,
+      "semaphores": null
+    },
+    "anti_patterns": {
+      "god_objects": null,
+      "long_methods": null,
+      "deep_nesting": null,
+      "magic_numbers": null
+    }
+  },
+  "complexity": {
+    "average_function_complexity": 0,
+    "average_struct_complexity": 0,
+    "highest_complexity": null,
+    "complexity_distribution": null
+  },
+  "documentation": {
+    "coverage": {
+      "packages": 0,
+      "functions": 0,
+      "types": 0,
+      "methods": 0,
+      "overall": 0
+    },
+    "quality": {
+      "average_length": 0,
+      "code_examples": 0,
+      "inline_comments": 0,
+      "block_comments": 0,
+      "quality_score": 0
+    },
+    "todo_comments": null,
+    "fixme_comments": null,
+    "hack_comments": null
+  },
+  "generics": {
+    "type_parameters": {
+      "count": 0,
+      "constraints": null,
+      "complexity": null
+    },
+    "instantiations": {
+      "functions": null,
+      "types": null,
+      "methods": null
+    },
+    "constraint_usage": null,
+    "complexity_score": 0
+  }
+}

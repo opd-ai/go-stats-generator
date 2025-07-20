@@ -57,6 +57,21 @@ go-stats-generator analyze . --skip-tests
 
 # Analyze with custom complexity thresholds
 go-stats-generator analyze . --max-function-length 50 --max-complexity 15
+
+# Create a baseline snapshot
+go-stats-generator baseline create . --id "v1.0.0" --message "Initial baseline"
+
+# Compare with baseline
+go-stats-generator diff --baseline "v1.0.0" --current .
+
+# List all baselines
+go-stats-generator baseline list
+
+# Analyze trends over time
+go-stats-generator trend analyze --days 30
+
+# Detect regressions
+go-stats-generator trend regressions --threshold 10.0
 ```
 
 ## Usage
