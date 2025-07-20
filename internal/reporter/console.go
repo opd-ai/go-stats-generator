@@ -59,6 +59,32 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 	return nil
 }
 
+// WriteDiff generates a console diff report
+func (cr *ConsoleReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) error {
+	// Header
+	cr.writeDiffHeader(output, diff)
+
+	// Summary section
+	cr.writeDiffSummary(output, diff)
+
+	// Regressions section
+	if len(diff.Regressions) > 0 {
+		cr.writeDiffRegressions(output, diff.Regressions)
+	}
+
+	// Improvements section
+	if len(diff.Improvements) > 0 {
+		cr.writeDiffImprovements(output, diff.Improvements)
+	}
+
+	// Changes section (if requested)
+	if len(diff.Changes) > 0 && cr.config.IncludeDetails {
+		cr.writeDiffChanges(output, diff.Changes)
+	}
+
+	return nil
+}
+
 func (cr *ConsoleReporter) writeHeader(output io.Writer, report *metrics.Report) {
 	fmt.Fprintln(output, "=== GO SOURCE CODE STATISTICS REPORT ===")
 	fmt.Fprintf(output, "Repository: %s\n", report.Metadata.Repository)
@@ -251,5 +277,129 @@ func (cr *ConsoleReporter) calculateFunctionStats(functions []metrics.FunctionMe
 		VeryLongFunctionsPct: float64(veryLongFunctions) / count * 100,
 		AvgComplexity:        totalComplexity / count,
 		HighComplexity:       highComplexity,
+	}
+}
+
+func (cr *ConsoleReporter) writeDiffHeader(output io.Writer, diff *metrics.ComplexityDiff) {
+	fmt.Fprintln(output, "")
+	fmt.Fprintln(output, "Complexity Diff Report")
+	fmt.Fprintln(output, "======================")
+	fmt.Fprintf(output, "Baseline: %s (%s)\n", diff.Baseline.ID, diff.Baseline.Metadata.Timestamp.Format(time.RFC3339))
+	fmt.Fprintf(output, "Current:  %s (%s)\n", diff.Current.ID, diff.Current.Metadata.Timestamp.Format(time.RFC3339))
+	fmt.Fprintln(output, "")
+}
+
+func (cr *ConsoleReporter) writeDiffSummary(output io.Writer, diff *metrics.ComplexityDiff) {
+	fmt.Fprintln(output, "=== SUMMARY ===")
+
+	summary := diff.Summary
+
+	if summary.ImprovementCount > 0 {
+		fmt.Fprintf(output, "✅ Improvements: %d\n", summary.ImprovementCount)
+	}
+
+	if summary.NeutralChangeCount > 0 {
+		fmt.Fprintf(output, "⚠️  Neutral Changes: %d\n", summary.NeutralChangeCount)
+	}
+
+	if summary.RegressionCount > 0 {
+		fmt.Fprintf(output, "❌ Regressions: %d\n", summary.RegressionCount)
+	}
+
+	if summary.CriticalIssues > 0 {
+		fmt.Fprintf(output, "🚨 Critical Issues: %d\n", summary.CriticalIssues)
+	}
+
+	fmt.Fprintf(output, "Overall Trend: %s\n", string(summary.OverallTrend))
+	fmt.Fprintf(output, "Quality Score: %.1f/100\n", summary.QualityScore)
+	fmt.Fprintln(output, "")
+}
+
+func (cr *ConsoleReporter) writeDiffRegressions(output io.Writer, regressions []metrics.Regression) {
+	fmt.Fprintln(output, "=== REGRESSIONS ===")
+
+	for _, regression := range regressions {
+		var icon string
+		switch regression.Severity {
+		case metrics.SeverityLevelCritical:
+			icon = "🚨"
+		case metrics.SeverityLevelError:
+			icon = "❌"
+		case metrics.SeverityLevelWarning:
+			icon = "⚠️"
+		default:
+			icon = "ℹ️"
+		}
+
+		fmt.Fprintf(output, "%s %s: %s\n", icon, regression.Type, regression.Location)
+		if regression.File != "" {
+			fmt.Fprintf(output, "   File: %s", regression.File)
+			if regression.Line > 0 {
+				fmt.Fprintf(output, ":%d", regression.Line)
+			}
+			fmt.Fprintln(output, "")
+		}
+		fmt.Fprintf(output, "   Change: %v → %v", regression.OldValue, regression.NewValue)
+		if regression.Delta.Percentage > 0 {
+			fmt.Fprintf(output, " (%+.1f%%)", regression.Delta.Percentage)
+		}
+		fmt.Fprintln(output, "")
+
+		if regression.Suggestion != "" {
+			fmt.Fprintf(output, "   Suggestion: %s\n", regression.Suggestion)
+		}
+		fmt.Fprintln(output, "")
+	}
+}
+
+func (cr *ConsoleReporter) writeDiffImprovements(output io.Writer, improvements []metrics.Improvement) {
+	fmt.Fprintln(output, "=== IMPROVEMENTS ===")
+
+	for _, improvement := range improvements {
+		fmt.Fprintf(output, "✅ %s: %s\n", improvement.Type, improvement.Location)
+		if improvement.File != "" {
+			fmt.Fprintf(output, "   File: %s", improvement.File)
+			if improvement.Line > 0 {
+				fmt.Fprintf(output, ":%d", improvement.Line)
+			}
+			fmt.Fprintln(output, "")
+		}
+		fmt.Fprintf(output, "   Change: %v → %v", improvement.OldValue, improvement.NewValue)
+		if improvement.Delta.Percentage > 0 {
+			fmt.Fprintf(output, " (%.1f%% improvement)", improvement.Delta.Percentage)
+		}
+		fmt.Fprintln(output, "")
+
+		if improvement.Benefit != "" {
+			fmt.Fprintf(output, "   Benefit: %s\n", improvement.Benefit)
+		}
+		fmt.Fprintln(output, "")
+	}
+}
+
+func (cr *ConsoleReporter) writeDiffChanges(output io.Writer, changes []metrics.MetricChange) {
+	fmt.Fprintln(output, "=== DETAILED CHANGES ===")
+
+	// Group changes by category
+	changesByCategory := make(map[string][]metrics.MetricChange)
+	for _, change := range changes {
+		changesByCategory[change.Category] = append(changesByCategory[change.Category], change)
+	}
+
+	for category, categoryChanges := range changesByCategory {
+		fmt.Fprintf(output, "## %s\n", category)
+
+		for _, change := range categoryChanges {
+			fmt.Fprintf(output, "- %s: %v → %v", change.Name, change.OldValue, change.NewValue)
+			if change.Delta.Percentage > 0 {
+				direction := "+"
+				if change.Delta.Direction == metrics.ChangeDirectionDecrease {
+					direction = "-"
+				}
+				fmt.Fprintf(output, " (%s%.1f%%)", direction, change.Delta.Percentage)
+			}
+			fmt.Fprintln(output, "")
+		}
+		fmt.Fprintln(output, "")
 	}
 }

@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
@@ -9,6 +10,7 @@ import (
 // Reporter interface defines the contract for generating reports
 type Reporter interface {
 	Generate(report *metrics.Report, output io.Writer) error
+	WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) error
 }
 
 // ReporterType represents the type of reporter
@@ -22,7 +24,25 @@ const (
 	TypeMarkdown ReporterType = "markdown"
 )
 
-// CreateReporter creates a new reporter of the specified type
+// NewReporter creates a new reporter of the specified type
+func NewReporter(reporterType string) (Reporter, error) {
+	switch ReporterType(reporterType) {
+	case TypeJSON:
+		return NewJSONReporter(), nil
+	case TypeCSV:
+		return NewCSVReporter(), nil
+	case TypeHTML:
+		return NewHTMLReporter(), nil
+	case TypeMarkdown:
+		return NewMarkdownReporter(), nil
+	case TypeConsole:
+		return NewConsoleReporter(nil), nil
+	default:
+		return nil, fmt.Errorf("unsupported reporter type: %s", reporterType)
+	}
+}
+
+// CreateReporter creates a new reporter of the specified type (legacy)
 func CreateReporter(reporterType ReporterType, options interface{}) Reporter {
 	switch reporterType {
 	case TypeJSON:

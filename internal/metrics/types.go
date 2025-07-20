@@ -345,3 +345,341 @@ type GenericInstantiation struct {
 	Line        int      `json:"line"`
 	Usage       string   `json:"usage"`
 }
+
+// Diff and Historical Analysis Types
+
+// MetricsSnapshot represents a complete snapshot of code metrics at a point in time
+type MetricsSnapshot struct {
+	ID       string           `json:"id"`
+	Report   Report           `json:"report"`
+	Metadata SnapshotMetadata `json:"metadata"`
+}
+
+// SnapshotMetadata contains versioning and context information for a metrics snapshot
+type SnapshotMetadata struct {
+	Timestamp   time.Time         `json:"timestamp"`
+	GitCommit   string            `json:"git_commit,omitempty"`
+	GitBranch   string            `json:"git_branch,omitempty"`
+	GitTag      string            `json:"git_tag,omitempty"`
+	Version     string            `json:"version,omitempty"`
+	Author      string            `json:"author,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"`
+}
+
+// ComplexityDiff represents comprehensive diff between two metrics snapshots
+type ComplexityDiff struct {
+	Baseline     MetricsSnapshot `json:"baseline"`
+	Current      MetricsSnapshot `json:"current"`
+	Summary      DiffSummary     `json:"summary"`
+	Changes      []MetricChange  `json:"changes"`
+	Regressions  []Regression    `json:"regressions"`
+	Improvements []Improvement   `json:"improvements"`
+	Timestamp    time.Time       `json:"timestamp"`
+	Config       ThresholdConfig `json:"config"`
+}
+
+// DiffSummary provides high-level overview of changes between snapshots
+type DiffSummary struct {
+	TotalChanges       int            `json:"total_changes"`
+	SignificantChanges int            `json:"significant_changes"`
+	RegressionCount    int            `json:"regression_count"`
+	ImprovementCount   int            `json:"improvement_count"`
+	NeutralChangeCount int            `json:"neutral_change_count"`
+	CriticalIssues     int            `json:"critical_issues"`
+	OverallTrend       TrendDirection `json:"overall_trend"`
+	QualityScore       float64        `json:"quality_score"`
+	QualityDelta       float64        `json:"quality_delta"`
+}
+
+// MetricChange represents a single metric change between snapshots
+type MetricChange struct {
+	Category    string        `json:"category"`
+	Name        string        `json:"name"`
+	Path        string        `json:"path"`
+	File        string        `json:"file"`
+	Line        int           `json:"line,omitempty"`
+	OldValue    interface{}   `json:"old_value"`
+	NewValue    interface{}   `json:"new_value"`
+	Delta       Delta         `json:"delta"`
+	Impact      ImpactLevel   `json:"impact"`
+	Severity    SeverityLevel `json:"severity"`
+	Description string        `json:"description"`
+	Suggestion  string        `json:"suggestion,omitempty"`
+}
+
+// Delta represents quantified change between two values
+type Delta struct {
+	Absolute    float64         `json:"absolute"`
+	Percentage  float64         `json:"percentage"`
+	Direction   ChangeDirection `json:"direction"`
+	Significant bool            `json:"significant"`
+	Magnitude   ChangeMagnitude `json:"magnitude"`
+}
+
+// Regression represents a negative change that exceeds thresholds
+type Regression struct {
+	Type        RegressionType `json:"type"`
+	Location    string         `json:"location"`
+	File        string         `json:"file"`
+	Line        int            `json:"line,omitempty"`
+	Function    string         `json:"function,omitempty"`
+	Description string         `json:"description"`
+	OldValue    interface{}    `json:"old_value"`
+	NewValue    interface{}    `json:"new_value"`
+	Delta       Delta          `json:"delta"`
+	Impact      ImpactLevel    `json:"impact"`
+	Severity    SeverityLevel  `json:"severity"`
+	Threshold   float64        `json:"threshold"`
+	Suggestion  string         `json:"suggestion"`
+	Priority    int            `json:"priority"` // 1-10, higher = more urgent
+}
+
+// Improvement represents a positive change
+type Improvement struct {
+	Type        ImprovementType `json:"type"`
+	Location    string          `json:"location"`
+	File        string          `json:"file"`
+	Line        int             `json:"line,omitempty"`
+	Function    string          `json:"function,omitempty"`
+	Description string          `json:"description"`
+	OldValue    interface{}     `json:"old_value"`
+	NewValue    interface{}     `json:"new_value"`
+	Delta       Delta           `json:"delta"`
+	Impact      ImpactLevel     `json:"impact"`
+	Benefit     string          `json:"benefit"`
+}
+
+// Enum types for classification
+
+type ChangeDirection string
+
+const (
+	ChangeDirectionIncrease ChangeDirection = "increase"
+	ChangeDirectionDecrease ChangeDirection = "decrease"
+	ChangeDirectionNeutral  ChangeDirection = "neutral"
+)
+
+type ChangeMagnitude string
+
+const (
+	ChangeMagnitudeMinor       ChangeMagnitude = "minor"
+	ChangeMagnitudeModerate    ChangeMagnitude = "moderate"
+	ChangeMagnitudeSignificant ChangeMagnitude = "significant"
+	ChangeMagnitudeMajor       ChangeMagnitude = "major"
+	ChangeMagnitudeCritical    ChangeMagnitude = "critical"
+)
+
+type ImpactLevel string
+
+const (
+	ImpactLevelLow      ImpactLevel = "low"
+	ImpactLevelMedium   ImpactLevel = "medium"
+	ImpactLevelHigh     ImpactLevel = "high"
+	ImpactLevelCritical ImpactLevel = "critical"
+)
+
+type SeverityLevel string
+
+const (
+	SeverityLevelInfo     SeverityLevel = "info"
+	SeverityLevelWarning  SeverityLevel = "warning"
+	SeverityLevelError    SeverityLevel = "error"
+	SeverityLevelCritical SeverityLevel = "critical"
+)
+
+type TrendDirection string
+
+const (
+	TrendImproving TrendDirection = "improving"
+	TrendStable    TrendDirection = "stable"
+	TrendDegrading TrendDirection = "degrading"
+	TrendVolatile  TrendDirection = "volatile"
+)
+
+type RegressionType string
+
+const (
+	ComplexityRegression    RegressionType = "complexity_increase"
+	SizeRegression          RegressionType = "size_increase"
+	CouplingRegression      RegressionType = "coupling_increase"
+	CohesionRegression      RegressionType = "cohesion_decrease"
+	CoverageRegression      RegressionType = "coverage_decrease"
+	PatternRegression       RegressionType = "anti_pattern_introduction"
+	DocumentationRegression RegressionType = "documentation_decrease"
+	PerformanceRegression   RegressionType = "performance_decrease"
+)
+
+type ImprovementType string
+
+const (
+	ComplexityImprovement    ImprovementType = "complexity_decrease"
+	SizeImprovement          ImprovementType = "size_decrease"
+	CouplingImprovement      ImprovementType = "coupling_decrease"
+	CohesionImprovement      ImprovementType = "cohesion_increase"
+	CoverageImprovement      ImprovementType = "coverage_increase"
+	PatternImprovement       ImprovementType = "pattern_introduction"
+	DocumentationImprovement ImprovementType = "documentation_increase"
+	PerformanceImprovement   ImprovementType = "performance_increase"
+)
+
+// ThresholdConfig defines configurable thresholds for change detection
+type ThresholdConfig struct {
+	FunctionComplexity struct {
+		Warning     int     `yaml:"warning" json:"warning"`
+		Error       int     `yaml:"error" json:"error"`
+		MaxIncrease float64 `yaml:"max_increase_percent" json:"max_increase_percent"`
+		MinDecrease float64 `yaml:"min_decrease_percent" json:"min_decrease_percent"`
+	} `yaml:"function_complexity" json:"function_complexity"`
+
+	StructComplexity struct {
+		MaxFields      int     `yaml:"max_fields" json:"max_fields"`
+		FieldIncrease  float64 `yaml:"max_field_increase" json:"max_field_increase"`
+		MethodIncrease float64 `yaml:"max_method_increase" json:"max_method_increase"`
+	} `yaml:"struct_complexity" json:"struct_complexity"`
+
+	PackageMetrics struct {
+		MaxCoupling     float64 `yaml:"max_coupling" json:"max_coupling"`
+		MinCohesion     float64 `yaml:"min_cohesion" json:"min_cohesion"`
+		MaxDependencies int     `yaml:"max_dependencies" json:"max_dependencies"`
+	} `yaml:"package_metrics" json:"package_metrics"`
+
+	Documentation struct {
+		MinCoverage float64 `yaml:"min_coverage" json:"min_coverage"`
+		MaxDecrease float64 `yaml:"max_decrease_percent" json:"max_decrease_percent"`
+	} `yaml:"documentation" json:"documentation"`
+
+	Global struct {
+		MaxRegressions    int     `yaml:"max_regressions" json:"max_regressions"`
+		FailOnError       bool    `yaml:"fail_on_error" json:"fail_on_error"`
+		FailOnCritical    bool    `yaml:"fail_on_critical" json:"fail_on_critical"`
+		SignificanceLevel float64 `yaml:"significance_level" json:"significance_level"`
+	} `yaml:"global" json:"global"`
+}
+
+// DefaultThresholdConfig returns sensible default thresholds
+func DefaultThresholdConfig() ThresholdConfig {
+	config := ThresholdConfig{}
+
+	// Function complexity thresholds
+	config.FunctionComplexity.Warning = 10
+	config.FunctionComplexity.Error = 20
+	config.FunctionComplexity.MaxIncrease = 25.0
+	config.FunctionComplexity.MinDecrease = 10.0
+
+	// Struct complexity thresholds
+	config.StructComplexity.MaxFields = 15
+	config.StructComplexity.FieldIncrease = 30.0
+	config.StructComplexity.MethodIncrease = 20.0
+
+	// Package metrics thresholds
+	config.PackageMetrics.MaxCoupling = 0.75
+	config.PackageMetrics.MinCohesion = 0.60
+	config.PackageMetrics.MaxDependencies = 20
+
+	// Documentation thresholds
+	config.Documentation.MinCoverage = 70.0
+	config.Documentation.MaxDecrease = 15.0
+
+	// Global settings
+	config.Global.MaxRegressions = 5
+	config.Global.FailOnError = true
+	config.Global.FailOnCritical = true
+	config.Global.SignificanceLevel = 5.0
+
+	return config
+}
+
+// Trend Analysis Types
+
+// TrendAnalysis represents trend analysis across multiple data points
+type TrendAnalysis struct {
+	Metric       string           `json:"metric"`
+	Direction    TrendDirection   `json:"direction"`
+	Velocity     float64          `json:"velocity"`
+	Acceleration float64          `json:"acceleration"`
+	Confidence   float64          `json:"confidence"`
+	Forecast     ForecastPoint    `json:"forecast"`
+	DataPoints   []TrendPoint     `json:"data_points"`
+	Regression   LinearRegression `json:"regression"`
+}
+
+// TrendPoint represents a single data point in a trend
+type TrendPoint struct {
+	Timestamp time.Time   `json:"timestamp"`
+	Value     float64     `json:"value"`
+	Metadata  interface{} `json:"metadata,omitempty"`
+}
+
+// ForecastPoint represents a forecasted future value
+type ForecastPoint struct {
+	Timestamp  time.Time `json:"timestamp"`
+	Value      float64   `json:"value"`
+	Confidence float64   `json:"confidence"`
+	Upper      float64   `json:"upper_bound"`
+	Lower      float64   `json:"lower_bound"`
+}
+
+// LinearRegression represents simple linear regression results
+type LinearRegression struct {
+	Slope       float64 `json:"slope"`
+	Intercept   float64 `json:"intercept"`
+	RSquared    float64 `json:"r_squared"`
+	StdError    float64 `json:"std_error"`
+	Significant bool    `json:"significant"`
+}
+
+// ChangeGranularity defines what aspects of code to track for changes
+type ChangeGranularity struct {
+	Function struct {
+		LineCount     bool `json:"track_line_count"`
+		Complexity    bool `json:"track_complexity"`
+		Parameters    bool `json:"track_parameters"`
+		Returns       bool `json:"track_returns"`
+		Documentation bool `json:"track_documentation"`
+	} `json:"function"`
+
+	Struct struct {
+		FieldCount    bool `json:"track_field_count"`
+		FieldTypes    bool `json:"track_field_types"`
+		Methods       bool `json:"track_methods"`
+		Embedding     bool `json:"track_embedding"`
+		Documentation bool `json:"track_documentation"`
+	} `json:"struct"`
+
+	Package struct {
+		Dependencies  bool `json:"track_dependencies"`
+		Cohesion      bool `json:"track_cohesion"`
+		Coupling      bool `json:"track_coupling"`
+		Coverage      bool `json:"track_coverage"`
+		Documentation bool `json:"track_documentation"`
+	} `json:"package"`
+}
+
+// DefaultChangeGranularity returns default tracking settings
+func DefaultChangeGranularity() ChangeGranularity {
+	granularity := ChangeGranularity{}
+
+	// Function tracking (enable all)
+	granularity.Function.LineCount = true
+	granularity.Function.Complexity = true
+	granularity.Function.Parameters = true
+	granularity.Function.Returns = true
+	granularity.Function.Documentation = true
+
+	// Struct tracking (enable all)
+	granularity.Struct.FieldCount = true
+	granularity.Struct.FieldTypes = true
+	granularity.Struct.Methods = true
+	granularity.Struct.Embedding = true
+	granularity.Struct.Documentation = true
+
+	// Package tracking (enable all)
+	granularity.Package.Dependencies = true
+	granularity.Package.Cohesion = true
+	granularity.Package.Coupling = true
+	granularity.Package.Coverage = true
+	granularity.Package.Documentation = true
+
+	return granularity
+}
