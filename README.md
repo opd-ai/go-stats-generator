@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/opd-ai/go-stats-generator)](https://goreportcard.com/report/github.com/opd-ai/go-stats-generator)
 
-`gostats` is a high-performance command-line tool that analyzes Go source code repositories to generate comprehensive statistical reports about code structure, complexity, and patterns. The project focuses on computing obscure and detailed metrics that standard linters don't typically capture, providing actionable insights for code quality assessment and refactoring decisions.
+`go-stats-generator` is a high-performance command-line tool that analyzes Go source code repositories to generate comprehensive statistical reports about code structure, complexity, and patterns. The project focuses on computing obscure and detailed metrics that standard linters don't typically capture, providing actionable insights for code quality assessment and refactoring decisions.
 
 ## Features
 
@@ -22,7 +22,7 @@
 ```bash
 git clone https://github.com/opd-ai/go-stats-generator.git
 cd go-stats-generator
-go build -o gostats .
+go build -o go-stats-generator .
 ```
 
 ### Using Go Install
@@ -31,20 +31,26 @@ go build -o gostats .
 go install github.com/opd-ai/go-stats-generator@latest
 ```
 
+After installation, the binary will be available as `go-stats-generator` in your `$GOPATH/bin` directory (which should be in your `$PATH`). You can verify the installation by running:
+
+```bash
+go-stats-generator version
+```
+
 ## Quick Start
 
 ```bash
 # Analyze current directory
-gostats analyze .
+go-stats-generator analyze .
 
 # Analyze with JSON output
-gostats analyze ./src --format json --output report.json
+go-stats-generator analyze ./src --format json --output report.json
 
 # Analyze excluding test files
-gostats analyze . --skip-tests
+go-stats-generator analyze . --skip-tests
 
 # Analyze with custom complexity thresholds
-gostats analyze . --max-function-length 50 --max-complexity 15
+go-stats-generator analyze . --max-function-length 50 --max-complexity 15
 ```
 
 ## Usage
@@ -52,7 +58,7 @@ gostats analyze . --max-function-length 50 --max-complexity 15
 ### Basic Analysis
 
 ```bash
-gostats analyze [directory] [flags]
+go-stats-generator analyze [directory] [flags]
 ```
 
 ### Flags
