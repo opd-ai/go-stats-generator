@@ -45,9 +45,9 @@ func NewCSVReporter() Reporter {
 	return &CSVReporter{}
 }
 
-// NewHTMLReporter creates a new HTML reporter (placeholder)
+// NewHTMLReporter creates a new HTML reporter
 func NewHTMLReporter() Reporter {
-	return &HTMLReporter{}
+	return NewHTMLReporterWithConfig(nil)
 }
 
 // NewMarkdownReporter creates a new Markdown reporter (placeholder)
@@ -67,18 +67,6 @@ func (r *CSVReporter) Generate(report *metrics.Report, output io.Writer) error {
 func (r *CSVReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) error {
 	// Placeholder implementation
 	return fmt.Errorf("CSV diff reporter not yet implemented")
-}
-
-type HTMLReporter struct{}
-
-func (r *HTMLReporter) Generate(report *metrics.Report, output io.Writer) error {
-	// Placeholder implementation
-	return fmt.Errorf("HTML reporter not yet implemented")
-}
-
-func (r *HTMLReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) error {
-	// Placeholder implementation
-	return fmt.Errorf("HTML diff reporter not yet implemented")
 }
 
 type MarkdownReporter struct{}

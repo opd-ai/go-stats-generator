@@ -10,8 +10,14 @@
 - **Function and Method Analysis**: Precise line counting, cyclomatic complexity, signature complexity
 - **Struct Complexity Metrics**: Detailed member categorization by type
 - **Advanced Pattern Detection**: Design patterns, concurrency patterns, anti-patterns
+- **Historical Metrics Storage**: SQLite/JSON backends for tracking metrics over time
+- **Complexity Differential Analysis**: Compare metrics snapshots with multi-dimensional comparisons
+- **Regression Detection**: Automated detection of complexity regressions with configurable thresholds
+- **Trend Analysis**: Statistical analysis of metrics over time with forecasting capabilities
+- **Baseline Management**: Create and manage reference snapshots for comparisons
+- **CI/CD Integration**: Exit codes and reporting for automated quality gates
 - **Concurrent Processing**: Worker pools for analyzing large codebases efficiently
-- **Multiple Output Formats**: Console, JSON, CSV, HTML, Markdown
+- **Multiple Output Formats**: Console, JSON, CSV, HTML, Markdown with rich reporting
 - **Enterprise Scale**: Process 50,000+ files within 60 seconds, <1GB memory usage
 - **Configurable Analysis**: Flexible filtering, thresholds, and analysis options
 

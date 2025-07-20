@@ -11,6 +11,7 @@ type Config struct {
 	Output      OutputConfig      `mapstructure:"output" json:"output"`
 	Performance PerformanceConfig `mapstructure:"performance" json:"performance"`
 	Filters     FilterConfig      `mapstructure:"filters" json:"filters"`
+	Storage     StorageConfig     `mapstructure:"storage" json:"storage"`
 }
 
 // AnalysisConfig controls what gets analyzed
@@ -85,6 +86,17 @@ type FilterConfig struct {
 	SkipGenerated bool `mapstructure:"skip_generated" json:"skip_generated"`
 }
 
+// StorageConfig controls historical metrics storage
+type StorageConfig struct {
+	Type        string `mapstructure:"type" json:"type"`               // "sqlite", "json", "memory"
+	Path        string `mapstructure:"path" json:"path"`               // File path for sqlite/json
+	Compression bool   `mapstructure:"compression" json:"compression"` // Enable compression for stored data
+
+	// Retention policy
+	MaxSnapshots int           `mapstructure:"max_snapshots" json:"max_snapshots"`
+	MaxAge       time.Duration `mapstructure:"max_age" json:"max_age"`
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -130,6 +142,13 @@ func DefaultConfig() *Config {
 			SkipVendor:      true,
 			SkipTestFiles:   false,
 			SkipGenerated:   true,
+		},
+		Storage: StorageConfig{
+			Type:         "sqlite",
+			Path:         "metrics.db",
+			Compression:  true,
+			MaxSnapshots: 50,
+			MaxAge:       30 * 24 * time.Hour, // 30 days
 		},
 	}
 }
