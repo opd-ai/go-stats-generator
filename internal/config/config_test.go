@@ -17,7 +17,7 @@ func TestDefaultConfig(t *testing.T) {
 	// Test Analysis configuration
 	t.Run("AnalysisConfig", func(t *testing.T) {
 		analysis := config.Analysis
-		
+
 		// Test boolean flags
 		if !analysis.IncludeFunctions {
 			t.Error("Expected IncludeFunctions to be true")
