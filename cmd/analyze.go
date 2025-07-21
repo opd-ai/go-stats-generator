@@ -319,17 +319,13 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 		}
 
 		// Analyze structs in this file
+		fmt.Fprintf(os.Stderr, "DEBUG: About to analyze structs in %s\n", result.FileInfo.Path)
 		structs, err := structAnalyzer.AnalyzeStructs(result.File, result.FileInfo.Package)
 		if err != nil {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: failed to analyze structs in %s: %v\n",
-					result.FileInfo.Path, err)
-			}
-			// Continue processing even if struct analysis fails
+			fmt.Fprintf(os.Stderr, "ERROR: failed to analyze structs in %s: %v\n",
+				result.FileInfo.Path, err)
 		} else {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Debug: Found %d structs in %s\n", len(structs), result.FileInfo.Path)
-			}
+			fmt.Fprintf(os.Stderr, "DEBUG: Found %d structs in %s\n", len(structs), result.FileInfo.Path)
 			allStructs = append(allStructs, structs...)
 		}
 
