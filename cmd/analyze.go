@@ -289,6 +289,10 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 
 	// Process analysis results
 	for result := range results {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Debug: Processing file %s\n", result.FileInfo.Path)
+		}
+
 		if result.Error != nil {
 			if cfg.Output.Verbose {
 				fmt.Fprintf(os.Stderr, "Warning: %v\n", result.Error)
@@ -303,7 +307,9 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 				fmt.Fprintf(os.Stderr, "Warning: failed to analyze functions in %s: %v\n",
 					result.FileInfo.Path, err)
 			}
-			continue
+			// Don't continue - still try struct analysis
+		} else {
+			allFunctions = append(allFunctions, functions...)
 		}
 
 		// Analyze structs in this file
@@ -318,10 +324,8 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			if cfg.Output.Verbose {
 				fmt.Fprintf(os.Stderr, "Debug: Found %d structs in %s\n", len(structs), result.FileInfo.Path)
 			}
+			allStructs = append(allStructs, structs...)
 		}
-
-		allFunctions = append(allFunctions, functions...)
-		allStructs = append(allStructs, structs...)
 
 		// Count lines (simplified)
 		totalLines += int(result.FileInfo.Size) / 50 // Rough estimate
