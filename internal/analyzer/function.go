@@ -3,6 +3,7 @@ package analyzer
 import (
 	"go/ast"
 	"go/token"
+	"os"
 	"strings"
 
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
@@ -147,7 +148,7 @@ func (fa *FunctionAnalyzer) analyzeSignature(funcType *ast.FuncType) metrics.Fun
 	return signature
 }
 
-// countLines counts various types of lines in a function
+// countLines counts various types of lines in a function with precise categorization
 func (fa *FunctionAnalyzer) countLines(funcDecl *ast.FuncDecl) metrics.LineMetrics {
 	if funcDecl.Body == nil {
 		return metrics.LineMetrics{}
@@ -156,19 +157,131 @@ func (fa *FunctionAnalyzer) countLines(funcDecl *ast.FuncDecl) metrics.LineMetri
 	start := fa.fset.Position(funcDecl.Body.Lbrace)
 	end := fa.fset.Position(funcDecl.Body.Rbrace)
 
-	totalLines := end.Line - start.Line - 1 // Exclude opening and closing braces
-	if totalLines < 0 {
-		totalLines = 0
+	// Get the source file to analyze line by line
+	file := fa.fset.File(funcDecl.Pos())
+	if file == nil {
+		return metrics.LineMetrics{}
 	}
 
-	// For now, return total lines as code lines
-	// TODO: Implement proper comment and blank line counting
+	return fa.countLinesInRange(file, start.Line+1, end.Line-1)
+}
+
+// countLinesInRange performs precise line counting between start and end lines (inclusive)
+func (fa *FunctionAnalyzer) countLinesInRange(file *token.File, startLine, endLine int) metrics.LineMetrics {
+	if startLine > endLine {
+		return metrics.LineMetrics{}
+	}
+
+	// Read the source file
+	src, err := os.ReadFile(file.Name())
+	if err != nil {
+		return metrics.LineMetrics{}
+	}
+
+	lines := strings.Split(string(src), "\n")
+	if startLine < 1 || endLine > len(lines) {
+		return metrics.LineMetrics{}
+	}
+
+	var codeLines, commentLines, blankLines int
+
+	// Track if we're inside a multi-line comment
+	inBlockComment := false
+
+	for i := startLine - 1; i < endLine && i < len(lines); i++ {
+		line := strings.TrimSpace(lines[i])
+
+		// Check for blank lines first
+		if line == "" {
+			blankLines++
+			continue
+		}
+
+		// Parse the line character by character to handle complex cases
+		lineType := fa.classifyLine(line, &inBlockComment)
+
+		switch lineType {
+		case "code":
+			codeLines++
+		case "comment":
+			commentLines++
+		case "mixed":
+			// Line has both code and comment - count as code
+			codeLines++
+		}
+	}
+
+	totalLines := codeLines + commentLines + blankLines
+
 	return metrics.LineMetrics{
 		Total:    totalLines,
-		Code:     totalLines,
-		Comments: 0,
-		Blank:    0,
+		Code:     codeLines,
+		Comments: commentLines,
+		Blank:    blankLines,
 	}
+}
+
+// classifyLine determines the type of a line (code, comment, or mixed)
+func (fa *FunctionAnalyzer) classifyLine(line string, inBlockComment *bool) string {
+	if line == "" {
+		return "blank"
+	}
+
+	// If we're in a block comment, check if it ends on this line
+	if *inBlockComment {
+		if strings.Contains(line, "*/") {
+			*inBlockComment = false
+			// Check if there's code after the comment end
+			endIdx := strings.Index(line, "*/") + 2
+			if endIdx < len(line) {
+				remaining := strings.TrimSpace(line[endIdx:])
+				if remaining != "" && !strings.HasPrefix(remaining, "//") {
+					return "mixed"
+				}
+			}
+		}
+		return "comment"
+	}
+
+	// Check for block comment start
+	blockStartIdx := strings.Index(line, "/*")
+	if blockStartIdx >= 0 {
+		// Check if block comment ends on same line
+		blockEndIdx := strings.Index(line[blockStartIdx:], "*/")
+		if blockEndIdx >= 0 {
+			// Block comment contained within line
+			beforeBlock := strings.TrimSpace(line[:blockStartIdx])
+			afterBlock := strings.TrimSpace(line[blockStartIdx+blockEndIdx+2:])
+			hasCodeBefore := beforeBlock != ""
+			hasCodeAfter := afterBlock != "" && !strings.HasPrefix(afterBlock, "//")
+
+			if hasCodeBefore || hasCodeAfter {
+				return "mixed"
+			}
+			return "comment"
+		} else {
+			// Block comment starts but doesn't end
+			*inBlockComment = true
+			beforeBlock := strings.TrimSpace(line[:blockStartIdx])
+			if beforeBlock != "" {
+				return "mixed"
+			}
+			return "comment"
+		}
+	}
+
+	// Check for line comment
+	lineCommentIdx := strings.Index(line, "//")
+	if lineCommentIdx >= 0 {
+		beforeComment := strings.TrimSpace(line[:lineCommentIdx])
+		if beforeComment != "" {
+			return "mixed"
+		}
+		return "comment"
+	}
+
+	// No comments found, must be code
+	return "code"
 }
 
 // calculateComplexity calculates various complexity metrics

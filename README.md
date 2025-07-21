@@ -7,7 +7,11 @@
 
 ## Features
 
-- **Function and Method Analysis**: Precise line counting, cyclomatic complexity, signature complexity
+- **Precise Line Counting**: Advanced function/method line analysis that accurately categorizes code, comments, and blank lines
+  - Excludes braces, comments, and blank lines from function length calculations
+  - Handles complex scenarios: inline comments, multi-line block comments, mixed lines
+  - Provides detailed breakdown: total, code, comment, and blank line counts
+- **Function and Method Analysis**: Cyclomatic complexity, signature complexity, parameter analysis
 - **Struct Complexity Metrics**: Detailed member categorization by type
 - **Advanced Pattern Detection**: Design patterns, concurrency patterns, anti-patterns
 - **Historical Metrics Storage**: SQLite/JSON backends for tracking metrics over time
@@ -179,12 +183,40 @@ filters:
 - **Nesting Depth**: Maximum level of nested blocks
 - **Signature Complexity**: Based on parameter count, return values, generics
 
-### Line Counting
+### Line Counting Methodology
 
-Lines are counted precisely, excluding:
-- Comments (single-line `//` and multi-line `/* */`)
-- Blank lines
-- Opening and closing braces of function bodies
+The tool implements precise line counting that provides detailed breakdowns for function analysis:
+
+#### Line Categories
+- **Code Lines**: Lines containing executable code, variable declarations, control flow statements
+- **Comment Lines**: Single-line (`//`) and multi-line (`/* */`) comments  
+- **Blank Lines**: Empty lines or lines containing only whitespace
+- **Total Lines**: Sum of all categories (excluding function braces)
+
+#### Advanced Handling
+- **Mixed Lines**: Lines with both code and comments are classified as code lines
+- **Multi-line Comments**: Each line of a block comment is counted separately
+- **Inline Comments**: Code with trailing comments counts as code
+- **Function Boundaries**: Opening and closing braces are excluded from counts
+
+#### Example Analysis
+```go
+func example() {
+    // This is a comment line
+    var x int = 42 // This is a code line (mixed)
+    
+    /*
+     * Multi-line comment
+     * spans multiple lines  
+     */
+    
+    if x > 0 { // Another code line
+        return x
+    }
+}
+```
+
+**Result**: 4 code lines, 5 comment lines, 2 blank lines
 
 ### Complexity Thresholds
 
