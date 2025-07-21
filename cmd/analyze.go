@@ -270,7 +270,8 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	}
 
 	// Analyze results
-	analyzer := analyzer.NewFunctionAnalyzer(discoverer.GetFileSet())
+	functionAnalyzer := analyzer.NewFunctionAnalyzer(discoverer.GetFileSet())
+	structAnalyzer := analyzer.NewStructAnalyzer(discoverer.GetFileSet())
 
 	report := &metrics.Report{
 		Metadata: metrics.ReportMetadata{
@@ -283,6 +284,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	}
 
 	var allFunctions []metrics.FunctionMetrics
+	var allStructs []metrics.StructMetrics
 	var totalLines int
 
 	// Process analysis results
@@ -295,16 +297,31 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 		}
 
 		// Analyze functions in this file
-		functions, err := analyzer.AnalyzeFunctions(result.File, result.FileInfo.Package)
+		functions, err := functionAnalyzer.AnalyzeFunctions(result.File, result.FileInfo.Package)
 		if err != nil {
 			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: failed to analyze %s: %v\n",
+				fmt.Fprintf(os.Stderr, "Warning: failed to analyze functions in %s: %v\n",
 					result.FileInfo.Path, err)
 			}
 			continue
 		}
 
+		// Analyze structs in this file
+		structs, err := structAnalyzer.AnalyzeStructs(result.File, result.FileInfo.Package)
+		if err != nil {
+			if cfg.Output.Verbose {
+				fmt.Fprintf(os.Stderr, "Warning: failed to analyze structs in %s: %v\n",
+					result.FileInfo.Path, err)
+			}
+			// Continue processing even if struct analysis fails
+		} else {
+			if cfg.Output.Verbose {
+				fmt.Fprintf(os.Stderr, "Debug: Found %d structs in %s\n", len(structs), result.FileInfo.Path)
+			}
+		}
+
 		allFunctions = append(allFunctions, functions...)
+		allStructs = append(allStructs, structs...)
 
 		// Count lines (simplified)
 		totalLines += int(result.FileInfo.Size) / 50 // Rough estimate
@@ -312,9 +329,11 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 
 	// Populate report
 	report.Functions = allFunctions
+	report.Structs = allStructs
 	report.Overview = metrics.OverviewMetrics{
 		TotalLinesOfCode: totalLines,
 		TotalFunctions:   len(allFunctions),
+		TotalStructs:     len(allStructs),
 		TotalFiles:       len(files),
 	}
 
