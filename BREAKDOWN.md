@@ -2,6 +2,7 @@
 Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis, targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality.
 
 ## PREREQUISITES:
+**Minimum Required Version:** `go-stats-generator` v1.0.0 or higher  
 Install and configure `go-stats-generator` for comprehensive complexity analysis and improvement tracking:
 
 ### Installation:
@@ -60,10 +61,18 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 2. **Create Focused Extractions:**
   - Extract each logical block identified by the tool
   - Name functions using verb-first camelCase (e.g., `validateInput`, `calculateResult`)
+    - ❌ Avoid noun-first or snake_case names (e.g., `inputValidator`, `calculate_result`)
   - Target metrics per extracted function:
     * <20 lines of code
     * Cyclomatic complexity <8
-    * Overall complexity <10.0
+  - Add GoDoc comments starting with function name  
+    *Example:*  
+    ```go
+    // validateInput checks if the provided input meets all required criteria.
+    func validateInput(input string) error {
+        // ...
+    }
+    ```
   - Add GoDoc comments starting with function name
 
 3. **Preserve Analysis-Verified Patterns:**
@@ -125,8 +134,10 @@ Differential analysis results:
 - Overall quality improvement: [score]
 ```
 
-### 4. Completion Message
-- If refactored: "Refactor complete: [filename] - go-stats-generator verified complexity reduction from [old] to [new] ([improvement_%]). [n] functions extracted, all within thresholds."
+Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + generics_penalty
+- generics_penalty: An additional score (typically 1.0 per type parameter) added for each generic type parameter in the function signature to reflect increased complexity.
+
+Refactoring Threshold = Overall Complexity > 15.0 OR Lines > 30 OR Cyclomatic > 10
 - If no targets: "Refactor complete: go-stats-generator baseline analysis found no functions exceeding professional complexity thresholds."
 
 ## COMPLEXITY REFERENCE (go-stats-generator calculation):
@@ -149,7 +160,8 @@ $ go-stats-generator analyze . --format console --top 5
 $ go-stats-generator diff baseline.json refactored.json --format console
 === IMPROVEMENT SUMMARY ===
 MAJOR IMPROVEMENTS:
-  processComplexOrder: 25.4 → 6.2 (-75.6%)
+EXTRACTED FUNCTIONS:
+(All steps validated by automated differential analysis to ensure measurable, data-driven improvements.)
   
 EXTRACTED FUNCTIONS:
   validateOrderData: 5.1 complexity ✓
