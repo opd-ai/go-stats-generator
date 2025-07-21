@@ -41,7 +41,7 @@ func TestDefaultStorageConfig(t *testing.T) {
 	// Test SQLite configuration
 	t.Run("SQLiteConfig", func(t *testing.T) {
 		sqlite := config.SQLite
-		
+
 		if sqlite.Path != ".gostats/metrics.db" {
 			t.Errorf("Expected SQLite Path to be '.gostats/metrics.db', got '%s'", sqlite.Path)
 		}
@@ -66,7 +66,7 @@ func TestDefaultStorageConfig(t *testing.T) {
 	// Test JSON configuration
 	t.Run("JSONConfig", func(t *testing.T) {
 		json := config.JSON
-		
+
 		if json.Directory != ".gostats/snapshots" {
 			t.Errorf("Expected JSON Directory to be '.gostats/snapshots', got '%s'", json.Directory)
 		}
@@ -198,16 +198,16 @@ func TestNewSQLiteStorage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage, err := NewSQLiteStorage(tt.config)
-			
+
 			// Note: Since NewSQLiteStorage calls NewSQLiteStorageImpl which isn't implemented yet,
 			// we expect this to fail gracefully or return an error
 			// This test validates the function signature and basic behavior
-			
+
 			if err != nil {
 				// Log the error but don't fail the test since implementation might not be complete
 				t.Logf("NewSQLiteStorage returned error (expected for incomplete implementation): %v", err)
 			}
-			
+
 			if storage != nil {
 				// If we get a storage instance, verify it implements the interface
 				var _ MetricsStorage = storage
@@ -245,7 +245,7 @@ func TestNewJSONStorage(t *testing.T) {
 func TestSnapshotFilter(t *testing.T) {
 	now := time.Now()
 	yesterday := now.Add(-24 * time.Hour)
-	
+
 	filter := SnapshotFilter{
 		After:  &yesterday,
 		Before: &now,

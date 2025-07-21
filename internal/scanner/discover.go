@@ -231,7 +231,10 @@ func isGeneratedFile(content string) bool {
 
 // containsPathSegment checks if a path contains a specific segment
 func containsPathSegment(path, segment string) bool {
-	segments := strings.Split(filepath.ToSlash(path), "/")
+	// Normalize both forward slashes and backslashes to forward slashes
+	// This handles both Unix and Windows path formats
+	normalizedPath := strings.ReplaceAll(path, "\\", "/")
+	segments := strings.Split(normalizedPath, "/")
 	for _, s := range segments {
 		if s == segment {
 			return true
