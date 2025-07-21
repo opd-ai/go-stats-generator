@@ -14,7 +14,7 @@ go install github.com/opd-ai/go-stats-generator@latest
 ```bash
 # Phase 1: Establish baseline and identify targets
 go-stats-generator analyze . --format json --output baseline.json
-go-stats-generator analyze . --format console --complexity-threshold 13 --line-threshold 30
+go-stats-generator analyze .  --complexity-threshold 13 --line-threshold 30
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
@@ -23,7 +23,7 @@ Using the results generated in phase 1, select a high-complexity function suitab
 go-stats-generator analyze . --format json --output refactored.json
 
 # Phase 4: Measure and document improvements
-go-stats-generator diff baseline.json refactored.json --format console --show-details
+go-stats-generator diff baseline.json refactored.json  --show-details
 go-stats-generator diff baseline.json refactored.json --format html --output improvements.html
 ```
 
@@ -35,7 +35,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 ### Phase 1: Data-Driven Target Identification
 1. **Run Baseline Analysis:**
   ```bash
-  go-stats-generator analyze . --format console --sort-by complexity --top 10
+  go-stats-generator analyze .  --sort-by complexity --top 10
   ```
   - Record the highest complexity function and its metrics
   - Note specific complexity contributors (cyclomatic, nesting, signature)
@@ -83,7 +83,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
   ```bash
-  go-stats-generator diff baseline.json refactored.json --format console --metrics all
+  go-stats-generator diff baseline.json refactored.json  --metrics all
   ```
   - Verify target function shows significant complexity reduction (>50%)
   - Confirm no new functions exceed thresholds
@@ -149,7 +149,7 @@ Refactoring Threshold = Overall Complexity > 13.0 OR Lines > 30 OR Cyclomatic > 
 
 ## EXAMPLE WORKFLOW:
 ```bash
-$ go-stats-generator analyze . --format console --top 5
+$ go-stats-generator analyze .  --top 5
 === TOP COMPLEX FUNCTIONS ===
 1. processComplexOrder (order.go): 25.4 complexity
   - Lines: 45 code lines 
@@ -157,7 +157,7 @@ $ go-stats-generator analyze . --format console --top 5
   - Nesting: 4
   - Recommendations: Extract 4 logical blocks
 
-$ go-stats-generator diff baseline.json refactored.json --format console
+$ go-stats-generator diff baseline.json refactored.json 
 === IMPROVEMENT SUMMARY ===
 MAJOR IMPROVEMENTS:
 EXTRACTED FUNCTIONS:
