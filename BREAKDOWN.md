@@ -149,7 +149,7 @@ Refactoring Threshold = Overall Complexity > 13.0 OR Lines > 30 OR Cyclomatic > 
 
 ## EXAMPLE WORKFLOW:
 ```bash
-$ go-stats-generator analyze .  --top 5
+$ go-stats-generator analyze .
 === TOP COMPLEX FUNCTIONS ===
 1. processComplexOrder (order.go): 25.4 complexity
   - Lines: 45 code lines 
