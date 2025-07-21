@@ -70,6 +70,8 @@ func init() {
 		"output format (console, json, csv, html, markdown)")
 	analyzeCmd.Flags().StringVarP(&outputFile, "output", "o", "",
 		"output file (default: stdout)")
+	analyzeCmd.Flags().Bool("verbose", false,
+		"enable verbose output")
 
 	// Performance flags
 	analyzeCmd.Flags().IntVarP(&workers, "workers", "w", 0,
@@ -110,6 +112,7 @@ func init() {
 	// Bind flags to viper
 	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
 	viper.BindPFlag("output.destination", analyzeCmd.Flags().Lookup("output"))
+	viper.BindPFlag("output.verbose", analyzeCmd.Flags().Lookup("verbose"))
 	viper.BindPFlag("performance.worker_count", analyzeCmd.Flags().Lookup("workers"))
 	viper.BindPFlag("performance.timeout", analyzeCmd.Flags().Lookup("timeout"))
 	viper.BindPFlag("filters.skip_vendor", analyzeCmd.Flags().Lookup("skip-vendor"))
@@ -175,6 +178,9 @@ func loadConfiguration() *config.Config {
 	}
 	if viper.IsSet("output.destination") {
 		cfg.Output.Destination = viper.GetString("output.destination")
+	}
+	if viper.IsSet("output.verbose") {
+		cfg.Output.Verbose = viper.GetBool("output.verbose")
 	}
 	if viper.IsSet("performance.worker_count") {
 		cfg.Performance.WorkerCount = viper.GetInt("performance.worker_count")
