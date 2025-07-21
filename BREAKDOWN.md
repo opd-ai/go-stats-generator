@@ -14,7 +14,7 @@ go install github.com/opd-ai/go-stats-generator@latest
 ```bash
 # Phase 1: Establish baseline and identify targets
 go-stats-generator analyze . --format json --output baseline.json
-go-stats-generator analyze . --format console --complexity-threshold 15 --line-threshold 30
+go-stats-generator analyze . --format console --complexity-threshold 13 --line-threshold 30
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
@@ -47,7 +47,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   ```
   - Use tool's suggestions for logical extraction points
   - Identify functions exceeding thresholds:
-    * Overall complexity > 15.0
+    * Overall complexity > 13.0
     * Line count > 30 (code lines only)
     * Cyclomatic complexity > 10
     * Nesting depth > 3
@@ -137,14 +137,14 @@ Differential analysis results:
 Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + generics_penalty
 - generics_penalty: An additional score (typically 1.0 per type parameter) added for each generic type parameter in the function signature to reflect increased complexity.
 
-Refactoring Threshold = Overall Complexity > 15.0 OR Lines > 30 OR Cyclomatic > 10
+Refactoring Threshold = Overall Complexity > 13.0 OR Lines > 30 OR Cyclomatic > 10
 - If no targets: "Refactor complete: go-stats-generator baseline analysis found no functions exceeding professional complexity thresholds."
 
 ## COMPLEXITY REFERENCE (go-stats-generator calculation):
 ```
 Overall Complexity = cyclomatic + (nesting_depth * 0.5) + (cognitive * 0.3)
 Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + generics_penalty
-Refactoring Threshold = Overall Complexity > 15.0 OR Lines > 30 OR Cyclomatic > 10
+Refactoring Threshold = Overall Complexity > 13.0 OR Lines > 30 OR Cyclomatic > 10
 ```
 
 ## EXAMPLE WORKFLOW:
