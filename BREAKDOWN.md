@@ -16,7 +16,7 @@ go-stats-generator analyze . --format json --output baseline.json
 go-stats-generator analyze . --format console --complexity-threshold 15 --line-threshold 30
 
 # Phase 2: Generate refactoring recommendations  
-go-stats-generator analyze . --format json --output baseline.json --recommend-refactoring
+Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
 
 # Phase 3: Post-refactoring validation
 go-stats-generator analyze . --format json --output refactored.json
