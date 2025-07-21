@@ -132,36 +132,30 @@ func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
 }
 
 // trackProgress monitors processing progress and calls the callback
-func (wp *WorkerPool) trackProgress(ctx context.Context, resultChan <-chan Result, total int, progressCb ProgressCallback) {
+func (wp *WorkerPool) trackProgress(ctx context.Context, resultChan <-chan Result, total int, progressCb ProgressCallback) <-chan Result {
 	completed := 0
+	
+	// Create a new channel to forward results
+	forwardChan := make(chan Result, total)
 
-	// Create a separate channel to avoid interfering with main processing
-	progressChan := make(chan Result, total)
-
-	// Copy results to progress channel
+	// Forward results while tracking progress
 	go func() {
+		defer close(forwardChan)
+		
 		for result := range resultChan {
-			progressChan <- result
-		}
-		close(progressChan)
-	}()
-
-	// Track progress
-	for {
-		select {
-		case _, ok := <-progressChan:
-			if !ok {
-				// Final progress update
-				progressCb(total, total)
-				return
-			}
+			// Forward the result
+			forwardChan <- result
+			
+			// Update progress
 			completed++
 			progressCb(completed, total)
-
-		case <-ctx.Done():
-			return
 		}
-	}
+		
+		// Final progress update
+		progressCb(total, total)
+	}()
+
+	return forwardChan
 }
 
 // ProcessFilesSequential processes files one by one (useful for debugging)
