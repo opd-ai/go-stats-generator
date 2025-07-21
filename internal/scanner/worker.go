@@ -63,9 +63,10 @@ func (wp *WorkerPool) ProcessFiles(ctx context.Context, files []FileInfo, progre
 		go wp.worker(ctx, &wg, jobChan, resultChan)
 	}
 
-	// Start progress tracker if callback provided
+	// Start progress tracker if callback provided and return tracked channel
+	var finalResultChan <-chan Result = resultChan
 	if progressCb != nil {
-		go wp.trackProgress(ctx, resultChan, len(files), progressCb)
+		finalResultChan = wp.trackProgress(ctx, resultChan, len(files), progressCb)
 	}
 
 	// Send jobs
@@ -86,7 +87,7 @@ func (wp *WorkerPool) ProcessFiles(ctx context.Context, files []FileInfo, progre
 		close(resultChan)
 	}()
 
-	return resultChan, nil
+	return finalResultChan, nil
 }
 
 // worker processes jobs from the job channel
@@ -134,23 +135,23 @@ func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
 // trackProgress monitors processing progress and calls the callback
 func (wp *WorkerPool) trackProgress(ctx context.Context, resultChan <-chan Result, total int, progressCb ProgressCallback) <-chan Result {
 	completed := 0
-	
+
 	// Create a new channel to forward results
 	forwardChan := make(chan Result, total)
 
 	// Forward results while tracking progress
 	go func() {
 		defer close(forwardChan)
-		
+
 		for result := range resultChan {
 			// Forward the result
 			forwardChan <- result
-			
+
 			// Update progress
 			completed++
 			progressCb(completed, total)
 		}
-		
+
 		// Final progress update
 		progressCb(total, total)
 	}()
