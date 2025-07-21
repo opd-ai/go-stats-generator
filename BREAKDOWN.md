@@ -23,7 +23,7 @@ Using the results generated in phase 1, select a high-complexity function suitab
 go-stats-generator analyze . --format json --output refactored.json
 
 # Phase 4: Measure and document improvements
-go-stats-generator diff baseline.json refactored.json  --show-details
+go-stats-generator diff baseline.json refactored.json
 go-stats-generator diff baseline.json refactored.json --format html --output improvements.html
 ```
 
