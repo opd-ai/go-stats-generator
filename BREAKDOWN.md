@@ -43,7 +43,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 
 2. **Generate Refactoring Plan:**
   ```bash
-  go-stats-generator analyze [target-file] --format json --suggest-extractions
+  go-stats-generator analyze [target-file] --format json
   ```
   - Use tool's suggestions for logical extraction points
   - Identify functions exceeding thresholds:
@@ -83,7 +83,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
   ```bash
-  go-stats-generator diff baseline.json refactored.json  --metrics all
+  go-stats-generator diff baseline.json refactored.json
   ```
   - Verify target function shows significant complexity reduction (>50%)
   - Confirm no new functions exceed thresholds
