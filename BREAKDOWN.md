@@ -35,7 +35,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 ### Phase 1: Data-Driven Target Identification
 1. **Run Baseline Analysis:**
   ```bash
-  go-stats-generator analyze .  --sort-by complexity --top 10
+  go-stats-generator analyze .  --top 10
   ```
   - Record the highest complexity function and its metrics
   - Note specific complexity contributors (cyclomatic, nesting, signature)
