@@ -1,213 +1,163 @@
 # TASK DESCRIPTION:
-Perform a functional breakdown analysis on a single Go file using advanced complexity metrics from `go-stats-generator`, refactoring functions that exceed professional quality thresholds into smaller, well-named private functions that improve code readability and maintainability. Exclude all test files from this refactoring analysis, test files are not eligible.
+Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis, targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality.
 
 ## PREREQUISITES:
-Before starting the analysis, install and use `go-stats-generator` to identify complex functions:
+Install and configure `go-stats-generator` for comprehensive complexity analysis and improvement tracking:
 
 ### Installation:
 ```bash
 go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-### Usage for Complexity Analysis:
+### Required Analysis Workflow:
 ```bash
-# Analyze the target codebase to identify complex functions
-go-stats-generator analyze . --format json --output complexity-report.json
+# Phase 1: Establish baseline and identify targets
+go-stats-generator analyze . --format json --output baseline.json
+go-stats-generator analyze . --format console --complexity-threshold 15 --line-threshold 30
 
-# Or use console output to quickly identify functions exceeding thresholds
-go-stats-generator analyze . --max-function-length 30 --max-complexity 10
+# Phase 2: Generate refactoring recommendations  
+go-stats-generator analyze . --format json --output baseline.json --recommend-refactoring
+
+# Phase 3: Post-refactoring validation
+go-stats-generator analyze . --format json --output refactored.json
+
+# Phase 4: Measure and document improvements
+go-stats-generator diff baseline.json refactored.json --format console --show-details
+go-stats-generator diff baseline.json refactored.json --format html --output improvements.html
 ```
-
-The tool will provide detailed metrics including:
-- Function line counts (excluding comments, blank lines, braces)
-- Cyclomatic complexity scores
-- Nesting depth measurements
-- Signature complexity analysis
-- Overall complexity scores with weighted calculations
-
-Use this output to prioritize which functions require refactoring based on actual measured complexity rather than manual assessment.
 
 ## CONTEXT:
-You are acting as an automated Go code auditor specializing in functional decomposition using enterprise-grade complexity analysis powered by `go-stats-generator`. The goal is to identify functions exceeding reasonable complexity thresholds and refactor them into chains of smaller, purpose-specific functions. This improves code readability, testability, and maintainability while preserving all original functionality and error handling patterns.
-
-Target metrics (following go-stats-generator analysis patterns):
-- Functions exceeding 30 lines of code (excluding comments, blank lines, and braces)
-- Functions with cyclomatic complexity > 10
-- Functions with nesting depth > 3
-- Functions with overall complexity score > 15.0 (calculated as: cyclomatic + nesting_depth*0.5 + cognitive*0.3)
-- Functions with signature complexity > 8.0 (based on parameter count, return values, interface usage, generics)
-- Functions performing multiple distinct logical operations
+You are an automated Go code auditor using `go-stats-generator` for enterprise-grade complexity analysis and refactoring validation. The tool provides precise metrics, identifies refactoring targets, and measures improvements through differential analysis. Focus on functions with the highest complexity scores identified by the tool's analysis engine.
 
 ## INSTRUCTIONS:
-1. **Initial Analysis Phase:**
-   - Run `go-stats-generator analyze .` on the target codebase to identify functions exceeding complexity thresholds
-   - Review the console output or JSON report to locate functions with:
-     * Line counts > 30 (excluding comments, blank lines, braces)
-     * Cyclomatic complexity > 10
-     * Overall complexity score > 15.0
-   - Use the tool's detailed metrics to guide refactoring decisions
 
-2. **Complexity Analysis Phase:**
-   - Calculate precise line counts excluding comments, blank lines, and function braces
-   - Compute cyclomatic complexity by counting decision points (if, for, range, switch, select, case clauses)
-   - Measure nesting depth of control structures
-   - Evaluate signature complexity considering:
-     * Parameter count (each param adds 0.5 to complexity)
-     * Return count (each return adds 0.3 to complexity)
-     * Interface parameters (each adds 0.8 to complexity)
-     * Variadic parameters (adds 1.0 to complexity)
-     * Generic parameters (each adds 1.5 to complexity)
-   - Calculate overall complexity score using weighted formula
+### Phase 1: Data-Driven Target Identification
+1. **Run Baseline Analysis:**
+  ```bash
+  go-stats-generator analyze . --format console --sort-by complexity --top 10
+  ```
+  - Record the highest complexity function and its metrics
+  - Note specific complexity contributors (cyclomatic, nesting, signature)
+  - Identify the file containing the most complex function
 
-3. **File Selection Phase:**
-   - Based on `go-stats-generator` output, identify the file containing the most complex function
-   - Prioritize functions with highest overall complexity scores first
-   - Select exactly one file for refactoring
-   - If no functions exceed thresholds according to the tool, skip to step 8
+2. **Generate Refactoring Plan:**
+  ```bash
+  go-stats-generator analyze [target-file] --format json --detail-level high --suggest-extractions
+  ```
+  - Use tool's suggestions for logical extraction points
+  - Identify functions exceeding thresholds:
+    * Overall complexity > 15.0
+    * Line count > 30 (code lines only)
+    * Cyclomatic complexity > 10
+    * Nesting depth > 3
 
-3. **Function Analysis Phase:**
-   - Identify the highest complexity function from the `go-stats-generator` report
-   - Map distinct logical tasks within this function by identifying:
-     * Initialization/setup blocks
-     * Input validation/preprocessing steps
-     * Core business logic segments with single responsibilities
-     * Error handling patterns and cleanup operations
-     * Loop bodies performing discrete operations
-     * Conditional blocks with substantial logic
-     * Resource management (defer statements, file operations)
-     * Data transformation steps
+### Phase 2: Guided Refactoring Implementation
+1. **Follow Tool Recommendations:**
+  - Use `go-stats-generator`'s extraction suggestions as the primary guide
+  - Target each suggested extraction point for separate function creation
+  - Maintain error handling patterns identified in the analysis
 
-4. **Refactoring Design Phase:**
-   - Plan extraction of each identified task into a private function
-   - Design function signatures that:
-     * Accept only necessary parameters (target <5 parameters per function)
-     * Return appropriate values including error types
-     * Maintain the same error handling patterns as the original
-     * Minimize signature complexity score
-   - Ensure extracted functions will be attached to the correct receiver (if methods)
-   - Verify that variable scoping remains correct and no unintended closures are created
+2. **Create Focused Extractions:**
+  - Extract each logical block identified by the tool
+  - Name functions using verb-first camelCase (e.g., `validateInput`, `calculateResult`)
+  - Target metrics per extracted function:
+    * <20 lines of code
+    * Cyclomatic complexity <8
+    * Overall complexity <10.0
+  - Add GoDoc comments starting with function name
 
-5. **Implementation Phase:**
-   - Extract each identified task into a private function following these conventions:
-     * Use camelCase starting with lowercase letter
-     * Begin with a verb describing the action
-     * Be specific about the function's purpose
-     * Target <30 lines per extracted function
-     * Target cyclomatic complexity <10 per extracted function
-     * Examples: `validateUserInput()`, `calculateTaxRate()`, `buildResponseHeader()`
-   - Add precise GoDoc comments above each new function:
-     * Start with the function name
-     * Describe what the function does and returns
-     * Include error conditions if applicable
-     * Example: `// validateUserInput checks that all required fields are present and valid.`
-   - Preserve all error handling:
-     * Propagate errors up the call chain with proper wrapping
-     * Maintain original error context and annotations
-     * Keep defer statements in appropriate scope
-   - Update the original function to call the new private functions in sequence
+3. **Preserve Analysis-Verified Patterns:**
+  - Maintain error propagation chains
+  - Keep defer statements in correct scope
+  - Preserve variable access patterns
 
-6. **Verification Phase:**
-   - Run `go-stats-generator analyze .` again to confirm complexity reduction
-   - Verify that the refactored function now meets all threshold requirements
-   - Confirm functional equivalence:
-     * All original logic is preserved
-     * Error handling paths remain identical
-     * Return values are unchanged
-   - Validate Go best practices:
-     * Functions follow single responsibility principle
-     * Error handling follows Go idioms
-     * Variable scoping is correct
-     * No unnecessary global state access
+### Phase 3: Differential Validation
+1. **Measure Improvements:**
+  ```bash
+  go-stats-generator diff baseline.json refactored.json --format console --metrics all
+  ```
+  - Verify target function shows significant complexity reduction (>50%)
+  - Confirm no new functions exceed thresholds
+  - Check for zero regressions in unchanged code
 
-7. **Completion Phase:**
-   - If refactoring was performed: Output message "Refactor complete: [filename] - Reduced complexity from [original_score] to [new_score] across [n] extracted functions."
-   - If no refactoring needed: Output message "Refactor complete: No functions in the codebase exceed professional complexity thresholds according to go-stats-generator analysis."
+2. **Generate Improvement Report:**
+  ```bash
+  go-stats-generator diff baseline.json refactored.json --format html --output report.html --include-recommendations
+  ```
 
-## COMPLEXITY CALCULATION REFERENCE:
-```
-Cyclomatic Complexity = 1 + count(if, for, range, switch, select, case, comm clauses)
-Nesting Depth = maximum depth of nested block statements
-Signature Complexity = (parameters * 0.5) + (returns * 0.3) + (interfaces * 0.8) + (variadic ? 1.0 : 0) + (generics * 1.5)
-Overall Complexity = cyclomatic + (nesting_depth * 0.5) + (cognitive * 0.3)
-```
+### Phase 4: Quality Verification
+1. **Validate Metrics Achievement:**
+  - Original function complexity reduced by ≥50%
+  - All extracted functions meet target thresholds
+  - No complexity regressions detected by diff analysis
+  - Overall codebase complexity trend positive
 
-## FORMATTING REQUIREMENTS:
-Present the refactored code using:
-- Standard Go formatting (as produced by `go fmt`)
-- Clear separation between the refactored main function and extracted helper functions
-- Consistent indentation and spacing
-- Proper placement of GoDoc comments according to Go conventions
-- Extracted functions placed immediately after the main function
+2. **Confirm Functional Preservation:**
+  - All tests pass (if present)
+  - Error handling paths unchanged
+  - Return value semantics preserved
+
+## OUTPUT FORMAT:
 
 Structure your response as:
-1. Complexity analysis summary showing before/after metrics
-2. The complete refactored file with all changes
-3. Completion message with quantified improvements
 
-## QUALITY CHECKS:
-Before presenting the refactored code, verify:
-- Original function's overall complexity score is reduced below 15.0
-- Each extracted function has complexity score <10.0
-- Line counts are accurate (excluding comments/blanks/braces)
-- The refactored code compiles without errors
-- All tests that passed before refactoring still pass
-- No business logic has been altered
-- Error handling is preserved exactly as in the original
-- Function names accurately describe their single responsibility
-- GoDoc comments follow Go documentation standards
-- No code duplication has been introduced
-- Variable scoping is correct with no unintended memory leaks
-
-## EXAMPLES:
-Example of a function requiring breakdown (complexity analysis):
-```go
-func processComplexOrder(order Order, config Config, validators []Validator) (*Result, error) {
-    // 67 lines total (45 code lines excluding comments/blanks/braces)
-    // Cyclomatic complexity: 18 (multiple if/for/switch statements)
-    // Nesting depth: 4 (deeply nested conditionals)
-    // Signature complexity: 6.3 (3 params * 0.5 + 2 returns * 0.3 + 1 interface * 0.8)
-    // Overall complexity: 18 + (4 * 0.5) + (18 * 0.3) = 25.4 (exceeds 15.0 threshold)
-}
+### 1. Baseline Analysis Summary
+```
+go-stats-generator identified target function:
+- Function: [name] in [file]
+- Current complexity: [score]
+- Key issues: [cyclomatic/nesting/lines breakdown]
+- Recommended extractions: [n] functions
 ```
 
-After refactoring (complexity reduced):
-```go
-func processComplexOrder(order Order, config Config, validators []Validator) (*Result, error) {
-    // Overall complexity: 4.9 (within threshold)
-    if err := validateOrderData(order, validators); err != nil {
-        return nil, fmt.Errorf("validation failed: %w", err)
-    }
-    
-    pricing, err := calculateOrderPricing(order, config)
-    if err != nil {
-        return nil, fmt.Errorf("pricing calculation failed: %w", err)
-    }
-    
-    result, err := finalizeOrderProcessing(order, pricing, config)
-    if err != nil {
-        return nil, fmt.Errorf("order finalization failed: %w", err)
-    }
-    
-    return result, nil
-}
+### 2. Complete Refactored File
+Present the fully refactored Go file with:
+- Original function reduced to coordination logic
+- Extracted private functions with GoDoc
+- Standard Go formatting
 
-// validateOrderData ensures all required order fields are present and pass validation rules.
-// It returns an error if any validation rule is violated.
-func validateOrderData(order Order, validators []Validator) error {
-    // Complexity: 6.2 (within threshold)
-    // validation logic extracted here
-}
+### 3. Improvement Validation
+```
+Differential analysis results:
+- Original function: [old_score] → [new_score] ([improvement_%])
+- New functions: [list with complexities]
+- Regressions: [count]
+- Overall quality improvement: [score]
+```
 
-// calculateOrderPricing computes the final price including tax, discounts, and fees.
-// It returns the pricing details or an error if calculation fails.
-func calculateOrderPricing(order Order, config Config) (*PricingDetails, error) {
-    // Complexity: 8.1 (within threshold)
-    // pricing calculation logic extracted here
-}
+### 4. Completion Message
+- If refactored: "Refactor complete: [filename] - go-stats-generator verified complexity reduction from [old] to [new] ([improvement_%]). [n] functions extracted, all within thresholds."
+- If no targets: "Refactor complete: go-stats-generator baseline analysis found no functions exceeding professional complexity thresholds."
 
-// finalizeOrderProcessing completes the order processing workflow.
-// It returns the final result or an error if any step fails.
-func finalizeOrderProcessing(order Order, pricing *PricingDetails, config Config) (*Result, error) {
-    // Complexity: 7.3 (within threshold)
-    // finalization logic extracted here
-}
+## COMPLEXITY REFERENCE (go-stats-generator calculation):
+```
+Overall Complexity = cyclomatic + (nesting_depth * 0.5) + (cognitive * 0.3)
+Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + generics_penalty
+Refactoring Threshold = Overall Complexity > 15.0 OR Lines > 30 OR Cyclomatic > 10
+```
+
+## EXAMPLE WORKFLOW:
+```bash
+$ go-stats-generator analyze . --format console --top 5
+=== TOP COMPLEX FUNCTIONS ===
+1. processComplexOrder (order.go): 25.4 complexity
+  - Lines: 45 code lines 
+  - Cyclomatic: 18
+  - Nesting: 4
+  - Recommendations: Extract 4 logical blocks
+
+$ go-stats-generator diff baseline.json refactored.json --format console
+=== IMPROVEMENT SUMMARY ===
+MAJOR IMPROVEMENTS:
+  processComplexOrder: 25.4 → 6.2 (-75.6%)
+  
+EXTRACTED FUNCTIONS:
+  validateOrderData: 5.1 complexity ✓
+  calculatePricing: 7.3 complexity ✓
+  finalizeOrder: 6.8 complexity ✓
+  
+QUALITY SCORE: 95/100 (+22 improvement)
+REGRESSIONS: 0
+```
+
+This data-driven approach ensures refactoring decisions are based on quantitative analysis rather than subjective assessment, with measurable validation of improvements.
