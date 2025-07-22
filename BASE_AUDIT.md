@@ -1,5 +1,5 @@
 # TASK DESCRIPTION:
-Perform a comprehensive functional audit of a Go codebase to identify all discrepancies between documented functionality (README.md) and actual implementation, focusing on bugs, missing features, and functional misalignments. Place your findings into AUDIT.md at the base of the package.
+Perform a comprehensive functional audit of a Go codebase to identify all discrepancies between documented functionality (README.md) and actual implementation, focusing on bugs, missing features, and functional misalignments. Place your findings into AUDIT.md at the base of the package. This package has been audited many times already, carefully ensure that your concerns apply to the most recent version of the code.
 
 ## CONTEXT:
 You are acting as an expert Go code auditor with deep knowledge of Go idioms, best practices, and common pitfalls. Your analysis will be used by development teams to identify and prioritize fixes before deployment. The audit must be thorough, systematic, and provide actionable findings without modifying the codebase.
