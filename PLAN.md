@@ -120,22 +120,29 @@ github.com/opd-ai/go-stats-generator/
 - ✅ Progress indication for large repositories
 - ✅ Proper memory management for large file sets
 
-### Phase 2: Core Analysis Engine 🔄 **IN PROGRESS** (2/6 completed)
+### Phase 2: Core Analysis Engine 🔄 **IN PROGRESS** (3/6 completed)
 **Tasks:**
 - [x] Function/method length analyzer with precise line counting ✅ **COMPLETED**
   - Accurate line counting excluding comments, blank lines, and braces
   - Handles complex scenarios: inline comments, multi-line comments, mixed lines
   - Comprehensive test suite with >80% coverage
   - Performance optimized for large codebases
-- [ ] Struct complexity analyzer with detailed member categorization 🏗️ **NEXT PRIORITY**
-- [x] Cyclomatic complexity calculator using standard algorithms ✅ **BASIC IMPLEMENTATION**
+- [x] Struct complexity analyzer with detailed member categorization ✅ **COMPLETED**
+  - Field categorization by type (primitives, slices, maps, channels, interfaces, custom types, embedded types, functions)
+  - Method analysis with signature complexity, line counting, and documentation
+  - Embedded type analysis with package information
+  - Struct tag analysis for common frameworks (json, xml, yaml, db, etc.)
+  - Comprehensive complexity scoring including field types and method counts
+  - Pointer vs value receiver detection for methods
+- [x] Cyclomatic complexity calculator using standard algorithms ✅ **COMPLETED**
 - [ ] Package dependency analysis and circular detection
-- [ ] Interface analysis (implementation ratios, method counts)
+- [ ] Interface analysis (implementation ratios, method counts) *(basic implementation exists)*
 - [ ] Concurrency pattern detection (goroutines, channels, mutexes)
 
 **Acceptance Criteria:**
 - ✅ Accurate line counting excluding comments, blank lines, and braces
-- ❌ Struct members categorized by: primitives, slices, maps, channels, interfaces, custom types, embedded types, functions *(placeholder only)*
+- ✅ Struct members categorized by: primitives, slices, maps, channels, interfaces, custom types, embedded types, functions
+- ✅ Method analysis includes signature complexity, receiver types, and documentation quality
 - ✅ Cyclomatic complexity matches established tools (basic implementation working)
 - ❌ Package metrics include cohesion and coupling scores *(not implemented)*
 - ❌ Detection of common Go concurrency patterns *(not implemented)*
@@ -179,44 +186,43 @@ github.com/opd-ai/go-stats-generator/
 - **Core CLI Framework**: Full cobra-based CLI with all major commands
 - **File Discovery & Processing**: Concurrent file scanning with configurable workers
 - **Precise Line Counting**: Advanced function line analysis with comment/blank line separation
-- **Basic Function Analysis**: Cyclomatic complexity, signature analysis, documentation checks
+- **Advanced Function Analysis**: Cyclomatic complexity, signature analysis, documentation checks
+- **Comprehensive Struct Analysis**: Field categorization, method analysis, embedded types, complexity scoring
 - **Multiple Output Formats**: Console, JSON, CSV, and basic HTML reports
 - **Configuration Management**: Comprehensive config system with defaults
 - **Error Handling**: Robust error handling throughout the codebase
 - **Test Coverage**: >85% coverage on implemented features
 
 ### 🔄 **IN PROGRESS:**
-- **Phase 2: Core Analysis Engine** (2/6 tasks completed)
-  - Next Priority: Struct complexity analyzer with member categorization
+- **Phase 2: Core Analysis Engine** (3/6 tasks completed)
+  - Next Priority: Enhanced Interface Analysis or Package Dependency Analysis
 
 ### ❌ **NOT STARTED:**
-- **Struct Analysis**: Field categorization and complexity metrics
 - **Package Analysis**: Dependency tracking and circular detection
-- **Interface Analysis**: Implementation ratios and method counts
 - **Advanced Pattern Detection**: Design patterns, anti-patterns, code smells
 - **Comment Quality Analysis**: GoDoc coverage and quality metrics
 - **Generic Usage Analysis**: Type parameters and constraints (Go 1.18+)
 - **Full Historical Analysis**: Trend analysis and regression detection
 - **Markdown Export**: Git-friendly report generation
+- **Concurrency Pattern Detection**: Goroutine, channel, and sync primitive analysis
 
 ### 🎯 **RECOMMENDED NEXT STEPS:**
-1. **Implement Struct Complexity Analyzer** (Phase 2, highest impact)
-   - Field categorization by type (primitives, slices, maps, channels, etc.)
-   - Embedded type analysis 
-   - Method counting and receiver analysis
-   - Struct tag analysis
-2. **Add Interface Analysis** (Phase 2, complements struct analysis)
-   - Method signature complexity
+1. **Enhance Interface Analysis** (Phase 2, complements struct analysis)
+   - Method signature complexity analysis *(basic implementation exists)*
    - Implementation ratio tracking
-   - Interface embedding analysis
+   - Interface embedding analysis improvements
+2. **Add Package Dependency Analysis** (Phase 2, architectural insights)
+   - Import graph analysis
+   - Circular dependency detection
+   - Package cohesion metrics
 3. **Enhance HTML Reports** (Phase 4, improve visualization)
    - Interactive charts with Chart.js
    - Responsive design improvements
    - Code navigation links
-4. **Add Package Dependency Analysis** (Phase 2, architectural insights)
-   - Import graph analysis
-   - Circular dependency detection
-   - Package cohesion metrics
+4. **Add Concurrency Pattern Detection** (Phase 2, Go-specific insights)
+   - Goroutine usage analysis
+   - Channel pattern detection
+   - Mutex and sync primitive analysis
 
 ## CURRENT ARCHITECTURE IMPLEMENTATION:
 
@@ -521,7 +527,57 @@ type GenericUsageMetrics struct {
 
 ## RECENT ACCOMPLISHMENTS (Current Session):
 
-### 🎉 **Major Feature Completed: Precise Line Counting**
+### 🎉 **Major Feature Completed: Comprehensive Struct Analysis**
+- **Implementation**: Advanced struct complexity analyzer with detailed member categorization
+- **Features**:
+  - Field categorization by type: primitives, slices, maps, channels, interfaces, custom types, embedded types, functions
+  - Method analysis with signature complexity, line counting, and documentation quality
+  - Embedded type analysis with package information and pointer detection
+  - Struct tag analysis for common frameworks (json, xml, yaml, db, validate, binding)
+  - Complexity scoring that accounts for field types, method counts, and nesting depth
+  - Pointer vs value receiver detection for methods
+  - Integration with existing function analyzer for accurate method metrics
+- **Testing**: Comprehensive test suite including method analysis validation
+- **Validation**: End-to-end testing shows correct method counting and detailed struct metrics
+- **Documentation**: Enhanced GoDoc comments explaining the detailed categorization logic
+
+### 📊 **Current Struct Analysis Accuracy:**
+```bash
+# Example: Complex struct with methods analysis
+$ ./gostats analyze testdata/simple --format json | jq '.structs[] | select(.name == "Calculator")'
+{
+  "name": "Calculator",
+  "total_fields": 1,
+  "fields_by_type": {
+    "slice": 1
+  },
+  "methods": [
+    {
+      "name": "Add",
+      "is_exported": true,
+      "is_pointer_receiver": true,
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 1,
+        "signature_complexity": 1.3
+      },
+      "lines": { "total": 3, "code": 2, "comments": 0, "blank": 1 },
+      "complexity": { "cyclomatic": 1, "overall": 1.8 }
+    }
+    // ... additional methods
+  ],
+  "complexity": { "overall": 10.5 }  // Includes method complexity
+}
+```
+
+### 🎯 **Enhancement Impact:**
+- **Method Discovery**: Structs now include comprehensive method analysis
+- **Signature Analysis**: Parameter/return counting with complexity scoring
+- **Receiver Analysis**: Distinguishes pointer vs value receivers
+- **Integration**: Seamless integration with existing function analysis
+- **Performance**: Maintains sub-second analysis speed for typical codebases
+
+### 🎉 **Previous Major Feature: Precise Line Counting**
 - **Implementation**: Advanced function line analysis with accurate categorization
 - **Features**:
   - Separates code, comment, and blank lines with 100% accuracy
@@ -634,4 +690,5 @@ Code Examples in Comments: 145
 3. **Package Dependency Analysis** - Architectural insights and circular detection
 4. **Enhanced HTML Reports** - Better visualization and interactivity
 
-**Last Updated**: July 21, 2025 | **Current Version**: v1.0.0
+**Last Updated**: July 22, 2025 | **Current Version**: v1.0.0
+**Recent Enhancement**: Comprehensive Struct Analysis with Method Discovery
