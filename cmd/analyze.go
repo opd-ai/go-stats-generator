@@ -278,6 +278,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	// Analyze results
 	functionAnalyzer := analyzer.NewFunctionAnalyzer(discoverer.GetFileSet())
 	structAnalyzer := analyzer.NewStructAnalyzer(discoverer.GetFileSet())
+	interfaceAnalyzer := analyzer.NewInterfaceAnalyzer(discoverer.GetFileSet())
 
 	report := &metrics.Report{
 		Metadata: metrics.ReportMetadata{
@@ -291,6 +292,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 
 	var allFunctions []metrics.FunctionMetrics
 	var allStructs []metrics.StructMetrics
+	var allInterfaces []metrics.InterfaceMetrics
 	var totalLines int
 
 	// Process analysis results
@@ -327,22 +329,35 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			allStructs = append(allStructs, structs...)
 		}
 
+		// Analyze interfaces in this file
+		interfaces, err := interfaceAnalyzer.AnalyzeInterfaces(result.File, result.FileInfo.Package)
+		if err != nil {
+			if cfg.Output.Verbose {
+				fmt.Fprintf(os.Stderr, "Warning: failed to analyze interfaces in %s: %v\n",
+					result.FileInfo.Path, err)
+			}
+		} else {
+			allInterfaces = append(allInterfaces, interfaces...)
+		}
+
 		// Count lines (simplified)
 		totalLines += int(result.FileInfo.Size) / 50 // Rough estimate
 	}
 
 	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Processed %d files, found %d functions, %d structs\n",
-			processedFiles, len(allFunctions), len(allStructs))
+		fmt.Fprintf(os.Stderr, "Processed %d files, found %d functions, %d structs, %d interfaces\n",
+			processedFiles, len(allFunctions), len(allStructs), len(allInterfaces))
 	}
 
 	// Populate report
 	report.Functions = allFunctions
 	report.Structs = allStructs
+	report.Interfaces = allInterfaces
 	report.Overview = metrics.OverviewMetrics{
 		TotalLinesOfCode: totalLines,
 		TotalFunctions:   len(allFunctions),
 		TotalStructs:     len(allStructs),
+		TotalInterfaces:  len(allInterfaces),
 		TotalFiles:       len(files),
 	}
 
