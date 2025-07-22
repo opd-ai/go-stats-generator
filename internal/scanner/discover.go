@@ -136,6 +136,27 @@ func (d *Discoverer) shouldSkipDirectory(dirPath, rootDir string) error {
 
 // shouldIncludeFile determines if a file should be included in analysis
 func (d *Discoverer) shouldIncludeFile(fileInfo FileInfo) bool {
+	if !d.passesFileConstraints(fileInfo) {
+		return false
+	}
+
+	if !d.matchesIncludePatterns(fileInfo) {
+		return false
+	}
+
+	if d.matchesExcludePatterns(fileInfo) {
+		return false
+	}
+
+	if !d.passesPackageFilter(fileInfo) {
+		return false
+	}
+
+	return true
+}
+
+// passesFileConstraints checks basic file constraints like size limits and file types
+func (d *Discoverer) passesFileConstraints(fileInfo FileInfo) bool {
 	// Check file size limit
 	if d.config.MaxFileSizeKB > 0 && fileInfo.Size > int64(d.config.MaxFileSizeKB*1024) {
 		return false
@@ -151,49 +172,47 @@ func (d *Discoverer) shouldIncludeFile(fileInfo FileInfo) bool {
 		return false
 	}
 
-	// Check include patterns
-	if len(d.config.IncludePatterns) > 0 {
-		included := false
-		for _, pattern := range d.config.IncludePatterns {
-			// Handle recursive patterns like **/*.go
-			if strings.Contains(pattern, "**") {
-				if strings.HasSuffix(fileInfo.RelPath, ".go") {
-					included = true
-					break
-				}
-			} else {
-				if matched, _ := filepath.Match(pattern, fileInfo.RelPath); matched {
-					included = true
-					break
-				}
-			}
-		}
-		if !included {
-			return false
+	return true
+}
+
+// matchesIncludePatterns checks if file matches any include patterns
+func (d *Discoverer) matchesIncludePatterns(fileInfo FileInfo) bool {
+	if len(d.config.IncludePatterns) == 0 {
+		return true
+	}
+
+	for _, pattern := range d.config.IncludePatterns {
+		if d.patternMatches(pattern, fileInfo.RelPath) {
+			return true
 		}
 	}
 
-	// Check exclude patterns
+	return false
+}
+
+// matchesExcludePatterns checks if file matches any exclude patterns
+func (d *Discoverer) matchesExcludePatterns(fileInfo FileInfo) bool {
 	for _, pattern := range d.config.ExcludePatterns {
 		if matched, _ := filepath.Match(pattern, fileInfo.RelPath); matched {
-			return false
+			return true
 		}
 	}
+	return false
+}
 
-	// Check package inclusion/exclusion
+// passesPackageFilter checks package inclusion/exclusion rules
+func (d *Discoverer) passesPackageFilter(fileInfo FileInfo) bool {
+	// Check package inclusion
 	if len(d.config.IncludePackages) > 0 {
-		included := false
 		for _, pkg := range d.config.IncludePackages {
 			if fileInfo.Package == pkg {
-				included = true
-				break
+				return true
 			}
 		}
-		if !included {
-			return false
-		}
+		return false
 	}
 
+	// Check package exclusion
 	for _, pkg := range d.config.ExcludePackages {
 		if fileInfo.Package == pkg {
 			return false
@@ -201,6 +220,17 @@ func (d *Discoverer) shouldIncludeFile(fileInfo FileInfo) bool {
 	}
 
 	return true
+}
+
+// patternMatches checks if a file path matches a given pattern
+func (d *Discoverer) patternMatches(pattern, relPath string) bool {
+	// Handle recursive patterns like **/*.go
+	if strings.Contains(pattern, "**") {
+		return strings.HasSuffix(relPath, ".go")
+	}
+
+	matched, _ := filepath.Match(pattern, relPath)
+	return matched
 }
 
 // isGeneratedFile checks if a file appears to be generated
