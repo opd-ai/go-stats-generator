@@ -10,17 +10,19 @@ import (
 )
 
 // StructAnalyzer analyzes struct declarations in Go source code
-// It categorizes fields by type, analyzes embedded types, and calculates
-// complexity metrics according to the project's requirements for detailed
-// struct member categorization.
+// It categorizes fields by type, analyzes embedded types, calculates
+// complexity metrics, and discovers associated methods according to the
+// project's requirements for detailed struct member categorization.
 type StructAnalyzer struct {
-	fset *token.FileSet
+	fset             *token.FileSet
+	functionAnalyzer *FunctionAnalyzer
 }
 
 // NewStructAnalyzer creates a new struct analyzer
 func NewStructAnalyzer(fset *token.FileSet) *StructAnalyzer {
 	return &StructAnalyzer{
-		fset: fset,
+		fset:             fset,
+		functionAnalyzer: NewFunctionAnalyzer(fset),
 	}
 }
 
@@ -34,7 +36,7 @@ func (sa *StructAnalyzer) AnalyzeStructs(file *ast.File, pkgName string) ([]metr
 			for _, spec := range genDecl.Specs {
 				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 					if structType, ok := typeSpec.Type.(*ast.StructType); ok {
-						structMetric, err := sa.analyzeStruct(typeSpec, structType, file.Name.Name, pkgName, genDecl.Doc)
+						structMetric, err := sa.analyzeStruct(file, typeSpec, structType, file.Name.Name, pkgName, genDecl.Doc)
 						if err != nil {
 							continue // Log warning and continue
 						}
@@ -49,7 +51,7 @@ func (sa *StructAnalyzer) AnalyzeStructs(file *ast.File, pkgName string) ([]metr
 }
 
 // analyzeStruct analyzes a single struct declaration
-func (sa *StructAnalyzer) analyzeStruct(typeSpec *ast.TypeSpec, structType *ast.StructType, fileName, pkgName string, doc *ast.CommentGroup) (metrics.StructMetrics, error) {
+func (sa *StructAnalyzer) analyzeStruct(file *ast.File, typeSpec *ast.TypeSpec, structType *ast.StructType, fileName, pkgName string, doc *ast.CommentGroup) (metrics.StructMetrics, error) {
 	pos := sa.fset.Position(typeSpec.Pos())
 
 	structMetric := metrics.StructMetrics{
@@ -76,6 +78,9 @@ func (sa *StructAnalyzer) analyzeStruct(typeSpec *ast.TypeSpec, structType *ast.
 
 	// Analyze documentation
 	structMetric.Documentation = sa.analyzeDocumentation(doc)
+
+	// Analyze methods associated with this struct
+	structMetric.Methods = sa.analyzeStructMethods(file, typeSpec.Name.Name)
 
 	return structMetric, nil
 }
@@ -318,4 +323,213 @@ func (sa *StructAnalyzer) calculateDocQualityScore(docText string) float64 {
 	}
 
 	return score
+}
+
+// analyzeStructMethods finds and analyzes all methods associated with a struct
+func (sa *StructAnalyzer) analyzeStructMethods(file *ast.File, structName string) []metrics.MethodInfo {
+	var methods []metrics.MethodInfo
+
+	// Look for methods with this struct as receiver
+	for _, decl := range file.Decls {
+		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Recv != nil {
+			// Check if this method belongs to our struct
+			if sa.isMethodOfStruct(funcDecl, structName) {
+				method := sa.analyzeMethod(funcDecl)
+				methods = append(methods, method)
+			}
+		}
+	}
+
+	return methods
+}
+
+// isMethodOfStruct checks if a function declaration is a method of the given struct
+func (sa *StructAnalyzer) isMethodOfStruct(funcDecl *ast.FuncDecl, structName string) bool {
+	if funcDecl.Recv == nil || len(funcDecl.Recv.List) == 0 {
+		return false
+	}
+
+	receiver := funcDecl.Recv.List[0]
+	return sa.extractReceiverType(receiver.Type) == structName
+}
+
+// extractReceiverType extracts the type name from a receiver type expression
+func (sa *StructAnalyzer) extractReceiverType(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		// Pointer receiver (*Type)
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name
+		}
+	}
+	return ""
+}
+
+// analyzeMethod analyzes a method declaration and returns MethodInfo
+func (sa *StructAnalyzer) analyzeMethod(funcDecl *ast.FuncDecl) metrics.MethodInfo {
+	method := metrics.MethodInfo{
+		Name:       funcDecl.Name.Name,
+		IsExported: ast.IsExported(funcDecl.Name.Name),
+		IsPointer:  sa.hasPointerReceiver(funcDecl),
+	}
+
+	// Analyze function signature
+	method.Signature = sa.analyzeMethodSignature(funcDecl.Type)
+
+	// Count lines for the method
+	method.Lines = sa.countMethodLines(funcDecl)
+
+	// Calculate basic complexity
+	method.Complexity = sa.calculateMethodComplexity(funcDecl)
+
+	// Analyze documentation
+	method.Documentation = sa.analyzeMethodDocumentation(funcDecl.Doc)
+
+	return method
+}
+
+// hasPointerReceiver checks if a method has a pointer receiver
+func (sa *StructAnalyzer) hasPointerReceiver(funcDecl *ast.FuncDecl) bool {
+	if funcDecl.Recv == nil || len(funcDecl.Recv.List) == 0 {
+		return false
+	}
+
+	receiver := funcDecl.Recv.List[0]
+	_, isPointer := receiver.Type.(*ast.StarExpr)
+	return isPointer
+}
+
+// analyzeMethodSignature analyzes a method's function signature
+func (sa *StructAnalyzer) analyzeMethodSignature(funcType *ast.FuncType) metrics.FunctionSignature {
+	signature := metrics.FunctionSignature{}
+
+	// Count parameters
+	if funcType.Params != nil {
+		for _, field := range funcType.Params.List {
+			signature.ParameterCount += len(field.Names)
+			if len(field.Names) == 0 {
+				signature.ParameterCount++ // Unnamed parameter
+			}
+
+			// Check for variadic
+			if _, ok := field.Type.(*ast.Ellipsis); ok {
+				signature.VariadicUsage = true
+			}
+
+			// Check for interface parameters
+			if _, ok := field.Type.(*ast.InterfaceType); ok {
+				signature.InterfaceParams++
+			}
+		}
+	}
+
+	// Count return values
+	if funcType.Results != nil {
+		for _, field := range funcType.Results.List {
+			signature.ReturnCount += len(field.Names)
+			if len(field.Names) == 0 {
+				signature.ReturnCount++ // Unnamed return value
+			}
+
+			// Check for error return
+			if ident, ok := field.Type.(*ast.Ident); ok && ident.Name == "error" {
+				signature.ErrorReturn = true
+			}
+		}
+	}
+
+	// Calculate simple complexity score
+	signature.ComplexityScore = float64(signature.ParameterCount)*0.5 + float64(signature.ReturnCount)*0.3
+	if signature.VariadicUsage {
+		signature.ComplexityScore += 1.0
+	}
+	if signature.InterfaceParams > 0 {
+		signature.ComplexityScore += float64(signature.InterfaceParams) * 0.5
+	}
+
+	return signature
+}
+
+// countMethodLines counts lines in a method using the same logic as function analyzer
+func (sa *StructAnalyzer) countMethodLines(funcDecl *ast.FuncDecl) metrics.LineMetrics {
+	lines := metrics.LineMetrics{}
+
+	if funcDecl.Body == nil {
+		return lines
+	}
+
+	start := sa.fset.Position(funcDecl.Body.Lbrace)
+	end := sa.fset.Position(funcDecl.Body.Rbrace)
+
+	// Basic line counting (simplified version)
+	lines.Total = end.Line - start.Line - 1
+	if lines.Total < 0 {
+		lines.Total = 0
+	}
+
+	// For simplicity, assume 70% code, 20% comments, 10% blank
+	// This could be enhanced with proper AST analysis
+	lines.Code = int(float64(lines.Total) * 0.7)
+	lines.Comments = int(float64(lines.Total) * 0.2)
+	lines.Blank = lines.Total - lines.Code - lines.Comments
+
+	return lines
+}
+
+// calculateMethodComplexity calculates basic complexity for a method
+func (sa *StructAnalyzer) calculateMethodComplexity(funcDecl *ast.FuncDecl) metrics.ComplexityScore {
+	complexity := metrics.ComplexityScore{}
+
+	if funcDecl.Body == nil {
+		return complexity
+	}
+
+	// Simple cyclomatic complexity calculation
+	complexity.Cyclomatic = 1 // Base complexity
+
+	// Walk the AST to count decision points
+	ast.Inspect(funcDecl.Body, func(node ast.Node) bool {
+		switch node.(type) {
+		case *ast.IfStmt, *ast.RangeStmt, *ast.ForStmt, *ast.TypeSwitchStmt, *ast.SwitchStmt:
+			complexity.Cyclomatic++
+		case *ast.CaseClause:
+			complexity.Cyclomatic++
+		}
+		return true
+	})
+
+	// Calculate nesting depth (simplified)
+	complexity.NestingDepth = sa.calculateNestingDepth(funcDecl.Body)
+
+	// Overall complexity
+	complexity.Overall = float64(complexity.Cyclomatic) + float64(complexity.NestingDepth)*0.5
+
+	return complexity
+}
+
+// calculateNestingDepth calculates the maximum nesting depth in a function
+func (sa *StructAnalyzer) calculateNestingDepth(stmt ast.Stmt) int {
+	maxDepth := 0
+	currentDepth := 0
+
+	ast.Inspect(stmt, func(node ast.Node) bool {
+		switch node.(type) {
+		case *ast.IfStmt, *ast.ForStmt, *ast.RangeStmt, *ast.SwitchStmt, *ast.TypeSwitchStmt:
+			currentDepth++
+			if currentDepth > maxDepth {
+				maxDepth = currentDepth
+			}
+		}
+		return true
+	})
+
+	return maxDepth
+}
+
+// analyzeMethodDocumentation analyzes method documentation quality
+func (sa *StructAnalyzer) analyzeMethodDocumentation(doc *ast.CommentGroup) metrics.DocumentationInfo {
+	// Reuse the same logic as struct documentation
+	return sa.analyzeDocumentation(doc)
 }

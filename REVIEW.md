@@ -1,7 +1,7 @@
 # PROJECT: Go Codebase Production Readiness Analysis & Implementation Plan
 
 ## OBJECTIVE:
-Analyze an existing Go codebase and create a comprehensive, actionable plan to transform it into a production-ready system. This includes identifying gaps in code quality, security, performance, observability, and operational readiness, then providing specific implementation steps to address each issue.
+Analyze an existing Go codebase and create a comprehensive, actionable plan to transform it into a production-ready system. This includes identifying gaps in code quality, security, performance, observability, and operational readiness, then providing specific implementation steps to address each issue. Place the plan into a PLAN.md file and present it in a single unbroken ~~~~ codeblock.
 
 ## TECHNICAL SPECIFICATIONS:
 - Language: Go

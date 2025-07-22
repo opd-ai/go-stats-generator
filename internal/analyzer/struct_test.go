@@ -112,8 +112,8 @@ func TestAnalyzeStructs_ComplexStruct(t *testing.T) {
 	source := `package test
 
 import (
-	"time"
 	"context"
+	"time"
 )
 
 // ComplexStruct demonstrates various field types
@@ -492,5 +492,175 @@ func TestAnalyzeStructs_Integration(t *testing.T) {
 		if userStruct.Documentation.QualityScore <= 0 {
 			t.Error("Expected positive documentation quality score for User")
 		}
+	}
+}
+
+func TestAnalyzeStructs_WithMethods(t *testing.T) {
+	source := `package test
+
+// User represents a user in the system with associated methods
+type User struct {
+	ID   int    ` + "`json:\"id\"`" + `
+	Name string ` + "`json:\"name\"`" + `
+}
+
+// GetID returns the user ID (value receiver)
+func (u User) GetID() int {
+	return u.ID
+}
+
+// SetName sets the user name (pointer receiver)
+func (u *User) SetName(name string) {
+	u.Name = name
+}
+
+// ValidateComplex performs complex validation
+func (u *User) ValidateComplex(options map[string]interface{}) (bool, error) {
+	if u.ID <= 0 {
+		return false, errors.New("invalid ID")
+	}
+	
+	if len(u.Name) == 0 {
+		return false, errors.New("name required")
+	}
+	
+	for key, value := range options {
+		switch key {
+		case "strict":
+			if strict, ok := value.(bool); ok && strict {
+				if len(u.Name) < 3 {
+					return false, errors.New("name too short")
+				}
+			}
+		case "format":
+			// Additional format validation
+			if format, ok := value.(string); ok {
+				if format == "email" && len(u.Name) > 0 {
+					// Simple email check without strings package
+					hasAt := false
+					for _, char := range u.Name {
+						if char == '@' {
+							hasAt = true
+							break
+						}
+					}
+					if !hasAt {
+						return false, errors.New("invalid email format")
+					}
+				}
+			}
+		}
+	}
+	
+	return true, nil
+}
+
+// unexportedMethod is not exported
+func (u *User) unexportedMethod() {
+	// Do nothing
+}`
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "test.go", source, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	analyzer := NewStructAnalyzer(fset)
+	structs, err := analyzer.AnalyzeStructs(file, "test")
+
+	if err != nil {
+		t.Fatalf("AnalyzeStructs failed: %v", err)
+	}
+
+	if len(structs) != 1 {
+		t.Fatalf("Expected 1 struct, got %d", len(structs))
+	}
+
+	user := structs[0]
+
+	// Test that methods were found
+	if len(user.Methods) != 4 {
+		t.Errorf("Expected 4 methods, got %d", len(user.Methods))
+		for i, method := range user.Methods {
+			t.Logf("Method %d: %s", i, method.Name)
+		}
+	}
+
+	// Check specific methods
+	methodNames := make(map[string]metrics.MethodInfo)
+	for _, method := range user.Methods {
+		methodNames[method.Name] = method
+	}
+
+	// Test GetID method (value receiver)
+	if getID, exists := methodNames["GetID"]; exists {
+		if !getID.IsExported {
+			t.Error("GetID should be exported")
+		}
+		if getID.IsPointer {
+			t.Error("GetID should not have pointer receiver")
+		}
+		if getID.Signature.ReturnCount != 1 {
+			t.Errorf("GetID should return 1 value, got %d", getID.Signature.ReturnCount)
+		}
+	} else {
+		t.Error("GetID method not found")
+	}
+
+	// Test SetName method (pointer receiver)
+	if setName, exists := methodNames["SetName"]; exists {
+		if !setName.IsExported {
+			t.Error("SetName should be exported")
+		}
+		if !setName.IsPointer {
+			t.Error("SetName should have pointer receiver")
+		}
+		if setName.Signature.ParameterCount != 1 {
+			t.Errorf("SetName should have 1 parameter, got %d", setName.Signature.ParameterCount)
+		}
+	} else {
+		t.Error("SetName method not found")
+	}
+
+	// Test ValidateComplex method (complex signature)
+	if validate, exists := methodNames["ValidateComplex"]; exists {
+		if !validate.IsExported {
+			t.Error("ValidateComplex should be exported")
+		}
+		if !validate.IsPointer {
+			t.Error("ValidateComplex should have pointer receiver")
+		}
+		if validate.Signature.ParameterCount != 1 {
+			t.Errorf("ValidateComplex should have 1 parameter, got %d", validate.Signature.ParameterCount)
+		}
+		if validate.Signature.ReturnCount != 2 {
+			t.Errorf("ValidateComplex should return 2 values, got %d", validate.Signature.ReturnCount)
+		}
+		if !validate.Signature.ErrorReturn {
+			t.Error("ValidateComplex should return error")
+		}
+		if validate.Complexity.Cyclomatic < 5 {
+			t.Errorf("ValidateComplex should have high complexity, got %d", validate.Complexity.Cyclomatic)
+		}
+	} else {
+		t.Error("ValidateComplex method not found")
+	}
+
+	// Test unexported method
+	if unexported, exists := methodNames["unexportedMethod"]; exists {
+		if unexported.IsExported {
+			t.Error("unexportedMethod should not be exported")
+		}
+		if !unexported.IsPointer {
+			t.Error("unexportedMethod should have pointer receiver")
+		}
+	} else {
+		t.Error("unexportedMethod not found")
+	}
+
+	// Test overall struct complexity includes methods
+	if user.Complexity.Overall <= 2.0 {
+		t.Errorf("Expected higher complexity with methods, got %f", user.Complexity.Overall)
 	}
 }
