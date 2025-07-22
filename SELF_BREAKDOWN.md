@@ -14,14 +14,14 @@ go build -o go-stats-generator ./cmd/go-stats-generator
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets
-./go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests --exclude-dirs testdata --format json --output baseline.json
-./go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests --exclude-dirs testdata
+./go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests --exclude testdata --format json --output baseline.json
+./go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests --exclude testdata
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
 
 # Phase 3: Post-refactoring validation
-./go-stats-generator analyze . --format json --output refactored.json --max-complexity 13 --max-function-length 30 --skip-tests --exclude-dirs testdata
+./go-stats-generator analyze . --format json --output refactored.json --max-complexity 13 --max-function-length 30 --skip-tests --exclude testdata
 
 # Phase 4: Measure and document improvements
 ./go-stats-generator diff baseline.json refactored.json
@@ -36,7 +36,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 ### Phase 1: Data-Driven Target Identification
 1. **Run Baseline Analysis:**
   ```bash
-  ./go-stats-generator analyze . --exclude-dirs testdata
+  ./go-stats-generator analyze . --exclude testdata
   ```
   - Record the highest complexity function and its metrics
   - Note specific complexity contributors (cyclomatic, nesting, signature)
@@ -44,7 +44,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 
 2. **Generate Refactoring Plan:**
   ```bash
-  ./go-stats-generator analyze [target-file] --format json --exclude-dirs testdata
+  ./go-stats-generator analyze [target-file] --format json --exclude testdata
   ```
   - Use tool's suggestions for logical extraction points
   - Identify functions exceeding thresholds:
@@ -150,7 +150,7 @@ Refactoring Threshold = Overall Complexity > 13.0 OR Lines > 30 OR Cyclomatic > 
 
 ## EXAMPLE WORKFLOW:
 ```bash
-$ ./go-stats-generator analyze . --exclude-dirs testdata
+$ ./go-stats-generator analyze . --exclude testdata
 === TOP COMPLEX FUNCTIONS ===
 1. processComplexOrder (order.go): 25.4 complexity
   - Lines: 45 code lines 
