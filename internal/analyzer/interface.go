@@ -9,16 +9,23 @@ import (
 )
 
 // InterfaceAnalyzer analyzes interface declarations in Go source code
-// It analyzes method signatures, embedded interfaces, and calculates
-// complexity metrics to understand interface design patterns and usage.
+// It analyzes method signatures, embedded interfaces, implementation tracking,
+// and calculates complexity metrics to understand interface design patterns and usage.
 type InterfaceAnalyzer struct {
 	fset *token.FileSet
+	// Implementation tracking across files
+	typeImplementations  map[string][]string           // interface -> []implementer
+	interfaceDefinitions map[string]*ast.InterfaceType // interface name -> definition
+	structDefinitions    map[string]*ast.StructType    // struct name -> definition
 }
 
 // NewInterfaceAnalyzer creates a new interface analyzer
 func NewInterfaceAnalyzer(fset *token.FileSet) *InterfaceAnalyzer {
 	return &InterfaceAnalyzer{
-		fset: fset,
+		fset:                 fset,
+		typeImplementations:  make(map[string][]string),
+		interfaceDefinitions: make(map[string]*ast.InterfaceType),
+		structDefinitions:    make(map[string]*ast.StructType),
 	}
 }
 
@@ -26,7 +33,10 @@ func NewInterfaceAnalyzer(fset *token.FileSet) *InterfaceAnalyzer {
 func (ia *InterfaceAnalyzer) AnalyzeInterfaces(file *ast.File, pkgName string) ([]metrics.InterfaceMetrics, error) {
 	var interfaces []metrics.InterfaceMetrics
 
-	// Find all interface declarations
+	// First pass: collect all type definitions for implementation analysis
+	ia.collectTypeDefinitions(file, pkgName)
+
+	// Second pass: analyze interfaces
 	for _, decl := range file.Decls {
 		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
 			for _, spec := range genDecl.Specs {
@@ -43,7 +53,134 @@ func (ia *InterfaceAnalyzer) AnalyzeInterfaces(file *ast.File, pkgName string) (
 		}
 	}
 
+	// Third pass: analyze method implementations and calculate ratios
+	ia.analyzeImplementations(file, pkgName)
+
+	// Update interface metrics with implementation data
+	for i := range interfaces {
+		ia.updateImplementationMetrics(&interfaces[i])
+	}
+
 	return interfaces, nil
+}
+
+// collectTypeDefinitions collects all type definitions for implementation analysis
+func (ia *InterfaceAnalyzer) collectTypeDefinitions(file *ast.File, pkgName string) {
+	for _, decl := range file.Decls {
+		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
+			for _, spec := range genDecl.Specs {
+				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+					typeName := pkgName + "." + typeSpec.Name.Name
+
+					switch t := typeSpec.Type.(type) {
+					case *ast.InterfaceType:
+						ia.interfaceDefinitions[typeName] = t
+					case *ast.StructType:
+						ia.structDefinitions[typeName] = t
+					}
+				}
+			}
+		}
+	}
+}
+
+// analyzeImplementations finds which types implement which interfaces
+func (ia *InterfaceAnalyzer) analyzeImplementations(file *ast.File, pkgName string) {
+	// Find all method declarations
+	methodsByType := make(map[string][]string)
+
+	for _, decl := range file.Decls {
+		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Recv != nil {
+			// This is a method
+			receiverType := ia.extractReceiverType(funcDecl.Recv)
+			if receiverType != "" {
+				fullTypeName := pkgName + "." + receiverType
+				methodsByType[fullTypeName] = append(methodsByType[fullTypeName], funcDecl.Name.Name)
+			}
+		}
+	}
+
+	// Check which types implement which interfaces
+	for interfaceName, interfaceType := range ia.interfaceDefinitions {
+		requiredMethods := ia.extractInterfaceMethods(interfaceType)
+
+		for typeName, typeMethods := range methodsByType {
+			if ia.implementsInterface(typeMethods, requiredMethods) {
+				ia.typeImplementations[interfaceName] = append(ia.typeImplementations[interfaceName], typeName)
+			}
+		}
+	}
+}
+
+// extractReceiverType extracts the type name from a method receiver
+func (ia *InterfaceAnalyzer) extractReceiverType(recv *ast.FieldList) string {
+	if recv == nil || len(recv.List) == 0 {
+		return ""
+	}
+
+	field := recv.List[0]
+	switch t := field.Type.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name
+		}
+	}
+	return ""
+}
+
+// extractInterfaceMethods extracts method names from an interface
+func (ia *InterfaceAnalyzer) extractInterfaceMethods(interfaceType *ast.InterfaceType) []string {
+	var methods []string
+
+	if interfaceType.Methods != nil {
+		for _, field := range interfaceType.Methods.List {
+			if field.Names != nil {
+				// Regular method
+				for _, name := range field.Names {
+					methods = append(methods, name.Name)
+				}
+			}
+		}
+	}
+
+	return methods
+}
+
+// implementsInterface checks if a type implements all methods of an interface
+func (ia *InterfaceAnalyzer) implementsInterface(typeMethods, requiredMethods []string) bool {
+	if len(requiredMethods) == 0 {
+		return false
+	}
+
+	methodSet := make(map[string]bool)
+	for _, method := range typeMethods {
+		methodSet[method] = true
+	}
+
+	for _, required := range requiredMethods {
+		if !methodSet[required] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// updateImplementationMetrics updates interface metrics with implementation data
+func (ia *InterfaceAnalyzer) updateImplementationMetrics(interfaceMetric *metrics.InterfaceMetrics) {
+	interfaceName := interfaceMetric.Package + "." + interfaceMetric.Name
+
+	if implementations, exists := ia.typeImplementations[interfaceName]; exists {
+		interfaceMetric.Implementations = implementations
+		interfaceMetric.ImplementationCount = len(implementations)
+
+		// Calculate implementation ratio (implementations per method)
+		if interfaceMetric.MethodCount > 0 {
+			interfaceMetric.ImplementationRatio = float64(len(implementations)) / float64(interfaceMetric.MethodCount)
+		}
+	}
 }
 
 // analyzeInterface analyzes a single interface declaration
@@ -51,12 +188,13 @@ func (ia *InterfaceAnalyzer) analyzeInterface(typeSpec *ast.TypeSpec, interfaceT
 	pos := ia.fset.Position(typeSpec.Pos())
 
 	interfaceMetric := metrics.InterfaceMetrics{
-		Name:       typeSpec.Name.Name,
-		Package:    pkgName,
-		File:       fileName,
-		Line:       pos.Line,
-		IsExported: ast.IsExported(typeSpec.Name.Name),
-		Methods:    make([]metrics.InterfaceMethod, 0),
+		Name:               typeSpec.Name.Name,
+		Package:            pkgName,
+		File:               fileName,
+		Line:               pos.Line,
+		IsExported:         ast.IsExported(typeSpec.Name.Name),
+		Methods:            make([]metrics.InterfaceMethod, 0),
+		EmbeddedInterfaces: make([]string, 0),
 	}
 
 	// Analyze interface methods and embedded interfaces
@@ -78,13 +216,54 @@ func (ia *InterfaceAnalyzer) analyzeInterface(typeSpec *ast.TypeSpec, interfaceT
 		}
 	}
 
-	// Calculate totals
+	// Calculate totals and complexity
 	interfaceMetric.MethodCount = len(interfaceMetric.Methods)
+	interfaceMetric.EmbeddingDepth = ia.calculateEmbeddingDepth(interfaceMetric.EmbeddedInterfaces)
+	interfaceMetric.ComplexityScore = ia.calculateInterfaceComplexity(interfaceMetric)
 
 	// Analyze documentation
 	interfaceMetric.Documentation = ia.analyzeDocumentation(doc)
 
 	return interfaceMetric, nil
+}
+
+// calculateEmbeddingDepth calculates the depth of interface embedding
+func (ia *InterfaceAnalyzer) calculateEmbeddingDepth(embeddedInterfaces []string) int {
+	if len(embeddedInterfaces) == 0 {
+		return 0
+	}
+
+	maxDepth := 1
+	for _, embedded := range embeddedInterfaces {
+		// This is a simplified calculation - in a full implementation,
+		// we would recursively check embedded interfaces for their own embeddings
+		if strings.Contains(embedded, ".") {
+			maxDepth = 2 // External interface embedding
+		}
+	}
+
+	return maxDepth
+}
+
+// calculateInterfaceComplexity calculates overall interface complexity
+func (ia *InterfaceAnalyzer) calculateInterfaceComplexity(interfaceMetric metrics.InterfaceMetrics) float64 {
+	complexity := 0.5 // Base complexity
+
+	// Add complexity for methods
+	complexity += float64(interfaceMetric.MethodCount) * 0.3
+
+	// Add complexity for embedded interfaces
+	complexity += float64(len(interfaceMetric.EmbeddedInterfaces)) * 0.4
+
+	// Add complexity for embedding depth
+	complexity += float64(interfaceMetric.EmbeddingDepth) * 0.2
+
+	// Add complexity based on method signatures
+	for _, method := range interfaceMetric.Methods {
+		complexity += method.Signature.ComplexityScore * 0.1
+	}
+
+	return complexity
 }
 
 // analyzeInterfaceMethod analyzes a method in an interface

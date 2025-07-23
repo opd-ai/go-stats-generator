@@ -147,16 +147,20 @@ type MethodInfo struct {
 
 // InterfaceMetrics contains interface analysis
 type InterfaceMetrics struct {
-	Name               string            `json:"name"`
-	Package            string            `json:"package"`
-	File               string            `json:"file"`
-	Line               int               `json:"line"`
-	IsExported         bool              `json:"is_exported"`
-	MethodCount        int               `json:"method_count"`
-	Methods            []InterfaceMethod `json:"methods"`
-	EmbeddedInterfaces []string          `json:"embedded_interfaces"`
-	Implementations    []string          `json:"implementations"`
-	Documentation      DocumentationInfo `json:"documentation"`
+	Name                string            `json:"name"`
+	Package             string            `json:"package"`
+	File                string            `json:"file"`
+	Line                int               `json:"line"`
+	IsExported          bool              `json:"is_exported"`
+	MethodCount         int               `json:"method_count"`
+	Methods             []InterfaceMethod `json:"methods"`
+	EmbeddedInterfaces  []string          `json:"embedded_interfaces"`
+	Implementations     []string          `json:"implementations"`
+	ImplementationCount int               `json:"implementation_count"`
+	ImplementationRatio float64           `json:"implementation_ratio"`
+	EmbeddingDepth      int               `json:"embedding_depth"`
+	ComplexityScore     float64           `json:"complexity_score"`
+	Documentation       DocumentationInfo `json:"documentation"`
 }
 
 // InterfaceMethod represents a method in an interface
