@@ -53,6 +53,11 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writeComplexityAnalysis(output, report)
 	}
 
+	// Package analysis section
+	if cr.config.IncludeDetails && len(report.Packages) > 0 {
+		cr.writePackageAnalysis(output, report)
+	}
+
 	// Footer
 	cr.writeFooter(output, report)
 
@@ -401,5 +406,105 @@ func (cr *ConsoleReporter) writeDiffChanges(output io.Writer, changes []metrics.
 			fmt.Fprintln(output, "")
 		}
 		fmt.Fprintln(output, "")
+	}
+}
+
+func (cr *ConsoleReporter) writePackageAnalysis(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== PACKAGE ANALYSIS ===")
+
+	packages := report.Packages
+	if len(packages) == 0 {
+		fmt.Fprintln(output, "No packages found.")
+		fmt.Fprintln(output)
+		return
+	}
+
+	// Sort packages by name for consistent output
+	sort.Slice(packages, func(i, j int) bool {
+		return packages[i].Name < packages[j].Name
+	})
+
+	// Summary statistics
+	totalDeps := 0
+	totalFiles := 0
+	for _, pkg := range packages {
+		totalDeps += len(pkg.Dependencies)
+		totalFiles += len(pkg.Files)
+	}
+
+	avgDepsPerPkg := float64(totalDeps) / float64(len(packages))
+	avgFilesPerPkg := float64(totalFiles) / float64(len(packages))
+
+	fmt.Fprintf(output, "Total Packages: %d\n", len(packages))
+	fmt.Fprintf(output, "Average Dependencies per Package: %.1f\n", avgDepsPerPkg)
+	fmt.Fprintf(output, "Average Files per Package: %.1f\n", avgFilesPerPkg)
+	fmt.Fprintln(output)
+
+	// Find packages with high coupling (>3 dependencies)
+	var highCouplingPkgs []metrics.PackageMetrics
+	for _, pkg := range packages {
+		if len(pkg.Dependencies) > 3 {
+			highCouplingPkgs = append(highCouplingPkgs, pkg)
+		}
+	}
+
+	if len(highCouplingPkgs) > 0 {
+		fmt.Fprintln(output, "High Coupling Packages (>3 dependencies):")
+		for _, pkg := range highCouplingPkgs {
+			fmt.Fprintf(output, "  %s: %d dependencies (coupling: %.1f)\n",
+				pkg.Name, len(pkg.Dependencies), pkg.CouplingScore)
+		}
+		fmt.Fprintln(output)
+	}
+
+	// Find packages with low cohesion (<2.0)
+	var lowCohesionPkgs []metrics.PackageMetrics
+	for _, pkg := range packages {
+		if pkg.CohesionScore < 2.0 {
+			lowCohesionPkgs = append(lowCohesionPkgs, pkg)
+		}
+	}
+
+	if len(lowCohesionPkgs) > 0 {
+		fmt.Fprintln(output, "Low Cohesion Packages (<2.0 cohesion score):")
+		for _, pkg := range lowCohesionPkgs {
+			fmt.Fprintf(output, "  %s: %.1f cohesion, %d files, %d functions\n",
+				pkg.Name, pkg.CohesionScore, len(pkg.Files), pkg.Functions)
+		}
+		fmt.Fprintln(output)
+	}
+
+	// Show top packages by size (limit to top 10)
+	sort.Slice(packages, func(i, j int) bool {
+		return packages[i].Functions > packages[j].Functions
+	})
+
+	limit := len(packages)
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintln(output, "Largest Packages (by function count):")
+	for i := 0; i < limit; i++ {
+		pkg := packages[i]
+		fmt.Fprintf(output, "  %s: %d functions, %d structs, %d interfaces, %d files\n",
+			pkg.Name, pkg.Functions, pkg.Structs, pkg.Interfaces, len(pkg.Files))
+	}
+	fmt.Fprintln(output)
+
+	// Show dependencies for packages (if verbose and not too many)
+	if cr.config.Verbose && len(packages) <= 5 {
+		fmt.Fprintln(output, "Package Dependencies:")
+		for _, pkg := range packages {
+			fmt.Fprintf(output, "  %s:\n", pkg.Name)
+			if len(pkg.Dependencies) == 0 {
+				fmt.Fprintln(output, "    (no internal dependencies)")
+			} else {
+				for _, dep := range pkg.Dependencies {
+					fmt.Fprintf(output, "    → %s\n", dep)
+				}
+			}
+		}
+		fmt.Fprintln(output)
 	}
 }

@@ -12,7 +12,12 @@
   - Handles complex scenarios: inline comments, multi-line block comments, mixed lines
   - Provides detailed breakdown: total, code, comment, and blank line counts
 - **Function and Method Analysis**: Cyclomatic complexity, signature complexity, parameter analysis
-- **Struct Complexity Metrics**: Detailed member categorization by type
+- **Struct Complexity Metrics**: Detailed member categorization by type with method analysis
+- **Package Dependency Analysis**: Architectural insights with dependency tracking and circular detection
+  - Dependency graph analysis with internal/external package filtering
+  - Circular dependency detection with severity classification (low/medium/high)
+  - Package cohesion metrics for design quality assessment
+  - Package coupling metrics for architectural complexity measurement
 - **Advanced Pattern Detection**: Design patterns, concurrency patterns, anti-patterns
 - **Historical Metrics Storage**: SQLite/JSON backends for tracking metrics over time
 - **Complexity Differential Analysis**: Compare metrics snapshots with multi-dimensional comparisons

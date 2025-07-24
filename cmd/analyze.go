@@ -279,6 +279,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	functionAnalyzer := analyzer.NewFunctionAnalyzer(discoverer.GetFileSet())
 	structAnalyzer := analyzer.NewStructAnalyzer(discoverer.GetFileSet())
 	interfaceAnalyzer := analyzer.NewInterfaceAnalyzer(discoverer.GetFileSet())
+	packageAnalyzer := analyzer.NewPackageAnalyzer(discoverer.GetFileSet())
 
 	report := &metrics.Report{
 		Metadata: metrics.ReportMetadata{
@@ -340,6 +341,15 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			allInterfaces = append(allInterfaces, interfaces...)
 		}
 
+		// Analyze package information for this file
+		err = packageAnalyzer.AnalyzePackage(result.File, result.FileInfo.Path)
+		if err != nil {
+			if cfg.Output.Verbose {
+				fmt.Fprintf(os.Stderr, "Warning: failed to analyze package in %s: %v\n",
+					result.FileInfo.Path, err)
+			}
+		}
+
 		// Count lines (simplified)
 		totalLines += int(result.FileInfo.Size) / 50 // Rough estimate
 	}
@@ -349,15 +359,30 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			processedFiles, len(allFunctions), len(allStructs), len(allInterfaces))
 	}
 
+	// Generate package report
+	packageReport, err := packageAnalyzer.GenerateReport()
+	if err != nil {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Warning: failed to generate package report: %v\n", err)
+		}
+		// Continue with empty package data
+		packageReport = &metrics.PackageReport{
+			Packages:      []metrics.PackageMetrics{},
+			TotalPackages: 0,
+		}
+	}
+
 	// Populate report
 	report.Functions = allFunctions
 	report.Structs = allStructs
 	report.Interfaces = allInterfaces
+	report.Packages = packageReport.Packages
 	report.Overview = metrics.OverviewMetrics{
 		TotalLinesOfCode: totalLines,
 		TotalFunctions:   len(allFunctions),
 		TotalStructs:     len(allStructs),
 		TotalInterfaces:  len(allInterfaces),
+		TotalPackages:    packageReport.TotalPackages,
 		TotalFiles:       len(files),
 	}
 

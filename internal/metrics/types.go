@@ -185,6 +185,23 @@ type PackageMetrics struct {
 	Documentation DocumentationInfo `json:"documentation"`
 }
 
+// PackageReport contains comprehensive package analysis results
+type PackageReport struct {
+	Packages                   []PackageMetrics     `json:"packages"`
+	TotalPackages              int                  `json:"total_packages"`
+	CircularDependencies       []CircularDependency `json:"circular_dependencies"`
+	DependencyGraph            map[string][]string  `json:"dependency_graph"`
+	AverageFilesPerPackage     float64              `json:"average_files_per_package"`
+	AverageFunctionsPerPackage float64              `json:"average_functions_per_package"`
+	AverageTypesPerPackage     float64              `json:"average_types_per_package"`
+}
+
+// CircularDependency represents a circular dependency in the package graph
+type CircularDependency struct {
+	Packages []string `json:"packages"`
+	Severity string   `json:"severity"` // "low", "medium", "high"
+}
+
 // PatternMetrics contains design pattern detection results
 type PatternMetrics struct {
 	DesignPatterns      DesignPatternMetrics      `json:"design_patterns"`
