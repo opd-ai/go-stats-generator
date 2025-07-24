@@ -327,8 +327,8 @@ func processJob(job int) int {
 	result, err := analyzer.AnalyzeConcurrency(file, "test.go")
 	require.NoError(t, err)
 
-	// Should detect multiple goroutines
-	assert.Greater(t, result.Goroutines.TotalCount, 3)
+	// Should detect exactly 3 goroutine statements (static analysis counts syntactic occurrences)
+	assert.Equal(t, 3, result.Goroutines.TotalCount)
 
 	// Should detect channels
 	assert.Greater(t, result.Channels.TotalCount, 1)

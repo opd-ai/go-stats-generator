@@ -246,9 +246,11 @@ func (pa *PackageAnalyzer) dfsCircular(pkg string, visited, recStack map[string]
 
 // calculateCycleSeverity determines how problematic a circular dependency is
 func (pa *PackageAnalyzer) calculateCycleSeverity(cycle []string) string {
-	if len(cycle) <= 2 {
+	// Count unique packages in the cycle (exclude the closing duplicate)
+	uniquePackages := len(cycle) - 1
+	if uniquePackages <= 2 {
 		return "low"
-	} else if len(cycle) <= 4 {
+	} else if uniquePackages <= 4 {
 		return "medium"
 	}
 	return "high"

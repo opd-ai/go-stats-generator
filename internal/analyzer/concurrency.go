@@ -46,7 +46,7 @@ func (ca *ConcurrencyAnalyzer) AnalyzeConcurrency(file *ast.File, pkgName string
 
 	// Walk through the AST to analyze concurrency patterns
 	ast.Inspect(file, func(n ast.Node) bool {
-		ca.analyzeNode(n, &concurrency, file.Name.Name)
+		ca.analyzeNode(n, &concurrency, pkgName)
 		return true
 	})
 
