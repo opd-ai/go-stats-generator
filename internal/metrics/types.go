@@ -225,6 +225,79 @@ type ConcurrencyPatternMetrics struct {
 	FanOut      []PatternInstance `json:"fan_out"`
 	FanIn       []PatternInstance `json:"fan_in"`
 	Semaphores  []PatternInstance `json:"semaphores"`
+	Goroutines  GoroutineMetrics  `json:"goroutines"`
+	Channels    ChannelMetrics    `json:"channels"`
+	SyncPrims   SyncPrimitives    `json:"sync_primitives"`
+}
+
+// GoroutineMetrics tracks goroutine usage patterns
+type GoroutineMetrics struct {
+	TotalCount     int                    `json:"total_count"`
+	AnonymousCount int                    `json:"anonymous_count"`
+	NamedCount     int                    `json:"named_count"`
+	GoroutineLeaks []GoroutineLeakWarning `json:"potential_leaks"`
+	Instances      []GoroutineInstance    `json:"instances"`
+}
+
+// ChannelMetrics tracks channel usage patterns
+type ChannelMetrics struct {
+	TotalCount       int               `json:"total_count"`
+	BufferedCount    int               `json:"buffered_count"`
+	UnbufferedCount  int               `json:"unbuffered_count"`
+	DirectionalCount int               `json:"directional_count"`
+	Instances        []ChannelInstance `json:"instances"`
+}
+
+// SyncPrimitives tracks synchronization primitive usage
+type SyncPrimitives struct {
+	Mutexes    []SyncPrimitiveInstance `json:"mutexes"`
+	RWMutexes  []SyncPrimitiveInstance `json:"rw_mutexes"`
+	WaitGroups []SyncPrimitiveInstance `json:"wait_groups"`
+	Once       []SyncPrimitiveInstance `json:"once"`
+	Cond       []SyncPrimitiveInstance `json:"cond"`
+	Atomic     []SyncPrimitiveInstance `json:"atomic"`
+}
+
+// GoroutineInstance represents a goroutine usage
+type GoroutineInstance struct {
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	Function    string `json:"function"`
+	IsAnonymous bool   `json:"is_anonymous"`
+	HasDefer    bool   `json:"has_defer"`
+	Context     string `json:"context"`
+}
+
+// GoroutineLeakWarning represents a potential goroutine leak
+type GoroutineLeakWarning struct {
+	File           string `json:"file"`
+	Line           int    `json:"line"`
+	Function       string `json:"function"`
+	RiskLevel      string `json:"risk_level"`
+	Description    string `json:"description"`
+	Recommendation string `json:"recommendation"`
+}
+
+// ChannelInstance represents a channel usage
+type ChannelInstance struct {
+	File          string `json:"file"`
+	Line          int    `json:"line"`
+	Function      string `json:"function"`
+	Type          string `json:"type"`
+	IsBuffered    bool   `json:"is_buffered"`
+	BufferSize    int    `json:"buffer_size"`
+	IsDirectional bool   `json:"is_directional"`
+	Direction     string `json:"direction"`
+}
+
+// SyncPrimitiveInstance represents a synchronization primitive usage
+type SyncPrimitiveInstance struct {
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+	Function string `json:"function"`
+	Type     string `json:"type"`
+	Variable string `json:"variable"`
+	Context  string `json:"context"`
 }
 
 // AntiPatternMetrics tracks code smells and anti-patterns

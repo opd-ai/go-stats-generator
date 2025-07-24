@@ -280,6 +280,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	structAnalyzer := analyzer.NewStructAnalyzer(discoverer.GetFileSet())
 	interfaceAnalyzer := analyzer.NewInterfaceAnalyzer(discoverer.GetFileSet())
 	packageAnalyzer := analyzer.NewPackageAnalyzer(discoverer.GetFileSet())
+	concurrencyAnalyzer := analyzer.NewConcurrencyAnalyzer(discoverer.GetFileSet())
 
 	report := &metrics.Report{
 		Metadata: metrics.ReportMetadata{
@@ -288,6 +289,30 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			AnalysisTime:   time.Since(startTime),
 			FilesProcessed: len(files),
 			ToolVersion:    "1.0.0",
+		},
+		Patterns: metrics.PatternMetrics{
+			ConcurrencyPatterns: metrics.ConcurrencyPatternMetrics{
+				WorkerPools: []metrics.PatternInstance{},
+				Pipelines:   []metrics.PatternInstance{},
+				FanOut:      []metrics.PatternInstance{},
+				FanIn:       []metrics.PatternInstance{},
+				Semaphores:  []metrics.PatternInstance{},
+				Goroutines: metrics.GoroutineMetrics{
+					Instances:      []metrics.GoroutineInstance{},
+					GoroutineLeaks: []metrics.GoroutineLeakWarning{},
+				},
+				Channels: metrics.ChannelMetrics{
+					Instances: []metrics.ChannelInstance{},
+				},
+				SyncPrims: metrics.SyncPrimitives{
+					Mutexes:    []metrics.SyncPrimitiveInstance{},
+					RWMutexes:  []metrics.SyncPrimitiveInstance{},
+					WaitGroups: []metrics.SyncPrimitiveInstance{},
+					Once:       []metrics.SyncPrimitiveInstance{},
+					Cond:       []metrics.SyncPrimitiveInstance{},
+					Atomic:     []metrics.SyncPrimitiveInstance{},
+				},
+			},
 		},
 	}
 
@@ -350,8 +375,30 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			}
 		}
 
-		// Count lines (simplified)
-		totalLines += int(result.FileInfo.Size) / 50 // Rough estimate
+		// Analyze concurrency patterns in this file
+		concurrencyMetrics, err := concurrencyAnalyzer.AnalyzeConcurrency(result.File, result.FileInfo.Package)
+		if err != nil {
+			if cfg.Output.Verbose {
+				fmt.Fprintf(os.Stderr, "Warning: failed to analyze concurrency in %s: %v\n",
+					result.FileInfo.Path, err)
+			}
+		} else {
+			// Aggregate concurrency metrics
+			report.Patterns.ConcurrencyPatterns.Goroutines.Instances = append(report.Patterns.ConcurrencyPatterns.Goroutines.Instances, concurrencyMetrics.Goroutines.Instances...)
+			report.Patterns.ConcurrencyPatterns.Goroutines.GoroutineLeaks = append(report.Patterns.ConcurrencyPatterns.Goroutines.GoroutineLeaks, concurrencyMetrics.Goroutines.GoroutineLeaks...)
+			report.Patterns.ConcurrencyPatterns.Channels.Instances = append(report.Patterns.ConcurrencyPatterns.Channels.Instances, concurrencyMetrics.Channels.Instances...)
+			report.Patterns.ConcurrencyPatterns.SyncPrims.Mutexes = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Mutexes, concurrencyMetrics.SyncPrims.Mutexes...)
+			report.Patterns.ConcurrencyPatterns.SyncPrims.RWMutexes = append(report.Patterns.ConcurrencyPatterns.SyncPrims.RWMutexes, concurrencyMetrics.SyncPrims.RWMutexes...)
+			report.Patterns.ConcurrencyPatterns.SyncPrims.WaitGroups = append(report.Patterns.ConcurrencyPatterns.SyncPrims.WaitGroups, concurrencyMetrics.SyncPrims.WaitGroups...)
+			report.Patterns.ConcurrencyPatterns.SyncPrims.Once = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Once, concurrencyMetrics.SyncPrims.Once...)
+			report.Patterns.ConcurrencyPatterns.SyncPrims.Cond = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Cond, concurrencyMetrics.SyncPrims.Cond...)
+			report.Patterns.ConcurrencyPatterns.SyncPrims.Atomic = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Atomic, concurrencyMetrics.SyncPrims.Atomic...)
+			report.Patterns.ConcurrencyPatterns.WorkerPools = append(report.Patterns.ConcurrencyPatterns.WorkerPools, concurrencyMetrics.WorkerPools...)
+			report.Patterns.ConcurrencyPatterns.Pipelines = append(report.Patterns.ConcurrencyPatterns.Pipelines, concurrencyMetrics.Pipelines...)
+			report.Patterns.ConcurrencyPatterns.FanOut = append(report.Patterns.ConcurrencyPatterns.FanOut, concurrencyMetrics.FanOut...)
+			report.Patterns.ConcurrencyPatterns.FanIn = append(report.Patterns.ConcurrencyPatterns.FanIn, concurrencyMetrics.FanIn...)
+			report.Patterns.ConcurrencyPatterns.Semaphores = append(report.Patterns.ConcurrencyPatterns.Semaphores, concurrencyMetrics.Semaphores...)
+		}
 	}
 
 	if cfg.Output.Verbose {
@@ -393,6 +440,28 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 		}
 	}
 	report.Overview.TotalFunctions -= report.Overview.TotalMethods
+
+	// Finalize concurrency metrics summary statistics
+	report.Patterns.ConcurrencyPatterns.Goroutines.TotalCount = len(report.Patterns.ConcurrencyPatterns.Goroutines.Instances)
+	for _, instance := range report.Patterns.ConcurrencyPatterns.Goroutines.Instances {
+		if instance.IsAnonymous {
+			report.Patterns.ConcurrencyPatterns.Goroutines.AnonymousCount++
+		} else {
+			report.Patterns.ConcurrencyPatterns.Goroutines.NamedCount++
+		}
+	}
+
+	report.Patterns.ConcurrencyPatterns.Channels.TotalCount = len(report.Patterns.ConcurrencyPatterns.Channels.Instances)
+	for _, instance := range report.Patterns.ConcurrencyPatterns.Channels.Instances {
+		if instance.IsBuffered {
+			report.Patterns.ConcurrencyPatterns.Channels.BufferedCount++
+		} else {
+			report.Patterns.ConcurrencyPatterns.Channels.UnbufferedCount++
+		}
+		if instance.IsDirectional {
+			report.Patterns.ConcurrencyPatterns.Channels.DirectionalCount++
+		}
+	}
 
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
