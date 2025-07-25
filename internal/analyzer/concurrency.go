@@ -457,29 +457,39 @@ func (ca *ConcurrencyAnalyzer) detectWorkerPools(concurrency *metrics.Concurrenc
 	// Detect worker pool patterns based on goroutine and channel usage
 	// Pattern: Multiple goroutines reading from the same channel + WaitGroup for synchronization
 
-	// Group goroutines by function/file to find potential worker pools
-	functionGoroutines := make(map[string][]metrics.GoroutineInstance)
+	// Group goroutines by file to analyze potential worker pools at file level
+	fileGoroutines := make(map[string][]metrics.GoroutineInstance)
 	for _, goroutine := range concurrency.Goroutines.Instances {
-		key := goroutine.File + ":" + goroutine.Function
-		functionGoroutines[key] = append(functionGoroutines[key], goroutine)
+		fileGoroutines[goroutine.File] = append(fileGoroutines[goroutine.File], goroutine)
 	}
 
-	// Look for functions with multiple goroutines (potential worker pools)
-	for functionKey, goroutines := range functionGoroutines {
-		if len(goroutines) >= 2 { // At least 2 workers suggests a pool
+	// Analyze each file for worker pool patterns
+	for file, goroutines := range fileGoroutines {
+		if len(goroutines) >= 1 { // Even 1 goroutine can be part of a worker pool in loops
 			// Check if there are channels and WaitGroups in the same context
 			hasChannels := ca.hasChannelsInContext(goroutines, concurrency.Channels.Instances)
 			hasWaitGroup := ca.hasWaitGroupInContext(goroutines, concurrency.SyncPrims.WaitGroups)
 
-			if hasChannels && hasWaitGroup {
+			// Worker pools often have multiple anonymous goroutines
+			anonymousCount := 0
+			for _, g := range goroutines {
+				if g.IsAnonymous {
+					anonymousCount++
+				}
+			}
+
+			// Worker pool pattern: channels + waitgroup + anonymous goroutines
+			if hasChannels && hasWaitGroup && anonymousCount >= 1 {
+				confidence := ca.calculateWorkerPoolConfidence(goroutines, hasChannels, hasWaitGroup)
+
 				// This looks like a worker pool pattern
 				pattern := metrics.PatternInstance{
 					Name:            "Worker Pool",
-					File:            goroutines[0].File,
+					File:            file,
 					Line:            goroutines[0].Line,
-					ConfidenceScore: ca.calculateWorkerPoolConfidence(goroutines, hasChannels, hasWaitGroup),
-					Description:     fmt.Sprintf("Worker pool with %d workers using channels and WaitGroup", len(goroutines)),
-					Example:         ca.extractWorkerPoolExample(functionKey, len(goroutines)),
+					ConfidenceScore: confidence,
+					Description:     fmt.Sprintf("Worker pool pattern with %d goroutine(s), channels, and WaitGroup", len(goroutines)),
+					Example:         ca.extractWorkerPoolExample(file, len(goroutines)),
 				}
 				concurrency.WorkerPools = append(concurrency.WorkerPools, pattern)
 			}
@@ -803,6 +813,6 @@ func (ca *ConcurrencyAnalyzer) calculateWorkerPoolConfidence(goroutines []metric
 }
 
 // extractWorkerPoolExample creates an example description for the worker pool
-func (ca *ConcurrencyAnalyzer) extractWorkerPoolExample(functionKey string, workerCount int) string {
-	return fmt.Sprintf("Function '%s' launches %d goroutines in worker pool pattern", functionKey, workerCount)
+func (ca *ConcurrencyAnalyzer) extractWorkerPoolExample(file string, workerCount int) string {
+	return fmt.Sprintf("File '%s' launches %d goroutines in worker pool pattern", file, workerCount)
 }

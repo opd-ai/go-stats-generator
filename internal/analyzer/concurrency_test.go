@@ -406,6 +406,123 @@ func doWork() {}`
 	assert.NotNil(t, result.Semaphores)
 }
 
+func TestConcurrencyAnalyzer_EnhancedPatternDetection(t *testing.T) {
+	tests := []struct {
+		name            string
+		code            string
+		expectedPattern string
+		minConfidence   float64
+	}{
+		{
+			name: "worker pool pattern",
+			code: `package main
+
+import "sync"
+
+func workerPoolExample() {
+	jobs := make(chan int, 100)
+	results := make(chan int, 100)
+	var wg sync.WaitGroup
+
+	// Start workers
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for job := range jobs {
+				results <- job * 2
+			}
+		}()
+	}
+}`,
+			expectedPattern: "worker_pools",
+			minConfidence:   0.5,
+		},
+		{
+			name: "semaphore pattern",
+			code: `package main
+
+func semaphoreExample() {
+	sem := make(chan struct{}, 3) // Limit to 3 concurrent operations
+	
+	for i := 0; i < 10; i++ {
+		go func() {
+			sem <- struct{}{} // Acquire
+			defer func() { <-sem }() // Release
+			// Do work
+		}()
+	}
+}`,
+			expectedPattern: "semaphores",
+			minConfidence:   0.7,
+		},
+		{
+			name: "pipeline pattern",
+			code: `package main
+
+func pipelineExample() {
+	// Stage 1: generate numbers
+	numbers := make(chan int)
+	go func() {
+		defer close(numbers)
+		for i := 0; i < 10; i++ {
+			numbers <- i
+		}
+	}()
+
+	// Stage 2: square numbers
+	squares := make(chan int)
+	go func() {
+		defer close(squares)
+		for n := range numbers {
+			squares <- n * n
+		}
+	}()
+
+	// Stage 3: collect results
+	go func() {
+		for s := range squares {
+			// process
+		}
+	}()
+}`,
+			expectedPattern: "pipelines",
+			minConfidence:   0.6,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "test.go", tt.code, parser.ParseComments)
+			require.NoError(t, err)
+
+			analyzer := NewConcurrencyAnalyzer(fset)
+			result, err := analyzer.AnalyzeConcurrency(file, "test.go")
+			require.NoError(t, err)
+
+			// Check the specific pattern was detected
+			switch tt.expectedPattern {
+			case "worker_pools":
+				assert.Greater(t, len(result.WorkerPools), 0, "Worker pool pattern should be detected")
+				if len(result.WorkerPools) > 0 {
+					assert.GreaterOrEqual(t, result.WorkerPools[0].ConfidenceScore, tt.minConfidence)
+				}
+			case "semaphores":
+				assert.Greater(t, len(result.Semaphores), 0, "Semaphore pattern should be detected")
+				if len(result.Semaphores) > 0 {
+					assert.GreaterOrEqual(t, result.Semaphores[0].ConfidenceScore, tt.minConfidence)
+				}
+			case "pipelines":
+				assert.Greater(t, len(result.Pipelines), 0, "Pipeline pattern should be detected")
+				if len(result.Pipelines) > 0 {
+					assert.GreaterOrEqual(t, result.Pipelines[0].ConfidenceScore, tt.minConfidence)
+				}
+			}
+		})
+	}
+}
+
 // Benchmark tests
 func BenchmarkConcurrencyAnalyzer_LargeFile(b *testing.B) {
 	// Create a large file with many goroutines and channels
