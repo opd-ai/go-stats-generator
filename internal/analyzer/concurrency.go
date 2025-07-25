@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 
@@ -454,24 +455,354 @@ func (ca *ConcurrencyAnalyzer) hasInfiniteLoop(call *ast.CallExpr) bool {
 
 func (ca *ConcurrencyAnalyzer) detectWorkerPools(concurrency *metrics.ConcurrencyPatternMetrics) {
 	// Detect worker pool patterns based on goroutine and channel usage
-	// This is a complex analysis that would look for:
-	// - Multiple goroutines reading from the same channel
-	// - Channel used for work distribution
-	// - WaitGroup for synchronization
+	// Pattern: Multiple goroutines reading from the same channel + WaitGroup for synchronization
+
+	// Group goroutines by function/file to find potential worker pools
+	functionGoroutines := make(map[string][]metrics.GoroutineInstance)
+	for _, goroutine := range concurrency.Goroutines.Instances {
+		key := goroutine.File + ":" + goroutine.Function
+		functionGoroutines[key] = append(functionGoroutines[key], goroutine)
+	}
+
+	// Look for functions with multiple goroutines (potential worker pools)
+	for functionKey, goroutines := range functionGoroutines {
+		if len(goroutines) >= 2 { // At least 2 workers suggests a pool
+			// Check if there are channels and WaitGroups in the same context
+			hasChannels := ca.hasChannelsInContext(goroutines, concurrency.Channels.Instances)
+			hasWaitGroup := ca.hasWaitGroupInContext(goroutines, concurrency.SyncPrims.WaitGroups)
+
+			if hasChannels && hasWaitGroup {
+				// This looks like a worker pool pattern
+				pattern := metrics.PatternInstance{
+					Name:            "Worker Pool",
+					File:            goroutines[0].File,
+					Line:            goroutines[0].Line,
+					ConfidenceScore: ca.calculateWorkerPoolConfidence(goroutines, hasChannels, hasWaitGroup),
+					Description:     fmt.Sprintf("Worker pool with %d workers using channels and WaitGroup", len(goroutines)),
+					Example:         ca.extractWorkerPoolExample(functionKey, len(goroutines)),
+				}
+				concurrency.WorkerPools = append(concurrency.WorkerPools, pattern)
+			}
+		}
+	}
 }
 
 func (ca *ConcurrencyAnalyzer) detectPipelines(concurrency *metrics.ConcurrencyPatternMetrics) {
 	// Detect pipeline patterns based on channel chaining
-	// Look for channels that are connected in sequence
+	// Pattern: Sequential goroutines connected by channels (stage1 -> channel -> stage2 -> channel -> stage3)
+
+	// Group channels by file to analyze potential pipelines
+	fileChannels := make(map[string][]metrics.ChannelInstance)
+	for _, channel := range concurrency.Channels.Instances {
+		fileChannels[channel.File] = append(fileChannels[channel.File], channel)
+	}
+
+	// Group goroutines by file
+	fileGoroutines := make(map[string][]metrics.GoroutineInstance)
+	for _, goroutine := range concurrency.Goroutines.Instances {
+		fileGoroutines[goroutine.File] = append(fileGoroutines[goroutine.File], goroutine)
+	}
+
+	// Look for files with multiple channels and goroutines (potential pipelines)
+	for file, channels := range fileChannels {
+		goroutines := fileGoroutines[file]
+
+		if len(channels) >= 2 && len(goroutines) >= 2 {
+			// This could be a pipeline pattern
+			confidence := ca.calculatePipelineConfidence(channels, goroutines)
+
+			if confidence > 0.6 { // Higher threshold for pipelines as they're more complex to detect
+				pattern := metrics.PatternInstance{
+					Name:            "Pipeline",
+					File:            file,
+					Line:            goroutines[0].Line, // Use first goroutine line
+					ConfidenceScore: confidence,
+					Description:     fmt.Sprintf("Pipeline with %d stages and %d channels", len(goroutines), len(channels)),
+					Example:         fmt.Sprintf("File '%s' implements pipeline pattern", file),
+				}
+				concurrency.Pipelines = append(concurrency.Pipelines, pattern)
+			}
+		}
+	}
+}
+
+// calculatePipelineConfidence calculates confidence for pipeline pattern
+func (ca *ConcurrencyAnalyzer) calculatePipelineConfidence(channels []metrics.ChannelInstance, goroutines []metrics.GoroutineInstance) float64 {
+	confidence := 0.0
+
+	// Multiple channels suggest pipeline stages
+	if len(channels) >= 2 {
+		confidence += 0.3
+	}
+
+	// Multiple goroutines suggest processing stages
+	if len(goroutines) >= 2 {
+		confidence += 0.3
+	}
+
+	// Sequential channels (mostly unbuffered) are typical for pipelines
+	unbufferedCount := 0
+	for _, channel := range channels {
+		if !channel.IsBuffered {
+			unbufferedCount++
+		}
+	}
+
+	if float64(unbufferedCount)/float64(len(channels)) > 0.7 {
+		confidence += 0.3
+	}
+
+	// More stages increase confidence
+	if len(channels) >= 3 {
+		confidence += 0.2
+	}
+
+	return confidence
 }
 
 func (ca *ConcurrencyAnalyzer) detectFanPatterns(concurrency *metrics.ConcurrencyPatternMetrics) {
 	// Detect fan-out and fan-in patterns
-	// Fan-out: one source, multiple consumers
-	// Fan-in: multiple sources, one consumer
+	// Fan-out: one source, multiple consumers (multiple goroutines reading from few channels)
+	// Fan-in: multiple sources, one consumer (multiple goroutines writing to few channels)
+
+	// Group by file for analysis
+	fileChannels := make(map[string][]metrics.ChannelInstance)
+	fileGoroutines := make(map[string][]metrics.GoroutineInstance)
+
+	for _, channel := range concurrency.Channels.Instances {
+		fileChannels[channel.File] = append(fileChannels[channel.File], channel)
+	}
+
+	for _, goroutine := range concurrency.Goroutines.Instances {
+		fileGoroutines[goroutine.File] = append(fileGoroutines[goroutine.File], goroutine)
+	}
+
+	// Analyze each file for fan patterns
+	for file, channels := range fileChannels {
+		goroutines := fileGoroutines[file]
+
+		if len(goroutines) >= 3 && len(channels) >= 1 {
+			// Check for fan-out pattern (many goroutines, fewer channels)
+			if len(goroutines) > len(channels)*2 {
+				confidence := ca.calculateFanOutConfidence(channels, goroutines)
+				if confidence > 0.6 {
+					pattern := metrics.PatternInstance{
+						Name:            "Fan-Out",
+						File:            file,
+						Line:            goroutines[0].Line,
+						ConfidenceScore: confidence,
+						Description:     fmt.Sprintf("Fan-out pattern: %d goroutines consuming from %d channels", len(goroutines), len(channels)),
+						Example:         fmt.Sprintf("Multiple consumers reading from shared channels in '%s'", file),
+					}
+					concurrency.FanOut = append(concurrency.FanOut, pattern)
+				}
+			}
+
+			// Check for fan-in pattern (many goroutines writing to fewer channels)
+			if len(goroutines) >= 3 && len(channels) <= 2 {
+				confidence := ca.calculateFanInConfidence(channels, goroutines)
+				if confidence > 0.6 {
+					pattern := metrics.PatternInstance{
+						Name:            "Fan-In",
+						File:            file,
+						Line:            goroutines[0].Line,
+						ConfidenceScore: confidence,
+						Description:     fmt.Sprintf("Fan-in pattern: %d goroutines merging into %d channels", len(goroutines), len(channels)),
+						Example:         fmt.Sprintf("Multiple producers writing to shared channels in '%s'", file),
+					}
+					concurrency.FanIn = append(concurrency.FanIn, pattern)
+				}
+			}
+		}
+	}
+}
+
+// calculateFanOutConfidence calculates confidence for fan-out pattern
+func (ca *ConcurrencyAnalyzer) calculateFanOutConfidence(channels []metrics.ChannelInstance, goroutines []metrics.GoroutineInstance) float64 {
+	confidence := 0.0
+
+	// High ratio of goroutines to channels suggests fan-out
+	ratio := float64(len(goroutines)) / float64(len(channels))
+	if ratio >= 3 {
+		confidence += 0.4
+	} else if ratio >= 2 {
+		confidence += 0.2
+	}
+
+	// Multiple goroutines increase confidence
+	if len(goroutines) >= 3 {
+		confidence += 0.3
+	}
+
+	// Unbuffered channels are common in fan-out
+	unbufferedCount := 0
+	for _, channel := range channels {
+		if !channel.IsBuffered {
+			unbufferedCount++
+		}
+	}
+	if float64(unbufferedCount)/float64(len(channels)) > 0.5 {
+		confidence += 0.2
+	}
+
+	// Few channels with many goroutines
+	if len(channels) <= 2 && len(goroutines) >= 4 {
+		confidence += 0.3
+	}
+
+	return confidence
+}
+
+// calculateFanInConfidence calculates confidence for fan-in pattern
+func (ca *ConcurrencyAnalyzer) calculateFanInConfidence(channels []metrics.ChannelInstance, goroutines []metrics.GoroutineInstance) float64 {
+	confidence := 0.0
+
+	// Multiple goroutines writing to few channels
+	if len(goroutines) >= 3 && len(channels) <= 2 {
+		confidence += 0.4
+	}
+
+	// More goroutines increase confidence
+	if len(goroutines) >= 4 {
+		confidence += 0.3
+	}
+
+	// Single output channel is very characteristic of fan-in
+	if len(channels) == 1 {
+		confidence += 0.3
+	}
+
+	// Unbuffered channels are common in fan-in
+	unbufferedCount := 0
+	for _, channel := range channels {
+		if !channel.IsBuffered {
+			unbufferedCount++
+		}
+	}
+	if float64(unbufferedCount)/float64(len(channels)) > 0.5 {
+		confidence += 0.2
+	}
+
+	return confidence
 }
 
 func (ca *ConcurrencyAnalyzer) detectSemaphores(concurrency *metrics.ConcurrencyPatternMetrics) {
 	// Detect semaphore patterns using buffered channels
-	// Look for buffered channels used for limiting concurrency
+	// Pattern: Buffered channel used for limiting concurrency (typically with struct{} type)
+
+	for _, channel := range concurrency.Channels.Instances {
+		if channel.IsBuffered && channel.BufferSize > 1 {
+			// This could be a semaphore pattern
+			confidence := ca.calculateSemaphoreConfidence(channel)
+
+			if confidence > 0.5 { // Only report if reasonably confident
+				pattern := metrics.PatternInstance{
+					Name:            "Semaphore",
+					File:            channel.File,
+					Line:            channel.Line,
+					ConfidenceScore: confidence,
+					Description:     fmt.Sprintf("Buffered channel with size %d used as semaphore", channel.BufferSize),
+					Example:         fmt.Sprintf("Channel of type '%s' with buffer size %d", channel.Type, channel.BufferSize),
+				}
+				concurrency.Semaphores = append(concurrency.Semaphores, pattern)
+			}
+		}
+	}
+}
+
+// calculateSemaphoreConfidence calculates confidence for semaphore pattern
+func (ca *ConcurrencyAnalyzer) calculateSemaphoreConfidence(channel metrics.ChannelInstance) float64 {
+	confidence := 0.0
+
+	// Buffered channels are potential semaphores
+	if channel.IsBuffered {
+		confidence += 0.4
+	}
+
+	// struct{} type is very common for semaphores
+	if channel.Type == "unknown" || channel.Type == "struct{}" {
+		confidence += 0.4
+	}
+
+	// Small buffer sizes (2-10) are typical for semaphores
+	if channel.BufferSize >= 2 && channel.BufferSize <= 10 {
+		confidence += 0.3
+	} else if channel.BufferSize > 10 {
+		confidence += 0.1 // Still possible but less likely
+	}
+
+	return confidence
+}
+
+// Helper methods for pattern detection
+
+// hasChannelsInContext checks if there are channels in the same context as goroutines
+func (ca *ConcurrencyAnalyzer) hasChannelsInContext(goroutines []metrics.GoroutineInstance, channels []metrics.ChannelInstance) bool {
+	if len(channels) == 0 {
+		return false
+	}
+
+	// Check if any channels are in the same file as the goroutines
+	for _, goroutine := range goroutines {
+		for _, channel := range channels {
+			if channel.File == goroutine.File {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// hasWaitGroupInContext checks if there are WaitGroups in the same context as goroutines
+func (ca *ConcurrencyAnalyzer) hasWaitGroupInContext(goroutines []metrics.GoroutineInstance, waitGroups []metrics.SyncPrimitiveInstance) bool {
+	if len(waitGroups) == 0 {
+		return false
+	}
+
+	// Check if any WaitGroups are in the same file as the goroutines
+	for _, goroutine := range goroutines {
+		for _, wg := range waitGroups {
+			if wg.File == goroutine.File {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// calculateWorkerPoolConfidence calculates confidence score for worker pool detection
+func (ca *ConcurrencyAnalyzer) calculateWorkerPoolConfidence(goroutines []metrics.GoroutineInstance, hasChannels, hasWaitGroup bool) float64 {
+	confidence := 0.0
+
+	// Base confidence for multiple goroutines
+	if len(goroutines) >= 2 {
+		confidence += 0.3
+	}
+
+	// Higher confidence for more workers
+	if len(goroutines) >= 3 {
+		confidence += 0.2
+	}
+
+	// Channels increase confidence significantly
+	if hasChannels {
+		confidence += 0.3
+	}
+
+	// WaitGroup increases confidence significantly
+	if hasWaitGroup {
+		confidence += 0.3
+	}
+
+	// Cap at 1.0
+	if confidence > 1.0 {
+		confidence = 1.0
+	}
+
+	return confidence
+}
+
+// extractWorkerPoolExample creates an example description for the worker pool
+func (ca *ConcurrencyAnalyzer) extractWorkerPoolExample(functionKey string, workerCount int) string {
+	return fmt.Sprintf("Function '%s' launches %d goroutines in worker pool pattern", functionKey, workerCount)
 }

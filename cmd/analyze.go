@@ -464,12 +464,6 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	}
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
-	// DEBUG: Print concurrency patterns to stderr for debugging
-	fmt.Fprintf(os.Stderr, "DEBUG: Total goroutines: %d\n", len(report.Patterns.ConcurrencyPatterns.Goroutines.Instances))
-	fmt.Fprintf(os.Stderr, "DEBUG: Total channels: %d\n", len(report.Patterns.ConcurrencyPatterns.Channels.Instances))
-	fmt.Fprintf(os.Stderr, "DEBUG: Goroutines count field: %d\n", report.Patterns.ConcurrencyPatterns.Goroutines.TotalCount)
-	fmt.Fprintf(os.Stderr, "DEBUG: Channels count field: %d\n", report.Patterns.ConcurrencyPatterns.Channels.TotalCount)
-
 	return report, nil
 }
 
