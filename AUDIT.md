@@ -22,7 +22,7 @@
 **Expected Behavior:** Should generate properly formatted CSV, HTML, and Markdown reports as documented
 **Actual Behavior:** CSV, HTML, and Markdown formats all produce console output instead of their respective formats
 **Impact:** Users cannot generate reports in documented formats, breaking automated workflows that depend on specific output formats
-**Reproduction:** Run `gostats analyze . --format csv` or `--format html` - produces console output instead
+**Reproduction:** Run `go-stats-generator analyze . --format csv` or `--format html` - produces console output instead
 **Code Reference:**
 ```go
 switch cfg.Output.Format {
@@ -58,10 +58,10 @@ default:
 **File:** cmd/diff.go:28-35
 **Severity:** High
 **Description:** Documentation shows diff command with `--baseline` and `--current` flags, but actual implementation expects two positional arguments for report files instead.
-**Expected Behavior:** `gostats diff --baseline "v1.0.0" --current .` should compare baseline with current directory
-**Actual Behavior:** Command expects `gostats diff [baseline-report] [comparison-report]` and rejects --baseline flag
+**Expected Behavior:** `go-stats-generator diff --baseline "v1.0.0" --current .` should compare baseline with current directory
+**Actual Behavior:** Command expects `go-stats-generator diff [baseline-report] [comparison-report]` and rejects --baseline flag
 **Impact:** Documented baseline comparison workflow is completely broken, users cannot use the advertised diff functionality
-**Reproduction:** Run `gostats diff --baseline "test-baseline" --current .` - returns "unknown flag: --baseline"
+**Reproduction:** Run `go-stats-generator diff --baseline "test-baseline" --current .` - returns "unknown flag: --baseline"
 **Code Reference:**
 ```go
 var diffCmd = &cobra.Command{
@@ -106,7 +106,7 @@ totalLines += int(result.FileInfo.Size) / 50 // Rough estimate
 **Expected Behavior:** Should provide statistical analysis, forecasting, and visual trend data
 **Actual Behavior:** Trend analysis command exists but lacks sophisticated analysis capabilities shown in documentation
 **Impact:** Advanced historical analysis features are not available as advertised
-**Reproduction:** Run `gostats trend analyze --days 30` - minimal functionality compared to documentation promises
+**Reproduction:** Run `go-stats-generator trend analyze --days 30` - minimal functionality compared to documentation promises
 **Code Reference:**
 ```go
 // Basic trend command structure exists but lacks advanced statistical analysis
@@ -183,10 +183,10 @@ DocumentationInfo struct {
 **File:** cmd/root.go:70-85, internal/config/config.go
 **Severity:** Medium
 **Description:** Documentation shows detailed YAML configuration with many options, but actual configuration loading and application is incomplete for many settings.
-**Expected Behavior:** Should load and apply all configuration options from .gostats.yaml as documented
+**Expected Behavior:** Should load and apply all configuration options from .go-stats-generator.yaml as documented
 **Actual Behavior:** Configuration file is loaded but many options are not actually applied to analysis behavior
 **Impact:** Users cannot customize analysis behavior as advertised through configuration files
-**Reproduction:** Create .gostats.yaml with various settings - many have no effect on analysis output
+**Reproduction:** Create .go-stats-generator.yaml with various settings - many have no effect on analysis output
 **Code Reference:**
 ```go
 // Configuration is loaded but not fully applied

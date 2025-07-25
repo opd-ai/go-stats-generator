@@ -30,7 +30,7 @@ go-stats-generator analyze [directory] [flags]
 - **Baseline Management**: Create and manage reference snapshots for comparisons
 - **CI/CD Integration**: Exit codes and reporting for automated quality gates
 - **Concurrent Processing**: Worker pools for analyzing large codebases efficiently
-- **Multiple Output Formats**: Console, JSON, CSV, HTML, Markdown with rich reporting
+- **Multiple Output Formats**: Console, JSON, HTML with rich reporting
 - **Enterprise Scale**: Process 50,000+ files within 60 seconds, <1GB memory usage
 - **Configurable Analysis**: Flexible filtering, thresholds, and analysis options
 
@@ -92,7 +92,7 @@ go-stats-generator trend regressions --threshold 10.0
 ### Basic Analysis
 
 ```bash
-gostats analyze [directory] [flags]
+go-stats-generator analyze [directory] [flags]
 ```
 
 ### Flags
@@ -159,7 +159,7 @@ ValidateConfiguration          config                      67         15       2
 
 ## Configuration
 
-Create a `.gostats.yaml` file in your home directory or project root:
+Create a `.go-stats-generator.yaml` file in your home directory or project root:
 
 ```yaml
 analysis:

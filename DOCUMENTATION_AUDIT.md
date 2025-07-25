@@ -130,7 +130,7 @@ None - all references were verifiable against the current codebase.
 ### Phase 3: Systematic Verification (2025-01-25 16:30:45)
 - Verified API structure against pkg/gostats and internal packages
 - Cross-referenced CLI flags against cmd/*.go files  
-- Validated configuration structure against .gostats.yaml
+- Validated configuration structure against .go-stats-generator.yaml
 - Checked dependency claims against go.mod
 
 ### Phase 4: Correction Application (2025-01-25 16:40:12)

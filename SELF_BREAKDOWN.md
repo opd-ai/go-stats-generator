@@ -14,8 +14,8 @@ go build -o go-stats-generator ./cmd/go-stats-generator
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets
-./go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests --exclude testdata --format json --output baseline.json
-./go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests --exclude testdata
+./go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --exclude testdata --format json --output baseline.json
+./go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --exclude testdata
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.

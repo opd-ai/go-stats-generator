@@ -44,19 +44,19 @@ processes them concurrently, and generates detailed metrics including:
 
 Examples:
   # Analyze current directory with console output
-  gostats analyze .
+  go-stats-generator analyze .
 
   # Analyze specific directory with JSON output
-  gostats analyze ./src --format json --output report.json
+  go-stats-generator analyze ./src --format json --output report.json
 
   # Analyze with custom worker count and timeout
-  gostats analyze . --workers 8 --timeout 5m
+  go-stats-generator analyze . --workers 8 --timeout 5m
 
   # Analyze excluding test files
-  gostats analyze . --skip-tests
+  go-stats-generator analyze . --skip-tests
 
   # Analyze with verbose output
-  gostats analyze . --verbose`,
+  go-stats-generator analyze . --verbose`,
 
 	Args: cobra.MaximumNArgs(1),
 	RunE: runAnalyze,

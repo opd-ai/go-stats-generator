@@ -42,13 +42,13 @@ This is particularly useful for:
 
 Examples:
   # Compare two reports with console output
-  gostats diff baseline.json current.json
+  go-stats-generator diff baseline.json current.json
 
   # Compare reports showing only significant changes (>10%)
-  gostats diff baseline.json current.json --threshold 10 --changes-only
+  go-stats-generator diff baseline.json current.json --threshold 10 --changes-only
 
   # Generate detailed HTML diff report
-  gostats diff baseline.json current.json --format html --output diff-report.html`,
+  go-stats-generator diff baseline.json current.json --format html --output diff-report.html`,
 
 	Args: cobra.ExactArgs(2),
 	RunE: runDiff,
@@ -57,7 +57,7 @@ Examples:
 func init() {
 	rootCmd.AddCommand(diffCmd)
 
-	diffCmd.Flags().StringVarP(&diffOutputFormat, "format", "f", "console", "Output format (console, json, html, markdown)")
+	diffCmd.Flags().StringVarP(&diffOutputFormat, "format", "f", "console", "Output format (console, json, html)")
 	diffCmd.Flags().StringVarP(&diffOutputFile, "output", "o", "", "Output file (default: stdout)")
 	diffCmd.Flags().BoolVar(&showOnlyChanges, "changes-only", false, "Show only items with changes above threshold")
 	diffCmd.Flags().Float64Var(&thresholdPercent, "threshold", 5.0, "Threshold percentage for significant changes")

@@ -1,6 +1,10 @@
 # TASK DESCRIPTION:
 Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis, targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality.
 
+## CONSTRAINT:
+
+Use only `go-stats-generator` and existing tests for your analysis. You are absolutely forbidden from writing new code of any kind or using any other code analysis tools.
+
 ## PREREQUISITES:
 **Minimum Required Version:** `go-stats-generator` v1.0.0 or higher  
 Install and configure `go-stats-generator` for comprehensive complexity analysis and improvement tracking:

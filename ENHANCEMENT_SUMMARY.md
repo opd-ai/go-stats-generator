@@ -49,34 +49,34 @@ Successfully enhanced the `go-stats-generator` tool with comprehensive complexit
 ### Baseline Management
 ```bash
 # Create baseline snapshots
-gostats baseline create [path] --id "v1.0.0" --message "Initial baseline"
+go-stats-generator baseline create [path] --id "v1.0.0" --message "Initial baseline"
 
 # List all baselines
-gostats baseline list
+go-stats-generator baseline list
 
 # Delete specific baseline
-gostats baseline delete "baseline-id"
+go-stats-generator baseline delete "baseline-id"
 ```
 
 ### Complexity Differential Analysis
 ```bash
 # Compare with baseline (conceptual - implementation pending completion)
-gostats diff --baseline "v1.0.0" --current .
+go-stats-generator diff --baseline "v1.0.0" --current .
 
 # Traditional file-based comparison (current implementation)
-gostats diff baseline-report.json current-report.json
+go-stats-generator diff baseline-report.json current-report.json
 ```
 
 ### Trend Analysis
 ```bash
 # Analyze trends over time
-gostats trend analyze --days 30 --metric complexity
+go-stats-generator trend analyze --days 30 --metric complexity
 
 # Generate forecasts
-gostats trend forecast --days 60
+go-stats-generator trend forecast --days 60
 
 # Detect regressions
-gostats trend regressions --threshold 10.0
+go-stats-generator trend regressions --threshold 10.0
 ```
 
 ## Technical Achievements
