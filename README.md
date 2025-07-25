@@ -1,6 +1,10 @@
 # Go Source Code Statistics Generator
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/Li### Basic Analysis
+
+```bash
+go-stats-generator analyze [directory] [flags]
+```-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/opd-ai/go-stats-generator)](https://goreportcard.com/report/github.com/opd-ai/go-stats-generator)
 
 `go-stats-generator` is a high-performance command-line tool that analyzes Go source code repositories to generate comprehensive statistical reports about code structure, complexity, and patterns. The project focuses on computing obscure and detailed metrics that standard linters don't typically capture, providing actionable insights for code quality assessment and refactoring decisions.
@@ -88,14 +92,14 @@ go-stats-generator trend regressions --threshold 10.0
 ### Basic Analysis
 
 ```bash
-go-stats-generator analyze [directory] [flags]
+gostats analyze [directory] [flags]
 ```
 
 ### Flags
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--format` | Output format (console, json, csv, html, markdown) | console |
+| `--format` | Output format (console, json, html) | console |
 | `--output` | Output file (default: stdout) | - |
 | `--workers` | Number of worker goroutines | CPU cores |
 | `--timeout` | Analysis timeout | 10m |
@@ -107,6 +111,14 @@ go-stats-generator analyze [directory] [flags]
 | `--max-function-length` | Maximum function length threshold | 30 |
 | `--max-complexity` | Maximum cyclomatic complexity threshold | 10 |
 | `--verbose` | Verbose output | false |
+
+<!-- AUDIT_FLAG: NEEDS_REVIEW
+Issue: CSV and Markdown output formats mentioned in table but not implemented
+Found in code: CSV and Markdown reporters exist but return "not yet implemented" errors
+Current working formats: console, json, html
+Action needed: Either remove from docs or implement the formats
+Last verified: 2025-01-25 against current codebase
+-->
 
 ### Example Output
 
