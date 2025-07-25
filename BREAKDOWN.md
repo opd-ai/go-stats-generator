@@ -13,14 +13,14 @@ go install github.com/opd-ai/go-stats-generator@latest
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets
-go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests --format json --output baseline.json
-go-stats-generator analyze . --max-complexity 13 --max-function-length 30 --skip-tests
+go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json
+go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
 
 # Phase 3: Post-refactoring validation
-go-stats-generator analyze . --format json --output refactored.json --max-complexity 13 --max-function-length 30 --skip-tests
+go-stats-generator analyze . --format json --output refactored.json --max-complexity 10 --max-function-length 30 --skip-tests
 
 # Phase 4: Measure and document improvements
 go-stats-generator diff baseline.json refactored.json
@@ -47,7 +47,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   ```
   - Use tool's suggestions for logical extraction points
   - Identify functions exceeding thresholds:
-    * Overall complexity > 13.0
+    * Overall complexity > 10.0 (default threshold)
     * Line count > 30 (code lines only)
     * Cyclomatic complexity > 10
     * Nesting depth > 3
@@ -91,7 +91,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 
 2. **Generate Improvement Report:**
   ```bash
-  go-stats-generator diff baseline.json refactored.json --format html --output report.html --include-recommendations
+  go-stats-generator diff baseline.json refactored.json --format html --output report.html
   ```
 
 ### Phase 4: Quality Verification
@@ -134,18 +134,20 @@ Differential analysis results:
 - Overall quality improvement: [score]
 ```
 
-Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + generics_penalty
-- generics_penalty: An additional score (typically 1.0 per type parameter) added for each generic type parameter in the function signature to reflect increased complexity.
+Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + (generics * 1.5) + variadic_penalty
+- variadic_penalty: An additional score (1.0) added for variadic parameters (...args) to reflect increased complexity.
+- generics: The actual multiplier is 1.5 per generic type parameter, not 1.0 as previously documented.
 
-Refactoring Threshold = Overall Complexity > 13.0 OR Lines > 30 OR Cyclomatic > 10
+Refactoring Threshold = Overall Complexity > 10.0 OR Lines > 30 OR Cyclomatic > 10
 - If no targets: "Refactor complete: go-stats-generator baseline analysis found no functions exceeding professional complexity thresholds."
 
 ## COMPLEXITY REFERENCE (go-stats-generator calculation):
 ```
 Overall Complexity = cyclomatic + (nesting_depth * 0.5) + (cognitive * 0.3)
-Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + generics_penalty
-Refactoring Threshold = Overall Complexity > 13.0 OR Lines > 30 OR Cyclomatic > 10
+Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + (generics * 1.5) + variadic_penalty
+Refactoring Threshold = Overall Complexity > 10.0 OR Lines > 30 OR Cyclomatic > 10
 ```
+<!-- Last verified: 2025-07-25 against function.go:calculateComplexity and calculateSignatureComplexity -->
 
 ## EXAMPLE WORKFLOW:
 ```bash
