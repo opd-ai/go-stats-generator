@@ -61,7 +61,7 @@ go-stats-generator baseline delete "baseline-id"
 ### Complexity Differential Analysis
 ```bash
 # Compare with baseline (conceptual - implementation pending completion)
-go-stats-generator diff --baseline "v1.0.0" --current .
+go-stats-generator diff baseline-report.json current-report.json
 
 # Traditional file-based comparison (current implementation)
 go-stats-generator diff baseline-report.json current-report.json

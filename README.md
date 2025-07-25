@@ -75,7 +75,7 @@ go-stats-generator analyze . --max-function-length 50 --max-complexity 15
 go-stats-generator baseline create . --id "v1.0.0" --message "Initial baseline"
 
 # Compare with baseline
-go-stats-generator diff --baseline "v1.0.0" --current .
+go-stats-generator diff baseline-report.json current-report.json
 
 # List all baselines
 go-stats-generator baseline list

@@ -21,7 +21,7 @@ go build -o go-stats-generator ./cmd/go-stats-generator
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
 
 # Phase 3: Post-refactoring validation
-./go-stats-generator analyze . --format json --output refactored.json --max-complexity 13 --max-function-length 30 --skip-tests --exclude testdata
+./go-stats-generator analyze . --format json --output refactored.json --max-complexity 10 --max-function-length 30 --skip-tests --exclude testdata
 
 # Phase 4: Measure and document improvements
 ./go-stats-generator diff baseline.json refactored.json
