@@ -1,0 +1,4 @@
+Analyzing directory: /home/user/go/src/github.com/opd-ai/go-stats-generator/testdata/simple
+Found 5 Go files
+
+Processing files: 1/5 (20.0%)Processing files: 2/5 (40.0%)Processing files: 3/5 (60.0%)Processing files: 4/5 (80.0%)Processing files: 5/5 (100.0%)Processing files: 5/5 (100.0%)Processed 5 files, found 28 functions, 4 structs, 5 interfaces
