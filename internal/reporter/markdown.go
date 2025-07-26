@@ -208,7 +208,7 @@ const markdownTemplate = `# Go Code Analysis Report
 {{$structs := truncateList .Report.Structs .MaxItems}}
 | Struct | Package | Fields | Methods | Complexity | Exported |
 |--------|---------|--------|---------|------------|----------|
-{{range $structs}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .Package}} | {{len .Fields}} | {{len .Methods}} | {{formatFloat .ComplexityScore}} | {{if .IsExported}}✅{{else}}❌{{end}} |
+{{range $structs}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .Package}} | {{.TotalFields}} | {{len .Methods}} | {{formatFloat .Complexity.Overall}} | {{if .IsExported}}✅{{else}}❌{{end}} |
 {{end}}{{if gt (len .Report.Structs) .MaxItems}}
 *Showing top {{.MaxItems}} structs out of {{len .Report.Structs}}*
 {{end}}
@@ -232,7 +232,7 @@ const markdownTemplate = `# Go Code Analysis Report
 {{$packages := truncateList .Report.Packages .MaxItems}}
 | Package | Files | Functions | Structs | Interfaces | Dependencies |
 |---------|-------|-----------|---------|------------|--------------|
-{{range $packages}}| {{escapeMarkdown .Name}} | {{len .Files}} | {{len .Functions}} | {{len .Structs}} | {{len .Interfaces}} | {{len .Dependencies}} |
+{{range $packages}}| {{escapeMarkdown .Name}} | {{len .Files}} | {{.Functions}} | {{.Structs}} | {{.Interfaces}} | {{len .Dependencies}} |
 {{end}}{{if gt (len .Report.Packages) .MaxItems}}
 *Showing top {{.MaxItems}} packages out of {{len .Report.Packages}}*
 {{end}}

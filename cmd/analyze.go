@@ -468,17 +468,10 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 }
 
 func generateOutput(report *metrics.Report, cfg *config.Config) error {
-	// Create appropriate reporter
-	var rep reporter.Reporter
-	var err error
-
-	switch cfg.Output.Format {
-	case config.FormatJSON:
-		rep = reporter.NewJSONReporter()
-	case config.FormatConsole:
-		fallthrough
-	default:
-		rep = reporter.NewConsoleReporter(&cfg.Output)
+	// Create appropriate reporter using the factory
+	rep, err := reporter.NewReporter(string(cfg.Output.Format))
+	if err != nil {
+		return fmt.Errorf("failed to create reporter: %w", err)
 	}
 
 	// Determine output destination
