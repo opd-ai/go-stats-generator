@@ -412,7 +412,7 @@ func TestIsInternalPackage(t *testing.T) {
 		{"github.com/olekukonko/tablewriter", false},                    // external
 		{"github.com/mycompany/myproject", true},                        // internal
 		{"internal/analyzer", true},                                     // internal
-		{"pkg/gostats", true},                                           // internal
+		{"pkg/go-stats-generator", true},                                // internal
 		{"github.com/opd-ai/go-stats-generator/internal/metrics", true}, // internal
 	}
 

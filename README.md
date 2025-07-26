@@ -255,7 +255,7 @@ github.com/opd-ai/go-stats-generator/
 │   ├── reporter/          # Output formatters
 │   ├── scanner/           # File discovery and processing
 │   └── config/            # Configuration management
-├── pkg/gostats/          # Public API
+├── pkg/go-stats-generator/          # Public API
 └── testdata/             # Test data
 ```
 
@@ -305,11 +305,11 @@ import (
     "fmt"
     "os"
     
-    "github.com/opd-ai/go-stats-generator/pkg/gostats"
+    "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
 )
 
 func main() {
-    analyzer := gostats.NewAnalyzer()
+    analyzer := go_stats_generator.NewAnalyzer()
     
     report, err := analyzer.AnalyzeDirectory(context.Background(), "./src")
     if err != nil {

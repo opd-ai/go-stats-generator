@@ -89,7 +89,7 @@ github.com/opd-ai/go-stats-generator/
 │       ├── interface.go     ✅ Storage interfaces
 │       └── sqlite.go        ✅ SQLite backend
 ├── pkg/                     ✅ Public API
-│   └── gostats/
+│   └── go-stats-generator/
 │       ├── api.go           ✅ Public interfaces
 │       ├── types.go         ✅ Public types
 │       └── errors.go        ✅ Error definitions

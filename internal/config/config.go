@@ -131,7 +131,7 @@ func DefaultConfig() *Config {
 			Timeout:         time.Minute * 10,
 			EnableProfiling: false,
 			EnableCache:     true,
-			CacheDirectory:  ".gostats-cache",
+			CacheDirectory:  ".go-stats-generator-cache",
 		},
 		Filters: FilterConfig{
 			IncludePatterns: []string{"**/*.go"},

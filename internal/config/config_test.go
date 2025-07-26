@@ -113,8 +113,8 @@ func TestDefaultConfig(t *testing.T) {
 		if !performance.EnableCache {
 			t.Error("Expected EnableCache to be true")
 		}
-		if performance.CacheDirectory != ".gostats-cache" {
-			t.Errorf("Expected CacheDirectory to be '.gostats-cache', got %s", performance.CacheDirectory)
+		if performance.CacheDirectory != ".go-stats-generator-cache" {
+			t.Errorf("Expected CacheDirectory to be '.go-stats-generator-cache', got %s", performance.CacheDirectory)
 		}
 	})
 

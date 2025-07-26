@@ -32,7 +32,7 @@ The target audience includes software engineers, technical leads, and DevOps tea
 
 - **Domain**: Static code analysis and software quality metrics for Go programming language. Focus on advanced, non-standard metrics that provide actionable insights for large-scale software development teams. Emphasis on detecting design patterns, architectural issues, and code complexity beyond traditional linting.
 
-- **Architecture**: Modular design using internal packages for separation of concerns: analyzer/ for AST processing and metric calculation, reporter/ for output formatting, scanner/ for file discovery and filtering, metrics/ for data structures and aggregation, config/ for configuration management. Public API exposed through pkg/gostats/ for library usage.
+- **Architecture**: Modular design using internal packages for separation of concerns: analyzer/ for AST processing and metric calculation, reporter/ for output formatting, scanner/ for file discovery and filtering, metrics/ for data structures and aggregation, config/ for configuration management. Public API exposed through pkg/go-stats-generator/ for library usage.
 
 - **Key Directories**: 
   - `cmd/` - CLI command definitions (root, analyze, compare, version)
@@ -40,7 +40,7 @@ The target audience includes software engineers, technical leads, and DevOps tea
   - `internal/metrics/` - Metric data structures, aggregation, and calculations
   - `internal/reporter/` - Output formatters for console, JSON, CSV, HTML, Markdown
   - `internal/scanner/` - File discovery, filtering, and concurrent processing
-  - `pkg/gostats/` - Public API for library integration
+  - `pkg/go-stats-generator/` - Public API for library integration
   - `testdata/` - Test projects for validation and benchmarking
 
 - **Configuration**: Support for configuration files (YAML/JSON), command-line flags, and environment variables. Configurable worker pool sizes, output formats, filtering patterns, and metric thresholds. Default settings optimized for typical Go project structures and enterprise-scale analysis requirements.
