@@ -75,7 +75,7 @@ complexity += float64(len(sig.GenericParams)) * 1.5
 
 ### 2. README.md - Binary Name Consistency
 **Issue**: Initial confusion about binary name vs command name
-**Resolution**: Verified that `go-stats-generator` is correct binary name (from go install), while internal cobra command uses `gostats`
+**Resolution**: Verified that `go-stats-generator` is correct binary name (from go install), while internal cobra command uses `go-stats-generator`
 **Status**: Documentation is accurate as written
 
 ## Items Requiring Manual Review
@@ -128,7 +128,7 @@ None - all references were verifiable against the current codebase.
 - Categorized: CLI commands (23), API calls (18), file paths (31), configuration keys (28), dependencies (12), examples (15)
 
 ### Phase 3: Systematic Verification (2025-01-25 16:30:45)
-- Verified API structure against pkg/gostats and internal packages
+- Verified API structure against pkg/go-stats-generator and internal packages
 - Cross-referenced CLI flags against cmd/*.go files  
 - Validated configuration structure against .go-stats-generator.yaml
 - Checked dependency claims against go.mod

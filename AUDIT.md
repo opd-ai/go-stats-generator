@@ -81,15 +81,15 @@ for result := range results {
 ### FUNCTIONAL MISMATCH: Binary Name Inconsistency
 **File:** cmd/root.go:17,87
 **Severity:** Medium
-**Description:** The root command defines "Use: gostats" but the actual binary name and module name is "go-stats-generator", creating confusion in help text and documentation.
+**Description:** The root command defines "Use: go-stats-generator" and the actual binary name and module name is "go-stats-generator", creating consistency in help text and documentation.
 **Expected Behavior:** Help text should consistently use "go-stats-generator" as the command name
-**Actual Behavior:** Help text shows "gostats" while binary is named "go-stats-generator"
+**Actual Behavior:** Help text shows "go-stats-generator" and binary is named "go-stats-generator"
 **Impact:** User confusion when following documentation or help text
 **Reproduction:** Run --help command and compare with actual binary name
 **Code Reference:**
 ```go
 var rootCmd = &cobra.Command{
-    Use:   "gostats", // Should be "go-stats-generator"
+    Use:   "go-stats-generator", // Now consistent
     Short: "Go Source Code Statistics Generator",
 }
 ```
@@ -177,13 +177,13 @@ var trendAnalyzeCmd = &cobra.Command{
 
 ~~~~
 ### FUNCTIONAL MISMATCH: Public API Limited Compared to CLI
-**File:** pkg/gostats/api.go:32-130
+**File:** pkg/go-stats-generator/api.go:32-130
 **Severity:** Medium
-**Description:** The public API in pkg/gostats only implements basic function analysis, missing struct, interface, package, and concurrency analysis that the CLI provides.
+**Description:** The public API in pkg/go-stats-generator only implements basic function analysis, missing struct, interface, package, and concurrency analysis that the CLI provides.
 **Expected Behavior:** Public API should provide same analysis capabilities as CLI tool
 **Actual Behavior:** API only analyzes functions, ignoring most other metrics types
 **Impact:** Library users cannot access full analysis capabilities programmatically
-**Reproduction:** Use gostats.NewAnalyzer().AnalyzeDirectory() - only functions will be analyzed
+**Reproduction:** Use go_stats_generator.NewAnalyzer().AnalyzeDirectory() - only functions will be analyzed
 **Code Reference:**
 ```go
 // Only analyzes functions, missing:
