@@ -42,8 +42,8 @@ func TestDefaultStorageConfig(t *testing.T) {
 	t.Run("SQLiteConfig", func(t *testing.T) {
 		sqlite := config.SQLite
 
-		if sqlite.Path != ".gostats/metrics.db" {
-			t.Errorf("Expected SQLite Path to be '.gostats/metrics.db', got '%s'", sqlite.Path)
+		if sqlite.Path != ".go-stats-generator/metrics.db" {
+			t.Errorf("Expected SQLite Path to be '.go-stats-generator/metrics.db', got '%s'", sqlite.Path)
 		}
 
 		if sqlite.MaxConnections != 10 {
@@ -67,8 +67,8 @@ func TestDefaultStorageConfig(t *testing.T) {
 	t.Run("JSONConfig", func(t *testing.T) {
 		json := config.JSON
 
-		if json.Directory != ".gostats/snapshots" {
-			t.Errorf("Expected JSON Directory to be '.gostats/snapshots', got '%s'", json.Directory)
+		if json.Directory != ".go-stats-generator/snapshots" {
+			t.Errorf("Expected JSON Directory to be '.go-stats-generator/snapshots', got '%s'", json.Directory)
 		}
 
 		if !json.Compression {

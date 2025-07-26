@@ -1,5 +1,5 @@
-// Package gostats provides a programmatic API for analyzing Go source code.
-package gostats
+// Package go-stats-generator provides a programmatic API for analyzing Go source code.
+package go_stats_generator
 
 import (
 	"context"

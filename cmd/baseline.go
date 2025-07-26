@@ -11,7 +11,7 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/config"
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/opd-ai/go-stats-generator/internal/storage"
-	"github.com/opd-ai/go-stats-generator/pkg/gostats"
+	go_stats_generator "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
 	"github.com/spf13/cobra"
 )
 
@@ -317,7 +317,7 @@ func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 
 func analyzeCodebase(targetPath string) (*metrics.Report, error) {
 	// Use the public API to analyze the project
-	api := gostats.NewAnalyzer()
+	api := go_stats_generator.NewAnalyzer()
 	report, err := api.AnalyzeDirectory(context.Background(), targetPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to analyze project: %w", err)

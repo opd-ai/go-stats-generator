@@ -15,9 +15,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "gostats",
+	Use:   "go-stats-generator",
 	Short: "Go Source Code Statistics Generator",
-	Long: `gostats is a comprehensive command-line tool that analyzes Go source code repositories 
+	Long: `go-stats-generator is a comprehensive command-line tool that analyzes Go source code repositories 
 and generates detailed statistical reports about code structure, complexity, and patterns.
 
 The tool provides actionable insights for code quality assessment and refactoring decisions,
@@ -53,7 +53,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gostats.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-stats-generator.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Bind flags to viper
@@ -70,11 +70,11 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".gostats" (without extension).
+		// Search config in home directory with name ".go-stats-generator" (without extension).
 		viper.AddConfigPath(home)
 		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".gostats")
+		viper.SetConfigName(".go-stats-generator")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

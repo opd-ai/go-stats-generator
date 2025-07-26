@@ -107,14 +107,14 @@ func DefaultStorageConfig() StorageConfig {
 	return StorageConfig{
 		Type: "sqlite",
 		SQLite: SQLiteConfig{
-			Path:              ".gostats/metrics.db",
+			Path:              ".go-stats-generator/metrics.db",
 			MaxConnections:    10,
 			EnableWAL:         true,
 			EnableFK:          true,
 			EnableCompression: true,
 		},
 		JSON: JSONConfig{
-			Directory:   ".gostats/snapshots",
+			Directory:   ".go-stats-generator/snapshots",
 			Compression: true,
 			Pretty:      false,
 		},

@@ -1,7 +1,7 @@
 # Go Stats Generator Makefile
 
 # Variables
-BINARY_NAME=gostats
+BINARY_NAME=go-stats-generator
 VERSION=1.0.0
 BUILD_DIR=build
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
