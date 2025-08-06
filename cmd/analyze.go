@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"go/token"
 	"os"
 	"path/filepath"
 	"time"
@@ -172,7 +173,17 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 func loadConfiguration() *config.Config {
 	cfg := config.DefaultConfig()
 
-	// Override with viper values
+	// Load configuration sections
+	loadOutputConfiguration(cfg)
+	loadPerformanceConfiguration(cfg)
+	loadFilterConfiguration(cfg)
+	loadAnalysisConfiguration(cfg)
+
+	return cfg
+}
+
+// loadOutputConfiguration loads output-related configuration from viper
+func loadOutputConfiguration(cfg *config.Config) {
 	if viper.IsSet("output.format") {
 		cfg.Output.Format = config.OutputFormat(viper.GetString("output.format"))
 	}
@@ -182,14 +193,20 @@ func loadConfiguration() *config.Config {
 	if viper.IsSet("output.verbose") {
 		cfg.Output.Verbose = viper.GetBool("output.verbose")
 	}
+}
+
+// loadPerformanceConfiguration loads performance-related configuration from viper
+func loadPerformanceConfiguration(cfg *config.Config) {
 	if viper.IsSet("performance.worker_count") {
 		cfg.Performance.WorkerCount = viper.GetInt("performance.worker_count")
 	}
 	if viper.IsSet("performance.timeout") {
 		cfg.Performance.Timeout = viper.GetDuration("performance.timeout")
 	}
+}
 
-	// Override filter settings
+// loadFilterConfiguration loads filter-related configuration from viper
+func loadFilterConfiguration(cfg *config.Config) {
 	if viper.IsSet("filters.skip_vendor") {
 		cfg.Filters.SkipVendor = viper.GetBool("filters.skip_vendor")
 	}
@@ -205,8 +222,10 @@ func loadConfiguration() *config.Config {
 	if viper.IsSet("filters.include_patterns") {
 		cfg.Filters.IncludePatterns = viper.GetStringSlice("filters.include_patterns")
 	}
+}
 
-	// Override analysis settings
+// loadAnalysisConfiguration loads analysis-related configuration from viper
+func loadAnalysisConfiguration(cfg *config.Config) {
 	if viper.IsSet("analysis.include_patterns") {
 		cfg.Analysis.IncludePatterns = viper.GetBool("analysis.include_patterns")
 	}
@@ -228,36 +247,84 @@ func loadConfiguration() *config.Config {
 	if viper.IsSet("analysis.min_documentation_coverage") {
 		cfg.Analysis.MinDocumentationCoverage = viper.GetFloat64("analysis.min_documentation_coverage")
 	}
-
-	return cfg
 }
 
 func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Config) (*metrics.Report, error) {
 	startTime := time.Now()
 
+	// Step 1: Discover and validate files
+	discoverer, files, err := discoverAndValidateFiles(targetDir, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: Process files through worker pool
+	results, err := processFilesWithWorkerPool(ctx, files, discoverer, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 3: Create analyzers and initial report structure
+	analyzers := createAnalyzers(discoverer.GetFileSet())
+	report := createInitialReport(targetDir, startTime, len(files))
+
+	// Step 4: Process analysis results from worker pool
+	metrics, packageAnalyzer, err := processAnalysisResults(results, analyzers, report, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 5: Finalize report with all collected metrics
+	finalizeReport(report, metrics, packageAnalyzer, cfg)
+	report.Metadata.AnalysisTime = time.Since(startTime)
+
+	return report, nil
+}
+
+// AnalyzerSet holds all the different analyzers used in the workflow
+type AnalyzerSet struct {
+	Function    *analyzer.FunctionAnalyzer
+	Struct      *analyzer.StructAnalyzer
+	Interface   *analyzer.InterfaceAnalyzer
+	Package     *analyzer.PackageAnalyzer
+	Concurrency *analyzer.ConcurrencyAnalyzer
+}
+
+// CollectedMetrics holds all metrics collected during analysis
+type CollectedMetrics struct {
+	Functions  []metrics.FunctionMetrics
+	Structs    []metrics.StructMetrics
+	Interfaces []metrics.InterfaceMetrics
+	TotalLines int
+}
+
+// discoverAndValidateFiles discovers Go files in the target directory and validates the results
+func discoverAndValidateFiles(targetDir string, cfg *config.Config) (*scanner.Discoverer, []scanner.FileInfo, error) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Analyzing directory: %s\n", targetDir)
 	}
 
-	// Discover files
 	discoverer := scanner.NewDiscoverer(&cfg.Filters)
 	files, err := discoverer.DiscoverFiles(targetDir)
 	if err != nil {
-		return nil, fmt.Errorf("file discovery failed: %w", err)
+		return nil, nil, fmt.Errorf("file discovery failed: %w", err)
 	}
 
 	if len(files) == 0 {
-		return nil, fmt.Errorf("no Go files found in %s", targetDir)
+		return nil, nil, fmt.Errorf("no Go files found in %s", targetDir)
 	}
 
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Found %d Go files\n", len(files))
 	}
 
-	// Create worker pool
+	return discoverer, files, nil
+}
+
+// processFilesWithWorkerPool processes files using the worker pool with optional progress reporting
+func processFilesWithWorkerPool(ctx context.Context, files []scanner.FileInfo, discoverer *scanner.Discoverer, cfg *config.Config) (<-chan scanner.Result, error) {
 	workerPool := scanner.NewWorkerPool(&cfg.Performance, discoverer)
 
-	// Process files with progress reporting
 	var progressCallback scanner.ProgressCallback
 	if cfg.Output.ShowProgress {
 		progressCallback = func(completed, total int) {
@@ -275,19 +342,28 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 		fmt.Fprintf(os.Stderr, "\n")
 	}
 
-	// Analyze results
-	functionAnalyzer := analyzer.NewFunctionAnalyzer(discoverer.GetFileSet())
-	structAnalyzer := analyzer.NewStructAnalyzer(discoverer.GetFileSet())
-	interfaceAnalyzer := analyzer.NewInterfaceAnalyzer(discoverer.GetFileSet())
-	packageAnalyzer := analyzer.NewPackageAnalyzer(discoverer.GetFileSet())
-	concurrencyAnalyzer := analyzer.NewConcurrencyAnalyzer(discoverer.GetFileSet())
+	return results, nil
+}
 
-	report := &metrics.Report{
+// createAnalyzers creates and returns all analyzers needed for the workflow
+func createAnalyzers(fileSet *token.FileSet) *AnalyzerSet {
+	return &AnalyzerSet{
+		Function:    analyzer.NewFunctionAnalyzer(fileSet),
+		Struct:      analyzer.NewStructAnalyzer(fileSet),
+		Interface:   analyzer.NewInterfaceAnalyzer(fileSet),
+		Package:     analyzer.NewPackageAnalyzer(fileSet),
+		Concurrency: analyzer.NewConcurrencyAnalyzer(fileSet),
+	}
+}
+
+// createInitialReport creates the initial report structure with metadata and empty pattern metrics
+func createInitialReport(targetDir string, startTime time.Time, fileCount int) *metrics.Report {
+	return &metrics.Report{
 		Metadata: metrics.ReportMetadata{
 			Repository:     targetDir,
 			GeneratedAt:    time.Now(),
 			AnalysisTime:   time.Since(startTime),
-			FilesProcessed: len(files),
+			FilesProcessed: fileCount,
 			ToolVersion:    "1.0.0",
 		},
 		Patterns: metrics.PatternMetrics{
@@ -315,14 +391,13 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			},
 		},
 	}
+}
 
-	var allFunctions []metrics.FunctionMetrics
-	var allStructs []metrics.StructMetrics
-	var allInterfaces []metrics.InterfaceMetrics
-	var totalLines int
-
-	// Process analysis results
+// processAnalysisResults processes the worker results and collects all metrics
+func processAnalysisResults(results <-chan scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) (*CollectedMetrics, *analyzer.PackageAnalyzer, error) {
+	collectedMetrics := &CollectedMetrics{}
 	processedFiles := 0
+
 	for result := range results {
 		processedFiles++
 
@@ -334,114 +409,162 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 		}
 
 		// Analyze functions in this file
-		functions, err := functionAnalyzer.AnalyzeFunctions(result.File, result.FileInfo.Package)
-		if err != nil {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: failed to analyze functions in %s: %v\n",
-					result.FileInfo.Path, err)
-			}
-		} else {
-			allFunctions = append(allFunctions, functions...)
+		functions, err := analyzeFunctionsInFile(analyzers.Function, result, cfg)
+		if err == nil {
+			collectedMetrics.Functions = append(collectedMetrics.Functions, functions...)
 		}
 
 		// Analyze structs in this file
-		structs, err := structAnalyzer.AnalyzeStructs(result.File, result.FileInfo.Package)
-		if err != nil {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: failed to analyze structs in %s: %v\n",
-					result.FileInfo.Path, err)
-			}
-		} else {
-			allStructs = append(allStructs, structs...)
+		structs, err := analyzeStructsInFile(analyzers.Struct, result, cfg)
+		if err == nil {
+			collectedMetrics.Structs = append(collectedMetrics.Structs, structs...)
 		}
 
 		// Analyze interfaces in this file
-		interfaces, err := interfaceAnalyzer.AnalyzeInterfaces(result.File, result.FileInfo.Package)
-		if err != nil {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: failed to analyze interfaces in %s: %v\n",
-					result.FileInfo.Path, err)
-			}
-		} else {
-			allInterfaces = append(allInterfaces, interfaces...)
+		interfaces, err := analyzeInterfacesInFile(analyzers.Interface, result, cfg)
+		if err == nil {
+			collectedMetrics.Interfaces = append(collectedMetrics.Interfaces, interfaces...)
 		}
 
 		// Analyze package information for this file
-		err = packageAnalyzer.AnalyzePackage(result.File, result.FileInfo.Path)
-		if err != nil {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: failed to analyze package in %s: %v\n",
-					result.FileInfo.Path, err)
-			}
+		err = analyzePackageInFile(analyzers.Package, result, cfg)
+		if err != nil && cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Warning: failed to analyze package in %s: %v\n",
+				result.FileInfo.Path, err)
 		}
 
 		// Analyze concurrency patterns in this file
-		concurrencyMetrics, err := concurrencyAnalyzer.AnalyzeConcurrency(result.File, result.FileInfo.Package)
-		if err != nil {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: failed to analyze concurrency in %s: %v\n",
-					result.FileInfo.Path, err)
-			}
-		} else {
-			// Aggregate concurrency metrics
-			report.Patterns.ConcurrencyPatterns.Goroutines.Instances = append(report.Patterns.ConcurrencyPatterns.Goroutines.Instances, concurrencyMetrics.Goroutines.Instances...)
-			report.Patterns.ConcurrencyPatterns.Goroutines.GoroutineLeaks = append(report.Patterns.ConcurrencyPatterns.Goroutines.GoroutineLeaks, concurrencyMetrics.Goroutines.GoroutineLeaks...)
-			report.Patterns.ConcurrencyPatterns.Channels.Instances = append(report.Patterns.ConcurrencyPatterns.Channels.Instances, concurrencyMetrics.Channels.Instances...)
-			report.Patterns.ConcurrencyPatterns.SyncPrims.Mutexes = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Mutexes, concurrencyMetrics.SyncPrims.Mutexes...)
-			report.Patterns.ConcurrencyPatterns.SyncPrims.RWMutexes = append(report.Patterns.ConcurrencyPatterns.SyncPrims.RWMutexes, concurrencyMetrics.SyncPrims.RWMutexes...)
-			report.Patterns.ConcurrencyPatterns.SyncPrims.WaitGroups = append(report.Patterns.ConcurrencyPatterns.SyncPrims.WaitGroups, concurrencyMetrics.SyncPrims.WaitGroups...)
-			report.Patterns.ConcurrencyPatterns.SyncPrims.Once = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Once, concurrencyMetrics.SyncPrims.Once...)
-			report.Patterns.ConcurrencyPatterns.SyncPrims.Cond = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Cond, concurrencyMetrics.SyncPrims.Cond...)
-			report.Patterns.ConcurrencyPatterns.SyncPrims.Atomic = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Atomic, concurrencyMetrics.SyncPrims.Atomic...)
-			report.Patterns.ConcurrencyPatterns.WorkerPools = append(report.Patterns.ConcurrencyPatterns.WorkerPools, concurrencyMetrics.WorkerPools...)
-			report.Patterns.ConcurrencyPatterns.Pipelines = append(report.Patterns.ConcurrencyPatterns.Pipelines, concurrencyMetrics.Pipelines...)
-			report.Patterns.ConcurrencyPatterns.FanOut = append(report.Patterns.ConcurrencyPatterns.FanOut, concurrencyMetrics.FanOut...)
-			report.Patterns.ConcurrencyPatterns.FanIn = append(report.Patterns.ConcurrencyPatterns.FanIn, concurrencyMetrics.FanIn...)
-			report.Patterns.ConcurrencyPatterns.Semaphores = append(report.Patterns.ConcurrencyPatterns.Semaphores, concurrencyMetrics.Semaphores...)
+		err = analyzeConcurrencyInFile(analyzers.Concurrency, result, report, cfg)
+		if err != nil && cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Warning: failed to analyze concurrency in %s: %v\n",
+				result.FileInfo.Path, err)
 		}
 	}
 
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Processed %d files, found %d functions, %d structs, %d interfaces\n",
-			processedFiles, len(allFunctions), len(allStructs), len(allInterfaces))
+			processedFiles, len(collectedMetrics.Functions), len(collectedMetrics.Structs), len(collectedMetrics.Interfaces))
 	}
 
+	return collectedMetrics, analyzers.Package, nil
+}
+
+// analyzeFunctionsInFile analyzes functions in a single file result
+func analyzeFunctionsInFile(functionAnalyzer *analyzer.FunctionAnalyzer, result scanner.Result, cfg *config.Config) ([]metrics.FunctionMetrics, error) {
+	functions, err := functionAnalyzer.AnalyzeFunctions(result.File, result.FileInfo.Package)
+	if err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze functions in %s: %v\n",
+			result.FileInfo.Path, err)
+		return nil, err
+	}
+	return functions, nil
+}
+
+// analyzeStructsInFile analyzes structs in a single file result
+func analyzeStructsInFile(structAnalyzer *analyzer.StructAnalyzer, result scanner.Result, cfg *config.Config) ([]metrics.StructMetrics, error) {
+	structs, err := structAnalyzer.AnalyzeStructs(result.File, result.FileInfo.Package)
+	if err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze structs in %s: %v\n",
+			result.FileInfo.Path, err)
+		return nil, err
+	}
+	return structs, nil
+}
+
+// analyzeInterfacesInFile analyzes interfaces in a single file result
+func analyzeInterfacesInFile(interfaceAnalyzer *analyzer.InterfaceAnalyzer, result scanner.Result, cfg *config.Config) ([]metrics.InterfaceMetrics, error) {
+	interfaces, err := interfaceAnalyzer.AnalyzeInterfaces(result.File, result.FileInfo.Package)
+	if err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze interfaces in %s: %v\n",
+			result.FileInfo.Path, err)
+		return nil, err
+	}
+	return interfaces, nil
+}
+
+// analyzePackageInFile analyzes package information for a single file result
+func analyzePackageInFile(packageAnalyzer *analyzer.PackageAnalyzer, result scanner.Result, cfg *config.Config) error {
+	return packageAnalyzer.AnalyzePackage(result.File, result.FileInfo.Path)
+}
+
+// analyzeConcurrencyInFile analyzes concurrency patterns in a single file and aggregates to report
+func analyzeConcurrencyInFile(concurrencyAnalyzer *analyzer.ConcurrencyAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) error {
+	concurrencyMetrics, err := concurrencyAnalyzer.AnalyzeConcurrency(result.File, result.FileInfo.Package)
+	if err != nil {
+		return err
+	}
+
+	aggregateConcurrencyMetrics(report, &concurrencyMetrics)
+	return nil
+}
+
+// aggregateConcurrencyMetrics aggregates concurrency metrics into the report
+func aggregateConcurrencyMetrics(report *metrics.Report, concurrencyMetrics *metrics.ConcurrencyPatternMetrics) {
+	report.Patterns.ConcurrencyPatterns.Goroutines.Instances = append(report.Patterns.ConcurrencyPatterns.Goroutines.Instances, concurrencyMetrics.Goroutines.Instances...)
+	report.Patterns.ConcurrencyPatterns.Goroutines.GoroutineLeaks = append(report.Patterns.ConcurrencyPatterns.Goroutines.GoroutineLeaks, concurrencyMetrics.Goroutines.GoroutineLeaks...)
+	report.Patterns.ConcurrencyPatterns.Channels.Instances = append(report.Patterns.ConcurrencyPatterns.Channels.Instances, concurrencyMetrics.Channels.Instances...)
+	report.Patterns.ConcurrencyPatterns.SyncPrims.Mutexes = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Mutexes, concurrencyMetrics.SyncPrims.Mutexes...)
+	report.Patterns.ConcurrencyPatterns.SyncPrims.RWMutexes = append(report.Patterns.ConcurrencyPatterns.SyncPrims.RWMutexes, concurrencyMetrics.SyncPrims.RWMutexes...)
+	report.Patterns.ConcurrencyPatterns.SyncPrims.WaitGroups = append(report.Patterns.ConcurrencyPatterns.SyncPrims.WaitGroups, concurrencyMetrics.SyncPrims.WaitGroups...)
+	report.Patterns.ConcurrencyPatterns.SyncPrims.Once = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Once, concurrencyMetrics.SyncPrims.Once...)
+	report.Patterns.ConcurrencyPatterns.SyncPrims.Cond = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Cond, concurrencyMetrics.SyncPrims.Cond...)
+	report.Patterns.ConcurrencyPatterns.SyncPrims.Atomic = append(report.Patterns.ConcurrencyPatterns.SyncPrims.Atomic, concurrencyMetrics.SyncPrims.Atomic...)
+	report.Patterns.ConcurrencyPatterns.WorkerPools = append(report.Patterns.ConcurrencyPatterns.WorkerPools, concurrencyMetrics.WorkerPools...)
+	report.Patterns.ConcurrencyPatterns.Pipelines = append(report.Patterns.ConcurrencyPatterns.Pipelines, concurrencyMetrics.Pipelines...)
+	report.Patterns.ConcurrencyPatterns.FanOut = append(report.Patterns.ConcurrencyPatterns.FanOut, concurrencyMetrics.FanOut...)
+	report.Patterns.ConcurrencyPatterns.FanIn = append(report.Patterns.ConcurrencyPatterns.FanIn, concurrencyMetrics.FanIn...)
+	report.Patterns.ConcurrencyPatterns.Semaphores = append(report.Patterns.ConcurrencyPatterns.Semaphores, concurrencyMetrics.Semaphores...)
+}
+
+// finalizeReport populates the report with collected metrics and generates final package report
+func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, packageAnalyzer *analyzer.PackageAnalyzer, cfg *config.Config) {
 	// Generate package report
 	packageReport, err := packageAnalyzer.GenerateReport()
 	if err != nil {
 		if cfg.Output.Verbose {
 			fmt.Fprintf(os.Stderr, "Warning: failed to generate package report: %v\n", err)
 		}
-		// Continue with empty package data
 		packageReport = &metrics.PackageReport{
 			Packages:      []metrics.PackageMetrics{},
 			TotalPackages: 0,
 		}
 	}
 
-	// Populate report
-	report.Functions = allFunctions
-	report.Structs = allStructs
-	report.Interfaces = allInterfaces
+	// Populate main metrics
+	report.Functions = collectedMetrics.Functions
+	report.Structs = collectedMetrics.Structs
+	report.Interfaces = collectedMetrics.Interfaces
 	report.Packages = packageReport.Packages
+
+	// Calculate overview metrics
+	calculateOverviewMetrics(report, collectedMetrics, packageReport)
+
+	// Finalize concurrency metrics summary statistics
+	finalizeConcurrencyMetrics(report)
+}
+
+// calculateOverviewMetrics calculates and sets the overview metrics in the report
+func calculateOverviewMetrics(report *metrics.Report, collectedMetrics *CollectedMetrics, packageReport *metrics.PackageReport) {
 	report.Overview = metrics.OverviewMetrics{
-		TotalLinesOfCode: totalLines,
-		TotalFunctions:   len(allFunctions),
-		TotalStructs:     len(allStructs),
-		TotalInterfaces:  len(allInterfaces),
+		TotalLinesOfCode: collectedMetrics.TotalLines,
+		TotalFunctions:   len(collectedMetrics.Functions),
+		TotalStructs:     len(collectedMetrics.Structs),
+		TotalInterfaces:  len(collectedMetrics.Interfaces),
 		TotalPackages:    packageReport.TotalPackages,
-		TotalFiles:       len(files),
+		TotalFiles:       report.Metadata.FilesProcessed,
 	}
 
 	// Count methods vs functions
-	for _, fn := range allFunctions {
+	for _, fn := range collectedMetrics.Functions {
 		if fn.IsMethod {
 			report.Overview.TotalMethods++
 		}
 	}
 	report.Overview.TotalFunctions -= report.Overview.TotalMethods
+}
 
-	// Finalize concurrency metrics summary statistics
+// finalizeConcurrencyMetrics calculates final concurrency metric summaries
+func finalizeConcurrencyMetrics(report *metrics.Report) {
 	report.Patterns.ConcurrencyPatterns.Goroutines.TotalCount = len(report.Patterns.ConcurrencyPatterns.Goroutines.Instances)
 	for _, instance := range report.Patterns.ConcurrencyPatterns.Goroutines.Instances {
 		if instance.IsAnonymous {
@@ -462,9 +585,6 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 			report.Patterns.ConcurrencyPatterns.Channels.DirectionalCount++
 		}
 	}
-	report.Metadata.AnalysisTime = time.Since(startTime)
-
-	return report, nil
 }
 
 func generateOutput(report *metrics.Report, cfg *config.Config) error {

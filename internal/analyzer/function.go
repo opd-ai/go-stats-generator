@@ -227,61 +227,82 @@ func (fa *FunctionAnalyzer) classifyLine(line string, inBlockComment *bool) stri
 		return "blank"
 	}
 
-	// If we're in a block comment, check if it ends on this line
+	// Handle lines within existing block comments
 	if *inBlockComment {
-		if strings.Contains(line, "*/") {
-			*inBlockComment = false
-			// Check if there's code after the comment end
-			endIdx := strings.Index(line, "*/") + 2
-			if endIdx < len(line) {
-				remaining := strings.TrimSpace(line[endIdx:])
-				if remaining != "" && !strings.HasPrefix(remaining, "//") {
-					return "mixed"
-				}
-			}
-		}
-		return "comment"
+		return fa.classifyLineInBlockComment(line, inBlockComment)
 	}
 
-	// Check for block comment start
-	blockStartIdx := strings.Index(line, "/*")
-	if blockStartIdx >= 0 {
-		// Check if block comment ends on same line
-		blockEndIdx := strings.Index(line[blockStartIdx:], "*/")
-		if blockEndIdx >= 0 {
-			// Block comment contained within line
-			beforeBlock := strings.TrimSpace(line[:blockStartIdx])
-			afterBlock := strings.TrimSpace(line[blockStartIdx+blockEndIdx+2:])
-			hasCodeBefore := beforeBlock != ""
-			hasCodeAfter := afterBlock != "" && !strings.HasPrefix(afterBlock, "//")
-
-			if hasCodeBefore || hasCodeAfter {
-				return "mixed"
-			}
-			return "comment"
-		} else {
-			// Block comment starts but doesn't end
-			*inBlockComment = true
-			beforeBlock := strings.TrimSpace(line[:blockStartIdx])
-			if beforeBlock != "" {
-				return "mixed"
-			}
-			return "comment"
-		}
+	// Check for new block comments
+	if blockStartIdx := strings.Index(line, "/*"); blockStartIdx >= 0 {
+		return fa.classifyLineWithBlockComment(line, blockStartIdx, inBlockComment)
 	}
 
-	// Check for line comment
-	lineCommentIdx := strings.Index(line, "//")
-	if lineCommentIdx >= 0 {
-		beforeComment := strings.TrimSpace(line[:lineCommentIdx])
-		if beforeComment != "" {
-			return "mixed"
-		}
-		return "comment"
+	// Check for line comments
+	if lineCommentIdx := strings.Index(line, "//"); lineCommentIdx >= 0 {
+		return fa.classifyLineWithLineComment(line, lineCommentIdx)
 	}
 
 	// No comments found, must be code
 	return "code"
+}
+
+// classifyLineInBlockComment handles lines that are within an existing block comment
+func (fa *FunctionAnalyzer) classifyLineInBlockComment(line string, inBlockComment *bool) string {
+	if strings.Contains(line, "*/") {
+		*inBlockComment = false
+		return fa.checkCodeAfterBlockCommentEnd(line)
+	}
+	return "comment"
+}
+
+// checkCodeAfterBlockCommentEnd checks if there's code after a block comment ends
+func (fa *FunctionAnalyzer) checkCodeAfterBlockCommentEnd(line string) string {
+	endIdx := strings.Index(line, "*/") + 2
+	if endIdx < len(line) {
+		remaining := strings.TrimSpace(line[endIdx:])
+		if remaining != "" && !strings.HasPrefix(remaining, "//") {
+			return "mixed"
+		}
+	}
+	return "comment"
+}
+
+// classifyLineWithBlockComment handles lines that contain block comment starts
+func (fa *FunctionAnalyzer) classifyLineWithBlockComment(line string, blockStartIdx int, inBlockComment *bool) string {
+	// Check if block comment ends on same line
+	if blockEndIdx := strings.Index(line[blockStartIdx:], "*/"); blockEndIdx >= 0 {
+		return fa.classifyLineWithCompleteBlockComment(line, blockStartIdx, blockEndIdx)
+	}
+
+	// Block comment starts but doesn't end
+	*inBlockComment = true
+	beforeBlock := strings.TrimSpace(line[:blockStartIdx])
+	if beforeBlock != "" {
+		return "mixed"
+	}
+	return "comment"
+}
+
+// classifyLineWithCompleteBlockComment handles lines with complete block comments
+func (fa *FunctionAnalyzer) classifyLineWithCompleteBlockComment(line string, blockStartIdx, blockEndIdx int) string {
+	beforeBlock := strings.TrimSpace(line[:blockStartIdx])
+	afterBlock := strings.TrimSpace(line[blockStartIdx+blockEndIdx+2:])
+	hasCodeBefore := beforeBlock != ""
+	hasCodeAfter := afterBlock != "" && !strings.HasPrefix(afterBlock, "//")
+
+	if hasCodeBefore || hasCodeAfter {
+		return "mixed"
+	}
+	return "comment"
+}
+
+// classifyLineWithLineComment handles lines that contain line comments
+func (fa *FunctionAnalyzer) classifyLineWithLineComment(line string, lineCommentIdx int) string {
+	beforeComment := strings.TrimSpace(line[:lineCommentIdx])
+	if beforeComment != "" {
+		return "mixed"
+	}
+	return "comment"
 }
 
 // calculateComplexity calculates various complexity metrics
