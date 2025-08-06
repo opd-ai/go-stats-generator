@@ -17,8 +17,8 @@
         <header>
             <h1>Go Source Code Complexity Diff Report</h1>
             <div class="metadata">
-                <p><strong>Baseline:</strong> {{.Diff.Baseline.ID}} ({{formatTime .Diff.Baseline.Timestamp}})</p>
-                <p><strong>Current:</strong> {{.Diff.Current.ID}} ({{formatTime .Diff.Current.Timestamp}})</p>
+                <p><strong>Baseline:</strong> {{.Diff.Baseline.ID}} ({{formatTime .Diff.Baseline.Metadata.Timestamp}})</p>
+                <p><strong>Current:</strong> {{.Diff.Current.ID}} ({{formatTime .Diff.Current.Metadata.Timestamp}})</p>
                 <p><strong>Comparison:</strong> {{formatTime .Diff.Timestamp}}</p>
             </div>
         </header>
@@ -31,11 +31,11 @@
                     <p>Total Changes</p>
                 </div>
                 <div class="summary-card regressions">
-                    <h3>{{.Diff.Summary.TotalRegressions}}</h3>
+                    <h3>{{.Diff.Summary.RegressionCount}}</h3>
                     <p>Regressions</p>
                 </div>
                 <div class="summary-card improvements">
-                    <h3>{{.Diff.Summary.TotalImprovements}}</h3>
+                    <h3>{{.Diff.Summary.ImprovementCount}}</h3>
                     <p>Improvements</p>
                 </div>
                 <div class="summary-card {{severityClass .Diff.Summary.OverallSeverity}}">

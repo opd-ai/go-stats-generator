@@ -204,58 +204,88 @@ func NewBatchProcessor(workerPool *WorkerPool, batchSize int) *BatchProcessor {
 }
 
 // ProcessInBatches processes files in batches to manage memory usage
+// ProcessInBatches processes files in batches using worker pools with progress tracking
 func (bp *BatchProcessor) ProcessInBatches(ctx context.Context, files []FileInfo, progressCb ProgressCallback) (<-chan Result, error) {
 	totalFiles := len(files)
 	if totalFiles == 0 {
-		resultChan := make(chan Result)
-		close(resultChan)
-		return resultChan, nil
+		return bp.createEmptyResultChannel(), nil
 	}
 
 	resultChan := make(chan Result, totalFiles)
-
-	go func() {
-		defer close(resultChan)
-
-		processed := 0
-
-		for i := 0; i < totalFiles; i += bp.batchSize {
-			end := i + bp.batchSize
-			if end > totalFiles {
-				end = totalFiles
-			}
-
-			batch := files[i:end]
-
-			// Process batch
-			batchResults, err := bp.workerPool.ProcessFiles(ctx, batch, nil)
-			if err != nil {
-				// Send error result
-				resultChan <- Result{Error: fmt.Errorf("batch processing failed: %w", err)}
-				return
-			}
-
-			// Collect batch results
-			for result := range batchResults {
-				select {
-				case resultChan <- result:
-					processed++
-					if progressCb != nil {
-						progressCb(processed, totalFiles)
-					}
-				case <-ctx.Done():
-					return
-				}
-			}
-
-			// Check for cancellation between batches
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-		}
-	}()
-
+	go bp.processBatchesAsync(ctx, files, progressCb, resultChan)
 	return resultChan, nil
+}
+
+// createEmptyResultChannel creates and immediately closes a result channel for empty file sets
+func (bp *BatchProcessor) createEmptyResultChannel() <-chan Result {
+	resultChan := make(chan Result)
+	close(resultChan)
+	return resultChan
+}
+
+// processBatchesAsync handles the asynchronous batch processing workflow
+func (bp *BatchProcessor) processBatchesAsync(ctx context.Context, files []FileInfo, progressCb ProgressCallback, resultChan chan<- Result) {
+	defer close(resultChan)
+
+	processed := 0
+	totalFiles := len(files)
+
+	for i := 0; i < totalFiles; i += bp.batchSize {
+		if bp.shouldStopProcessing(ctx) {
+			return
+		}
+
+		batch := bp.createBatch(files, i, totalFiles)
+		if err := bp.processSingleBatch(ctx, batch, &processed, totalFiles, progressCb, resultChan); err != nil {
+			return
+		}
+	}
+}
+
+// shouldStopProcessing checks if processing should be stopped due to context cancellation
+func (bp *BatchProcessor) shouldStopProcessing(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
+
+// createBatch creates a file batch slice from the given range
+func (bp *BatchProcessor) createBatch(files []FileInfo, start, totalFiles int) []FileInfo {
+	end := start + bp.batchSize
+	if end > totalFiles {
+		end = totalFiles
+	}
+	return files[start:end]
+}
+
+// processSingleBatch processes a single batch and handles the results
+func (bp *BatchProcessor) processSingleBatch(ctx context.Context, batch []FileInfo, processed *int, totalFiles int, progressCb ProgressCallback, resultChan chan<- Result) error {
+	// Process batch through worker pool
+	batchResults, err := bp.workerPool.ProcessFiles(ctx, batch, nil)
+	if err != nil {
+		resultChan <- Result{Error: fmt.Errorf("batch processing failed: %w", err)}
+		return err
+	}
+
+	// Collect and forward batch results
+	return bp.collectBatchResults(ctx, batchResults, processed, totalFiles, progressCb, resultChan)
+}
+
+// collectBatchResults collects results from a single batch and forwards them
+func (bp *BatchProcessor) collectBatchResults(ctx context.Context, batchResults <-chan Result, processed *int, totalFiles int, progressCb ProgressCallback, resultChan chan<- Result) error {
+	for result := range batchResults {
+		select {
+		case resultChan <- result:
+			*processed++
+			if progressCb != nil {
+				progressCb(*processed, totalFiles)
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
 }

@@ -401,55 +401,89 @@ func (sa *StructAnalyzer) hasPointerReceiver(funcDecl *ast.FuncDecl) bool {
 	return isPointer
 }
 
-// analyzeMethodSignature analyzes a method's function signature
+// analyzeMethodSignature analyzes a method's function signature for complexity metrics
 func (sa *StructAnalyzer) analyzeMethodSignature(funcType *ast.FuncType) metrics.FunctionSignature {
 	signature := metrics.FunctionSignature{}
 
-	// Count parameters
-	if funcType.Params != nil {
-		for _, field := range funcType.Params.List {
-			signature.ParameterCount += len(field.Names)
-			if len(field.Names) == 0 {
-				signature.ParameterCount++ // Unnamed parameter
-			}
+	// Analyze parameters
+	sa.analyzeSignatureParameters(funcType, &signature)
 
-			// Check for variadic
-			if _, ok := field.Type.(*ast.Ellipsis); ok {
-				signature.VariadicUsage = true
-			}
+	// Analyze return values
+	sa.analyzeSignatureReturns(funcType, &signature)
 
-			// Check for interface parameters
-			if _, ok := field.Type.(*ast.InterfaceType); ok {
-				signature.InterfaceParams++
-			}
-		}
-	}
-
-	// Count return values
-	if funcType.Results != nil {
-		for _, field := range funcType.Results.List {
-			signature.ReturnCount += len(field.Names)
-			if len(field.Names) == 0 {
-				signature.ReturnCount++ // Unnamed return value
-			}
-
-			// Check for error return
-			if ident, ok := field.Type.(*ast.Ident); ok && ident.Name == "error" {
-				signature.ErrorReturn = true
-			}
-		}
-	}
-
-	// Calculate simple complexity score
-	signature.ComplexityScore = float64(signature.ParameterCount)*0.5 + float64(signature.ReturnCount)*0.3
-	if signature.VariadicUsage {
-		signature.ComplexityScore += 1.0
-	}
-	if signature.InterfaceParams > 0 {
-		signature.ComplexityScore += float64(signature.InterfaceParams) * 0.5
-	}
+	// Calculate complexity score
+	signature.ComplexityScore = sa.calculateSignatureComplexity(signature)
 
 	return signature
+}
+
+// analyzeSignatureParameters processes function parameters and updates signature metrics
+func (sa *StructAnalyzer) analyzeSignatureParameters(funcType *ast.FuncType, signature *metrics.FunctionSignature) {
+	if funcType.Params == nil {
+		return
+	}
+
+	for _, field := range funcType.Params.List {
+		signature.ParameterCount += sa.countFieldNames(field)
+		sa.checkVariadicParameter(field, signature)
+		sa.checkInterfaceParameter(field, signature)
+	}
+}
+
+// analyzeSignatureReturns processes function return values and updates signature metrics
+func (sa *StructAnalyzer) analyzeSignatureReturns(funcType *ast.FuncType, signature *metrics.FunctionSignature) {
+	if funcType.Results == nil {
+		return
+	}
+
+	for _, field := range funcType.Results.List {
+		signature.ReturnCount += sa.countFieldNames(field)
+		sa.checkErrorReturn(field, signature)
+	}
+}
+
+// countFieldNames counts the number of named parameters/returns in a field
+func (sa *StructAnalyzer) countFieldNames(field *ast.Field) int {
+	if len(field.Names) == 0 {
+		return 1 // Unnamed parameter/return
+	}
+	return len(field.Names)
+}
+
+// checkVariadicParameter detects variadic parameters and updates signature
+func (sa *StructAnalyzer) checkVariadicParameter(field *ast.Field, signature *metrics.FunctionSignature) {
+	if _, ok := field.Type.(*ast.Ellipsis); ok {
+		signature.VariadicUsage = true
+	}
+}
+
+// checkInterfaceParameter detects interface parameters and updates signature
+func (sa *StructAnalyzer) checkInterfaceParameter(field *ast.Field, signature *metrics.FunctionSignature) {
+	if _, ok := field.Type.(*ast.InterfaceType); ok {
+		signature.InterfaceParams++
+	}
+}
+
+// checkErrorReturn detects error return types and updates signature
+func (sa *StructAnalyzer) checkErrorReturn(field *ast.Field, signature *metrics.FunctionSignature) {
+	if ident, ok := field.Type.(*ast.Ident); ok && ident.Name == "error" {
+		signature.ErrorReturn = true
+	}
+}
+
+// calculateSignatureComplexity computes the overall signature complexity score
+func (sa *StructAnalyzer) calculateSignatureComplexity(signature metrics.FunctionSignature) float64 {
+	complexity := float64(signature.ParameterCount)*0.5 + float64(signature.ReturnCount)*0.3
+
+	if signature.VariadicUsage {
+		complexity += 1.0
+	}
+
+	if signature.InterfaceParams > 0 {
+		complexity += float64(signature.InterfaceParams) * 0.5
+	}
+
+	return complexity
 }
 
 // countMethodLines counts lines in a method using the same logic as function analyzer

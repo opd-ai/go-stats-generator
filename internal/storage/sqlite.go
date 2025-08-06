@@ -283,119 +283,157 @@ func (s *SQLiteStorage) Retrieve(ctx context.Context, id string) (metrics.Metric
 }
 
 // List returns available snapshots with optional filtering
+// List retrieves snapshots matching the specified filter criteria
 func (s *SQLiteStorage) List(ctx context.Context, filter SnapshotFilter) ([]SnapshotInfo, error) {
 	var snapshots []SnapshotInfo
 
-	// Build query with filters
-	query := "SELECT id, timestamp, git_commit, git_branch, git_tag, version, author, description, size_bytes FROM snapshots WHERE 1=1"
-	var args []interface{}
-	argIndex := 0
-
-	if filter.After != nil {
-		query += " AND timestamp > ?"
-		args = append(args, *filter.After)
-		argIndex++
-	}
-
-	if filter.Before != nil {
-		query += " AND timestamp < ?"
-		args = append(args, *filter.Before)
-		argIndex++
-	}
-
-	if filter.Branch != "" {
-		query += " AND git_branch = ?"
-		args = append(args, filter.Branch)
-		argIndex++
-	}
-
-	if filter.Tag != "" {
-		query += " AND git_tag = ?"
-		args = append(args, filter.Tag)
-		argIndex++
-	}
-
-	if filter.Author != "" {
-		query += " AND author = ?"
-		args = append(args, filter.Author)
-		argIndex++
-	}
-
-	// Handle custom tags
-	if len(filter.Tags) > 0 {
-		for key, value := range filter.Tags {
-			query += " AND id IN (SELECT snapshot_id FROM snapshot_tags WHERE key = ? AND value = ?)"
-			args = append(args, key, value)
-			argIndex += 2
-		}
-	}
-
-	// Add ordering and limits
-	query += " ORDER BY timestamp DESC"
-	if filter.Limit > 0 {
-		query += " LIMIT ?"
-		args = append(args, filter.Limit)
-		if filter.Offset > 0 {
-			query += " OFFSET ?"
-			args = append(args, filter.Offset)
-		}
-	}
-
+	// Build and execute query
+	query, args := s.buildListQuery(filter)
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list snapshots: %w", err)
 	}
 	defer rows.Close()
 
+	// Process query results
 	for rows.Next() {
-		var info SnapshotInfo
-		var gitCommit, gitBranch, gitTag, version, author, description sql.NullString
-
-		err := rows.Scan(
-			&info.ID,
-			&info.Timestamp,
-			&gitCommit,
-			&gitBranch,
-			&gitTag,
-			&version,
-			&author,
-			&description,
-			&info.Size,
-		)
+		info, err := s.scanSnapshotInfo(rows)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan snapshot: %w", err)
+			return nil, err
 		}
 
-		// Handle nullable fields
-		info.GitCommit = gitCommit.String
-		info.GitBranch = gitBranch.String
-		info.GitTag = gitTag.String
-		info.Version = version.String
-		info.Author = author.String
-		info.Description = description.String
-
-		// Get tags for this snapshot
-		info.Tags = make(map[string]string)
-		tagQuery := "SELECT key, value FROM snapshot_tags WHERE snapshot_id = ?"
-		tagRows, err := s.db.QueryContext(ctx, tagQuery, info.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve tags for snapshot %s: %w", info.ID, err)
+		// Retrieve and attach tags
+		if err := s.attachSnapshotTags(ctx, &info); err != nil {
+			return nil, err
 		}
-
-		for tagRows.Next() {
-			var key, value string
-			if err := tagRows.Scan(&key, &value); err != nil {
-				tagRows.Close()
-				return nil, fmt.Errorf("failed to scan tag: %w", err)
-			}
-			info.Tags[key] = value
-		}
-		tagRows.Close()
 
 		snapshots = append(snapshots, info)
 	}
 
 	return snapshots, nil
+}
+
+// buildListQuery constructs the SQL query and parameters based on filter criteria
+func (s *SQLiteStorage) buildListQuery(filter SnapshotFilter) (string, []interface{}) {
+	query := "SELECT id, timestamp, git_commit, git_branch, git_tag, version, author, description, size_bytes FROM snapshots WHERE 1=1"
+	var args []interface{}
+
+	query, args = s.addTimeFilters(query, args, filter)
+	query, args = s.addMetadataFilters(query, args, filter)
+	query, args = s.addTagFilters(query, args, filter)
+	query = s.addOrderingAndLimits(query, &args, filter)
+
+	return query, args
+}
+
+// addTimeFilters adds timestamp-based filtering to the query
+func (s *SQLiteStorage) addTimeFilters(query string, args []interface{}, filter SnapshotFilter) (string, []interface{}) {
+	if filter.After != nil {
+		query += " AND timestamp > ?"
+		args = append(args, *filter.After)
+	}
+
+	if filter.Before != nil {
+		query += " AND timestamp < ?"
+		args = append(args, *filter.Before)
+	}
+
+	return query, args
+}
+
+// addMetadataFilters adds git metadata filtering to the query
+func (s *SQLiteStorage) addMetadataFilters(query string, args []interface{}, filter SnapshotFilter) (string, []interface{}) {
+	if filter.Branch != "" {
+		query += " AND git_branch = ?"
+		args = append(args, filter.Branch)
+	}
+
+	if filter.Tag != "" {
+		query += " AND git_tag = ?"
+		args = append(args, filter.Tag)
+	}
+
+	if filter.Author != "" {
+		query += " AND author = ?"
+		args = append(args, filter.Author)
+	}
+
+	return query, args
+}
+
+// addTagFilters adds custom tag filtering to the query
+func (s *SQLiteStorage) addTagFilters(query string, args []interface{}, filter SnapshotFilter) (string, []interface{}) {
+	for key, value := range filter.Tags {
+		query += " AND id IN (SELECT snapshot_id FROM snapshot_tags WHERE key = ? AND value = ?)"
+		args = append(args, key, value)
+	}
+	return query, args
+}
+
+// addOrderingAndLimits adds sorting and pagination to the query
+func (s *SQLiteStorage) addOrderingAndLimits(query string, args *[]interface{}, filter SnapshotFilter) string {
+	query += " ORDER BY timestamp DESC"
+	if filter.Limit > 0 {
+		query += " LIMIT ?"
+		*args = append(*args, filter.Limit)
+		if filter.Offset > 0 {
+			query += " OFFSET ?"
+			*args = append(*args, filter.Offset)
+		}
+	}
+	return query
+}
+
+// scanSnapshotInfo scans a database row into a SnapshotInfo struct
+func (s *SQLiteStorage) scanSnapshotInfo(rows *sql.Rows) (SnapshotInfo, error) {
+	var info SnapshotInfo
+	var gitCommit, gitBranch, gitTag, version, author, description sql.NullString
+
+	err := rows.Scan(
+		&info.ID,
+		&info.Timestamp,
+		&gitCommit,
+		&gitBranch,
+		&gitTag,
+		&version,
+		&author,
+		&description,
+		&info.Size,
+	)
+	if err != nil {
+		return info, fmt.Errorf("failed to scan snapshot: %w", err)
+	}
+
+	// Handle nullable fields
+	info.GitCommit = gitCommit.String
+	info.GitBranch = gitBranch.String
+	info.GitTag = gitTag.String
+	info.Version = version.String
+	info.Author = author.String
+	info.Description = description.String
+
+	return info, nil
+}
+
+// attachSnapshotTags retrieves and attaches tags for a specific snapshot
+func (s *SQLiteStorage) attachSnapshotTags(ctx context.Context, info *SnapshotInfo) error {
+	info.Tags = make(map[string]string)
+	tagQuery := "SELECT key, value FROM snapshot_tags WHERE snapshot_id = ?"
+	tagRows, err := s.db.QueryContext(ctx, tagQuery, info.ID)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve tags for snapshot %s: %w", info.ID, err)
+	}
+	defer tagRows.Close()
+
+	for tagRows.Next() {
+		var key, value string
+		if err := tagRows.Scan(&key, &value); err != nil {
+			return fmt.Errorf("failed to scan tag: %w", err)
+		}
+		info.Tags[key] = value
+	}
+
+	return nil
 }
 
 // Delete removes a snapshot

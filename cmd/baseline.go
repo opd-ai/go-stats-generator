@@ -80,26 +80,15 @@ func runBaseline(cmd *cobra.Command, args []string) error {
 	return runCreateBaseline(cmd, args)
 }
 
+// runCreateBaseline creates a new baseline snapshot from the analyzed codebase
 func runCreateBaseline(cmd *cobra.Command, args []string) error {
-	targetPath := "."
-	if len(args) > 0 {
-		targetPath = args[0]
-	}
-
+	targetPath := extractTargetPath(args)
 	if verbose {
 		fmt.Printf("Creating baseline snapshot for: %s\n", targetPath)
 	}
 
-	// Initialize storage
-	cfg := config.DefaultConfig()
-	sqliteConfig := storage.SQLiteConfig{
-		Path:              cfg.Storage.Path,
-		EnableWAL:         true,
-		MaxConnections:    10,
-		EnableCompression: cfg.Storage.Compression,
-	}
-
-	storageBackend, err := storage.NewSQLiteStorage(sqliteConfig)
+	// Initialize storage backend
+	storageBackend, err := initializeStorageBackend()
 	if err != nil {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
@@ -116,7 +105,38 @@ func runCreateBaseline(cmd *cobra.Command, args []string) error {
 		baselineID = generateBaselineID()
 	}
 
-	// Create snapshot metadata
+	// Create and store snapshot
+	snapshot := createMetricsSnapshot(baselineID, report)
+	if err := storeSnapshotWithRetry(storageBackend, snapshot); err != nil {
+		return err
+	}
+
+	// Output the result
+	return outputBaselineResult(snapshot)
+}
+
+// extractTargetPath gets the target directory from command arguments
+func extractTargetPath(args []string) string {
+	if len(args) > 0 {
+		return args[0]
+	}
+	return "."
+}
+
+// initializeStorageBackend creates and configures the storage backend
+func initializeStorageBackend() (storage.MetricsStorage, error) {
+	cfg := config.DefaultConfig()
+	sqliteConfig := storage.SQLiteConfig{
+		Path:              cfg.Storage.Path,
+		EnableWAL:         true,
+		MaxConnections:    10,
+		EnableCompression: cfg.Storage.Compression,
+	}
+	return storage.NewSQLiteStorage(sqliteConfig)
+}
+
+// createMetricsSnapshot builds a snapshot with metadata from the analysis report
+func createMetricsSnapshot(baselineID string, report *metrics.Report) metrics.MetricsSnapshot {
 	metadata := metrics.SnapshotMetadata{
 		Timestamp:   time.Now(),
 		GitBranch:   getCurrentBranch(),
@@ -125,65 +145,79 @@ func runCreateBaseline(cmd *cobra.Command, args []string) error {
 		Tags:        convertToTagMap(tags),
 	}
 
-	// Create snapshot
-	snapshot := metrics.MetricsSnapshot{
+	return metrics.MetricsSnapshot{
 		ID:       baselineID,
 		Report:   *report,
 		Metadata: metadata,
 	}
+}
 
-	// Store the snapshot
+// storeSnapshotWithRetry stores the snapshot, retrying with overwrite if necessary
+func storeSnapshotWithRetry(storageBackend storage.MetricsStorage, snapshot metrics.MetricsSnapshot) error {
 	ctx := context.Background()
-	err = storageBackend.Store(ctx, snapshot, metadata)
-	if err != nil {
-		if !overwriteFlag {
-			return fmt.Errorf("failed to store baseline snapshot: %w", err)
-		}
-		// Try to overwrite
-		if err := storageBackend.Delete(ctx, baselineID); err != nil {
-			if verbose {
-				fmt.Printf("Warning: could not delete existing baseline: %v\n", err)
-			}
-		}
-		if err := storageBackend.Store(ctx, snapshot, metadata); err != nil {
-			return fmt.Errorf("failed to overwrite baseline snapshot: %w", err)
-		}
+	err := storageBackend.Store(ctx, snapshot, snapshot.Metadata)
+	if err == nil {
+		return nil
 	}
 
-	// Output the result
-	if outputFormat == "console" {
-		fmt.Printf("✓ Baseline snapshot created successfully\n")
-		fmt.Printf("  ID: %s\n", snapshot.ID)
-		fmt.Printf("  Timestamp: %s\n", snapshot.Metadata.Timestamp.Format("2006-01-02 15:04:05"))
-		if snapshot.Metadata.Description != "" {
-			fmt.Printf("  Message: %s\n", snapshot.Metadata.Description)
-		}
-		if len(snapshot.Metadata.Tags) > 0 {
-			fmt.Printf("  Tags: %v\n", snapshot.Metadata.Tags)
-		}
-	} else {
-		// JSON output
-		output := map[string]interface{}{
-			"status":   "success",
-			"baseline": snapshot,
-		}
+	if !overwriteFlag {
+		return fmt.Errorf("failed to store baseline snapshot: %w", err)
+	}
 
-		var outputWriter = os.Stdout
-		if outputFile != "" {
-			file, err := os.Create(outputFile)
-			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
-			}
-			defer file.Close()
-			outputWriter = file
-		}
+	// Attempt overwrite by deleting first
+	if err := storageBackend.Delete(ctx, snapshot.ID); err != nil && verbose {
+		fmt.Printf("Warning: could not delete existing baseline: %v\n", err)
+	}
 
-		encoder := json.NewEncoder(outputWriter)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(output)
+	if err := storageBackend.Store(ctx, snapshot, snapshot.Metadata); err != nil {
+		return fmt.Errorf("failed to overwrite baseline snapshot: %w", err)
 	}
 
 	return nil
+}
+
+// outputBaselineResult writes the creation result in the specified format
+func outputBaselineResult(snapshot metrics.MetricsSnapshot) error {
+	if outputFormat == "console" {
+		return outputConsoleBaselineResult(snapshot)
+	}
+	return outputJSONBaselineResult(snapshot)
+}
+
+// outputConsoleBaselineResult writes a human-readable baseline creation result
+func outputConsoleBaselineResult(snapshot metrics.MetricsSnapshot) error {
+	fmt.Printf("✓ Baseline snapshot created successfully\n")
+	fmt.Printf("  ID: %s\n", snapshot.ID)
+	fmt.Printf("  Timestamp: %s\n", snapshot.Metadata.Timestamp.Format("2006-01-02 15:04:05"))
+	if snapshot.Metadata.Description != "" {
+		fmt.Printf("  Message: %s\n", snapshot.Metadata.Description)
+	}
+	if len(snapshot.Metadata.Tags) > 0 {
+		fmt.Printf("  Tags: %v\n", snapshot.Metadata.Tags)
+	}
+	return nil
+}
+
+// outputJSONBaselineResult writes the baseline creation result as JSON
+func outputJSONBaselineResult(snapshot metrics.MetricsSnapshot) error {
+	output := map[string]interface{}{
+		"status":   "success",
+		"baseline": snapshot,
+	}
+
+	var outputWriter = os.Stdout
+	if outputFile != "" {
+		file, err := os.Create(outputFile)
+		if err != nil {
+			return fmt.Errorf("failed to create output file: %w", err)
+		}
+		defer file.Close()
+		outputWriter = file
+	}
+
+	encoder := json.NewEncoder(outputWriter)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(output)
 }
 
 func runListBaselines(cmd *cobra.Command, args []string) error {

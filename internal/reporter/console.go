@@ -409,6 +409,7 @@ func (cr *ConsoleReporter) writeDiffChanges(output io.Writer, changes []metrics.
 	}
 }
 
+// writePackageAnalysis generates comprehensive package analysis output
 func (cr *ConsoleReporter) writePackageAnalysis(output io.Writer, report *metrics.Report) {
 	fmt.Fprintln(output, "=== PACKAGE ANALYSIS ===")
 
@@ -420,18 +421,31 @@ func (cr *ConsoleReporter) writePackageAnalysis(output io.Writer, report *metric
 	}
 
 	// Sort packages by name for consistent output
+	cr.sortPackagesByName(packages)
+
+	// Write summary statistics
+	cr.writePackageSummaryStats(output, packages)
+
+	// Write quality issue analysis
+	cr.writePackageQualityIssues(output, packages)
+
+	// Write largest packages ranking
+	cr.writeLargestPackages(output, packages)
+
+	// Write detailed dependencies (if verbose)
+	cr.writePackageDependencies(output, packages)
+}
+
+// sortPackagesByName sorts packages alphabetically by name
+func (cr *ConsoleReporter) sortPackagesByName(packages []metrics.PackageMetrics) {
 	sort.Slice(packages, func(i, j int) bool {
 		return packages[i].Name < packages[j].Name
 	})
+}
 
-	// Summary statistics
-	totalDeps := 0
-	totalFiles := 0
-	for _, pkg := range packages {
-		totalDeps += len(pkg.Dependencies)
-		totalFiles += len(pkg.Files)
-	}
-
+// writePackageSummaryStats calculates and writes package summary statistics
+func (cr *ConsoleReporter) writePackageSummaryStats(output io.Writer, packages []metrics.PackageMetrics) {
+	totalDeps, totalFiles := cr.calculatePackageTotals(packages)
 	avgDepsPerPkg := float64(totalDeps) / float64(len(packages))
 	avgFilesPerPkg := float64(totalFiles) / float64(len(packages))
 
@@ -439,8 +453,27 @@ func (cr *ConsoleReporter) writePackageAnalysis(output io.Writer, report *metric
 	fmt.Fprintf(output, "Average Dependencies per Package: %.1f\n", avgDepsPerPkg)
 	fmt.Fprintf(output, "Average Files per Package: %.1f\n", avgFilesPerPkg)
 	fmt.Fprintln(output)
+}
 
-	// Find packages with high coupling (>3 dependencies)
+// calculatePackageTotals computes total dependencies and files across all packages
+func (cr *ConsoleReporter) calculatePackageTotals(packages []metrics.PackageMetrics) (int, int) {
+	totalDeps := 0
+	totalFiles := 0
+	for _, pkg := range packages {
+		totalDeps += len(pkg.Dependencies)
+		totalFiles += len(pkg.Files)
+	}
+	return totalDeps, totalFiles
+}
+
+// writePackageQualityIssues identifies and reports high coupling and low cohesion packages
+func (cr *ConsoleReporter) writePackageQualityIssues(output io.Writer, packages []metrics.PackageMetrics) {
+	cr.writeHighCouplingPackages(output, packages)
+	cr.writeLowCohesionPackages(output, packages)
+}
+
+// writeHighCouplingPackages reports packages with excessive dependencies (>3)
+func (cr *ConsoleReporter) writeHighCouplingPackages(output io.Writer, packages []metrics.PackageMetrics) {
 	var highCouplingPkgs []metrics.PackageMetrics
 	for _, pkg := range packages {
 		if len(pkg.Dependencies) > 3 {
@@ -456,8 +489,10 @@ func (cr *ConsoleReporter) writePackageAnalysis(output io.Writer, report *metric
 		}
 		fmt.Fprintln(output)
 	}
+}
 
-	// Find packages with low cohesion (<2.0)
+// writeLowCohesionPackages reports packages with poor internal cohesion (<2.0)
+func (cr *ConsoleReporter) writeLowCohesionPackages(output io.Writer, packages []metrics.PackageMetrics) {
 	var lowCohesionPkgs []metrics.PackageMetrics
 	for _, pkg := range packages {
 		if pkg.CohesionScore < 2.0 {
@@ -473,8 +508,11 @@ func (cr *ConsoleReporter) writePackageAnalysis(output io.Writer, report *metric
 		}
 		fmt.Fprintln(output)
 	}
+}
 
-	// Show top packages by size (limit to top 10)
+// writeLargestPackages reports the largest packages ranked by function count
+func (cr *ConsoleReporter) writeLargestPackages(output io.Writer, packages []metrics.PackageMetrics) {
+	// Sort by function count descending
 	sort.Slice(packages, func(i, j int) bool {
 		return packages[i].Functions > packages[j].Functions
 	})
@@ -491,20 +529,24 @@ func (cr *ConsoleReporter) writePackageAnalysis(output io.Writer, report *metric
 			pkg.Name, pkg.Functions, pkg.Structs, pkg.Interfaces, len(pkg.Files))
 	}
 	fmt.Fprintln(output)
+}
 
-	// Show dependencies for packages (if verbose and not too many)
-	if cr.config.Verbose && len(packages) <= 5 {
-		fmt.Fprintln(output, "Package Dependencies:")
-		for _, pkg := range packages {
-			fmt.Fprintf(output, "  %s:\n", pkg.Name)
-			if len(pkg.Dependencies) == 0 {
-				fmt.Fprintln(output, "    (no internal dependencies)")
-			} else {
-				for _, dep := range pkg.Dependencies {
-					fmt.Fprintf(output, "    → %s\n", dep)
-				}
+// writePackageDependencies writes detailed dependency information in verbose mode
+func (cr *ConsoleReporter) writePackageDependencies(output io.Writer, packages []metrics.PackageMetrics) {
+	if !cr.config.Verbose || len(packages) > 5 {
+		return
+	}
+
+	fmt.Fprintln(output, "Package Dependencies:")
+	for _, pkg := range packages {
+		fmt.Fprintf(output, "  %s:\n", pkg.Name)
+		if len(pkg.Dependencies) == 0 {
+			fmt.Fprintln(output, "    (no internal dependencies)")
+		} else {
+			for _, dep := range pkg.Dependencies {
+				fmt.Fprintf(output, "    → %s\n", dep)
 			}
 		}
-		fmt.Fprintln(output)
 	}
+	fmt.Fprintln(output)
 }
