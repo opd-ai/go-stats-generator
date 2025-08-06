@@ -1,8 +1,8 @@
 {
   "metadata": {
     "repository": "/workspaces/go-stats-generator/internal/analyzer",
-    "generated_at": "2025-08-06T20:14:58.332401851Z",
-    "analysis_time": 27826332,
+    "generated_at": "2025-08-06T21:54:18.035444299Z",
+    "analysis_time": 26596493,
     "files_processed": 11,
     "tool_version": "1.0.0",
     "go_version": ""
@@ -10,7 +10,7 @@
   "overview": {
     "total_lines_of_code": 0,
     "total_functions": 62,
-    "total_methods": 117,
+    "total_methods": 124,
     "total_structs": 5,
     "total_interfaces": 0,
     "total_packages": 1,
@@ -1252,6 +1252,1013 @@
         "comment_length": 58,
         "has_example": false,
         "quality_score": 0.23199999999999998
+      }
+    },
+    {
+      "name": "NewStructAnalyzer",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 22,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 4,
+        "code": 4,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 48,
+        "has_example": false,
+        "quality_score": 0.192
+      }
+    },
+    {
+      "name": "AnalyzeStructs",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 30,
+      "is_exported": true,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 20,
+        "code": 17,
+        "comments": 1,
+        "blank": 2
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 2,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1.6
+      },
+      "complexity": {
+        "cyclomatic": 7,
+        "cognitive": 7,
+        "nesting_depth": 7,
+        "overall": 12.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 63,
+        "has_example": false,
+        "quality_score": 0.252
+      }
+    },
+    {
+      "name": "analyzeStruct",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 54,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 31,
+        "code": 20,
+        "comments": 4,
+        "blank": 7
+      },
+      "signature": {
+        "parameter_count": 5,
+        "return_count": 2,
+        "has_variadic": false,
+        "returns_error": true,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 3.1
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 51,
+        "has_example": false,
+        "quality_score": 0.20400000000000001
+      }
+    },
+    {
+      "name": "analyzeField",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 89,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 18,
+        "code": 13,
+        "comments": 3,
+        "blank": 2
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1
+      },
+      "complexity": {
+        "cyclomatic": 4,
+        "cognitive": 4,
+        "nesting_depth": 4,
+        "overall": 7.2
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 64,
+        "has_example": false,
+        "quality_score": 0.256
+      }
+    },
+    {
+      "name": "categorizeFieldType",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 111,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 40,
+        "code": 23,
+        "comments": 9,
+        "blank": 8
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 60,
+        "has_example": false,
+        "quality_score": 0.24
+      }
+    },
+    {
+      "name": "isPrimitiveType",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 155,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 22,
+        "code": 22,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 69,
+        "has_example": false,
+        "quality_score": 0.27599999999999997
+      }
+    },
+    {
+      "name": "extractEmbeddedType",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 181,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 27,
+        "code": 21,
+        "comments": 2,
+        "blank": 4
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 4,
+        "cognitive": 4,
+        "nesting_depth": 4,
+        "overall": 7.2
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 64,
+        "has_example": false,
+        "quality_score": 0.256
+      }
+    },
+    {
+      "name": "analyzeTags",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 212,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 15,
+        "code": 10,
+        "comments": 3,
+        "blank": 2
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1
+      },
+      "complexity": {
+        "cyclomatic": 4,
+        "cognitive": 4,
+        "nesting_depth": 4,
+        "overall": 7.2
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 48,
+        "has_example": false,
+        "quality_score": 0.192
+      }
+    },
+    {
+      "name": "calculateComplexity",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 231,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 24,
+        "code": 15,
+        "comments": 4,
+        "blank": 5
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 61,
+        "has_example": false,
+        "quality_score": 0.244
+      }
+    },
+    {
+      "name": "analyzeDocumentation",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 259,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 27,
+        "code": 17,
+        "comments": 3,
+        "blank": 7
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 59,
+        "has_example": false,
+        "quality_score": 0.236
+      }
+    },
+    {
+      "name": "calculateDocQualityScore",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 290,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 35,
+        "code": 23,
+        "comments": 5,
+        "blank": 7
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 7,
+        "cognitive": 7,
+        "nesting_depth": 7,
+        "overall": 12.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 64,
+        "has_example": false,
+        "quality_score": 0.256
+      }
+    },
+    {
+      "name": "analyzeStructMethods",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 329,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 14,
+        "code": 10,
+        "comments": 2,
+        "blank": 2
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1.3
+      },
+      "complexity": {
+        "cyclomatic": 4,
+        "cognitive": 4,
+        "nesting_depth": 4,
+        "overall": 7.2
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 77,
+        "has_example": false,
+        "quality_score": 0.30800000000000005
+      }
+    },
+    {
+      "name": "isMethodOfStruct",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 347,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 6,
+        "code": 5,
+        "comments": 0,
+        "blank": 1
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1.3
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 82,
+        "has_example": false,
+        "quality_score": 0.328
+      }
+    },
+    {
+      "name": "extractReceiverType",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 357,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 10,
+        "code": 9,
+        "comments": 1,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 75,
+        "has_example": false,
+        "quality_score": 0.30000000000000004
+      }
+    },
+    {
+      "name": "analyzeMethod",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 371,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 19,
+        "code": 10,
+        "comments": 4,
+        "blank": 5
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 67,
+        "has_example": false,
+        "quality_score": 0.368
+      }
+    },
+    {
+      "name": "hasPointerReceiver",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 394,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 7,
+        "code": 6,
+        "comments": 0,
+        "blank": 1
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 61,
+        "has_example": false,
+        "quality_score": 0.244
+      }
+    },
+    {
+      "name": "analyzeMethodSignature",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 405,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 12,
+        "code": 5,
+        "comments": 3,
+        "blank": 4
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 85,
+        "has_example": false,
+        "quality_score": 0.34
+      }
+    },
+    {
+      "name": "analyzeSignatureParameters",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 421,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 9,
+        "code": 8,
+        "comments": 0,
+        "blank": 1
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 87,
+        "has_example": false,
+        "quality_score": 0.44800000000000006
+      }
+    },
+    {
+      "name": "analyzeSignatureReturns",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 434,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 8,
+        "code": 7,
+        "comments": 0,
+        "blank": 1
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 87,
+        "has_example": false,
+        "quality_score": 0.44800000000000006
+      }
+    },
+    {
+      "name": "countFieldNames",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 446,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 4,
+        "code": 4,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 73,
+        "has_example": false,
+        "quality_score": 0.492
+      }
+    },
+    {
+      "name": "checkVariadicParameter",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 454,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 3,
+        "code": 3,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 73,
+        "has_example": false,
+        "quality_score": 0.392
+      }
+    },
+    {
+      "name": "checkInterfaceParameter",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 461,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 3,
+        "code": 3,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 75,
+        "has_example": false,
+        "quality_score": 0.4
+      }
+    },
+    {
+      "name": "checkErrorReturn",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 468,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 3,
+        "code": 3,
+        "comments": 0,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 2,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 1
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 66,
+        "has_example": false,
+        "quality_score": 0.46399999999999997
+      }
+    },
+    {
+      "name": "calculateSignatureComplexity",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 475,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 11,
+        "code": 8,
+        "comments": 0,
+        "blank": 3
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 77,
+        "has_example": false,
+        "quality_score": 0.30800000000000005
+      }
+    },
+    {
+      "name": "countMethodLines",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 490,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 22,
+        "code": 14,
+        "comments": 3,
+        "blank": 5
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 3,
+        "overall": 5.4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 84,
+        "has_example": false,
+        "quality_score": 0.336
+      }
+    },
+    {
+      "name": "calculateMethodComplexity",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 516,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 27,
+        "code": 17,
+        "comments": 4,
+        "blank": 6
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 4,
+        "overall": 5.9
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 67,
+        "has_example": false,
+        "quality_score": 0.268
+      }
+    },
+    {
+      "name": "calculateNestingDepth",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 547,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 15,
+        "code": 13,
+        "comments": 0,
+        "blank": 2
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 3,
+        "cognitive": 3,
+        "nesting_depth": 4,
+        "overall": 5.9
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 73,
+        "has_example": false,
+        "quality_score": 0.292
+      }
+    },
+    {
+      "name": "analyzeMethodDocumentation",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 566,
+      "is_exported": false,
+      "is_method": true,
+      "receiver_type": "*StructAnalyzer",
+      "lines": {
+        "total": 2,
+        "code": 1,
+        "comments": 1,
+        "blank": 0
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 1,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.8
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 65,
+        "has_example": false,
+        "quality_score": 0.26
       }
     },
     {
@@ -3101,1111 +4108,6 @@
       }
     },
     {
-      "name": "TestConcurrencyAnalyzer_AnalyzeConcurrency",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 12,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 95,
-        "code": 78,
-        "comments": 5,
-        "blank": 12
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 2,
-        "cognitive": 2,
-        "nesting_depth": 7,
-        "overall": 6.1
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "TestConcurrencyAnalyzer_GoroutineDetection",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 110,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 46,
-        "code": 30,
-        "comments": 6,
-        "blank": 10
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "TestConcurrencyAnalyzer_ChannelDetection",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 159,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 57,
-        "code": 39,
-        "comments": 7,
-        "blank": 11
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 5,
-        "cognitive": 5,
-        "nesting_depth": 5,
-        "overall": 9
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "TestConcurrencyAnalyzer_SyncPrimitiveDetection",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 219,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 37,
-        "code": 26,
-        "comments": 4,
-        "blank": 7
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "TestConcurrencyAnalyzer_ComplexScenario",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 259,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 83,
-        "code": 61,
-        "comments": 8,
-        "blank": 14
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "TestConcurrencyAnalyzer_EmptyFile",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 345,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 19,
-        "code": 15,
-        "comments": 1,
-        "blank": 3
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "TestConcurrencyAnalyzer_PatternDetection",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 367,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 39,
-        "code": 24,
-        "comments": 6,
-        "blank": 9
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "TestConcurrencyAnalyzer_EnhancedPatternDetection",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 409,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 114,
-        "code": 96,
-        "comments": 7,
-        "blank": 11
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 6,
-        "cognitive": 6,
-        "nesting_depth": 7,
-        "overall": 11.3
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "BenchmarkConcurrencyAnalyzer_LargeFile",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 527,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 32,
-        "code": 24,
-        "comments": 1,
-        "blank": 7
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 2,
-        "cognitive": 2,
-        "nesting_depth": 2,
-        "overall": 3.6
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 16,
-        "has_example": false,
-        "quality_score": 0.064
-      }
-    },
-    {
-      "name": "BenchmarkConcurrencyAnalyzer_SmallFile",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 562,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 19,
-        "code": 15,
-        "comments": 0,
-        "blank": 4
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.5
-      },
-      "complexity": {
-        "cyclomatic": 2,
-        "cognitive": 2,
-        "nesting_depth": 2,
-        "overall": 3.6
-      },
-      "documentation": {
-        "has_comment": false,
-        "comment_length": 0,
-        "has_example": false,
-        "quality_score": 0
-      }
-    },
-    {
-      "name": "NewStructAnalyzer",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 22,
-      "is_exported": true,
-      "is_method": false,
-      "lines": {
-        "total": 4,
-        "code": 4,
-        "comments": 0,
-        "blank": 0
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 48,
-        "has_example": false,
-        "quality_score": 0.192
-      }
-    },
-    {
-      "name": "AnalyzeStructs",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 30,
-      "is_exported": true,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 20,
-        "code": 17,
-        "comments": 1,
-        "blank": 2
-      },
-      "signature": {
-        "parameter_count": 2,
-        "return_count": 2,
-        "has_variadic": false,
-        "returns_error": true,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 1.6
-      },
-      "complexity": {
-        "cyclomatic": 7,
-        "cognitive": 7,
-        "nesting_depth": 7,
-        "overall": 12.6
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 63,
-        "has_example": false,
-        "quality_score": 0.252
-      }
-    },
-    {
-      "name": "analyzeStruct",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 54,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 31,
-        "code": 20,
-        "comments": 4,
-        "blank": 7
-      },
-      "signature": {
-        "parameter_count": 5,
-        "return_count": 2,
-        "has_variadic": false,
-        "returns_error": true,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 3.1
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 3,
-        "overall": 5.4
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 51,
-        "has_example": false,
-        "quality_score": 0.20400000000000001
-      }
-    },
-    {
-      "name": "analyzeField",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 89,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 18,
-        "code": 13,
-        "comments": 3,
-        "blank": 2
-      },
-      "signature": {
-        "parameter_count": 2,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 1
-      },
-      "complexity": {
-        "cyclomatic": 4,
-        "cognitive": 4,
-        "nesting_depth": 4,
-        "overall": 7.2
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 64,
-        "has_example": false,
-        "quality_score": 0.256
-      }
-    },
-    {
-      "name": "categorizeFieldType",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 111,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 40,
-        "code": 23,
-        "comments": 9,
-        "blank": 8
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 3,
-        "overall": 5.4
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 60,
-        "has_example": false,
-        "quality_score": 0.24
-      }
-    },
-    {
-      "name": "isPrimitiveType",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 155,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 22,
-        "code": 22,
-        "comments": 0,
-        "blank": 0
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 69,
-        "has_example": false,
-        "quality_score": 0.27599999999999997
-      }
-    },
-    {
-      "name": "extractEmbeddedType",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 181,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 27,
-        "code": 21,
-        "comments": 2,
-        "blank": 4
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 4,
-        "cognitive": 4,
-        "nesting_depth": 4,
-        "overall": 7.2
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 64,
-        "has_example": false,
-        "quality_score": 0.256
-      }
-    },
-    {
-      "name": "analyzeTags",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 212,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 15,
-        "code": 10,
-        "comments": 3,
-        "blank": 2
-      },
-      "signature": {
-        "parameter_count": 2,
-        "return_count": 0,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 1
-      },
-      "complexity": {
-        "cyclomatic": 4,
-        "cognitive": 4,
-        "nesting_depth": 4,
-        "overall": 7.2
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 48,
-        "has_example": false,
-        "quality_score": 0.192
-      }
-    },
-    {
-      "name": "calculateComplexity",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 231,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 24,
-        "code": 15,
-        "comments": 4,
-        "blank": 5
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 3,
-        "overall": 5.4
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 61,
-        "has_example": false,
-        "quality_score": 0.244
-      }
-    },
-    {
-      "name": "analyzeDocumentation",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 259,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 27,
-        "code": 17,
-        "comments": 3,
-        "blank": 7
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 3,
-        "overall": 5.4
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 59,
-        "has_example": false,
-        "quality_score": 0.236
-      }
-    },
-    {
-      "name": "calculateDocQualityScore",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 290,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 35,
-        "code": 23,
-        "comments": 5,
-        "blank": 7
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 7,
-        "cognitive": 7,
-        "nesting_depth": 7,
-        "overall": 12.6
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 64,
-        "has_example": false,
-        "quality_score": 0.256
-      }
-    },
-    {
-      "name": "analyzeStructMethods",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 329,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 14,
-        "code": 10,
-        "comments": 2,
-        "blank": 2
-      },
-      "signature": {
-        "parameter_count": 2,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 1.3
-      },
-      "complexity": {
-        "cyclomatic": 4,
-        "cognitive": 4,
-        "nesting_depth": 4,
-        "overall": 7.2
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 77,
-        "has_example": false,
-        "quality_score": 0.30800000000000005
-      }
-    },
-    {
-      "name": "isMethodOfStruct",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 347,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 6,
-        "code": 5,
-        "comments": 0,
-        "blank": 1
-      },
-      "signature": {
-        "parameter_count": 2,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 1.3
-      },
-      "complexity": {
-        "cyclomatic": 2,
-        "cognitive": 2,
-        "nesting_depth": 2,
-        "overall": 3.6
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 82,
-        "has_example": false,
-        "quality_score": 0.328
-      }
-    },
-    {
-      "name": "extractReceiverType",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 357,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 10,
-        "code": 9,
-        "comments": 1,
-        "blank": 0
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 3,
-        "overall": 5.4
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 75,
-        "has_example": false,
-        "quality_score": 0.30000000000000004
-      }
-    },
-    {
-      "name": "analyzeMethod",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 371,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 19,
-        "code": 10,
-        "comments": 4,
-        "blank": 5
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 67,
-        "has_example": false,
-        "quality_score": 0.368
-      }
-    },
-    {
-      "name": "hasPointerReceiver",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 394,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 7,
-        "code": 6,
-        "comments": 0,
-        "blank": 1
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 2,
-        "cognitive": 2,
-        "nesting_depth": 2,
-        "overall": 3.6
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 61,
-        "has_example": false,
-        "quality_score": 0.244
-      }
-    },
-    {
-      "name": "analyzeMethodSignature",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 405,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 47,
-        "code": 34,
-        "comments": 6,
-        "blank": 7
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 12,
-        "cognitive": 12,
-        "nesting_depth": 12,
-        "overall": 21.6
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 62,
-        "has_example": false,
-        "quality_score": 0.248
-      }
-    },
-    {
-      "name": "countMethodLines",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 456,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 22,
-        "code": 14,
-        "comments": 3,
-        "blank": 5
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 3,
-        "overall": 5.4
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 84,
-        "has_example": false,
-        "quality_score": 0.336
-      }
-    },
-    {
-      "name": "calculateMethodComplexity",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 482,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 27,
-        "code": 17,
-        "comments": 4,
-        "blank": 6
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 4,
-        "overall": 5.9
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 67,
-        "has_example": false,
-        "quality_score": 0.268
-      }
-    },
-    {
-      "name": "calculateNestingDepth",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 513,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 15,
-        "code": 13,
-        "comments": 0,
-        "blank": 2
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 3,
-        "cognitive": 3,
-        "nesting_depth": 4,
-        "overall": 5.9
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 73,
-        "has_example": false,
-        "quality_score": 0.292
-      }
-    },
-    {
-      "name": "analyzeMethodDocumentation",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 532,
-      "is_exported": false,
-      "is_method": true,
-      "receiver_type": "*StructAnalyzer",
-      "lines": {
-        "total": 2,
-        "code": 1,
-        "comments": 1,
-        "blank": 0
-      },
-      "signature": {
-        "parameter_count": 1,
-        "return_count": 1,
-        "has_variadic": false,
-        "returns_error": false,
-        "interface_parameters": 0,
-        "generic_parameters": null,
-        "signature_complexity": 0.8
-      },
-      "complexity": {
-        "cyclomatic": 1,
-        "cognitive": 1,
-        "nesting_depth": 1,
-        "overall": 1.8
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 65,
-        "has_example": false,
-        "quality_score": 0.26
-      }
-    },
-    {
       "name": "NewConcurrencyAnalyzer",
       "package": "analyzer",
       "file": "analyzer",
@@ -5609,6 +5511,356 @@
       }
     },
     {
+      "name": "TestConcurrencyAnalyzer_AnalyzeConcurrency",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 12,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 95,
+        "code": 78,
+        "comments": 5,
+        "blank": 12
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 7,
+        "overall": 6.1
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "TestConcurrencyAnalyzer_GoroutineDetection",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 110,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 46,
+        "code": 30,
+        "comments": 6,
+        "blank": 10
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "TestConcurrencyAnalyzer_ChannelDetection",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 159,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 57,
+        "code": 39,
+        "comments": 7,
+        "blank": 11
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 5,
+        "cognitive": 5,
+        "nesting_depth": 5,
+        "overall": 9
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "TestConcurrencyAnalyzer_SyncPrimitiveDetection",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 219,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 37,
+        "code": 26,
+        "comments": 4,
+        "blank": 7
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "TestConcurrencyAnalyzer_ComplexScenario",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 259,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 83,
+        "code": 61,
+        "comments": 8,
+        "blank": 14
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "TestConcurrencyAnalyzer_EmptyFile",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 345,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 19,
+        "code": 15,
+        "comments": 1,
+        "blank": 3
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "TestConcurrencyAnalyzer_PatternDetection",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 367,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 39,
+        "code": 24,
+        "comments": 6,
+        "blank": 9
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 1,
+        "cognitive": 1,
+        "nesting_depth": 1,
+        "overall": 1.8
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "TestConcurrencyAnalyzer_EnhancedPatternDetection",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 409,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 114,
+        "code": 96,
+        "comments": 7,
+        "blank": 11
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 6,
+        "cognitive": 6,
+        "nesting_depth": 7,
+        "overall": 11.3
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
+      "name": "BenchmarkConcurrencyAnalyzer_LargeFile",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 527,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 32,
+        "code": 24,
+        "comments": 1,
+        "blank": 7
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 16,
+        "has_example": false,
+        "quality_score": 0.064
+      }
+    },
+    {
+      "name": "BenchmarkConcurrencyAnalyzer_SmallFile",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 562,
+      "is_exported": true,
+      "is_method": false,
+      "lines": {
+        "total": 19,
+        "code": 15,
+        "comments": 0,
+        "blank": 4
+      },
+      "signature": {
+        "parameter_count": 1,
+        "return_count": 0,
+        "has_variadic": false,
+        "returns_error": false,
+        "interface_parameters": 0,
+        "generic_parameters": null,
+        "signature_complexity": 0.5
+      },
+      "complexity": {
+        "cyclomatic": 2,
+        "cognitive": 2,
+        "nesting_depth": 2,
+        "overall": 3.6
+      },
+      "documentation": {
+        "has_comment": false,
+        "comment_length": 0,
+        "has_example": false,
+        "quality_score": 0
+      }
+    },
+    {
       "name": "NewFunctionAnalyzer",
       "package": "analyzer",
       "file": "analyzer",
@@ -6814,6 +7066,897 @@
       }
     },
     {
+      "name": "StructAnalyzer",
+      "package": "analyzer",
+      "file": "analyzer",
+      "line": 16,
+      "is_exported": true,
+      "total_fields": 2,
+      "fields_by_type": {
+        "pointer": 2
+      },
+      "embedded_types": null,
+      "methods": [
+        {
+          "name": "AnalyzeStructs",
+          "is_exported": true,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 2,
+            "has_variadic": false,
+            "returns_error": true,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1.6
+          },
+          "lines": {
+            "total": 20,
+            "code": 14,
+            "comments": 4,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 7,
+            "cognitive": 0,
+            "nesting_depth": 6,
+            "overall": 10
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 66,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeStruct",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 6,
+            "return_count": 2,
+            "has_variadic": false,
+            "returns_error": true,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 3.6
+          },
+          "lines": {
+            "total": 31,
+            "code": 21,
+            "comments": 6,
+            "blank": 4
+          },
+          "complexity": {
+            "cyclomatic": 3,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 4
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 54,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeField",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 0,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1
+          },
+          "lines": {
+            "total": 18,
+            "code": 12,
+            "comments": 3,
+            "blank": 3
+          },
+          "complexity": {
+            "cyclomatic": 4,
+            "cognitive": 0,
+            "nesting_depth": 3,
+            "overall": 5.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 67,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "categorizeFieldType",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 40,
+            "code": 28,
+            "comments": 8,
+            "blank": 4
+          },
+          "complexity": {
+            "cyclomatic": 12,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 13
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 63,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "isPrimitiveType",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 22,
+            "code": 15,
+            "comments": 4,
+            "blank": 3
+          },
+          "complexity": {
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting_depth": 0,
+            "overall": 1
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 72,
+            "has_example": true,
+            "quality_score": 0.7
+          }
+        },
+        {
+          "name": "extractEmbeddedType",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 27,
+            "code": 18,
+            "comments": 5,
+            "blank": 4
+          },
+          "complexity": {
+            "cyclomatic": 7,
+            "cognitive": 0,
+            "nesting_depth": 3,
+            "overall": 8.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 67,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeTags",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 0,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1
+          },
+          "lines": {
+            "total": 15,
+            "code": 10,
+            "comments": 3,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 4,
+            "cognitive": 0,
+            "nesting_depth": 3,
+            "overall": 5.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 51,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "calculateComplexity",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 24,
+            "code": 16,
+            "comments": 4,
+            "blank": 4
+          },
+          "complexity": {
+            "cyclomatic": 6,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 7
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 64,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeDocumentation",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 27,
+            "code": 18,
+            "comments": 5,
+            "blank": 4
+          },
+          "complexity": {
+            "cyclomatic": 3,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 4
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 62,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "calculateDocQualityScore",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 35,
+            "code": 24,
+            "comments": 7,
+            "blank": 4
+          },
+          "complexity": {
+            "cyclomatic": 7,
+            "cognitive": 0,
+            "nesting_depth": 6,
+            "overall": 10
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 67,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeStructMethods",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1.3
+          },
+          "lines": {
+            "total": 14,
+            "code": 9,
+            "comments": 2,
+            "blank": 3
+          },
+          "complexity": {
+            "cyclomatic": 4,
+            "cognitive": 0,
+            "nesting_depth": 3,
+            "overall": 5.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 80,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "isMethodOfStruct",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1.3
+          },
+          "lines": {
+            "total": 6,
+            "code": 4,
+            "comments": 1,
+            "blank": 1
+          },
+          "complexity": {
+            "cyclomatic": 2,
+            "cognitive": 0,
+            "nesting_depth": 1,
+            "overall": 2.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 85,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "extractReceiverType",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 10,
+            "code": 7,
+            "comments": 2,
+            "blank": 1
+          },
+          "complexity": {
+            "cyclomatic": 5,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 6
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 78,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeMethod",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 19,
+            "code": 13,
+            "comments": 3,
+            "blank": 3
+          },
+          "complexity": {
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting_depth": 0,
+            "overall": 1
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 70,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "hasPointerReceiver",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 7,
+            "code": 4,
+            "comments": 1,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 2,
+            "cognitive": 0,
+            "nesting_depth": 1,
+            "overall": 2.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 64,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeMethodSignature",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 12,
+            "code": 8,
+            "comments": 2,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting_depth": 0,
+            "overall": 1
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 88,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeSignatureParameters",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 0,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1
+          },
+          "lines": {
+            "total": 9,
+            "code": 6,
+            "comments": 1,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 3,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 4
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 90,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeSignatureReturns",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 0,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1
+          },
+          "lines": {
+            "total": 8,
+            "code": 5,
+            "comments": 1,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 3,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 4
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 90,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "countFieldNames",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 4,
+            "code": 2,
+            "comments": 0,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 2,
+            "cognitive": 0,
+            "nesting_depth": 1,
+            "overall": 2.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 76,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "checkVariadicParameter",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 0,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1
+          },
+          "lines": {
+            "total": 3,
+            "code": 2,
+            "comments": 0,
+            "blank": 1
+          },
+          "complexity": {
+            "cyclomatic": 2,
+            "cognitive": 0,
+            "nesting_depth": 1,
+            "overall": 2.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 76,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "checkInterfaceParameter",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 0,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1
+          },
+          "lines": {
+            "total": 3,
+            "code": 2,
+            "comments": 0,
+            "blank": 1
+          },
+          "complexity": {
+            "cyclomatic": 2,
+            "cognitive": 0,
+            "nesting_depth": 1,
+            "overall": 2.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 78,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "checkErrorReturn",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 2,
+            "return_count": 0,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 1
+          },
+          "lines": {
+            "total": 3,
+            "code": 2,
+            "comments": 0,
+            "blank": 1
+          },
+          "complexity": {
+            "cyclomatic": 2,
+            "cognitive": 0,
+            "nesting_depth": 1,
+            "overall": 2.5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 69,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "calculateSignatureComplexity",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 11,
+            "code": 7,
+            "comments": 2,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 3,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 4
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 80,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "countMethodLines",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 22,
+            "code": 15,
+            "comments": 4,
+            "blank": 3
+          },
+          "complexity": {
+            "cyclomatic": 3,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 4
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 87,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "calculateMethodComplexity",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 27,
+            "code": 18,
+            "comments": 5,
+            "blank": 4
+          },
+          "complexity": {
+            "cyclomatic": 5,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 6
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 70,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "calculateNestingDepth",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 15,
+            "code": 10,
+            "comments": 3,
+            "blank": 2
+          },
+          "complexity": {
+            "cyclomatic": 4,
+            "cognitive": 0,
+            "nesting_depth": 2,
+            "overall": 5
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 76,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        },
+        {
+          "name": "analyzeMethodDocumentation",
+          "is_exported": false,
+          "is_pointer_receiver": true,
+          "signature": {
+            "parameter_count": 1,
+            "return_count": 1,
+            "has_variadic": false,
+            "returns_error": false,
+            "interface_parameters": 0,
+            "generic_parameters": null,
+            "signature_complexity": 0.8
+          },
+          "lines": {
+            "total": 2,
+            "code": 1,
+            "comments": 0,
+            "blank": 1
+          },
+          "complexity": {
+            "cyclomatic": 1,
+            "cognitive": 0,
+            "nesting_depth": 0,
+            "overall": 1
+          },
+          "documentation": {
+            "has_comment": true,
+            "comment_length": 68,
+            "has_example": true,
+            "quality_score": 0.5
+          }
+        }
+      ],
+      "tag_usage": {},
+      "complexity": {
+        "cyclomatic": 4,
+        "cognitive": 0,
+        "nesting_depth": 0,
+        "overall": 4
+      },
+      "documentation": {
+        "has_comment": true,
+        "comment_length": 277,
+        "has_example": true,
+        "quality_score": 0.7
+      }
+    },
+    {
       "name": "InterfaceAnalyzer",
       "package": "analyzer",
       "file": "analyzer",
@@ -7669,673 +8812,6 @@
       "documentation": {
         "has_comment": true,
         "comment_length": 326,
-        "has_example": true,
-        "quality_score": 0.7
-      }
-    },
-    {
-      "name": "StructAnalyzer",
-      "package": "analyzer",
-      "file": "analyzer",
-      "line": 16,
-      "is_exported": true,
-      "total_fields": 2,
-      "fields_by_type": {
-        "pointer": 2
-      },
-      "embedded_types": null,
-      "methods": [
-        {
-          "name": "AnalyzeStructs",
-          "is_exported": true,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 2,
-            "return_count": 2,
-            "has_variadic": false,
-            "returns_error": true,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 1.6
-          },
-          "lines": {
-            "total": 20,
-            "code": 14,
-            "comments": 4,
-            "blank": 2
-          },
-          "complexity": {
-            "cyclomatic": 7,
-            "cognitive": 0,
-            "nesting_depth": 6,
-            "overall": 10
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 66,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeStruct",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 6,
-            "return_count": 2,
-            "has_variadic": false,
-            "returns_error": true,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 3.6
-          },
-          "lines": {
-            "total": 31,
-            "code": 21,
-            "comments": 6,
-            "blank": 4
-          },
-          "complexity": {
-            "cyclomatic": 3,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 4
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 54,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeField",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 2,
-            "return_count": 0,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 1
-          },
-          "lines": {
-            "total": 18,
-            "code": 12,
-            "comments": 3,
-            "blank": 3
-          },
-          "complexity": {
-            "cyclomatic": 4,
-            "cognitive": 0,
-            "nesting_depth": 3,
-            "overall": 5.5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 67,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "categorizeFieldType",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 40,
-            "code": 28,
-            "comments": 8,
-            "blank": 4
-          },
-          "complexity": {
-            "cyclomatic": 12,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 13
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 63,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "isPrimitiveType",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 22,
-            "code": 15,
-            "comments": 4,
-            "blank": 3
-          },
-          "complexity": {
-            "cyclomatic": 1,
-            "cognitive": 0,
-            "nesting_depth": 0,
-            "overall": 1
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 72,
-            "has_example": true,
-            "quality_score": 0.7
-          }
-        },
-        {
-          "name": "extractEmbeddedType",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 27,
-            "code": 18,
-            "comments": 5,
-            "blank": 4
-          },
-          "complexity": {
-            "cyclomatic": 7,
-            "cognitive": 0,
-            "nesting_depth": 3,
-            "overall": 8.5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 67,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeTags",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 2,
-            "return_count": 0,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 1
-          },
-          "lines": {
-            "total": 15,
-            "code": 10,
-            "comments": 3,
-            "blank": 2
-          },
-          "complexity": {
-            "cyclomatic": 4,
-            "cognitive": 0,
-            "nesting_depth": 3,
-            "overall": 5.5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 51,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "calculateComplexity",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 24,
-            "code": 16,
-            "comments": 4,
-            "blank": 4
-          },
-          "complexity": {
-            "cyclomatic": 6,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 7
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 64,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeDocumentation",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 27,
-            "code": 18,
-            "comments": 5,
-            "blank": 4
-          },
-          "complexity": {
-            "cyclomatic": 3,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 4
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 62,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "calculateDocQualityScore",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 35,
-            "code": 24,
-            "comments": 7,
-            "blank": 4
-          },
-          "complexity": {
-            "cyclomatic": 7,
-            "cognitive": 0,
-            "nesting_depth": 6,
-            "overall": 10
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 67,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeStructMethods",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 2,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 1.3
-          },
-          "lines": {
-            "total": 14,
-            "code": 9,
-            "comments": 2,
-            "blank": 3
-          },
-          "complexity": {
-            "cyclomatic": 4,
-            "cognitive": 0,
-            "nesting_depth": 3,
-            "overall": 5.5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 80,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "isMethodOfStruct",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 2,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 1.3
-          },
-          "lines": {
-            "total": 6,
-            "code": 4,
-            "comments": 1,
-            "blank": 1
-          },
-          "complexity": {
-            "cyclomatic": 2,
-            "cognitive": 0,
-            "nesting_depth": 1,
-            "overall": 2.5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 85,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "extractReceiverType",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 10,
-            "code": 7,
-            "comments": 2,
-            "blank": 1
-          },
-          "complexity": {
-            "cyclomatic": 5,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 6
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 78,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeMethod",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 19,
-            "code": 13,
-            "comments": 3,
-            "blank": 3
-          },
-          "complexity": {
-            "cyclomatic": 1,
-            "cognitive": 0,
-            "nesting_depth": 0,
-            "overall": 1
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 70,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "hasPointerReceiver",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 7,
-            "code": 4,
-            "comments": 1,
-            "blank": 2
-          },
-          "complexity": {
-            "cyclomatic": 2,
-            "cognitive": 0,
-            "nesting_depth": 1,
-            "overall": 2.5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 64,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeMethodSignature",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 47,
-            "code": 32,
-            "comments": 9,
-            "blank": 6
-          },
-          "complexity": {
-            "cyclomatic": 12,
-            "cognitive": 0,
-            "nesting_depth": 11,
-            "overall": 17.5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 65,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "countMethodLines",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 22,
-            "code": 15,
-            "comments": 4,
-            "blank": 3
-          },
-          "complexity": {
-            "cyclomatic": 3,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 4
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 87,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "calculateMethodComplexity",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 27,
-            "code": 18,
-            "comments": 5,
-            "blank": 4
-          },
-          "complexity": {
-            "cyclomatic": 5,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 6
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 70,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "calculateNestingDepth",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 15,
-            "code": 10,
-            "comments": 3,
-            "blank": 2
-          },
-          "complexity": {
-            "cyclomatic": 4,
-            "cognitive": 0,
-            "nesting_depth": 2,
-            "overall": 5
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 76,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        },
-        {
-          "name": "analyzeMethodDocumentation",
-          "is_exported": false,
-          "is_pointer_receiver": true,
-          "signature": {
-            "parameter_count": 1,
-            "return_count": 1,
-            "has_variadic": false,
-            "returns_error": false,
-            "interface_parameters": 0,
-            "generic_parameters": null,
-            "signature_complexity": 0.8
-          },
-          "lines": {
-            "total": 2,
-            "code": 1,
-            "comments": 0,
-            "blank": 1
-          },
-          "complexity": {
-            "cyclomatic": 1,
-            "cognitive": 0,
-            "nesting_depth": 0,
-            "overall": 1
-          },
-          "documentation": {
-            "has_comment": true,
-            "comment_length": 68,
-            "has_example": true,
-            "quality_score": 0.5
-          }
-        }
-      ],
-      "tag_usage": {},
-      "complexity": {
-        "cyclomatic": 4,
-        "cognitive": 0,
-        "nesting_depth": 0,
-        "overall": 4
-      },
-      "documentation": {
-        "has_comment": true,
-        "comment_length": 277,
         "has_example": true,
         "quality_score": 0.7
       }
@@ -10292,29 +10768,29 @@
         "/workspaces/go-stats-generator/internal/analyzer/function_test.go",
         "/workspaces/go-stats-generator/internal/analyzer/package_test.go",
         "/workspaces/go-stats-generator/internal/analyzer/package.go",
+        "/workspaces/go-stats-generator/internal/analyzer/struct.go",
         "/workspaces/go-stats-generator/internal/analyzer/struct_test.go",
         "/workspaces/go-stats-generator/internal/analyzer/interface.go",
         "/workspaces/go-stats-generator/internal/analyzer/interface_enhanced_test.go",
         "/workspaces/go-stats-generator/internal/analyzer/interface_test.go",
-        "/workspaces/go-stats-generator/internal/analyzer/concurrency_test.go",
-        "/workspaces/go-stats-generator/internal/analyzer/struct.go",
         "/workspaces/go-stats-generator/internal/analyzer/concurrency.go",
+        "/workspaces/go-stats-generator/internal/analyzer/concurrency_test.go",
         "/workspaces/go-stats-generator/internal/analyzer/function.go"
       ],
       "lines": {
-        "total": 5799,
-        "code": 5799,
+        "total": 5833,
+        "code": 5833,
         "comments": 0,
         "blank": 0
       },
-      "functions": 179,
+      "functions": 186,
       "structs": 5,
       "interfaces": 0,
       "dependencies": [
         "github.com/opd-ai/go-stats-generator/internal/metrics"
       ],
       "dependents": null,
-      "cohesion_score": 3.3454545454545452,
+      "cohesion_score": 3.4727272727272727,
       "coupling_score": 0.5,
       "documentation": {
         "has_comment": false,

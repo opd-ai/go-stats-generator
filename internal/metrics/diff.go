@@ -214,6 +214,27 @@ func compareFunctionComplexity(baseline, current FunctionMetrics, config Thresho
 func compareStructMetrics(baseline, current []StructMetrics, config ThresholdConfig) []MetricChange {
 	var changes []MetricChange
 
+	baselineMap, currentMap := buildStructMaps(baseline, current)
+	allKeys := mergeStructKeys(baselineMap, currentMap)
+
+	for key := range allKeys {
+		baseStruct, hasBaseline := baselineMap[key]
+		currStruct, hasCurrent := currentMap[key]
+
+		if hasBaseline && hasCurrent {
+			changes = append(changes, compareStructFieldCounts(baseStruct, currStruct, config)...)
+		} else if hasBaseline && !hasCurrent {
+			changes = append(changes, createStructRemovedChange(baseStruct))
+		} else if !hasBaseline && hasCurrent {
+			changes = append(changes, createStructAddedChange(currStruct))
+		}
+	}
+
+	return changes
+}
+
+// buildStructMaps creates lookup maps for baseline and current struct metrics
+func buildStructMaps(baseline, current []StructMetrics) (map[string]StructMetrics, map[string]StructMetrics) {
 	baselineMap := make(map[string]StructMetrics)
 	currentMap := make(map[string]StructMetrics)
 
@@ -227,7 +248,11 @@ func compareStructMetrics(baseline, current []StructMetrics, config ThresholdCon
 		currentMap[key] = s
 	}
 
-	// Find all unique structs
+	return baselineMap, currentMap
+}
+
+// mergeStructKeys returns all unique keys from both baseline and current maps
+func mergeStructKeys(baselineMap, currentMap map[string]StructMetrics) map[string]bool {
 	allKeys := make(map[string]bool)
 	for key := range baselineMap {
 		allKeys[key] = true
@@ -235,83 +260,105 @@ func compareStructMetrics(baseline, current []StructMetrics, config ThresholdCon
 	for key := range currentMap {
 		allKeys[key] = true
 	}
+	return allKeys
+}
 
-	for key := range allKeys {
-		baseStruct, hasBaseline := baselineMap[key]
-		currStruct, hasCurrent := currentMap[key]
-
-		if hasBaseline && hasCurrent {
-			// Compare field count
-			if baseStruct.TotalFields != currStruct.TotalFields {
-				delta := calculateDelta(float64(baseStruct.TotalFields), float64(currStruct.TotalFields), config.Global.SignificanceLevel)
-
-				change := MetricChange{
-					Category:    "struct_fields",
-					Name:        currStruct.Name,
-					Path:        fmt.Sprintf("%s.%s", currStruct.Package, currStruct.Name),
-					File:        currStruct.File,
-					Line:        currStruct.Line,
-					OldValue:    baseStruct.TotalFields,
-					NewValue:    currStruct.TotalFields,
-					Delta:       delta,
-					Description: "Struct field count changed",
-				}
-
-				if currStruct.TotalFields > config.StructComplexity.MaxFields {
-					change.Impact = ImpactLevelHigh
-					change.Severity = SeverityLevelWarning
-					change.Suggestion = "Struct has too many fields, consider composition"
-				} else if delta.Direction == ChangeDirectionIncrease && delta.Percentage > config.StructComplexity.FieldIncrease {
-					change.Impact = ImpactLevelMedium
-					change.Severity = SeverityLevelWarning
-					change.Suggestion = "Field count increase exceeds threshold"
-				} else {
-					change.Impact = determineImpactLevel(delta)
-					change.Severity = determineSeverityLevel(delta)
-				}
-
-				changes = append(changes, change)
-			}
-		} else if hasBaseline && !hasCurrent {
-			// Struct removed
-			changes = append(changes, MetricChange{
-				Category:    "struct",
-				Name:        baseStruct.Name,
-				Path:        fmt.Sprintf("%s.%s", baseStruct.Package, baseStruct.Name),
-				File:        baseStruct.File,
-				Line:        baseStruct.Line,
-				OldValue:    baseStruct.TotalFields,
-				NewValue:    nil,
-				Delta:       Delta{Direction: ChangeDirectionDecrease, Significant: true, Magnitude: ChangeMagnitudeMajor},
-				Impact:      ImpactLevelMedium,
-				Severity:    SeverityLevelWarning,
-				Description: "Struct removed",
-			})
-		} else if !hasBaseline && hasCurrent {
-			// Struct added
-			changes = append(changes, MetricChange{
-				Category:    "struct",
-				Name:        currStruct.Name,
-				Path:        fmt.Sprintf("%s.%s", currStruct.Package, currStruct.Name),
-				File:        currStruct.File,
-				Line:        currStruct.Line,
-				OldValue:    nil,
-				NewValue:    currStruct.TotalFields,
-				Delta:       Delta{Direction: ChangeDirectionIncrease, Significant: true, Magnitude: ChangeMagnitudeModerate},
-				Impact:      ImpactLevelLow,
-				Severity:    SeverityLevelInfo,
-				Description: "Struct added",
-			})
-		}
+// compareStructFieldCounts compares field counts between baseline and current structs
+func compareStructFieldCounts(baseStruct, currStruct StructMetrics, config ThresholdConfig) []MetricChange {
+	if baseStruct.TotalFields == currStruct.TotalFields {
+		return nil
 	}
 
-	return changes
+	delta := calculateDelta(float64(baseStruct.TotalFields), float64(currStruct.TotalFields), config.Global.SignificanceLevel)
+
+	change := MetricChange{
+		Category:    "struct_fields",
+		Name:        currStruct.Name,
+		Path:        fmt.Sprintf("%s.%s", currStruct.Package, currStruct.Name),
+		File:        currStruct.File,
+		Line:        currStruct.Line,
+		OldValue:    baseStruct.TotalFields,
+		NewValue:    currStruct.TotalFields,
+		Delta:       delta,
+		Description: "Struct field count changed",
+	}
+
+	assignStructFieldChangeImpact(&change, currStruct, delta, config)
+	return []MetricChange{change}
+}
+
+// assignStructFieldChangeImpact determines impact and severity for struct field changes
+func assignStructFieldChangeImpact(change *MetricChange, currStruct StructMetrics, delta Delta, config ThresholdConfig) {
+	if currStruct.TotalFields > config.StructComplexity.MaxFields {
+		change.Impact = ImpactLevelHigh
+		change.Severity = SeverityLevelWarning
+		change.Suggestion = "Struct has too many fields, consider composition"
+	} else if delta.Direction == ChangeDirectionIncrease && delta.Percentage > config.StructComplexity.FieldIncrease {
+		change.Impact = ImpactLevelMedium
+		change.Severity = SeverityLevelWarning
+		change.Suggestion = "Field count increase exceeds threshold"
+	} else {
+		change.Impact = determineImpactLevel(delta)
+		change.Severity = determineSeverityLevel(delta)
+	}
+}
+
+// createStructRemovedChange creates a change record for a removed struct
+func createStructRemovedChange(baseStruct StructMetrics) MetricChange {
+	return MetricChange{
+		Category:    "struct",
+		Name:        baseStruct.Name,
+		Path:        fmt.Sprintf("%s.%s", baseStruct.Package, baseStruct.Name),
+		File:        baseStruct.File,
+		Line:        baseStruct.Line,
+		OldValue:    baseStruct.TotalFields,
+		NewValue:    nil,
+		Delta:       Delta{Direction: ChangeDirectionDecrease, Significant: true, Magnitude: ChangeMagnitudeMajor},
+		Impact:      ImpactLevelMedium,
+		Severity:    SeverityLevelWarning,
+		Description: "Struct removed",
+	}
+}
+
+// createStructAddedChange creates a change record for an added struct
+func createStructAddedChange(currStruct StructMetrics) MetricChange {
+	return MetricChange{
+		Category:    "struct",
+		Name:        currStruct.Name,
+		Path:        fmt.Sprintf("%s.%s", currStruct.Package, currStruct.Name),
+		File:        currStruct.File,
+		Line:        currStruct.Line,
+		OldValue:    nil,
+		NewValue:    currStruct.TotalFields,
+		Delta:       Delta{Direction: ChangeDirectionIncrease, Significant: true, Magnitude: ChangeMagnitudeModerate},
+		Impact:      ImpactLevelLow,
+		Severity:    SeverityLevelInfo,
+		Description: "Struct added",
+	}
 }
 
 // comparePackageMetrics compares package metrics between reports
 func comparePackageMetrics(baseline, current []PackageMetrics, config ThresholdConfig) []MetricChange {
 	var changes []MetricChange
 
+	baselineMap, currentMap := buildPackageMaps(baseline, current)
+	allPaths := mergePackagePaths(baselineMap, currentMap)
+
+	for path := range allPaths {
+		basePkg, hasBaseline := baselineMap[path]
+		currPkg, hasCurrent := currentMap[path]
+
+		if hasBaseline && hasCurrent {
+			changes = append(changes, comparePackageCoupling(basePkg, currPkg, config)...)
+			changes = append(changes, comparePackageCohesion(basePkg, currPkg, config)...)
+		}
+	}
+
+	return changes
+}
+
+// buildPackageMaps creates lookup maps for baseline and current package metrics
+func buildPackageMaps(baseline, current []PackageMetrics) (map[string]PackageMetrics, map[string]PackageMetrics) {
 	baselineMap := make(map[string]PackageMetrics)
 	currentMap := make(map[string]PackageMetrics)
 
@@ -323,7 +370,11 @@ func comparePackageMetrics(baseline, current []PackageMetrics, config ThresholdC
 		currentMap[p.Path] = p
 	}
 
-	// Find all unique packages
+	return baselineMap, currentMap
+}
+
+// mergePackagePaths returns all unique paths from both baseline and current maps
+func mergePackagePaths(baselineMap, currentMap map[string]PackageMetrics) map[string]bool {
 	allPaths := make(map[string]bool)
 	for path := range baselineMap {
 		allPaths[path] = true
@@ -331,67 +382,75 @@ func comparePackageMetrics(baseline, current []PackageMetrics, config ThresholdC
 	for path := range currentMap {
 		allPaths[path] = true
 	}
+	return allPaths
+}
 
-	for path := range allPaths {
-		basePkg, hasBaseline := baselineMap[path]
-		currPkg, hasCurrent := currentMap[path]
-
-		if hasBaseline && hasCurrent {
-			// Compare coupling score
-			if basePkg.CouplingScore != currPkg.CouplingScore {
-				delta := calculateDelta(basePkg.CouplingScore, currPkg.CouplingScore, config.Global.SignificanceLevel)
-
-				change := MetricChange{
-					Category:    "package_coupling",
-					Name:        currPkg.Name,
-					Path:        currPkg.Path,
-					OldValue:    basePkg.CouplingScore,
-					NewValue:    currPkg.CouplingScore,
-					Delta:       delta,
-					Description: "Package coupling changed",
-				}
-
-				if currPkg.CouplingScore > config.PackageMetrics.MaxCoupling {
-					change.Impact = ImpactLevelCritical
-					change.Severity = SeverityLevelError
-					change.Suggestion = "Package coupling exceeds threshold, reduce dependencies"
-				} else {
-					change.Impact = determineImpactLevel(delta)
-					change.Severity = determineSeverityLevel(delta)
-				}
-
-				changes = append(changes, change)
-			}
-
-			// Compare cohesion score
-			if basePkg.CohesionScore != currPkg.CohesionScore {
-				delta := calculateDelta(basePkg.CohesionScore, currPkg.CohesionScore, config.Global.SignificanceLevel)
-
-				change := MetricChange{
-					Category:    "package_cohesion",
-					Name:        currPkg.Name,
-					Path:        currPkg.Path,
-					OldValue:    basePkg.CohesionScore,
-					NewValue:    currPkg.CohesionScore,
-					Delta:       delta,
-					Description: "Package cohesion changed",
-				}
-
-				if currPkg.CohesionScore < config.PackageMetrics.MinCohesion {
-					change.Impact = ImpactLevelHigh
-					change.Severity = SeverityLevelWarning
-					change.Suggestion = "Package cohesion below threshold, group related functionality"
-				} else {
-					change.Impact = determineImpactLevel(delta)
-					change.Severity = determineSeverityLevel(delta)
-				}
-
-				changes = append(changes, change)
-			}
-		}
+// comparePackageCoupling compares coupling scores between baseline and current packages
+func comparePackageCoupling(basePkg, currPkg PackageMetrics, config ThresholdConfig) []MetricChange {
+	if basePkg.CouplingScore == currPkg.CouplingScore {
+		return nil
 	}
 
-	return changes
+	delta := calculateDelta(basePkg.CouplingScore, currPkg.CouplingScore, config.Global.SignificanceLevel)
+
+	change := MetricChange{
+		Category:    "package_coupling",
+		Name:        currPkg.Name,
+		Path:        currPkg.Path,
+		OldValue:    basePkg.CouplingScore,
+		NewValue:    currPkg.CouplingScore,
+		Delta:       delta,
+		Description: "Package coupling changed",
+	}
+
+	assignPackageCouplingImpact(&change, currPkg, delta, config)
+	return []MetricChange{change}
+}
+
+// assignPackageCouplingImpact determines impact and severity for coupling changes
+func assignPackageCouplingImpact(change *MetricChange, currPkg PackageMetrics, delta Delta, config ThresholdConfig) {
+	if currPkg.CouplingScore > config.PackageMetrics.MaxCoupling {
+		change.Impact = ImpactLevelCritical
+		change.Severity = SeverityLevelError
+		change.Suggestion = "Package coupling exceeds threshold, reduce dependencies"
+	} else {
+		change.Impact = determineImpactLevel(delta)
+		change.Severity = determineSeverityLevel(delta)
+	}
+}
+
+// comparePackageCohesion compares cohesion scores between baseline and current packages
+func comparePackageCohesion(basePkg, currPkg PackageMetrics, config ThresholdConfig) []MetricChange {
+	if basePkg.CohesionScore == currPkg.CohesionScore {
+		return nil
+	}
+
+	delta := calculateDelta(basePkg.CohesionScore, currPkg.CohesionScore, config.Global.SignificanceLevel)
+
+	change := MetricChange{
+		Category:    "package_cohesion",
+		Name:        currPkg.Name,
+		Path:        currPkg.Path,
+		OldValue:    basePkg.CohesionScore,
+		NewValue:    currPkg.CohesionScore,
+		Delta:       delta,
+		Description: "Package cohesion changed",
+	}
+
+	assignPackageCohesionImpact(&change, currPkg, delta, config)
+	return []MetricChange{change}
+}
+
+// assignPackageCohesionImpact determines impact and severity for cohesion changes
+func assignPackageCohesionImpact(change *MetricChange, currPkg PackageMetrics, delta Delta, config ThresholdConfig) {
+	if currPkg.CohesionScore < config.PackageMetrics.MinCohesion {
+		change.Impact = ImpactLevelHigh
+		change.Severity = SeverityLevelWarning
+		change.Suggestion = "Package cohesion below threshold, group related functionality"
+	} else {
+		change.Impact = determineImpactLevel(delta)
+		change.Severity = determineSeverityLevel(delta)
+	}
 }
 
 // compareComplexityMetrics compares overall complexity metrics

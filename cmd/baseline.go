@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -221,7 +222,22 @@ func outputJSONBaselineResult(snapshot metrics.MetricsSnapshot) error {
 }
 
 func runListBaselines(cmd *cobra.Command, args []string) error {
-	// Initialize storage
+	storageBackend, err := initializeStorage()
+	if err != nil {
+		return fmt.Errorf("failed to initialize storage: %w", err)
+	}
+	defer storageBackend.Close()
+
+	snapshots, err := retrieveSnapshots(storageBackend)
+	if err != nil {
+		return fmt.Errorf("failed to list snapshots: %w", err)
+	}
+
+	return outputBaselines(snapshots)
+}
+
+// initializeStorage sets up the storage backend with default configuration
+func initializeStorage() (storage.MetricsStorage, error) {
 	cfg := config.DefaultConfig()
 	sqliteConfig := storage.SQLiteConfig{
 		Path:              cfg.Storage.Path,
@@ -230,69 +246,97 @@ func runListBaselines(cmd *cobra.Command, args []string) error {
 		EnableCompression: cfg.Storage.Compression,
 	}
 
-	storageBackend, err := storage.NewSQLiteStorage(sqliteConfig)
-	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
-	}
-	defer storageBackend.Close()
+	return storage.NewSQLiteStorage(sqliteConfig)
+}
 
-	// Get all snapshots
+// retrieveSnapshots fetches all snapshots from storage with default filtering
+func retrieveSnapshots(storageBackend storage.MetricsStorage) ([]storage.SnapshotInfo, error) {
 	ctx := context.Background()
 	filter := storage.SnapshotFilter{
 		Limit: 100,
 	}
-	snapshots, err := storageBackend.List(ctx, filter)
-	if err != nil {
-		return fmt.Errorf("failed to list snapshots: %w", err)
-	}
+	return storageBackend.List(ctx, filter)
+}
 
+// outputBaselines formats and outputs the baseline snapshots based on format
+func outputBaselines(snapshots []storage.SnapshotInfo) error {
 	if outputFormat == "console" {
-		if len(snapshots) == 0 {
-			fmt.Println("No baseline snapshots found.")
-			return nil
-		}
+		return outputBaselinesConsole(snapshots)
+	}
+	return outputBaselinesJSON(snapshots)
+}
 
-		fmt.Printf("Found %d baseline snapshot(s):\n\n", len(snapshots))
-		for _, info := range snapshots {
-			fmt.Printf("ID: %s\n", info.ID)
-			fmt.Printf("  Timestamp: %s\n", info.Timestamp.Format("2006-01-02 15:04:05"))
-			if info.Description != "" {
-				fmt.Printf("  Message: %s\n", info.Description)
-			}
-			if len(info.Tags) > 0 {
-				fmt.Printf("  Tags: %v\n", info.Tags)
-			}
-			if info.GitBranch != "" {
-				fmt.Printf("  Branch: %s\n", info.GitBranch)
-			}
-			if info.GitCommit != "" {
-				fmt.Printf("  Commit: %s\n", info.GitCommit)
-			}
-			fmt.Printf("  Size: %d bytes\n", info.Size)
-			fmt.Println()
-		}
-	} else {
-		// JSON output
-		var outputWriter = os.Stdout
-		if outputFile != "" {
-			file, err := os.Create(outputFile)
-			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
-			}
-			defer file.Close()
-			outputWriter = file
-		}
-
-		encoder := json.NewEncoder(outputWriter)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(map[string]interface{}{
-			"snapshots": snapshots,
-			"count":     len(snapshots),
-		})
+// outputBaselinesConsole outputs baseline snapshots in human-readable console format
+func outputBaselinesConsole(snapshots []storage.SnapshotInfo) error {
+	if len(snapshots) == 0 {
+		fmt.Println("No baseline snapshots found.")
+		return nil
 	}
 
+	fmt.Printf("Found %d baseline snapshot(s):\n\n", len(snapshots))
+	for _, info := range snapshots {
+		printSnapshotInfo(info)
+	}
 	return nil
 }
+
+// printSnapshotInfo prints detailed information about a single snapshot
+func printSnapshotInfo(info storage.SnapshotInfo) {
+	fmt.Printf("ID: %s\n", info.ID)
+	fmt.Printf("  Timestamp: %s\n", info.Timestamp.Format("2006-01-02 15:04:05"))
+
+	if info.Description != "" {
+		fmt.Printf("  Message: %s\n", info.Description)
+	}
+	if len(info.Tags) > 0 {
+		fmt.Printf("  Tags: %v\n", info.Tags)
+	}
+	if info.GitBranch != "" {
+		fmt.Printf("  Branch: %s\n", info.GitBranch)
+	}
+	if info.GitCommit != "" {
+		fmt.Printf("  Commit: %s\n", info.GitCommit)
+	}
+
+	fmt.Printf("  Size: %d bytes\n", info.Size)
+	fmt.Println()
+}
+
+// outputBaselinesJSON outputs baseline snapshots in JSON format
+func outputBaselinesJSON(snapshots []storage.SnapshotInfo) error {
+	outputWriter, err := createOutputWriter()
+	if err != nil {
+		return fmt.Errorf("failed to create output writer: %w", err)
+	}
+	defer outputWriter.Close()
+
+	encoder := json.NewEncoder(outputWriter)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(map[string]interface{}{
+		"snapshots": snapshots,
+		"count":     len(snapshots),
+	})
+}
+
+// createOutputWriter creates the appropriate output writer based on outputFile setting
+func createOutputWriter() (io.WriteCloser, error) {
+	if outputFile == "" {
+		return &nopCloser{os.Stdout}, nil
+	}
+
+	file, err := os.Create(outputFile)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
+// nopCloser wraps an io.Writer to provide a no-op Close method
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error { return nil }
 
 func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 	baselineID := args[0]

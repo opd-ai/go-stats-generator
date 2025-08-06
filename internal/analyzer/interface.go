@@ -358,49 +358,72 @@ func (ia *InterfaceAnalyzer) analyzeFunctionSignature(funcType ast.Expr) metrics
 
 	// Analyze function type expression
 	if t, ok := funcType.(*ast.FuncType); ok {
-		// Count parameters
-		if t.Params != nil {
-			for _, field := range t.Params.List {
-				if len(field.Names) == 0 {
-					// Unnamed parameter (like in interface methods)
-					signature.ParameterCount++
-				} else {
-					signature.ParameterCount += len(field.Names)
-				}
-
-				// Check for variadic parameters
-				if _, isEllipsis := field.Type.(*ast.Ellipsis); isEllipsis {
-					signature.VariadicUsage = true
-				}
-
-				// Check for interface parameters
-				if ia.isInterfaceType(field.Type) {
-					signature.InterfaceParams++
-				}
-			}
-		}
-
-		// Count return values
-		if t.Results != nil {
-			for _, field := range t.Results.List {
-				if len(field.Names) == 0 {
-					signature.ReturnCount++
-				} else {
-					signature.ReturnCount += len(field.Names)
-				}
-
-				// Check if returns error
-				if ia.isErrorType(field.Type) {
-					signature.ErrorReturn = true
-				}
-			}
-		}
+		ia.analyzeParameters(t, &signature)
+		ia.analyzeReturnValues(t, &signature)
 	}
 
 	// Calculate signature complexity
 	signature.ComplexityScore = ia.calculateSignatureComplexity(signature)
 
 	return signature
+}
+
+// analyzeParameters analyzes function parameters and updates the signature
+func (ia *InterfaceAnalyzer) analyzeParameters(funcType *ast.FuncType, signature *metrics.FunctionSignature) {
+	if funcType.Params == nil {
+		return
+	}
+
+	for _, field := range funcType.Params.List {
+		ia.processParameterField(field, signature)
+	}
+}
+
+// processParameterField processes a single parameter field
+func (ia *InterfaceAnalyzer) processParameterField(field *ast.Field, signature *metrics.FunctionSignature) {
+	// Count parameters
+	if len(field.Names) == 0 {
+		// Unnamed parameter (like in interface methods)
+		signature.ParameterCount++
+	} else {
+		signature.ParameterCount += len(field.Names)
+	}
+
+	// Check for variadic parameters
+	if _, isEllipsis := field.Type.(*ast.Ellipsis); isEllipsis {
+		signature.VariadicUsage = true
+	}
+
+	// Check for interface parameters
+	if ia.isInterfaceType(field.Type) {
+		signature.InterfaceParams++
+	}
+}
+
+// analyzeReturnValues analyzes function return values and updates the signature
+func (ia *InterfaceAnalyzer) analyzeReturnValues(funcType *ast.FuncType, signature *metrics.FunctionSignature) {
+	if funcType.Results == nil {
+		return
+	}
+
+	for _, field := range funcType.Results.List {
+		ia.processReturnField(field, signature)
+	}
+}
+
+// processReturnField processes a single return value field
+func (ia *InterfaceAnalyzer) processReturnField(field *ast.Field, signature *metrics.FunctionSignature) {
+	// Count return values
+	if len(field.Names) == 0 {
+		signature.ReturnCount++
+	} else {
+		signature.ReturnCount += len(field.Names)
+	}
+
+	// Check if returns error
+	if ia.isErrorType(field.Type) {
+		signature.ErrorReturn = true
+	}
 }
 
 // isInterfaceType checks if a type expression represents an interface

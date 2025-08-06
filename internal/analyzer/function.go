@@ -99,53 +99,69 @@ func (fa *FunctionAnalyzer) extractReceiverType(recv *ast.FieldList) string {
 func (fa *FunctionAnalyzer) analyzeSignature(funcType *ast.FuncType) metrics.FunctionSignature {
 	signature := metrics.FunctionSignature{}
 
-	// Analyze parameters
-	if funcType.Params != nil {
-		signature.ParameterCount = len(funcType.Params.List)
-
-		for _, param := range funcType.Params.List {
-			// Check for variadic parameters
-			if _, ok := param.Type.(*ast.Ellipsis); ok {
-				signature.VariadicUsage = true
-			}
-
-			// Check for interface parameters
-			if fa.isInterfaceType(param.Type) {
-				signature.InterfaceParams++
-			}
-		}
-	}
-
-	// Analyze return values
-	if funcType.Results != nil {
-		signature.ReturnCount = len(funcType.Results.List)
-
-		// Check if function returns error
-		for _, result := range funcType.Results.List {
-			if fa.isErrorType(result.Type) {
-				signature.ErrorReturn = true
-				break
-			}
-		}
-	}
-
-	// Analyze generic parameters (Go 1.18+)
-	if funcType.TypeParams != nil {
-		for _, param := range funcType.TypeParams.List {
-			for _, name := range param.Names {
-				genericParam := metrics.GenericParam{
-					Name:        name.Name,
-					Constraints: fa.extractConstraints(param.Type),
-				}
-				signature.GenericParams = append(signature.GenericParams, genericParam)
-			}
-		}
-	}
+	fa.analyzeSignatureParameters(funcType, &signature)
+	fa.analyzeSignatureReturns(funcType, &signature)
+	fa.analyzeGenericParameters(funcType, &signature)
 
 	// Calculate signature complexity score
 	signature.ComplexityScore = fa.calculateSignatureComplexity(signature)
 
 	return signature
+}
+
+// analyzeSignatureParameters analyzes function parameters
+func (fa *FunctionAnalyzer) analyzeSignatureParameters(funcType *ast.FuncType, signature *metrics.FunctionSignature) {
+	if funcType.Params == nil {
+		return
+	}
+
+	signature.ParameterCount = len(funcType.Params.List)
+
+	for _, param := range funcType.Params.List {
+		// Check for variadic parameters
+		if _, ok := param.Type.(*ast.Ellipsis); ok {
+			signature.VariadicUsage = true
+		}
+
+		// Check for interface parameters
+		if fa.isInterfaceType(param.Type) {
+			signature.InterfaceParams++
+		}
+	}
+}
+
+// analyzeSignatureReturns analyzes function return values
+func (fa *FunctionAnalyzer) analyzeSignatureReturns(funcType *ast.FuncType, signature *metrics.FunctionSignature) {
+	if funcType.Results == nil {
+		return
+	}
+
+	signature.ReturnCount = len(funcType.Results.List)
+
+	// Check if function returns error
+	for _, result := range funcType.Results.List {
+		if fa.isErrorType(result.Type) {
+			signature.ErrorReturn = true
+			break
+		}
+	}
+}
+
+// analyzeGenericParameters analyzes generic type parameters (Go 1.18+)
+func (fa *FunctionAnalyzer) analyzeGenericParameters(funcType *ast.FuncType, signature *metrics.FunctionSignature) {
+	if funcType.TypeParams == nil {
+		return
+	}
+
+	for _, param := range funcType.TypeParams.List {
+		for _, name := range param.Names {
+			genericParam := metrics.GenericParam{
+				Name:        name.Name,
+				Constraints: fa.extractConstraints(param.Type),
+			}
+			signature.GenericParams = append(signature.GenericParams, genericParam)
+		}
+	}
 }
 
 // countLines counts various types of lines in a function with precise categorization
