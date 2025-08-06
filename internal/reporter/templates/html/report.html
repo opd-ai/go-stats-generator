@@ -1,0 +1,81 @@
+{{/* Migrated from: internal/reporter/html.go:139 */}}
+{{/* Original variable: htmlReportTemplate */}}
+{{/* Migration date: 2025-08-06 */}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Stats Report - {{.Report.Metadata.Repository}}</title>
+    <style>
+        {{ template "styles" }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Go Source Code Statistics Report</h1>
+            <div class="metadata">
+                <p><strong>Repository:</strong> {{.Report.Metadata.Repository}}</p>
+                <p><strong>Generated:</strong> {{formatTime .Report.Metadata.GeneratedAt}}</p>
+                <p><strong>Analysis Time:</strong> {{formatDuration .Report.Metadata.AnalysisTime}}</p>
+                <p><strong>Files Processed:</strong> {{.Report.Metadata.FilesProcessed}}</p>
+            </div>
+        </header>
+
+        {{if .Config.IncludeOverview}}
+        <section class="overview">
+            <h2>Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>{{.Report.Overview.TotalFiles}}</h3>
+                    <p>Total Files</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{.Report.Overview.TotalLines}}</h3>
+                    <p>Total Lines</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{.Report.Overview.TotalFunctions}}</h3>
+                    <p>Total Functions</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{formatFloat .Report.Overview.AverageComplexity}}</h3>
+                    <p>Average Complexity</p>
+                </div>
+            </div>
+        </section>
+        {{end}}
+
+        {{if and .Config.IncludeDetails .Report.Functions}}
+        <section class="functions">
+            <h2>Function Analysis</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Function</th>
+                        <th>Package</th>
+                        <th>Lines</th>
+                        <th>Complexity</th>
+                        <th>Parameters</th>
+                        <th>Returns</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Report.Functions}}
+                    <tr>
+                        <td>{{.Name}}</td>
+                        <td>{{.Package}}</td>
+                        <td>{{.LineCount}}</td>
+                        <td>{{.CyclomaticComplexity}}</td>
+                        <td>{{.ParameterCount}}</td>
+                        <td>{{.ReturnCount}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </section>
+        {{end}}
+    </div>
+</body>
+</html>
