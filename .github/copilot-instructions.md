@@ -2,6 +2,8 @@
 
 The `go-stats-generator` is a high-performance command-line tool that analyzes Go source code repositories to generate comprehensive statistical reports about code structure, complexity, and patterns. The project focuses on computing obscure and detailed metrics that standard linters don't typically capture, providing actionable insights for code quality assessment and refactoring decisions. The tool is designed for enterprise-scale codebases, supporting concurrent processing of 50,000+ files within 60 seconds while maintaining memory usage under 1GB.
 
+The program is called `go-stats-generator` not gostats. Don't ever use the name `gostats` and if you discover a use of the name `gostats` correct it. `gostats` is a fucking stupid name.
+
 The target audience includes software engineers, technical leads, and DevOps teams working with large Go codebases who need detailed code analysis beyond basic linting. The tool emphasizes advanced metrics like design pattern detection, struct member categorization, concurrency pattern analysis, and documentation quality assessment. It serves as a comprehensive code health assessment platform that helps teams identify technical debt, architectural issues, and optimization opportunities.
 
 ## Technical Stack
