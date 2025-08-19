@@ -71,6 +71,7 @@ func (hr *HTMLReporterImpl) WriteDiff(output io.Writer, diff *metrics.Complexity
 		"changeClass":    changeClass,
 		"severityClass":  severityClass,
 		"thresholdClass": thresholdClass,
+		"trendClass":     trendClass,
 	}).Parse(htmlDiffTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to parse embedded diff template: %w", err)
@@ -140,4 +141,17 @@ func thresholdClass(exceeded bool) string {
 		return "threshold-exceeded"
 	}
 	return "threshold-ok"
+}
+
+func trendClass(trend metrics.TrendDirection) string {
+	switch trend {
+	case metrics.TrendImproving:
+		return "trend-improving"
+	case metrics.TrendDegrading:
+		return "trend-degrading"
+	case metrics.TrendVolatile:
+		return "trend-volatile"
+	default:
+		return "trend-stable"
+	}
 }

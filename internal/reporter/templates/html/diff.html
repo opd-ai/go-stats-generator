@@ -38,9 +38,9 @@
                     <h3>{{.Diff.Summary.ImprovementCount}}</h3>
                     <p>Improvements</p>
                 </div>
-                <div class="summary-card {{severityClass .Diff.Summary.OverallSeverity}}">
-                    <h3>{{.Diff.Summary.OverallSeverity}}</h3>
-                    <p>Overall Severity</p>
+                <div class="summary-card {{trendClass .Diff.Summary.OverallTrend}}">
+                    <h3>{{.Diff.Summary.OverallTrend}}</h3>
+                    <p>Overall Trend</p>
                 </div>
             </div>
         </section>
@@ -63,12 +63,12 @@
                 <tbody>
                     {{range .Diff.Regressions}}
                     <tr class="regression-row">
-                        <td>{{.EntityType}}</td>
-                        <td>{{.EntityName}}</td>
-                        <td>{{.MetricName}}</td>
+                        <td>{{.Type}}</td>
+                        <td>{{.Location}}</td>
+                        <td>{{.Description}}</td>
                         <td>{{formatFloat .OldValue}}</td>
                         <td>{{formatFloat .NewValue}}</td>
-                        <td class="{{changeClass .PercentChange}}">{{formatChange .PercentChange}}</td>
+                        <td class="{{changeClass .Delta.Percentage}}">{{formatChange .Delta.Percentage}}</td>
                         <td class="{{severityClass .Severity}}">{{.Severity}}</td>
                     </tr>
                     {{end}}
@@ -95,12 +95,12 @@
                 <tbody>
                     {{range .Diff.Improvements}}
                     <tr class="improvement-row">
-                        <td>{{.EntityType}}</td>
-                        <td>{{.EntityName}}</td>
-                        <td>{{.MetricName}}</td>
+                        <td>{{.Type}}</td>
+                        <td>{{.Location}}</td>
+                        <td>{{.Description}}</td>
                         <td>{{formatFloat .OldValue}}</td>
                         <td>{{formatFloat .NewValue}}</td>
-                        <td class="{{changeClass .PercentChange}}">{{formatChange .PercentChange}}</td>
+                        <td class="{{changeClass .Delta.Percentage}}">{{formatChange .Delta.Percentage}}</td>
                         <td>{{.Impact}}</td>
                     </tr>
                     {{end}}
@@ -127,14 +127,14 @@
                 <tbody>
                     {{range .Diff.Changes}}
                     <tr>
-                        <td>{{.EntityType}}</td>
-                        <td>{{.EntityName}}</td>
-                        <td>{{.MetricName}}</td>
+                        <td>{{.Category}}</td>
+                        <td>{{.Name}}</td>
+                        <td>{{.Description}}</td>
                         <td>{{formatFloat .OldValue}}</td>
                         <td>{{formatFloat .NewValue}}</td>
-                        <td class="{{changeClass .PercentChange}}">{{formatChange .PercentChange}}</td>
-                        <td class="{{thresholdClass .ThresholdExceeded}}">
-                            {{if .ThresholdExceeded}}Exceeded{{else}}OK{{end}}
+                        <td class="{{changeClass .Delta.Percentage}}">{{formatChange .Delta.Percentage}}</td>
+                        <td class="{{thresholdClass (gt .Delta.Percentage 10.0)}}">
+                            {{if gt .Delta.Percentage 10.0}}Exceeded{{else}}OK{{end}}
                         </td>
                     </tr>
                     {{end}}
