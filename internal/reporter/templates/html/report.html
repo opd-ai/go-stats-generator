@@ -32,16 +32,12 @@
                     <p>Total Files</p>
                 </div>
                 <div class="stat-card">
-                    <h3>{{.Report.Overview.TotalLines}}</h3>
+                    <h3>{{.Report.Overview.TotalLinesOfCode}}</h3>
                     <p>Total Lines</p>
                 </div>
                 <div class="stat-card">
                     <h3>{{.Report.Overview.TotalFunctions}}</h3>
                     <p>Total Functions</p>
-                </div>
-                <div class="stat-card">
-                    <h3>{{formatFloat .Report.Overview.AverageComplexity}}</h3>
-                    <p>Average Complexity</p>
                 </div>
             </div>
         </section>
@@ -66,10 +62,10 @@
                     <tr>
                         <td>{{.Name}}</td>
                         <td>{{.Package}}</td>
-                        <td>{{.LineCount}}</td>
-                        <td>{{.CyclomaticComplexity}}</td>
-                        <td>{{.ParameterCount}}</td>
-                        <td>{{.ReturnCount}}</td>
+                        <td>{{.Lines.Code}}</td>
+                        <td>{{.Complexity.Cyclomatic}}</td>
+                        <td>{{.Signature.ParameterCount}}</td>
+                        <td>{{.Signature.ReturnCount}}</td>
                     </tr>
                     {{end}}
                 </tbody>
@@ -79,3 +75,104 @@
     </div>
 </body>
 </html>
+
+{{define "styles"}}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+header h1 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    font-size: 2.5em;
+}
+
+.metadata p {
+    margin: 5px 0;
+    color: #6c757d;
+}
+
+section {
+    background: white;
+    margin-bottom: 30px;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+section h2 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.stat-card h3 {
+    font-size: 2em;
+    margin: 0 0 10px 0;
+    color: #3498db;
+}
+
+.stat-card p {
+    margin: 0;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.data-table tbody tr:hover {
+    background: #f8f9fa;
+}
+{{end}}
