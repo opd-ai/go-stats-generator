@@ -570,60 +570,102 @@ func (ca *ConcurrencyAnalyzer) calculatePipelineConfidence(channels []metrics.Ch
 	return confidence
 }
 
+// detectFanPatterns detects fan-out and fan-in concurrency patterns
 func (ca *ConcurrencyAnalyzer) detectFanPatterns(concurrency *metrics.ConcurrencyPatternMetrics) {
-	// Detect fan-out and fan-in patterns
-	// Fan-out: one source, multiple consumers (multiple goroutines reading from few channels)
-	// Fan-in: multiple sources, one consumer (multiple goroutines writing to few channels)
+	fileAnalysis := ca.groupConcurrencyByFile(concurrency)
 
-	// Group by file for analysis
-	fileChannels := make(map[string][]metrics.ChannelInstance)
-	fileGoroutines := make(map[string][]metrics.GoroutineInstance)
+	for file, analysis := range fileAnalysis {
+		ca.detectFanOutPattern(file, analysis, concurrency)
+		ca.detectFanInPattern(file, analysis, concurrency)
+	}
+}
 
+// FileConcurrencyAnalysis holds concurrency data grouped by file
+type FileConcurrencyAnalysis struct {
+	Channels   []metrics.ChannelInstance
+	Goroutines []metrics.GoroutineInstance
+}
+
+// groupConcurrencyByFile groups channels and goroutines by file for pattern analysis
+func (ca *ConcurrencyAnalyzer) groupConcurrencyByFile(concurrency *metrics.ConcurrencyPatternMetrics) map[string]FileConcurrencyAnalysis {
+	fileAnalysis := make(map[string]FileConcurrencyAnalysis)
+
+	// Group channels by file
 	for _, channel := range concurrency.Channels.Instances {
-		fileChannels[channel.File] = append(fileChannels[channel.File], channel)
+		analysis := fileAnalysis[channel.File]
+		analysis.Channels = append(analysis.Channels, channel)
+		fileAnalysis[channel.File] = analysis
 	}
 
+	// Group goroutines by file
 	for _, goroutine := range concurrency.Goroutines.Instances {
-		fileGoroutines[goroutine.File] = append(fileGoroutines[goroutine.File], goroutine)
+		analysis := fileAnalysis[goroutine.File]
+		analysis.Goroutines = append(analysis.Goroutines, goroutine)
+		fileAnalysis[goroutine.File] = analysis
 	}
 
-	// Analyze each file for fan patterns
-	for file, channels := range fileChannels {
-		goroutines := fileGoroutines[file]
+	return fileAnalysis
+}
 
-		if len(goroutines) >= 3 && len(channels) >= 1 {
-			// Check for fan-out pattern (many goroutines, fewer channels)
-			if len(goroutines) > len(channels)*2 {
-				confidence := ca.calculateFanOutConfidence(channels, goroutines)
-				if confidence > 0.6 {
-					pattern := metrics.PatternInstance{
-						Name:            "Fan-Out",
-						File:            file,
-						Line:            goroutines[0].Line,
-						ConfidenceScore: confidence,
-						Description:     fmt.Sprintf("Fan-out pattern: %d goroutines consuming from %d channels", len(goroutines), len(channels)),
-						Example:         fmt.Sprintf("Multiple consumers reading from shared channels in '%s'", file),
-					}
-					concurrency.FanOut = append(concurrency.FanOut, pattern)
-				}
-			}
+// detectFanOutPattern detects fan-out patterns in a file
+func (ca *ConcurrencyAnalyzer) detectFanOutPattern(file string, analysis FileConcurrencyAnalysis, concurrency *metrics.ConcurrencyPatternMetrics) {
+	if !ca.hasSufficientConcurrencyForFanOut(analysis) {
+		return
+	}
 
-			// Check for fan-in pattern (many goroutines writing to fewer channels)
-			if len(goroutines) >= 3 && len(channels) <= 2 {
-				confidence := ca.calculateFanInConfidence(channels, goroutines)
-				if confidence > 0.6 {
-					pattern := metrics.PatternInstance{
-						Name:            "Fan-In",
-						File:            file,
-						Line:            goroutines[0].Line,
-						ConfidenceScore: confidence,
-						Description:     fmt.Sprintf("Fan-in pattern: %d goroutines merging into %d channels", len(goroutines), len(channels)),
-						Example:         fmt.Sprintf("Multiple producers writing to shared channels in '%s'", file),
-					}
-					concurrency.FanIn = append(concurrency.FanIn, pattern)
-				}
-			}
+	if len(analysis.Goroutines) > len(analysis.Channels)*2 {
+		confidence := ca.calculateFanOutConfidence(analysis.Channels, analysis.Goroutines)
+		if confidence > 0.6 {
+			pattern := ca.createFanOutPattern(file, analysis, confidence)
+			concurrency.FanOut = append(concurrency.FanOut, pattern)
 		}
+	}
+}
+
+// detectFanInPattern detects fan-in patterns in a file
+func (ca *ConcurrencyAnalyzer) detectFanInPattern(file string, analysis FileConcurrencyAnalysis, concurrency *metrics.ConcurrencyPatternMetrics) {
+	if !ca.hasSufficientConcurrencyForFanIn(analysis) {
+		return
+	}
+
+	confidence := ca.calculateFanInConfidence(analysis.Channels, analysis.Goroutines)
+	if confidence > 0.6 {
+		pattern := ca.createFanInPattern(file, analysis, confidence)
+		concurrency.FanIn = append(concurrency.FanIn, pattern)
+	}
+}
+
+// hasSufficientConcurrencyForFanOut checks if there's enough concurrency for fan-out detection
+func (ca *ConcurrencyAnalyzer) hasSufficientConcurrencyForFanOut(analysis FileConcurrencyAnalysis) bool {
+	return len(analysis.Goroutines) >= 3 && len(analysis.Channels) >= 1
+}
+
+// hasSufficientConcurrencyForFanIn checks if there's enough concurrency for fan-in detection
+func (ca *ConcurrencyAnalyzer) hasSufficientConcurrencyForFanIn(analysis FileConcurrencyAnalysis) bool {
+	return len(analysis.Goroutines) >= 3 && len(analysis.Channels) <= 2
+}
+
+// createFanOutPattern creates a fan-out pattern instance
+func (ca *ConcurrencyAnalyzer) createFanOutPattern(file string, analysis FileConcurrencyAnalysis, confidence float64) metrics.PatternInstance {
+	return metrics.PatternInstance{
+		Name:            "Fan-Out",
+		File:            file,
+		Line:            analysis.Goroutines[0].Line,
+		ConfidenceScore: confidence,
+		Description:     fmt.Sprintf("Fan-out pattern: %d goroutines consuming from %d channels", len(analysis.Goroutines), len(analysis.Channels)),
+		Example:         fmt.Sprintf("Multiple consumers reading from shared channels in '%s'", file),
+	}
+}
+
+// createFanInPattern creates a fan-in pattern instance
+func (ca *ConcurrencyAnalyzer) createFanInPattern(file string, analysis FileConcurrencyAnalysis, confidence float64) metrics.PatternInstance {
+	return metrics.PatternInstance{
+		Name:            "Fan-In",
+		File:            file,
+		Line:            analysis.Goroutines[0].Line,
+		ConfidenceScore: confidence,
+		Description:     fmt.Sprintf("Fan-in pattern: %d goroutines merging into %d channels", len(analysis.Goroutines), len(analysis.Channels)),
+		Example:         fmt.Sprintf("Multiple producers writing to shared channels in '%s'", file),
 	}
 }
 
@@ -631,36 +673,58 @@ func (ca *ConcurrencyAnalyzer) detectFanPatterns(concurrency *metrics.Concurrenc
 func (ca *ConcurrencyAnalyzer) calculateFanOutConfidence(channels []metrics.ChannelInstance, goroutines []metrics.GoroutineInstance) float64 {
 	confidence := 0.0
 
-	// High ratio of goroutines to channels suggests fan-out
+	confidence += ca.calculateGoroutineRatioScore(channels, goroutines)
+	confidence += ca.calculateGoroutineCountScore(goroutines)
+	confidence += ca.calculateUnbufferedChannelScore(channels)
+	confidence += ca.calculateChannelGoroutineBalance(channels, goroutines)
+
+	return confidence
+}
+
+// calculateGoroutineRatioScore calculates confidence based on goroutine to channel ratio
+func (ca *ConcurrencyAnalyzer) calculateGoroutineRatioScore(channels []metrics.ChannelInstance, goroutines []metrics.GoroutineInstance) float64 {
 	ratio := float64(len(goroutines)) / float64(len(channels))
 	if ratio >= 3 {
-		confidence += 0.4
+		return 0.4
 	} else if ratio >= 2 {
-		confidence += 0.2
+		return 0.2
 	}
+	return 0.0
+}
 
-	// Multiple goroutines increase confidence
+// calculateGoroutineCountScore calculates confidence based on number of goroutines
+func (ca *ConcurrencyAnalyzer) calculateGoroutineCountScore(goroutines []metrics.GoroutineInstance) float64 {
 	if len(goroutines) >= 3 {
-		confidence += 0.3
+		return 0.3
+	}
+	return 0.0
+}
+
+// calculateUnbufferedChannelScore calculates confidence based on unbuffered channel ratio
+func (ca *ConcurrencyAnalyzer) calculateUnbufferedChannelScore(channels []metrics.ChannelInstance) float64 {
+	if len(channels) == 0 {
+		return 0.0
 	}
 
-	// Unbuffered channels are common in fan-out
 	unbufferedCount := 0
 	for _, channel := range channels {
 		if !channel.IsBuffered {
 			unbufferedCount++
 		}
 	}
+
 	if float64(unbufferedCount)/float64(len(channels)) > 0.5 {
-		confidence += 0.2
+		return 0.2
 	}
+	return 0.0
+}
 
-	// Few channels with many goroutines
+// calculateChannelGoroutineBalance calculates confidence based on channel/goroutine balance
+func (ca *ConcurrencyAnalyzer) calculateChannelGoroutineBalance(channels []metrics.ChannelInstance, goroutines []metrics.GoroutineInstance) float64 {
 	if len(channels) <= 2 && len(goroutines) >= 4 {
-		confidence += 0.3
+		return 0.3
 	}
-
-	return confidence
+	return 0.0
 }
 
 // calculateFanInConfidence calculates confidence for fan-in pattern

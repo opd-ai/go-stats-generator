@@ -66,6 +66,7 @@ func (hr *HTMLReporterImpl) WriteDiff(output io.Writer, diff *metrics.Complexity
 		"formatTime":     formatTime,
 		"formatDuration": formatDuration,
 		"formatFloat":    formatFloat,
+		"formatValue":    formatValue,
 		"formatPercent":  formatPercent,
 		"formatChange":   formatChange,
 		"changeClass":    changeClass,
@@ -99,6 +100,30 @@ func formatDuration(d time.Duration) string {
 
 func formatFloat(f float64) string {
 	return fmt.Sprintf("%.2f", f)
+}
+
+// formatValue safely formats interface{} values for display
+func formatValue(v interface{}) string {
+	if v == nil {
+		return "N/A"
+	}
+
+	switch val := v.(type) {
+	case float64:
+		return fmt.Sprintf("%.2f", val)
+	case float32:
+		return fmt.Sprintf("%.2f", val)
+	case int:
+		return fmt.Sprintf("%d", val)
+	case int64:
+		return fmt.Sprintf("%d", val)
+	case int32:
+		return fmt.Sprintf("%d", val)
+	case string:
+		return val
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 func formatPercent(f float64) string {

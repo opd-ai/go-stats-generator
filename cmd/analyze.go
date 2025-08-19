@@ -394,6 +394,7 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 }
 
 // processAnalysisResults processes the worker results and collects all metrics
+// processAnalysisResults coordinates the analysis of all scanner results
 func processAnalysisResults(results <-chan scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) (*CollectedMetrics, *analyzer.PackageAnalyzer, error) {
 	collectedMetrics := &CollectedMetrics{}
 	processedFiles := 0
@@ -401,52 +402,72 @@ func processAnalysisResults(results <-chan scanner.Result, analyzers *AnalyzerSe
 	for result := range results {
 		processedFiles++
 
-		if result.Error != nil {
-			if cfg.Output.Verbose {
-				fmt.Fprintf(os.Stderr, "Warning: %v\n", result.Error)
-			}
+		if !handleScannerError(result.Error, cfg) {
 			continue
 		}
 
-		// Analyze functions in this file
-		functions, err := analyzeFunctionsInFile(analyzers.Function, result, cfg)
-		if err == nil {
-			collectedMetrics.Functions = append(collectedMetrics.Functions, functions...)
-		}
-
-		// Analyze structs in this file
-		structs, err := analyzeStructsInFile(analyzers.Struct, result, cfg)
-		if err == nil {
-			collectedMetrics.Structs = append(collectedMetrics.Structs, structs...)
-		}
-
-		// Analyze interfaces in this file
-		interfaces, err := analyzeInterfacesInFile(analyzers.Interface, result, cfg)
-		if err == nil {
-			collectedMetrics.Interfaces = append(collectedMetrics.Interfaces, interfaces...)
-		}
-
-		// Analyze package information for this file
-		err = analyzePackageInFile(analyzers.Package, result, cfg)
-		if err != nil && cfg.Output.Verbose {
-			fmt.Fprintf(os.Stderr, "Warning: failed to analyze package in %s: %v\n",
-				result.FileInfo.Path, err)
-		}
-
-		// Analyze concurrency patterns in this file
-		err = analyzeConcurrencyInFile(analyzers.Concurrency, result, report, cfg)
-		if err != nil && cfg.Output.Verbose {
-			fmt.Fprintf(os.Stderr, "Warning: failed to analyze concurrency in %s: %v\n",
-				result.FileInfo.Path, err)
-		}
+		processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
 	}
 
+	logProcessingSummary(processedFiles, collectedMetrics, cfg)
+	return collectedMetrics, analyzers.Package, nil
+}
+
+// handleScannerError processes scanner errors and returns whether to continue processing
+func handleScannerError(err error, cfg *config.Config) bool {
+	if err != nil {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+		}
+		return false
+	}
+	return true
+}
+
+// processFileAnalysis performs all analysis types on a single file
+func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, report *metrics.Report, cfg *config.Config) {
+	collectStructuralMetrics(result, analyzers, collectedMetrics, cfg)
+	analyzePackageStructure(result, analyzers, cfg)
+	analyzeConcurrencyPatterns(result, analyzers, report, cfg)
+}
+
+// collectStructuralMetrics analyzes functions, structs, and interfaces in a file
+func collectStructuralMetrics(result scanner.Result, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
+	if functions, err := analyzeFunctionsInFile(analyzers.Function, result, cfg); err == nil {
+		collectedMetrics.Functions = append(collectedMetrics.Functions, functions...)
+	}
+
+	if structs, err := analyzeStructsInFile(analyzers.Struct, result, cfg); err == nil {
+		collectedMetrics.Structs = append(collectedMetrics.Structs, structs...)
+	}
+
+	if interfaces, err := analyzeInterfacesInFile(analyzers.Interface, result, cfg); err == nil {
+		collectedMetrics.Interfaces = append(collectedMetrics.Interfaces, interfaces...)
+	}
+}
+
+// analyzePackageStructure analyzes package information for a file
+func analyzePackageStructure(result scanner.Result, analyzers *AnalyzerSet, cfg *config.Config) {
+	if err := analyzePackageInFile(analyzers.Package, result, cfg); err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze package in %s: %v\n",
+			result.FileInfo.Path, err)
+	}
+}
+
+// analyzeConcurrencyPatterns analyzes concurrency patterns in a file
+func analyzeConcurrencyPatterns(result scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) {
+	if err := analyzeConcurrencyInFile(analyzers.Concurrency, result, report, cfg); err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze concurrency in %s: %v\n",
+			result.FileInfo.Path, err)
+	}
+}
+
+// logProcessingSummary logs a summary of the processing results
+func logProcessingSummary(processedFiles int, collectedMetrics *CollectedMetrics, cfg *config.Config) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Processed %d files, found %d functions, %d structs, %d interfaces\n",
 			processedFiles, len(collectedMetrics.Functions), len(collectedMetrics.Structs), len(collectedMetrics.Interfaces))
 	}
-
-	return collectedMetrics, analyzers.Package, nil
 }
 
 // analyzeFunctionsInFile analyzes functions in a single file result

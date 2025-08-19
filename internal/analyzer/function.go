@@ -411,38 +411,61 @@ func (fa *FunctionAnalyzer) calculateDocQualityScore(docText string) float64 {
 		return 0.0
 	}
 
-	score := 0.0
+	score := calculateLengthScore(docText)
+	score += calculateContentQualityScore(docText)
 
-	// Length score (diminishing returns)
+	return normalizeScore(score)
+}
+
+// calculateLengthScore calculates score based on documentation length
+func calculateLengthScore(docText string) float64 {
 	lengthScore := float64(len(docText)) / 100.0
 	if lengthScore > 1.0 {
 		lengthScore = 1.0
 	}
-	score += lengthScore * 0.4
+	return lengthScore * 0.4
+}
 
-	// Content quality indicators
+// calculateContentQualityScore calculates score based on content quality indicators
+func calculateContentQualityScore(docText string) float64 {
 	lowerDoc := strings.ToLower(docText)
+	score := 0.0
 
-	if strings.Contains(lowerDoc, "example") {
-		score += 0.2
-	}
-	if strings.Contains(lowerDoc, "param") || strings.Contains(lowerDoc, "argument") {
-		score += 0.1
-	}
-	if strings.Contains(lowerDoc, "return") {
-		score += 0.1
-	}
-	if strings.Contains(lowerDoc, "error") {
-		score += 0.1
-	}
-	if strings.Contains(lowerDoc, "note") || strings.Contains(lowerDoc, "warning") {
-		score += 0.1
+	qualityIndicators := []struct {
+		keywords []string
+		points   float64
+	}{
+		{[]string{"example"}, 0.2},
+		{[]string{"param", "argument"}, 0.1},
+		{[]string{"return"}, 0.1},
+		{[]string{"error"}, 0.1},
+		{[]string{"note", "warning"}, 0.1},
 	}
 
+	for _, indicator := range qualityIndicators {
+		if containsAnyKeyword(lowerDoc, indicator.keywords) {
+			score += indicator.points
+		}
+	}
+
+	return score
+}
+
+// containsAnyKeyword checks if text contains any of the specified keywords
+func containsAnyKeyword(text string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(text, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeScore ensures score is within valid range [0,1]
+func normalizeScore(score float64) float64 {
 	if score > 1.0 {
-		score = 1.0
+		return 1.0
 	}
-
 	return score
 }
 

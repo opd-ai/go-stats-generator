@@ -66,8 +66,8 @@
                         <td>{{.Type}}</td>
                         <td>{{.Location}}</td>
                         <td>{{.Description}}</td>
-                        <td>{{formatFloat .OldValue}}</td>
-                        <td>{{formatFloat .NewValue}}</td>
+                        <td>{{formatValue .OldValue}}</td>
+                        <td>{{formatValue .NewValue}}</td>
                         <td class="{{changeClass .Delta.Percentage}}">{{formatChange .Delta.Percentage}}</td>
                         <td class="{{severityClass .Severity}}">{{.Severity}}</td>
                     </tr>
@@ -98,8 +98,8 @@
                         <td>{{.Type}}</td>
                         <td>{{.Location}}</td>
                         <td>{{.Description}}</td>
-                        <td>{{formatFloat .OldValue}}</td>
-                        <td>{{formatFloat .NewValue}}</td>
+                        <td>{{formatValue .OldValue}}</td>
+                        <td>{{formatValue .NewValue}}</td>
                         <td class="{{changeClass .Delta.Percentage}}">{{formatChange .Delta.Percentage}}</td>
                         <td>{{.Impact}}</td>
                     </tr>
@@ -130,8 +130,8 @@
                         <td>{{.Category}}</td>
                         <td>{{.Name}}</td>
                         <td>{{.Description}}</td>
-                        <td>{{formatFloat .OldValue}}</td>
-                        <td>{{formatFloat .NewValue}}</td>
+                        <td>{{formatValue .OldValue}}</td>
+                        <td>{{formatValue .NewValue}}</td>
                         <td class="{{changeClass .Delta.Percentage}}">{{formatChange .Delta.Percentage}}</td>
                         <td class="{{thresholdClass (gt .Delta.Percentage 10.0)}}">
                             {{if gt .Delta.Percentage 10.0}}Exceeded{{else}}OK{{end}}
