@@ -17,17 +17,17 @@ func TestLineClassificationComplexComments(t *testing.T) {
 	inComment := false
 	line := "/* outer /* inner comment */ still in comment"
 	result := analyzer.classifyLine(line, &inComment)
-	
+
 	// This should be classified as "comment" because the entire line is within a comment
 	// The inner /* */ should be treated as nested, leaving us still inside the outer comment
 	assert.Equal(t, "comment", result, "Nested block comment line should be classified as comment")
 	assert.True(t, inComment, "Should still be in block comment after processing nested comments")
-	
+
 	// Test that we properly find the real end of complex comments
 	inComment = false
 	line2 := "/* comment with */ pattern inside */ x := 1"
 	result2 := analyzer.classifyLine(line2, &inComment)
-	
+
 	// This should properly find the real end of the comment and detect code after
 	assert.Equal(t, "mixed", result2, "Line with */ pattern inside comment followed by code should be mixed")
 	assert.False(t, inComment, "Should not be in comment after processing complete block comment")
