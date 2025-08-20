@@ -2,81 +2,94 @@ package reporter
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
-// TestCSVReporter_BugReproduction tests that CSV reporter currently returns an error
-// This test reproduces the bug and will be converted to a negative test after the fix
-func TestCSVReporter_BugReproduction(t *testing.T) {
+// TestCSVReporter_Generate tests that CSV reporter now works correctly
+// This test was converted from a bug reproduction test after the fix
+func TestCSVReporter_Generate(t *testing.T) {
 	// Create a minimal report for testing
 	report := &metrics.Report{
-		Metadata: metrics.Metadata{
-			RepositoryPath: "/test/path",
-			AnalyzedAt:     time.Now(),
-			Version:        "1.0.0",
-			Duration:       time.Millisecond * 100,
-		},
-		Summary: metrics.Summary{
+		Metadata: metrics.ReportMetadata{
+			Repository:     "/test/path",
+			GeneratedAt:    time.Now(),
+			ToolVersion:    "1.0.0",
+			AnalysisTime:   time.Millisecond * 100,
 			FilesProcessed: 1,
-			TotalLines:     100,
+		},
+		Overview: metrics.OverviewMetrics{
 			TotalFunctions: 5,
+			TotalFiles:     1,
 		},
 		Functions: []metrics.FunctionMetrics{
 			{
-				Name:       "TestFunction",
-				Package:    "main",
-				Lines:      metrics.LineMetrics{Code: 10, Comments: 2, Blank: 1},
-				Complexity: 3.5,
+				Name:    "TestFunction",
+				Package: "main",
+				Lines:   metrics.LineMetrics{Code: 10, Comments: 2, Blank: 1},
+				Complexity: metrics.ComplexityScore{
+					Overall: 3.5,
+				},
 				IsExported: true,
 			},
 		},
 	}
 
-	// Test that CSV reporter currently returns an error
+	// Test that CSV reporter now works correctly
 	csvReporter := &CSVReporter{}
 	var buf bytes.Buffer
-	
+
 	err := csvReporter.Generate(report, &buf)
-	
-	// This should fail with "not yet implemented" error - reproducing the bug
-	if err == nil {
-		t.Fatal("Expected CSV reporter to return error, but got nil")
+
+	// This should now succeed
+	if err != nil {
+		t.Fatalf("Expected CSV reporter to succeed, but got error: %v", err)
 	}
-	
-	expectedError := "CSV reporter not yet implemented"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error %q, got %q", expectedError, err.Error())
+
+	// Buffer should contain CSV data
+	if buf.Len() == 0 {
+		t.Error("Expected CSV output, but buffer is empty")
 	}
-	
-	// Buffer should be empty since generation failed
-	if buf.Len() != 0 {
-		t.Errorf("Expected empty buffer, got %d bytes", buf.Len())
+
+	// Verify it contains expected CSV content
+	output := buf.String()
+	if !strings.Contains(output, "# METADATA") {
+		t.Error("Expected CSV output to contain metadata section")
+	}
+	if !strings.Contains(output, "TestFunction") {
+		t.Error("Expected CSV output to contain function data")
 	}
 }
 
-func TestCSVReporter_DiffBugReproduction(t *testing.T) {
-	// Test that CSV diff reporter also returns an error
+func TestCSVReporter_WriteDiff(t *testing.T) {
+	// Test that CSV diff reporter now works correctly
 	csvReporter := &CSVReporter{}
 	var buf bytes.Buffer
-	
+
 	// Create a minimal diff for testing
 	diff := &metrics.ComplexityDiff{
-		Old: &metrics.Report{},
-		New: &metrics.Report{},
+		Baseline: metrics.MetricsSnapshot{},
+		Current:  metrics.MetricsSnapshot{},
+		Summary: metrics.DiffSummary{
+			TotalChanges:     5,
+			RegressionCount:  1,
+			ImprovementCount: 2,
+		},
 	}
-	
+
 	err := csvReporter.WriteDiff(&buf, diff)
-	
-	// This should fail with "not yet implemented" error
-	if err == nil {
-		t.Fatal("Expected CSV diff reporter to return error, but got nil")
+
+	// This should now succeed
+	if err != nil {
+		t.Fatalf("Expected CSV diff reporter to succeed, but got error: %v", err)
 	}
-	
-	expectedError := "CSV diff reporter not yet implemented"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error %q, got %q", expectedError, err.Error())
+
+	// Verify it contains expected content
+	output := buf.String()
+	if !strings.Contains(output, "# SUMMARY") {
+		t.Error("Expected CSV diff output to contain summary section")
 	}
 }
