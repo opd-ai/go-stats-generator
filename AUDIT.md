@@ -6,14 +6,14 @@
 ## AUDIT SUMMARY
 
 ~~~~
-**Total Issues Found:** 8
-- **CRITICAL BUG:** 2
+**Total Issues Found:** 7 (1 resolved)
+- **CRITICAL BUG:** 1 (1 resolved)
 - **FUNCTIONAL MISMATCH:** 4
 - **MISSING FEATURE:** 3
 - **EDGE CASE BUG:** 2
 - **PERFORMANCE ISSUE:** 0
 
-**Overall Assessment:** The codebase has significant gaps between documented functionality and actual implementation, particularly in output formats, pattern detection, and trend analysis features.
+**Overall Assessment:** One critical bug has been resolved. The codebase still has significant gaps between documented functionality and actual implementation, particularly in output formats, pattern detection, and trend analysis features.
 ~~~~
 
 ## DETAILED FINDINGS
@@ -115,26 +115,21 @@ func getCurrentBranch() string {
 ~~~~
 
 ~~~~
-### CRITICAL BUG: Nesting Depth Calculation Always Returns Zero
-**File:** internal/analyzer/function.go:334-345
-**Severity:** High
-**Description:** The calculateNestingDepth function increments currentDepth but never decrements it when exiting blocks, causing incorrect depth calculations.
-**Expected Behavior:** Should track maximum nesting depth by incrementing on block entry and decrementing on block exit
-**Actual Behavior:** Only increments depth, never decrements, leading to incorrect maximum depth values
-**Impact:** Nesting depth metrics are completely inaccurate, affecting complexity analysis
-**Reproduction:** Analyze any function with nested blocks - depth will be overcounted
+### ✅ RESOLVED: Nesting Depth Calculation Bug Fixed
+**File:** internal/analyzer/function.go:367-437
+**Severity:** High (RESOLVED)
+**Description:** ~~The calculateNestingDepth function increments currentDepth but never decrements it when exiting blocks, causing incorrect depth calculations.~~ **FIXED:** Now uses proper recursive approach to accurately track nesting depth.
+**Resolution:** Replaced buggy ast.Inspect approach with recursive walkForNestingDepth function that correctly tracks depth for control flow structures (if, for, switch, select, etc.)
+**Impact:** Nesting depth metrics are now accurate, improving complexity analysis reliability
+**Validation:** Added comprehensive regression tests in `internal/analyzer/nesting_depth_bug_test.go`
 **Code Reference:**
 ```go
-ast.Inspect(block, func(n ast.Node) bool {
-    switch n.(type) {
-    case *ast.BlockStmt:
-        currentDepth++ // Never decremented!
-        if currentDepth > maxDepth {
-            maxDepth = currentDepth
-        }
-    }
-    return true
-})
+// Fixed implementation uses proper recursive depth tracking
+func (fa *FunctionAnalyzer) calculateNestingDepth(block *ast.BlockStmt) int {
+	maxDepth := 0
+	fa.walkForNestingDepth(block, 0, &maxDepth)
+	return maxDepth
+}
 ```
 ~~~~
 
