@@ -13,9 +13,9 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/scanner"
 )
 
-func TestProcessAnalysisResultsHangBug(t *testing.T) {
-	// Create a test scenario where the channel reading could hang
-	// This demonstrates the lack of timeout/context handling
+func TestProcessAnalysisResultsWithContextCancellation(t *testing.T) {
+	// Regression test: Ensure processAnalysisResults respects context cancellation
+	// Previously, the function would hang indefinitely if the results channel wasn't closed
 
 	// Create a minimal valid AST file for testing
 	src := `package main
@@ -36,7 +36,7 @@ func test() {
 		File:     file,
 		Error:    nil,
 	}
-	// Note: We intentionally don't close this channel to simulate the bug
+	// Note: We intentionally don't close this channel to test context cancellation
 
 	// Create test analyzers and report
 	analyzers := &AnalyzerSet{
@@ -50,27 +50,34 @@ func test() {
 	report := &metrics.Report{}
 	cfg := &config.Config{}
 
-	// Test with a timeout to detect infinite hanging
-	done := make(chan bool, 1)
+	// Test that context cancellation works properly
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
 
-	go func() {
-		// This should now timeout with context cancellation instead of hanging indefinitely
-		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-		defer cancel()
-		_, _, _ = processAnalysisResults(ctx, unclosedResults, analyzers, report, cfg)
-		done <- true
-	}()
+	start := time.Now()
+	_, _, err = processAnalysisResults(ctx, unclosedResults, analyzers, report, cfg)
+	duration := time.Since(start)
 
-	// Wait for either completion or timeout
-	select {
-	case <-done:
-		// If we get here quickly, the function completed (which means it didn't hang)
-		t.Log("processAnalysisResults completed - either the bug is fixed or channel was somehow closed")
-	case <-time.After(200 * time.Millisecond):
-		// Expected: timeout because processAnalysisResults hangs waiting for more results
-		t.Log("processAnalysisResults hangs waiting for channel closure (demonstrates the bug)")
-		// This confirms the bug exists - the function waits indefinitely for channel closure
+	// Should return with context cancelled error
+	if err == nil {
+		t.Error("Expected context cancellation error, but got nil")
 	}
+
+	// Should complete quickly due to context timeout, not hang indefinitely
+	if duration > 100*time.Millisecond {
+		t.Errorf("Function took too long (%v), suggesting it may still be hanging", duration)
+	}
+
+	// Verify it's a context cancellation error
+	if !isContextError(err) {
+		t.Errorf("Expected context cancellation error, got: %v", err)
+	}
+}
+
+// isContextError checks if an error is a context cancellation error
+func isContextError(err error) bool {
+	return err != nil && (err.Error() == "analysis cancelled: context deadline exceeded" ||
+		err.Error() == "analysis cancelled: context canceled")
 }
 
 func TestProcessAnalysisResultsProperChannelClosure(t *testing.T) {
