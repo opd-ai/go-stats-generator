@@ -367,20 +367,81 @@ func (fa *FunctionAnalyzer) calculateCyclomaticComplexity(block *ast.BlockStmt) 
 // calculateNestingDepth calculates maximum nesting depth
 func (fa *FunctionAnalyzer) calculateNestingDepth(block *ast.BlockStmt) int {
 	maxDepth := 0
-	currentDepth := 0
 
-	ast.Inspect(block, func(n ast.Node) bool {
-		switch n.(type) {
-		case *ast.BlockStmt:
-			currentDepth++
-			if currentDepth > maxDepth {
-				maxDepth = currentDepth
-			}
-		}
-		return true
-	})
+	// Use a recursive approach to properly track depth
+	fa.walkForNestingDepth(block, 0, &maxDepth)
 
 	return maxDepth
+}
+
+// walkForNestingDepth recursively walks the AST to calculate nesting depth
+func (fa *FunctionAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int, maxDepth *int) {
+	if node == nil {
+		return
+	}
+
+	switch n := node.(type) {
+	case *ast.IfStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+		}
+		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+		if n.Else != nil {
+			fa.walkForNestingDepth(n.Else, newDepth, maxDepth)
+		}
+
+	case *ast.ForStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+		}
+		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+
+	case *ast.RangeStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+		}
+		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+
+	case *ast.SwitchStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+		}
+		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+
+	case *ast.TypeSwitchStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+		}
+		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+
+	case *ast.SelectStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+		}
+		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+
+	case *ast.BlockStmt:
+		// Process all statements in the block at the current depth
+		for _, stmt := range n.List {
+			fa.walkForNestingDepth(stmt, currentDepth, maxDepth)
+		}
+
+	default:
+		// For other nodes, inspect children without changing depth
+		ast.Inspect(node, func(child ast.Node) bool {
+			if child != node {
+				fa.walkForNestingDepth(child, currentDepth, maxDepth)
+				return false // Don't recurse automatically, we handle it manually
+			}
+			return true
+		})
+	}
 }
 
 // analyzeDocumentation analyzes function documentation

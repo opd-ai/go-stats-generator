@@ -48,6 +48,101 @@ func nestedFunction() {
 	assert.Equal(t, 3, actualDepth, "Maximum nesting depth should be 3 (if->for->if)")
 }
 
+// TestCalculateNestingDepthFixed - Additional tests to verify the fix works for various cases
+func TestCalculateNestingDepthFixed(t *testing.T) {
+	tests := []struct {
+		name     string
+		code     string
+		expected int
+	}{
+		{
+			name: "no nesting",
+			code: `
+func simple() {
+		x := 1
+		y := 2
+	}`,
+			expected: 0,
+		},
+		{
+			name: "single if",
+			code: `
+func singleIf() {
+		if true {
+			x := 1
+		}
+	}`,
+			expected: 1,
+		},
+		{
+			name: "nested if statements",
+			code: `
+func nestedIfs() {
+		if true {      // depth 1
+			if false { // depth 2
+				if true { // depth 3
+					x := 1
+				}
+			}
+		}
+	}`,
+			expected: 3,
+		},
+		{
+			name: "mixed control structures",
+			code: `
+func mixedNesting() {
+		for i := 0; i < 10; i++ {  // depth 1
+			switch i {             // depth 2
+			case 1:
+				if i > 0 {         // depth 3
+					println(i)
+				}
+			}
+		}
+	}`,
+			expected: 3,
+		},
+		{
+			name: "select statement",
+			code: `
+func selectStmt() {
+		select {           // depth 1
+		case <-ch:
+			if true {      // depth 2
+				println("received")
+			}
+		}
+	}`,
+			expected: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := "package main\n" + tt.code
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "test.go", src, parser.ParseComments)
+			assert.NoError(t, err)
+
+			analyzer := NewFunctionAnalyzer(fset)
+
+			var funcDecl *ast.FuncDecl
+			ast.Inspect(file, func(n ast.Node) bool {
+				if fn, ok := n.(*ast.FuncDecl); ok {
+					funcDecl = fn
+					return false
+				}
+				return true
+			})
+
+			assert.NotNil(t, funcDecl)
+			actualDepth := analyzer.calculateNestingDepth(funcDecl.Body)
+			assert.Equal(t, tt.expected, actualDepth, "Nesting depth mismatch for %s", tt.name)
+		})
+	}
+}
+
 func TestCalculateNestingDepthSimple(t *testing.T) {
 	// Test with no nesting
 	src := `
