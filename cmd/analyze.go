@@ -363,7 +363,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	report := createInitialReport(targetDir, startTime, len(files))
 
 	// Step 4: Process analysis results from worker pool
-	metrics, packageAnalyzer, err := processAnalysisResults(results, analyzers, report, cfg)
+	metrics, packageAnalyzer, err := processAnalysisResults(ctx, results, analyzers, report, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -489,22 +489,32 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 
 // processAnalysisResults processes the worker results and collects all metrics
 // processAnalysisResults coordinates the analysis of all scanner results
-func processAnalysisResults(results <-chan scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) (*CollectedMetrics, *analyzer.PackageAnalyzer, error) {
+func processAnalysisResults(ctx context.Context, results <-chan scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) (*CollectedMetrics, *analyzer.PackageAnalyzer, error) {
 	collectedMetrics := &CollectedMetrics{}
 	processedFiles := 0
 
-	for result := range results {
-		processedFiles++
+	for {
+		select {
+		case result, ok := <-results:
+			if !ok {
+				// Channel is closed, all results processed
+				logProcessingSummary(processedFiles, collectedMetrics, cfg)
+				return collectedMetrics, analyzers.Package, nil
+			}
 
-		if !handleScannerError(result.Error, cfg) {
-			continue
+			processedFiles++
+
+			if !handleScannerError(result.Error, cfg) {
+				continue
+			}
+
+			processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
+
+		case <-ctx.Done():
+			// Context cancelled, return with error
+			return nil, nil, fmt.Errorf("analysis cancelled: %w", ctx.Err())
 		}
-
-		processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
 	}
-
-	logProcessingSummary(processedFiles, collectedMetrics, cfg)
-	return collectedMetrics, analyzers.Package, nil
 }
 
 // handleScannerError processes scanner errors and returns whether to continue processing

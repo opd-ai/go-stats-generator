@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"go/parser"
 	"go/token"
 	"testing"
@@ -53,9 +54,10 @@ func test() {
 	done := make(chan bool, 1)
 
 	go func() {
-		// This should hang indefinitely after processing the first result
-		// because the channel is never closed
-		_, _, _ = processAnalysisResults(unclosedResults, analyzers, report, cfg)
+		// This should now timeout with context cancellation instead of hanging indefinitely
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+		_, _, _ = processAnalysisResults(ctx, unclosedResults, analyzers, report, cfg)
 		done <- true
 	}()
 
@@ -113,7 +115,8 @@ func test() {
 
 	go func() {
 		var err error
-		result, _, err = processAnalysisResults(properResults, analyzers, report, cfg)
+		ctx := context.Background()
+		result, _, err = processAnalysisResults(ctx, properResults, analyzers, report, cfg)
 		if err != nil {
 			t.Errorf("processAnalysisResults failed: %v", err)
 		}
