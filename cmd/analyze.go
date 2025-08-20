@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -27,13 +28,16 @@ var (
 
 // analyzeCmd represents the analyze command
 var analyzeCmd = &cobra.Command{
-	Use:   "analyze [directory]",
-	Short: "Analyze Go source code in a directory",
-	Long: `Analyze Go source code in the specified directory and generate comprehensive
+	Use:   "analyze [directory|file]",
+	Short: "Analyze Go source code in a directory or single file",
+	Long: `Analyze Go source code in the specified directory or file and generate comprehensive
 statistics about code structure, complexity, and patterns.
 
-The analyze command recursively scans the directory for Go source files,
-processes them concurrently, and generates detailed metrics including:
+The analyze command can operate in two modes:
+  • Directory mode: recursively scans for Go source files and processes them concurrently
+  • File mode: analyzes a single Go source file
+
+Both modes generate detailed metrics including:
 
   • Function and method length analysis
   • Struct complexity and member categorization
@@ -49,6 +53,12 @@ Examples:
 
   # Analyze specific directory with JSON output
   go-stats-generator analyze ./src --format json --output report.json
+
+  # Analyze a single file
+  go-stats-generator analyze ./main.go
+
+  # Analyze a single file with detailed output
+  go-stats-generator analyze ./internal/analyzer/function.go --format json --verbose
 
   # Analyze with custom worker count and timeout
   go-stats-generator analyze . --workers 8 --timeout 5m
@@ -131,21 +141,22 @@ func init() {
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
-	// Determine target directory
-	targetDir := "."
+	// Determine target path
+	targetPath := "."
 	if len(args) > 0 {
-		targetDir = args[0]
+		targetPath = args[0]
 	}
 
 	// Convert to absolute path
-	absPath, err := filepath.Abs(targetDir)
+	absPath, err := filepath.Abs(targetPath)
 	if err != nil {
-		return fmt.Errorf("failed to resolve directory path: %w", err)
+		return fmt.Errorf("failed to resolve path: %w", err)
 	}
 
-	// Verify directory exists
-	if _, err := os.Stat(absPath); os.IsNotExist(err) {
-		return fmt.Errorf("directory does not exist: %s", absPath)
+	// Check if path exists
+	fileInfo, err := os.Stat(absPath)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("path does not exist: %s", absPath)
 	}
 
 	// Load configuration
@@ -155,8 +166,14 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Performance.Timeout)
 	defer cancel()
 
-	// Run analysis
-	report, err := runAnalysisWorkflow(ctx, absPath, cfg)
+	// Run analysis based on whether target is file or directory
+	var report *metrics.Report
+	if fileInfo.IsDir() {
+		report, err = runDirectoryAnalysis(ctx, absPath, cfg)
+	} else {
+		report, err = runFileAnalysis(ctx, absPath, cfg)
+	}
+
 	if err != nil {
 		return fmt.Errorf("analysis failed: %w", err)
 	}
@@ -247,6 +264,83 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	if viper.IsSet("analysis.min_documentation_coverage") {
 		cfg.Analysis.MinDocumentationCoverage = viper.GetFloat64("analysis.min_documentation_coverage")
 	}
+}
+
+func runDirectoryAnalysis(ctx context.Context, targetDir string, cfg *config.Config) (*metrics.Report, error) {
+	return runAnalysisWorkflow(ctx, targetDir, cfg)
+}
+
+func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (*metrics.Report, error) {
+	startTime := time.Now()
+
+	// Validate the file is a Go source file
+	if !isGoSourceFile(filePath) {
+		return nil, fmt.Errorf("file %s is not a Go source file", filePath)
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Analyzing file: %s\n", filePath)
+	}
+
+	// Create discoverer and parse the file
+	discoverer := scanner.NewDiscoverer(&cfg.Filters)
+
+	// Parse the single file
+	file, err := discoverer.ParseFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse file %s: %w", filePath, err)
+	}
+
+	// Get file info for the single file
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file info: %w", err)
+	}
+
+	// Create a FileInfo struct for the file
+	scannerFileInfo := scanner.FileInfo{
+		Path:        filePath,
+		RelPath:     filepath.Base(filePath),
+		Size:        fileInfo.Size(),
+		IsTestFile:  strings.HasSuffix(filePath, "_test.go"),
+		IsGenerated: false, // Will be determined during analysis
+	}
+
+	// Get package name from the parsed file
+	if file.Name != nil {
+		scannerFileInfo.Package = file.Name.Name
+	}
+
+	// Create result for worker-like processing
+	result := scanner.Result{
+		FileInfo: scannerFileInfo,
+		File:     file,
+		Error:    nil,
+	}
+
+	// Create analyzers
+	analyzers := createAnalyzers(discoverer.GetFileSet())
+	report := createInitialReport(filepath.Dir(filePath), startTime, 1)
+
+	// Process the single file
+	collectedMetrics := &CollectedMetrics{}
+	processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
+
+	// Finalize report
+	finalizeReport(report, collectedMetrics, analyzers.Package, cfg)
+	report.Metadata.AnalysisTime = time.Since(startTime)
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Analyzed 1 file, found %d functions, %d structs, %d interfaces\n",
+			len(collectedMetrics.Functions), len(collectedMetrics.Structs), len(collectedMetrics.Interfaces))
+	}
+
+	return report, nil
+}
+
+// isGoSourceFile checks if a file is a Go source file
+func isGoSourceFile(filePath string) bool {
+	return strings.HasSuffix(filePath, ".go")
 }
 
 func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Config) (*metrics.Report, error) {
