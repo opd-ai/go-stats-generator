@@ -264,16 +264,43 @@ func (fa *FunctionAnalyzer) classifyLine(line string, inBlockComment *bool) stri
 
 // classifyLineInBlockComment handles lines that are within an existing block comment
 func (fa *FunctionAnalyzer) classifyLineInBlockComment(line string, inBlockComment *bool) string {
-	if strings.Contains(line, "*/") {
+	// Handle nested comments when already in a block comment
+	endIdx, endsOnThisLine := fa.findBlockCommentEndFromWithin(line)
+
+	if endsOnThisLine {
 		*inBlockComment = false
-		return fa.checkCodeAfterBlockCommentEnd(line)
+		return fa.checkCodeAfterBlockCommentEnd(line, endIdx)
 	}
 	return "comment"
 }
 
+// findBlockCommentEndFromWithin finds the end of a block comment when already inside one
+// This handles nested comments properly by tracking depth starting from 1
+func (fa *FunctionAnalyzer) findBlockCommentEndFromWithin(line string) (int, bool) {
+	depth := 1 // We're already inside a comment
+	i := 0
+
+	for i < len(line)-1 {
+		if i < len(line)-1 && line[i] == '/' && line[i+1] == '*' {
+			depth++
+			i += 2
+		} else if i < len(line)-1 && line[i] == '*' && line[i+1] == '/' {
+			depth--
+			if depth == 0 {
+				return i + 2, true // Found the matching end
+			}
+			i += 2
+		} else {
+			i++
+		}
+	}
+
+	// No matching end found on this line
+	return len(line), false
+}
+
 // checkCodeAfterBlockCommentEnd checks if there's code after a block comment ends
-func (fa *FunctionAnalyzer) checkCodeAfterBlockCommentEnd(line string) string {
-	endIdx := strings.Index(line, "*/") + 2
+func (fa *FunctionAnalyzer) checkCodeAfterBlockCommentEnd(line string, endIdx int) string {
 	if endIdx < len(line) {
 		remaining := strings.TrimSpace(line[endIdx:])
 		if remaining != "" && !strings.HasPrefix(remaining, "//") {
@@ -285,18 +312,45 @@ func (fa *FunctionAnalyzer) checkCodeAfterBlockCommentEnd(line string) string {
 
 // classifyLineWithBlockComment handles lines that contain block comment starts
 func (fa *FunctionAnalyzer) classifyLineWithBlockComment(line string, blockStartIdx int, inBlockComment *bool) string {
-	// Check if block comment ends on same line
-	if blockEndIdx := strings.Index(line[blockStartIdx:], "*/"); blockEndIdx >= 0 {
-		return fa.classifyLineWithCompleteBlockComment(line, blockStartIdx, blockEndIdx)
+	// Use proper nested comment parsing to find the real end
+	endIdx, endsOnThisLine := fa.findBlockCommentEnd(line, blockStartIdx)
+
+	if endsOnThisLine {
+		return fa.classifyLineWithCompleteBlockComment(line, blockStartIdx, endIdx-blockStartIdx-2)
 	}
 
-	// Block comment starts but doesn't end
+	// Block comment starts but doesn't end on this line
 	*inBlockComment = true
 	beforeBlock := strings.TrimSpace(line[:blockStartIdx])
 	if beforeBlock != "" {
 		return "mixed"
 	}
 	return "comment"
+}
+
+// findBlockCommentEnd finds the correct end of a block comment, handling nested comments
+// Returns the absolute position of the end and whether it ends on this line
+func (fa *FunctionAnalyzer) findBlockCommentEnd(line string, startIdx int) (int, bool) {
+	depth := 1
+	i := startIdx + 2 // Skip the initial /*
+
+	for i < len(line)-1 {
+		if i < len(line)-1 && line[i] == '/' && line[i+1] == '*' {
+			depth++
+			i += 2
+		} else if i < len(line)-1 && line[i] == '*' && line[i+1] == '/' {
+			depth--
+			if depth == 0 {
+				return i + 2, true // Found the matching end
+			}
+			i += 2
+		} else {
+			i++
+		}
+	}
+
+	// No matching end found on this line
+	return len(line), false
 }
 
 // classifyLineWithCompleteBlockComment handles lines with complete block comments
