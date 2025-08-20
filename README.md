@@ -62,8 +62,17 @@ go-stats-generator version
 # Analyze current directory
 go-stats-generator analyze .
 
+# Analyze a single file
+go-stats-generator analyze ./main.go
+
+# Analyze specific file with verbose output
+go-stats-generator analyze ./internal/analyzer/function.go --verbose
+
 # Analyze with JSON output
 go-stats-generator analyze ./src --format json --output report.json
+
+# Analyze single file with JSON output
+go-stats-generator analyze ./pkg/analyzer.go --format json --output single-file-report.json
 
 # Analyze excluding test files
 go-stats-generator analyze . --skip-tests
@@ -91,8 +100,17 @@ go-stats-generator trend regressions --threshold 10.0
 
 ### Basic Analysis
 
+The analyze command can operate in two modes:
+
+- **Directory mode**: Recursively scans for Go source files and processes them concurrently
+- **File mode**: Analyzes a single Go source file
+
 ```bash
+# Directory analysis
 go-stats-generator analyze [directory] [flags]
+
+# Single file analysis  
+go-stats-generator analyze [file.go] [flags]
 ```
 
 ### Flags
