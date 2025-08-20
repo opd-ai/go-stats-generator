@@ -6,14 +6,14 @@
 ## AUDIT SUMMARY
 
 ~~~~
-**Total Issues Found:** 6 (2 resolved)
-- **CRITICAL BUG:** 0 (2 resolved)
+**Total Issues Found:** 5 (3 resolved)
+- **CRITICAL BUG:** 0 (3 resolved)
 - **FUNCTIONAL MISMATCH:** 4
 - **MISSING FEATURE:** 3
 - **EDGE CASE BUG:** 2
 - **PERFORMANCE ISSUE:** 0
 
-**Overall Assessment:** Two critical bugs have been resolved. The codebase still has significant gaps between documented functionality and actual implementation, particularly in output formats, pattern detection, and trend analysis features.
+**Overall Assessment:** All critical bugs have been resolved. The codebase still has significant gaps between documented functionality and actual implementation, particularly in output formats, pattern detection, and trend analysis features.
 ~~~~
 
 ## DETAILED FINDINGS
@@ -197,19 +197,20 @@ functions, err := functionAnalyzer.AnalyzeFunctions(result.File, result.FileInfo
 ~~~~
 
 ~~~~
-### CRITICAL BUG: File Discovery May Skip Valid Go Files
-**File:** cmd/analyze.go:154-160
-**Severity:** High
-**Description:** The analyze command checks file existence with os.Stat but doesn't verify if the target is a directory before passing to file discovery, potentially causing unexpected behavior.
-**Expected Behavior:** Should validate target is a directory and provide clear error for non-directories
-**Actual Behavior:** May pass files directly to directory discovery logic, causing unpredictable results
-**Impact:** Could skip analysis of valid Go files or provide confusing error messages
-**Reproduction:** Run analyze command on a single .go file instead of directory
+### ✅ RESOLVED: File Discovery Bug Fixed
+**File:** cmd/analyze.go:154-175
+**Severity:** High (RESOLVED)
+**Description:** ~~The analyze command checks file existence with os.Stat but doesn't verify if the target is a directory before passing to file discovery, potentially causing unexpected behavior.~~ **FIXED:** Now properly handles both files and directories.
+**Resolution:** Updated analyze command to check `fileInfo.IsDir()` and call appropriate analysis functions for files vs directories
+**Impact:** Analyze command now works correctly with both individual files and directories
+**Validation:** Added regression tests in `cmd/file_discovery_bug_test.go` that verify both file and directory analysis work correctly
 **Code Reference:**
 ```go
-if _, err := os.Stat(absPath); os.IsNotExist(err) {
-    return fmt.Errorf("directory does not exist: %s", absPath)
-    // Only checks existence, not if it's a directory
+// Fixed implementation with proper file/directory handling
+if fileInfo.IsDir() {
+    report, err = runDirectoryAnalysis(ctx, absPath, cfg)
+} else {
+    report, err = runFileAnalysis(ctx, absPath, cfg)
 }
 ```
 ~~~~
