@@ -14,6 +14,7 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/storage"
 	go_stats_generator "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -126,14 +127,65 @@ func extractTargetPath(args []string) string {
 
 // initializeStorageBackend creates and configures the storage backend
 func initializeStorageBackend() (storage.MetricsStorage, error) {
-	cfg := config.DefaultConfig()
-	sqliteConfig := storage.SQLiteConfig{
-		Path:              cfg.Storage.Path,
-		EnableWAL:         true,
-		MaxConnections:    10,
-		EnableCompression: cfg.Storage.Compression,
+	// Get storage configuration from viper (respects loaded config files)
+	storageType := viper.GetString("storage.type")
+	if storageType == "" {
+		storageType = "sqlite" // Default to SQLite if not specified
 	}
-	return storage.NewSQLiteStorage(sqliteConfig)
+
+	storagePath := viper.GetString("storage.path")
+	if storagePath == "" {
+		storagePath = ".go-stats-generator/metrics.db" // Default path
+	}
+
+	compression := viper.GetBool("storage.compression")
+
+	// Convert to storage.StorageConfig format
+	storageConfig := storage.StorageConfig{
+		Type: storageType,
+	}
+
+	// Configure SQLite settings based on configuration
+	storageConfig.SQLite = storage.SQLiteConfig{
+		Path:              storagePath,
+		EnableWAL:         true, // Sensible default for performance
+		MaxConnections:    10,   // Sensible default for CLI tool
+		EnableFK:          true, // Sensible default for data integrity
+		EnableCompression: compression,
+	}
+
+	// Configure JSON settings (for when JSON storage is implemented)
+	storageConfig.JSON = storage.JSONConfig{
+		Directory:   storagePath,
+		Compression: compression,
+		Pretty:      false, // Compact JSON for storage efficiency
+	}
+
+	// Use the proper storage factory function that respects configuration
+	return storage.NewStorage(storageConfig)
+} // convertToStorageConfig converts config.StorageConfig to storage.StorageConfig
+func convertToStorageConfig(cfg config.StorageConfig) storage.StorageConfig {
+	storageConfig := storage.StorageConfig{
+		Type: cfg.Type,
+	}
+
+	// Configure SQLite settings based on configuration
+	storageConfig.SQLite = storage.SQLiteConfig{
+		Path:              cfg.Path,
+		EnableWAL:         true, // Sensible default for performance
+		MaxConnections:    10,   // Sensible default for CLI tool
+		EnableFK:          true, // Sensible default for data integrity
+		EnableCompression: cfg.Compression,
+	}
+
+	// Configure JSON settings (for when JSON storage is implemented)
+	storageConfig.JSON = storage.JSONConfig{
+		Directory:   cfg.Path,
+		Compression: cfg.Compression,
+		Pretty:      false, // Compact JSON for storage efficiency
+	}
+
+	return storageConfig
 }
 
 // createMetricsSnapshot builds a snapshot with metadata from the analysis report
