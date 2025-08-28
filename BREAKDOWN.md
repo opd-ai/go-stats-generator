@@ -11,6 +11,9 @@ Install and configure `go-stats-generator` for comprehensive complexity analysis
 
 ### Installation:
 ```bash
+# First, check if go-stats-generator is already installed
+which go-stats-generator
+# If not, install it with `go install`
 go install github.com/opd-ai/go-stats-generator@latest
 ```
 
