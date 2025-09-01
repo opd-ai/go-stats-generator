@@ -11,6 +11,8 @@ Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement
 - Handle all errors explicitly - no ignored error returns
 - Write self-documenting code with descriptive names over abbreviations
 
+Network Interface Patterns: Always use interface types for network variables - net.Addr instead of concrete types like net.UDPAddr, net.PacketConn instead of net.UDPConn, and net.Conn instead of net.TCPConn. This enhances testability and flexibility with different network implementations or mocks.
+
 ### Execution Process:
 1. **Analysis**: Read PLAN.md or ROADMAP.md and identify the first incomplete item with clear acceptance criteria
 2. **Design**: Before coding, document your approach and library choices in comments
