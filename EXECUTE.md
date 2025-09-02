@@ -1,7 +1,7 @@
-# TASK: Execute Next Planned Item for Go Project
+# TASK: Execute Next Planned Item for Go Project #codebase
 
 ## OBJECTIVE:
-Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement it following Go best practices with comprehensive testing and documentation.
+Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement it following Go best practices with comprehensive testing and documentation. We are currently testing in CI, which is having errors. I have included the raw logs in the file logs.raw.
 
 ## IMPLEMENTATION REQUIREMENTS:
 
@@ -10,8 +10,6 @@ Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement
 - Keep functions under 30 lines with single responsibility
 - Handle all errors explicitly - no ignored error returns
 - Write self-documenting code with descriptive names over abbreviations
-
-Network Interface Patterns: Always use interface types for network variables - net.Addr instead of concrete types like net.UDPAddr, net.PacketConn instead of net.UDPConn, and net.Conn instead of net.TCPConn. This enhances testability and flexibility with different network implementations or mocks.
 
 ### Execution Process:
 1. **Analysis**: Read PLAN.md or ROADMAP.md and identify the first incomplete item with clear acceptance criteria
