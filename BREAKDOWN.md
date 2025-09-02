@@ -17,6 +17,16 @@ which go-stats-generator
 go install github.com/opd-ai/go-stats-generator@latest
 ```
 
+## Recommendations:
+```bash
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --output json | jq .example
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
+```
+
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets
