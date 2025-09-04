@@ -86,11 +86,12 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
     *Example:*  
     ```go
     // validateInput checks if the provided input meets all required criteria.
+    // etc...
     func validateInput(input string) error {
         // ...
     }
     ```
-  - Add GoDoc comments starting with function name
+  - Add GoDoc comments starting with function name and containing a description of the function's purpose and operation
 
 3. **Preserve Analysis-Verified Patterns:**
   - Maintain error propagation chains
