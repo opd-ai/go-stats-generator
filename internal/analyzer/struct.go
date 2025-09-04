@@ -28,6 +28,11 @@ func NewStructAnalyzer(fset *token.FileSet) *StructAnalyzer {
 
 // AnalyzeStructs analyzes all struct declarations in an AST file
 func (sa *StructAnalyzer) AnalyzeStructs(file *ast.File, pkgName string) ([]metrics.StructMetrics, error) {
+	return sa.AnalyzeStructsWithPath(file, pkgName, file.Name.Name)
+}
+
+// AnalyzeStructsWithPath analyzes all struct declarations in an AST file with explicit file path
+func (sa *StructAnalyzer) AnalyzeStructsWithPath(file *ast.File, pkgName, filePath string) ([]metrics.StructMetrics, error) {
 	var structs []metrics.StructMetrics
 
 	// Find all struct declarations (both standalone and in type specs)
@@ -36,7 +41,7 @@ func (sa *StructAnalyzer) AnalyzeStructs(file *ast.File, pkgName string) ([]metr
 			for _, spec := range genDecl.Specs {
 				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 					if structType, ok := typeSpec.Type.(*ast.StructType); ok {
-						structMetric, err := sa.analyzeStruct(file, typeSpec, structType, file.Name.Name, pkgName, genDecl.Doc)
+						structMetric, err := sa.analyzeStruct(file, typeSpec, structType, filePath, pkgName, genDecl.Doc)
 						if err != nil {
 							continue // Log warning and continue
 						}

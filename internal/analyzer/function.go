@@ -23,12 +23,17 @@ func NewFunctionAnalyzer(fset *token.FileSet) *FunctionAnalyzer {
 
 // AnalyzeFunctions analyzes all functions in an AST file
 func (fa *FunctionAnalyzer) AnalyzeFunctions(file *ast.File, pkgName string) ([]metrics.FunctionMetrics, error) {
+	return fa.AnalyzeFunctionsWithPath(file, pkgName, file.Name.Name)
+}
+
+// AnalyzeFunctionsWithPath analyzes all functions in an AST file with explicit file path
+func (fa *FunctionAnalyzer) AnalyzeFunctionsWithPath(file *ast.File, pkgName, filePath string) ([]metrics.FunctionMetrics, error) {
 	var functions []metrics.FunctionMetrics
 
 	// Analyze top-level functions
 	for _, decl := range file.Decls {
 		if funcDecl, ok := decl.(*ast.FuncDecl); ok {
-			function, err := fa.analyzeFunction(funcDecl, pkgName, file.Name.Name)
+			function, err := fa.analyzeFunction(funcDecl, filePath, pkgName)
 			if err != nil {
 				continue // Log warning and continue
 			}

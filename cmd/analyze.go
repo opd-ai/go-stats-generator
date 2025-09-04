@@ -282,6 +282,9 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 		fmt.Fprintf(os.Stderr, "Analyzing file: %s\n", filePath)
 	}
 
+	// Find project root for relative path calculation
+	projectRoot := findProjectRoot(filePath)
+
 	// Create discoverer and parse the file
 	discoverer := scanner.NewDiscoverer(&cfg.Filters)
 
@@ -297,10 +300,20 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 		return nil, fmt.Errorf("failed to get file info: %w", err)
 	}
 
+	// Calculate relative path from project root
+	relPath := filePath
+	if projectRoot != "" {
+		if rel, err := filepath.Rel(projectRoot, filePath); err == nil {
+			relPath = rel
+		}
+	} else {
+		relPath = filepath.Base(filePath)
+	}
+
 	// Create a FileInfo struct for the file
 	scannerFileInfo := scanner.FileInfo{
 		Path:        filePath,
-		RelPath:     filepath.Base(filePath),
+		RelPath:     relPath,
 		Size:        fileInfo.Size(),
 		IsTestFile:  strings.HasSuffix(filePath, "_test.go"),
 		IsGenerated: false, // Will be determined during analysis
@@ -341,6 +354,34 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 // isGoSourceFile checks if a file is a Go source file
 func isGoSourceFile(filePath string) bool {
 	return strings.HasSuffix(filePath, ".go")
+}
+
+// findProjectRoot attempts to find the project root by looking for go.mod, .git, or other indicators
+func findProjectRoot(filePath string) string {
+	dir := filepath.Dir(filePath)
+
+	for {
+		// Check for go.mod (Go module root)
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+
+		// Check for .git directory (Git repository root)
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			return dir
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached filesystem root
+			break
+		}
+		dir = parent
+	}
+
+	// If no project root found, return empty string
+	return ""
 }
 
 func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Config) (*metrics.Report, error) {
@@ -576,7 +617,7 @@ func logProcessingSummary(processedFiles int, collectedMetrics *CollectedMetrics
 
 // analyzeFunctionsInFile analyzes functions in a single file result
 func analyzeFunctionsInFile(functionAnalyzer *analyzer.FunctionAnalyzer, result scanner.Result, cfg *config.Config) ([]metrics.FunctionMetrics, error) {
-	functions, err := functionAnalyzer.AnalyzeFunctions(result.File, result.FileInfo.Package)
+	functions, err := functionAnalyzer.AnalyzeFunctionsWithPath(result.File, result.FileInfo.Package, result.FileInfo.RelPath)
 	if err != nil && cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze functions in %s: %v\n",
 			result.FileInfo.Path, err)
@@ -587,7 +628,7 @@ func analyzeFunctionsInFile(functionAnalyzer *analyzer.FunctionAnalyzer, result 
 
 // analyzeStructsInFile analyzes structs in a single file result
 func analyzeStructsInFile(structAnalyzer *analyzer.StructAnalyzer, result scanner.Result, cfg *config.Config) ([]metrics.StructMetrics, error) {
-	structs, err := structAnalyzer.AnalyzeStructs(result.File, result.FileInfo.Package)
+	structs, err := structAnalyzer.AnalyzeStructsWithPath(result.File, result.FileInfo.Package, result.FileInfo.RelPath)
 	if err != nil && cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze structs in %s: %v\n",
 			result.FileInfo.Path, err)
@@ -598,7 +639,7 @@ func analyzeStructsInFile(structAnalyzer *analyzer.StructAnalyzer, result scanne
 
 // analyzeInterfacesInFile analyzes interfaces in a single file result
 func analyzeInterfacesInFile(interfaceAnalyzer *analyzer.InterfaceAnalyzer, result scanner.Result, cfg *config.Config) ([]metrics.InterfaceMetrics, error) {
-	interfaces, err := interfaceAnalyzer.AnalyzeInterfaces(result.File, result.FileInfo.Package)
+	interfaces, err := interfaceAnalyzer.AnalyzeInterfacesWithPath(result.File, result.FileInfo.Package, result.FileInfo.RelPath)
 	if err != nil && cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze interfaces in %s: %v\n",
 			result.FileInfo.Path, err)

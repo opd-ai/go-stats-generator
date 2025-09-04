@@ -32,3 +32,4 @@ go.work.sum
 # .vscode/
 /go-stats-generator
 /go-stats-generator
+/test-binary

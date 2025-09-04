@@ -38,6 +38,11 @@ func NewInterfaceAnalyzer(fset *token.FileSet) *InterfaceAnalyzer {
 
 // AnalyzeInterfaces analyzes all interface declarations in an AST file with enhanced cross-file analysis
 func (ia *InterfaceAnalyzer) AnalyzeInterfaces(file *ast.File, pkgName string) ([]metrics.InterfaceMetrics, error) {
+	return ia.AnalyzeInterfacesWithPath(file, pkgName, file.Name.Name)
+}
+
+// AnalyzeInterfacesWithPath analyzes all interface declarations in an AST file with explicit file path
+func (ia *InterfaceAnalyzer) AnalyzeInterfacesWithPath(file *ast.File, pkgName, filePath string) ([]metrics.InterfaceMetrics, error) {
 	var interfaces []metrics.InterfaceMetrics
 
 	// First pass: collect all type definitions and method definitions for implementation analysis
@@ -50,7 +55,7 @@ func (ia *InterfaceAnalyzer) AnalyzeInterfaces(file *ast.File, pkgName string) (
 			for _, spec := range genDecl.Specs {
 				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 					if interfaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-						interfaceMetric, err := ia.analyzeInterface(typeSpec, interfaceType, file.Name.Name, pkgName, genDecl.Doc)
+						interfaceMetric, err := ia.analyzeInterface(typeSpec, interfaceType, filePath, pkgName, genDecl.Doc)
 						if err != nil {
 							continue // Log warning and continue
 						}

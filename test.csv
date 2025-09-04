@@ -1,0 +1,61 @@
+# METADATA
+Repository,/home/user/go/src/github.com/opd-ai/go-stats-generator/testdata/simple
+Generated At,2025-08-20 19:07:22
+Analysis Time,2.63803ms
+Files Processed,6
+Tool Version,1.0.0
+Go Version,
+
+# OVERVIEW
+Total Lines of Code,0
+Total Functions,14
+Total Methods,15
+Total Structs,4
+Total Interfaces,5
+Total Packages,3
+Total Files,6
+
+# FUNCTIONS
+Name,Package,File,Line,Is Exported,Is Method,Lines Total,Lines Code,Lines Comments,Lines Blank,Cyclomatic Complexity,Cognitive Complexity,Nesting Depth,Overall Complexity,Parameter Count,Return Count,Has Variadic,Returns Error,Has Documentation,Documentation Quality
+SimpleGoroutineTest,simple,simple,5,true,false,13,10,0,3,1,1,0,1.30,0,0,false,false,false,0.00
+ComplexLineCountingTest,test,test,6,true,false,17,6,7,4,2,2,1,3.10,0,1,false,true,true,0.28
+WorkerPoolExample,concurrency,concurrency,11,true,false,34,26,4,4,5,5,2,7.50,0,0,false,false,true,0.31
+PipelineExample,concurrency,concurrency,49,true,false,22,17,3,2,4,4,1,5.70,0,0,false,false,true,0.30
+FanOutExample,concurrency,concurrency,75,true,false,51,40,3,8,10,10,2,14.00,0,0,false,false,true,0.30
+FanInExample,concurrency,concurrency,130,true,false,62,49,4,9,8,8,1,10.90,0,0,false,false,true,0.29
+SemaphoreExample,concurrency,concurrency,196,true,false,18,12,2,4,2,2,1,3.10,0,0,false,false,true,0.16
+SyncPrimitivesExample,concurrency,concurrency,218,true,false,39,25,8,6,1,1,0,1.30,0,0,false,false,true,0.33
+PotentialLeakExample,concurrency,concurrency,261,true,false,19,14,3,2,5,5,2,7.50,0,0,false,false,true,0.33
+ContextCancellationExample,concurrency,concurrency,284,true,false,29,24,1,4,9,9,2,12.70,0,0,false,false,true,0.17
+NewUserService,simple,simple,23,true,false,3,3,0,0,1,1,0,1.30,0,1,false,false,true,0.17
+CreateUser,simple,simple,30,true,true,18,15,0,3,3,3,1,4.40,1,2,false,true,true,0.12
+GetUser,simple,simple,52,true,true,5,5,0,0,2,2,1,3.10,1,2,false,true,true,0.12
+GetAllUsers,simple,simple,61,true,true,5,5,0,0,2,2,1,3.10,0,1,false,false,true,0.22
+UpdateUser,simple,simple,70,true,true,14,11,0,3,4,4,1,5.70,2,1,false,true,true,0.14
+DeleteUser,simple,simple,88,true,true,7,6,0,1,2,2,1,3.10,1,1,false,true,true,0.13
+DeactivateUser,simple,simple,99,true,true,7,6,0,1,2,2,1,3.10,1,1,false,true,true,0.14
+GetActiveUsers,simple,simple,110,true,true,7,7,0,0,3,3,2,4.90,0,1,false,false,true,0.26
+ComplexFunction,simple,simple,121,true,true,43,36,0,7,15,15,4,21.50,1,2,false,true,true,0.25
+NewCalculator,simple,simple,22,true,false,3,3,0,0,1,1,0,1.30,0,1,false,false,true,0.16
+Add,simple,simple,29,true,true,3,3,0,0,1,1,0,1.30,1,1,false,false,true,0.08
+Subtract,simple,simple,36,true,true,3,3,0,0,1,1,0,1.30,1,1,false,false,true,0.12
+Multiply,simple,simple,43,true,true,3,3,0,0,1,1,0,1.30,1,1,false,false,true,0.13
+Divide,simple,simple,50,true,true,7,6,0,1,2,2,1,3.10,1,2,false,true,true,0.11
+recordOperation,simple,simple,61,false,true,6,6,0,0,1,1,0,1.30,3,0,false,false,true,0.19
+GetHistory,simple,simple,71,true,true,1,1,0,0,1,1,0,1.30,0,1,false,false,true,0.26
+ClearHistory,simple,simple,76,true,true,1,1,0,0,1,1,0,1.30,0,0,false,false,true,0.17
+Statistics,simple,simple,81,true,false,43,32,5,6,5,5,1,7.00,1,1,false,false,true,0.23
+VeryComplexFunction,simple,simple,128,true,false,84,75,2,7,24,24,7,34.70,2,2,false,true,true,0.28
+
+# STRUCTS
+Name,Package,File,Line,Is Exported,Total Fields,Methods Count,Cyclomatic Complexity,Overall Complexity,Has Documentation,Documentation Quality
+User,simple,simple,9,true,5,0,10,10.00,true,0.50
+UserService,simple,simple,18,true,1,8,3,3.00,true,0.50
+Calculator,simple,simple,10,true,1,7,2,2.00,true,0.50
+Operation,simple,simple,15,true,3,0,6,6.00,true,0.50
+
+# PACKAGES
+Name,Path,Files,Functions,Structs,Interfaces,Lines of Code,Dependencies,Dependents,Cohesion,Coupling,Has Documentation,Documentation Quality
+concurrency,concurrency,1,8,0,0,314,0,0,1.60,0.00,false,0.00
+simple,simple,4,20,9,0,443,0,0,1.45,0.00,false,0.00
+test,test,1,1,0,0,24,0,0,0.20,0.00,false,0.00

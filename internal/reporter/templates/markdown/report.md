@@ -25,9 +25,9 @@
 ## 🔧 Functions
 
 {{$functions := truncateList .Report.Functions .MaxItems}}
-| Function | Package | Lines | Complexity | Exported | Documentation |
-|----------|---------|-------|------------|----------|---------------|
-{{range $functions}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .Package}} | {{.Lines.Code}} | {{formatFloat .Complexity.Overall}} | {{if .IsExported}}✅{{else}}❌{{end}} | {{formatPercent .Documentation.QualityScore}} |
+| Function | File | Lines | Complexity | Exported | Documentation |
+|----------|------|-------|------------|----------|---------------|
+{{range $functions}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .File}} | {{.Lines.Code}} | {{formatFloat .Complexity.Overall}} | {{if .IsExported}}✅{{else}}❌{{end}} | {{formatPercent .Documentation.QualityScore}} |
 {{end}}{{if gt (len .Report.Functions) .MaxItems}}
 *Showing top {{.MaxItems}} functions out of {{len .Report.Functions}}*
 {{end}}
@@ -37,9 +37,9 @@
 ## 🏗️ Structs
 
 {{$structs := truncateList .Report.Structs .MaxItems}}
-| Struct | Package | Fields | Methods | Complexity | Exported |
-|--------|---------|--------|---------|------------|----------|
-{{range $structs}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .Package}} | {{.TotalFields}} | {{len .Methods}} | {{formatFloat .Complexity.Overall}} | {{if .IsExported}}✅{{else}}❌{{end}} |
+| Struct | File | Fields | Methods | Complexity | Exported |
+|--------|------|--------|---------|------------|----------|
+{{range $structs}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .File}} | {{.TotalFields}} | {{len .Methods}} | {{formatFloat .Complexity.Overall}} | {{if .IsExported}}✅{{else}}❌{{end}} |
 {{end}}{{if gt (len .Report.Structs) .MaxItems}}
 *Showing top {{.MaxItems}} structs out of {{len .Report.Structs}}*
 {{end}}

@@ -116,8 +116,8 @@
                             <th data-sort="name" role="columnheader">
                                 Function Name <span class="sort-icon">↕</span>
                             </th>
-                            <th data-sort="package" role="columnheader">
-                                Package <span class="sort-icon">↕</span>
+                            <th data-sort="file" role="columnheader">
+                                File <span class="sort-icon">↕</span>
                             </th>
                             <th data-sort="lines" role="columnheader">
                                 Lines <span class="sort-icon">↕</span>
@@ -141,7 +141,7 @@
                                     {{.Name}}
                                 </button>
                             </td>
-                            <td>{{.Package}}</td>
+                            <td>{{.File}}</td>
                             <td>{{.Lines.Total}}</td>
                             <td class="complexity-cell {{if gt .Complexity.Cyclomatic 10}}high{{else if gt .Complexity.Cyclomatic 5}}medium{{else}}low{{end}}">
                                 {{.Complexity.Cyclomatic}}
@@ -164,7 +164,7 @@
                     <thead>
                         <tr>
                             <th role="columnheader">Structure</th>
-                            <th role="columnheader">Package</th>
+                            <th role="columnheader">File</th>
                             <th role="columnheader">Fields</th>
                             <th role="columnheader">Methods</th>
                             <th role="columnheader">Complexity</th>
@@ -174,7 +174,7 @@
                         {{range .Report.Structs}}
                         <tr role="row">
                             <td>{{.Name}}</td>
-                            <td>{{.Package}}</td>
+                            <td>{{.File}}</td>
                             <td>{{.TotalFields}}</td>
                             <td>{{len .Methods}}</td>
                             <td class="complexity-cell {{if gt .Complexity.Overall 15.0}}high{{else if gt .Complexity.Overall 8.0}}medium{{else}}low{{end}}">
