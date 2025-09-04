@@ -1,5 +1,5 @@
 # TASK DESCRIPTION:
-Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis, targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality. When results are ambiguous, such as a tie between complexity scores or if one threshold is exceeded but not another, always choose the longest function first.
+Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis(with --skip-tests), targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality. When results are ambiguous, such as a tie between complexity scores or if one threshold is exceeded but not another, always choose the longest function first.
 
 ## CONSTRAINT:
 
