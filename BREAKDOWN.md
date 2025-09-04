@@ -1,5 +1,5 @@
 # TASK DESCRIPTION:
-Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis, targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality.
+Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis, targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality. When results are ambiguous, such as a tie between complexity scores or if one threshold is exceeded but not another, always choose the longest function first.
 
 ## CONSTRAINT:
 
@@ -11,7 +11,20 @@ Install and configure `go-stats-generator` for comprehensive complexity analysis
 
 ### Installation:
 ```bash
+# First, check if go-stats-generator is already installed
+which go-stats-generator
+# If not, install it with `go install`
 go install github.com/opd-ai/go-stats-generator@latest
+```
+
+## Recommendations:
+```bash
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --output json | jq .example
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
 
 ### Required Analysis Workflow:

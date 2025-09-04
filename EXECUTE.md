@@ -1,7 +1,7 @@
-# TASK: Execute Next Planned Item for Go Project
+# TASK: Execute Next Planned Item for Go Project #codebase
 
 ## OBJECTIVE:
-Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement it following Go best practices with comprehensive testing and documentation.
+Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement it following Go best practices with comprehensive testing and documentation. Execute exactly one task with no regressions.
 
 ## IMPLEMENTATION REQUIREMENTS:
 
