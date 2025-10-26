@@ -1,7 +1,7 @@
 # TASK: Execute Next Planned Item for Go Project #codebase
 
 ## OBJECTIVE:
-Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement it following Go best practices with comprehensive testing and documentation. PLAN.md is short-term, ROADMAP.md is long-term, always execute tasks from PLAN.md first. Execute exactly one task with no regressions.
+Review PLAN.md or ROADMAP.md to identify the first unfinished task and implement it following Go best practices with comprehensive testing and documentation. PLAN.md is short-term, ROADMAP.md is long-term, always execute tasks from PLAN.md first. If PLAN.md appears to be complete, make sure. If PLAN.md is actually complete, delete the file. Execute exactly one task with no regressions.
 
 ## IMPLEMENTATION REQUIREMENTS:
 
