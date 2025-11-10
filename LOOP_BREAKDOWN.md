@@ -4,7 +4,7 @@ CONTEXT: This is a meta-prompt that will control repeated execution of code comp
 
 CONTINUATION CRITERIA (must meet ALL to continue):
 - At least one function exceeds complexity thresholds (Overall Complexity > 10.0 OR Lines > 30 OR Cyclomatic > 10)
-- Maximum iterations not reached (5 iterations max)
+- Maximum iterations not reached (10 iterations max)
 - Previous iteration successfully reduced complexity
 - All existing tests still pass
 
@@ -17,7 +17,7 @@ EXECUTION PROCESS:
 6. If no: Output summary and terminate
 
 ITERATION LIMITS:
-- Maximum iterations: 5
+- Maximum iterations: 10
 - Minimum complexity reduction: Target function must show ≥50% complexity reduction
 - Halt immediately if no functions exceed thresholds or all tests fail
 
