@@ -154,7 +154,12 @@ func (cr *ConsoleReporter) writeComplexityAnalysis(output io.Writer, report *met
 	copy(sortedFunctions, report.Functions)
 
 	sort.Slice(sortedFunctions, func(i, j int) bool {
-		return sortedFunctions[i].Complexity.Overall > sortedFunctions[j].Complexity.Overall
+		// Primary sort: by complexity (descending)
+		if sortedFunctions[i].Complexity.Overall != sortedFunctions[j].Complexity.Overall {
+			return sortedFunctions[i].Complexity.Overall > sortedFunctions[j].Complexity.Overall
+		}
+		// Secondary sort: by function length (descending) when complexity is tied
+		return sortedFunctions[i].Lines.Total > sortedFunctions[j].Lines.Total
 	})
 
 	// Show top complex functions
@@ -186,7 +191,12 @@ func (cr *ConsoleReporter) writeTopComplexFunctions(output io.Writer, functions 
 	copy(sorted, functions)
 
 	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Complexity.Overall > sorted[j].Complexity.Overall
+		// Primary sort: by complexity (descending)
+		if sorted[i].Complexity.Overall != sorted[j].Complexity.Overall {
+			return sorted[i].Complexity.Overall > sorted[j].Complexity.Overall
+		}
+		// Secondary sort: by function length (descending) when complexity is tied
+		return sorted[i].Lines.Total > sorted[j].Lines.Total
 	})
 
 	limit := 10
