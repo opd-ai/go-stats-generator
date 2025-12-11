@@ -30,14 +30,14 @@ sudo apt-get install jq
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets
-go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json
-go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests
+go-stats-generator analyze . --max-complexity 9 --max-function-length 40 --skip-tests --format json --output baseline.json
+go-stats-generator analyze . --max-complexity 9 --max-function-length 40 --skip-tests
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
 
 # Phase 3: Post-refactoring validation
-go-stats-generator analyze . --format json --output refactored.json --max-complexity 10 --max-function-length 30 --skip-tests
+go-stats-generator analyze . --format json --output refactored.json --max-complexity 9 --max-function-length 40 --skip-tests
 
 # Phase 4: Measure and document improvements
 go-stats-generator diff baseline.json refactored.json
@@ -64,9 +64,9 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   ```
   - Use tool's suggestions for logical extraction points
   - Identify functions exceeding thresholds:
-    * Overall complexity > 10.0 (default threshold)
-    * Line count > 30 (code lines only)
-    * Cyclomatic complexity > 10
+    * Overall complexity > 9.0 (default threshold)
+    * Line count > 40 (code lines only)
+    * Cyclomatic complexity > 9
     * Nesting depth > 3
 
 ### Phase 2: Guided Refactoring Implementation
@@ -156,14 +156,14 @@ Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + (
 - variadic_penalty: An additional score (1.0) added for variadic parameters (...args) to reflect increased complexity.
 - generics: The actual multiplier is 1.5 per generic type parameter, not 1.0 as previously documented.
 
-Refactoring Threshold = Overall Complexity > 10.0 OR Lines > 30 OR Cyclomatic > 10
+Refactoring Threshold = Overall Complexity > 9.0 OR Lines > 40 OR Cyclomatic > 9
 - If no targets: "Refactor complete: go-stats-generator baseline analysis found no functions exceeding professional complexity thresholds."
 
 ## COMPLEXITY REFERENCE (go-stats-generator calculation):
 ```
 Overall Complexity = cyclomatic + (nesting_depth * 0.5) + (cognitive * 0.3)
 Signature Complexity = (params * 0.5) + (returns * 0.3) + (interfaces * 0.8) + (generics * 1.5) + variadic_penalty
-Refactoring Threshold = Overall Complexity > 10.0 OR Lines > 30 OR Cyclomatic > 10
+Refactoring Threshold = Overall Complexity > 9.0 OR Lines > 40 OR Cyclomatic > 9
 ```
 <!-- Last verified: 2025-07-25 against function.go:calculateComplexity and calculateSignatureComplexity -->
 
@@ -188,7 +188,7 @@ EXTRACTED FUNCTIONS:
   calculatePricing: 7.3 complexity ✓
   finalizeOrder: 6.8 complexity ✓
   
-QUALITY SCORE: 95/100 (+22 improvement)
+QUALITY SCORE: 95/90 (+22 improvement)
 REGRESSIONS: 0
 ```
 
