@@ -1,7 +1,25 @@
 # TASK: Execute Next Planned Item for Go Project #codebase
 
 ## OBJECTIVE:
-Review PLAN.md, ROADMAP.md, or AUDIT.md to identify the first unfinished task and implement it following Go best practices with comprehensive testing and documentation. PLAN.md is short-term, ROADMAP.md is long-term, and AUDIT.md is short-term. Always execute tasks from AUDIT.md first, then PLAN.md, and ROADMAP.md last. If PLAN.md or AUDIT.md appears to be complete, make sure. If PLAN.md or AUDIT.md is actually complete, delete the file. Execute exactly one task with no regressions.
+Review PLAN.md, ROADMAP.md, or AUDIT.md to identify unfinished task(s) and implement them following Go best practices with comprehensive testing and documentation. PLAN.md is short-term, ROADMAP.md is long-term, and AUDIT.md is short-term. Always execute tasks from AUDIT.md first, then PLAN.md, and ROADMAP.md last. If PLAN.md or AUDIT.md appears to be complete, make sure. If PLAN.md or AUDIT.md is actually complete, delete the file. Execute one task, or optionally 2-3 closely related tasks together, with no regressions.
+
+### Grouping Related Tasks:
+You may execute 1-3 tasks together if they meet ALL of these criteria:
+- **Same Component**: Tasks affect the same file, function, or module
+- **Shared Context**: Changes require understanding the same code area
+- **Dependent Changes**: Completing one task naturally leads to or enables the next
+- **Similar Scope**: Each task is small and together they stay under 100 lines of changes
+- **Common Testing**: The tasks can be validated with a shared test suite
+
+**Examples of Related Tasks:**
+- Adding 2-3 similar struct fields and their getter/setter methods
+- Implementing multiple related interface methods for the same type
+- Fixing multiple validation issues in the same function
+
+**Examples of Unrelated Tasks (execute separately):**
+- Changes to different packages or unrelated modules
+- Tasks requiring different testing strategies
+- Large refactoring combined with new feature development
 
 ## IMPLEMENTATION REQUIREMENTS:
 
@@ -12,12 +30,12 @@ Review PLAN.md, ROADMAP.md, or AUDIT.md to identify the first unfinished task an
 - Write self-documenting code with descriptive names over abbreviations
 
 ### Execution Process:
-1. **Analysis**: Read AUDIT.md, PLAN.md or ROADMAP.md and identify the first incomplete item with clear acceptance criteria
-2. **Design**: Before coding, document your approach and library choices in comments
-3. **Implementation**: Write the minimal viable solution using existing libraries where possible
-4. **Testing**: Create unit tests with >80% coverage for business logic, include error case testing
+1. **Analysis**: Read AUDIT.md, PLAN.md or ROADMAP.md and identify incomplete item(s) with clear acceptance criteria. If multiple tasks are closely related (see criteria above), you may group 2-3 together.
+2. **Design**: Before coding, document your approach and library choices in comments. For grouped tasks, ensure they share a coherent design.
+3. **Implementation**: Write the minimal viable solution using existing libraries where possible. For grouped tasks, implement them in logical order.
+4. **Testing**: Create unit tests with >80% coverage for business logic, include error case testing. For grouped tasks, ensure comprehensive test coverage across all changes.
 5. **Documentation**: Add GoDoc comments for exported functions and update README if needed
-6. **Reporting**: Update AUDIT.md, PLAN.md or ROADMAP.md to reflect the updates and changes.
+6. **Reporting**: Update AUDIT.md, PLAN.md or ROADMAP.md to reflect all completed tasks and changes.
 
 ### Validation Checklist:
 - [ ] Solution uses existing libraries instead of custom implementations
@@ -25,6 +43,8 @@ Review PLAN.md, ROADMAP.md, or AUDIT.md to identify the first unfinished task an
 - [ ] Code readable by junior developers without extensive context
 - [ ] Tests demonstrate both success and failure scenarios
 - [ ] Documentation explains WHY decisions were made, not just WHAT
-- [ ] AUDIT.md, PLAN.md or ROADMAP.md is up-to-date
+- [ ] AUDIT.md, PLAN.md or ROADMAP.md is up-to-date with all completed task(s)
+- [ ] If multiple tasks were grouped: they meet all the "closely related" criteria
+- [ ] If multiple tasks were grouped: total changes stay focused and under 100 lines
 
 **SIMPLICITY RULE**: If your solution requires more than 3 levels of abstraction or clever patterns, redesign it for clarity. Choose boring, maintainable solutions over elegant complexity.
