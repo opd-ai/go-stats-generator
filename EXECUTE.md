@@ -8,7 +8,7 @@ You may execute 1-3 tasks together if they meet ALL of these criteria:
 - **Same Component**: Tasks affect the same file, function, or module
 - **Shared Context**: Changes require understanding the same code area
 - **Dependent Changes**: Completing one task naturally leads to or enables the next
-- **Similar Scope**: Each task is small and together they stay under 100 lines of changes
+- **Similar Scope**: Each task is small and together they stay under 500lines of changes
 - **Common Testing**: The tasks can be validated with a shared test suite
 
 **Examples of Related Tasks:**
@@ -45,6 +45,6 @@ You may execute 1-3 tasks together if they meet ALL of these criteria:
 - [ ] Documentation explains WHY decisions were made, not just WHAT
 - [ ] AUDIT.md, PLAN.md or ROADMAP.md is up-to-date with all completed task(s)
 - [ ] If multiple tasks were grouped: they meet all the "closely related" criteria
-- [ ] If multiple tasks were grouped: total changes stay focused and under 100 lines
+- [ ] If multiple tasks were grouped: total changes stay focused and under 500lines
 
 **SIMPLICITY RULE**: If your solution requires more than 3 levels of abstraction or clever patterns, redesign it for clarity. Choose boring, maintainable solutions over elegant complexity.
