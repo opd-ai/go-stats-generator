@@ -135,20 +135,7 @@ Generated during reorganization on: [date]
 [Prioritized list of fixes for the identified gaps]
 ```
 
-4. **Track AUDIT.md creation** in reorganization output:
-```
-AUDIT: [package_name]
-GAPS_FOUND: [total_count]
-  - Missing Implementations: [count]
-  - Incomplete Features: [count]
-  - Interface Violations: [count]
-  - Untested Code: [count]
-  - Dead Code: [count]
-  - Error Handling Gaps: [count]
-  - Documentation Gaps: [count]
-  - Dependency Issues: [count]
-FILE: [package_path]/AUDIT.md
-```
+4. **Track AUDIT.md creation** using the standardized AUDIT entry format defined in the **OUTPUT FORMAT** section below.
 
 **Phase 6: Documentation Enhancement**
 For each file after reorganization:
