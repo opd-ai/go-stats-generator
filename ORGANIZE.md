@@ -76,7 +76,68 @@ Apply these patterns based on file content:
   4. External API clients → `[service]_client.go`
   5. Business logic → `[domain]_service.go`
 
-**Phase 5: Documentation Enhancement**
+**Phase 5: Implementation Gap Audit**
+During reorganization, inventory all implementation gaps and document them in a package-level AUDIT.md file:
+
+1. **Create AUDIT.md in each package** being reorganized
+2. **Identify and document the following implementation gaps:**
+   - **Missing Implementations**: Functions declared but not implemented (empty bodies, TODO stubs)
+   - **Incomplete Features**: Partial implementations with documented TODO/FIXME comments
+   - **Interface Violations**: Structs claiming to implement interfaces but missing methods
+   - **Untested Code**: Functions with no corresponding test coverage
+   - **Dead Code**: Unreachable or unused functions/types discovered during reorganization
+   - **Error Handling Gaps**: Functions that should return errors but don't, or that silently ignore errors
+   - **Documentation Gaps**: Exported symbols without documentation comments
+   - **Dependency Issues**: Circular dependencies, missing imports, or unused imports
+
+3. **AUDIT.md Format:**
+```
+# Package Audit: [package_name]
+Generated during reorganization on: [date]
+
+## Summary
+- Missing Implementations: [count]
+- Incomplete Features: [count]
+- Interface Violations: [count]
+- Untested Code: [count]
+- Dead Code: [count]
+- Error Handling Gaps: [count]
+- Documentation Gaps: [count]
+- Dependency Issues: [count]
+
+## Detailed Findings
+
+### Missing Implementations
+[List each missing implementation with file and line number]
+
+### Incomplete Features
+[List each incomplete feature with TODO/FIXME text and location]
+
+### Interface Violations
+[List each interface violation with struct, interface, and missing methods]
+
+### Untested Code
+[List functions without corresponding tests]
+
+### Dead Code
+[List unreachable or unused code discovered]
+
+### Error Handling Gaps
+[List error handling issues]
+
+### Documentation Gaps
+[List exported symbols missing documentation]
+
+### Dependency Issues
+[List dependency problems identified]
+
+## Recommendations
+[Prioritized list of fixes for the identified gaps]
+```
+
+4. **Track AUDIT.md creation** using the standardized AUDIT entry format defined in the **OUTPUT FORMAT** section below.
+
+**Phase 6: Documentation Enhancement**
 For each file after reorganization:
 1. Add file-level comment explaining the file's purpose
 2. Ensure every exported function has a comment starting with its name
@@ -93,12 +154,29 @@ TESTS: [PASS/FAIL] - [number] tests, [number] passed
 BUILD: [SUCCESS/FAIL]
 ```
 
+After completing implementation gap audit for each package:
+```
+AUDIT: [package_name]
+GAPS_FOUND: [total_count]
+  - Missing Implementations: [count]
+  - Incomplete Features: [count]
+  - Interface Violations: [count]
+  - Untested Code: [count]
+  - Dead Code: [count]
+  - Error Handling Gaps: [count]
+  - Documentation Gaps: [count]
+  - Dependency Issues: [count]
+FILE: [package_path]/AUDIT.md
+```
+
 Final summary:
 ```
 REORGANIZATION COMPLETE
 Files created: [number]
 Files modified: [number]
 Files deleted: [number]
+AUDIT.md files created: [number]
+Total implementation gaps found: [number]
 Test status: [PASS/FAIL]
 Build status: [SUCCESS/FAIL]
 ```
@@ -111,6 +189,8 @@ QUALITY CRITERIA:
 - Related code is co-located
 - No code logic modifications
 - All moves are traced with comments
+- AUDIT.md created for each reorganized package
+- All implementation gaps documented with specific file and line references
 
 EXAMPLE:
 Input: Codebase with user.go containing User struct, UserRole interface, user constants, and database functions
@@ -140,4 +220,16 @@ FROM: user.go
 TO: user_db.go
 TESTS: PASS - 47 tests, 47 passed
 BUILD: SUCCESS
+
+AUDIT: user
+GAPS_FOUND: 5
+  - Missing Implementations: 1
+  - Incomplete Features: 2
+  - Interface Violations: 0
+  - Untested Code: 1
+  - Dead Code: 0
+  - Error Handling Gaps: 1
+  - Documentation Gaps: 0
+  - Dependency Issues: 0
+FILE: user/AUDIT.md
 ```
