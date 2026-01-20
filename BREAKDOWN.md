@@ -1,5 +1,7 @@
 # TASK DESCRIPTION:
-Perform a data-driven functional breakdown analysis on a single Go file using `go-stats-generator` metrics to identify and refactor functions exceeding professional complexity thresholds. Use the tool's baseline analysis(with --skip-tests), targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality. When results are ambiguous, such as a tie between complexity scores or if one threshold is exceeded but not another, always choose the longest function first.
+Perform a data-driven functional breakdown analysis to identify and refactor the **top 5-10 longest, most complex functions** in the codebase to below professional complexity thresholds. Use `go-stats-generator` baseline analysis (with --skip-tests), targeted refactoring guidance, and differential validation to ensure measurable complexity improvements while preserving functionality.
+
+When results are ambiguous, such as a tie between complexity scores or if one threshold is exceeded but not another, always choose the longest function first.
 
 ## CONSTRAINT:
 
@@ -54,11 +56,22 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   ```bash
   go-stats-generator analyze .
   ```
-  - Record the highest complexity function and its metrics
-  - Note specific complexity contributors (cyclomatic, nesting, signature)
-  - Identify the file containing the most complex function
+  - Record the **top 5-10 highest complexity functions** and their metrics
+  - Note specific complexity contributors (cyclomatic, nesting, signature) for each
+  - Identify the files containing these complex functions
 
-2. **Generate Refactoring Plan:**
+2. **Prioritize Refactoring Targets:**
+  From the baseline analysis, select functions for refactoring in priority order based on overall complexity scores (as defined in COMPLEXITY REFERENCE below):
+  - **Critical (Complexity > 20.0):** Refactor immediately - these are the highest priority
+  - **High (Complexity 15.0-20.0):** Refactor in second pass
+  - **Medium (Complexity 9.0-15.0):** Refactor if time permits
+  
+  When prioritizing between functions:
+  - If complexity scores are tied, choose the **longest function first**
+  - If one threshold is exceeded but not another, choose the function that exceeds more thresholds
+  - Target at least 5 functions; extend to 10 if more than 5 functions exceed Critical or High priority thresholds
+
+3. **Generate Refactoring Plan:**
   ```bash
   go-stats-generator analyze [target-file] --format json
   ```
@@ -130,11 +143,20 @@ Structure your response as:
 
 ### 1. Baseline Analysis Summary
 ```
-go-stats-generator identified target function:
-- Function: [name] in [file]
-- Current complexity: [score]
-- Key issues: [cyclomatic/nesting/lines breakdown]
-- Recommended extractions: [n] functions
+go-stats-generator identified top refactoring targets:
+1. Function: [name] in [file]
+   - Current complexity: [score]
+   - Key issues: [cyclomatic/nesting/lines breakdown]
+   - Priority: [Critical/High/Medium]
+   - Recommended extractions: [n] functions
+
+2. Function: [name] in [file]
+   - Current complexity: [score]
+   - Key issues: [cyclomatic/nesting/lines breakdown]
+   - Priority: [Critical/High/Medium]
+   - Recommended extractions: [n] functions
+
+... (continue for top 5-10 functions)
 ```
 
 ### 2. Complete Refactored File
@@ -171,25 +193,60 @@ Refactoring Threshold = Overall Complexity > 9.0 OR Lines > 40 OR Cyclomatic > 9
 ```bash
 $ go-stats-generator analyze .
 === TOP COMPLEX FUNCTIONS ===
-1. processComplexOrder (order.go): 25.4 complexity
+1. processComplexOrder (order.go): 25.4 complexity [Critical]
   - Lines: 45 code lines 
   - Cyclomatic: 18
   - Nesting: 4
   - Recommendations: Extract 4 logical blocks
 
+2. handleDataTransform (transform.go): 18.7 complexity [High]
+  - Lines: 52 code lines
+  - Cyclomatic: 14
+  - Nesting: 3
+  - Recommendations: Extract 3 logical blocks
+
+3. validateComplexInput (validator.go): 15.2 complexity [High]
+  - Lines: 38 code lines
+  - Cyclomatic: 11
+  - Nesting: 3
+  - Recommendations: Extract 2 logical blocks
+
+4. generateReport (reporter.go): 12.8 complexity [Medium]
+  - Lines: 41 code lines
+  - Cyclomatic: 9
+  - Nesting: 2
+  - Recommendations: Extract 2 logical blocks
+
+5. parseConfiguration (config.go): 11.3 complexity [Medium]
+  - Lines: 35 code lines
+  - Cyclomatic: 8
+  - Nesting: 2
+  - Recommendations: Extract 2 logical blocks
+
+$ # Refactor each function in priority order...
+
 $ go-stats-generator diff baseline.json refactored.json 
 === IMPROVEMENT SUMMARY ===
+FUNCTIONS REFACTORED: 5
+
 MAJOR IMPROVEMENTS:
-EXTRACTED FUNCTIONS:
-(All steps validated by automated differential analysis to ensure measurable, data-driven improvements.)
-  
+- processComplexOrder: 25.4 → 7.2 (72% reduction) ✓
+- handleDataTransform: 18.7 → 6.8 (64% reduction) ✓
+- validateComplexInput: 15.2 → 5.9 (61% reduction) ✓
+- generateReport: 12.8 → 5.4 (58% reduction) ✓
+- parseConfiguration: 11.3 → 4.8 (58% reduction) ✓
+
 EXTRACTED FUNCTIONS:
   validateOrderData: 5.1 complexity ✓
   calculatePricing: 7.3 complexity ✓
   finalizeOrder: 6.8 complexity ✓
+  transformInput: 4.2 complexity ✓
+  mapOutputFields: 5.5 complexity ✓
+  ... (additional extracted functions)
   
-QUALITY SCORE: 95/90 (+22 improvement)
+QUALITY SCORE: 95/67 (+28 improvement)
 REGRESSIONS: 0
+ALL FUNCTIONS NOW BELOW THRESHOLDS: ✓
 ```
 
-This data-driven approach ensures refactoring decisions are based on quantitative analysis rather than subjective assessment, with measurable validation of improvements.
+This data-driven approach ensures refactoring decisions are based on quantitative analysis rather than subjective assessment, with measurable validation of improvements across the top 5-10 most complex functions.
