@@ -1,7 +1,7 @@
 # TASK: Execute Next Planned Item for Go Project #codebase
 
 ## OBJECTIVE:
-Review PLAN.md, ROADMAP.md, or AUDIT.md to identify unfinished task(s) and implement them following Go best practices with comprehensive testing and documentation. PLAN.md is short-term, ROADMAP.md is long-term, and AUDIT.md is short-term. Always execute tasks from AUDIT.md first, then PLAN.md, and ROADMAP.md last. If PLAN.md or AUDIT.md appears to be complete, make sure. If PLAN.md or AUDIT.md is actually complete, delete the file. Execute one task, or optionally 2-3 closely related tasks together, with no regressions. Work by completing incomplete implementations. Prioritize important tasks before resorting to trivial tasks. We should always be working toward a finished product.
+Review PLAN.md, ROADMAP.md, or AUDIT.md to identify unfinished task(s) and implement them following Go best practices with comprehensive testing and documentation. PLAN.md is short-term, ROADMAP.md is long-term, and AUDIT.md is short-term. Always execute tasks from AUDIT.md first, then PLAN.md, and ROADMAP.md last. If PLAN.md or AUDIT.md appears to be complete, make sure. If PLAN.md or AUDIT.md is actually complete, delete the file. Execute one task, or optionally 2-3 closely related tasks together, with no regressions. Work by completing incomplete implementations. Prioritize important tasks before resorting to trivial tasks. Major tasks are in-scope. We should always be working toward a finished product.
 
 ### Grouping Related Tasks:
 You may execute 1-3 tasks together if they meet ALL of these criteria:
