@@ -3,6 +3,8 @@
 ## OBJECTIVE:
 Review PLAN.md, ROADMAP.md, or AUDIT.md to identify unfinished task(s) and implement them following Go best practices with comprehensive testing and documentation. AUDIT.md is for immediate action. if AUDIT.md exists, ignore PLAN.md and ROADMAP.md entirely. PLAN.md is medium-term, ROADMAP.md is long-term, and AUDIT.md is short-term. Always execute tasks from AUDIT.md first, then PLAN.md, and ROADMAP.md last. If PLAN.md or AUDIT.md appears to be complete, make sure. If PLAN.md or AUDIT.md is actually complete, delete the file. Execute one task, or optionally 2-3 closely related tasks together, with no regressions. Work by completing incomplete implementations. Prioritize important tasks before resorting to trivial tasks. Major tasks are in-scope. We should always be working toward a finished product. ALWAYS proceed in order, first AUDIT.md, second PLAN.md, third ROADMAP.md, never skip. Never proceed out of order. Never execute a PLAN.md task before an AUDIT.md task. Tasks completed out-of-order will be summarily rejected without consideration. ALWAYS choose items from AUDIT.md, if it exists, no matter what.
 
+Do not second guess the order of the files. The humans put them in that order deliberately. If you think these files are misplaced, you're wrong. Go fuck yourself, then do the thing in the order the humans told you to.
+
 ### Grouping Related Tasks:
 You may execute 1-3 tasks together if they meet ALL of these criteria:
 - **Same Component**: Tasks affect the same file, function, or module
