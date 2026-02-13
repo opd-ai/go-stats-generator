@@ -110,6 +110,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   - Maintain error propagation chains
   - Keep defer statements in correct scope
   - Preserve variable access patterns
+  - **Carefully consider mutexes, locks, and thread safety:** When extracting functions that operate within a critical section (e.g., code protected by `sync.Mutex`, `sync.RWMutex`, or other synchronization primitives), ensure that lock boundaries are preserved correctly. Do not split a lock/unlock pair across the original and extracted functions in a way that could introduce race conditions or deadlocks. If the extracted function requires access to shared state, verify that the caller still holds the appropriate lock or that the extracted function acquires it safely. Always run `go test -race` after refactoring concurrency-sensitive code to detect data races.
 
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
