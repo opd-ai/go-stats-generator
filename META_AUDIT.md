@@ -32,8 +32,8 @@ WORKFLOW:
    - Context cancellation properly handled
 
    **Determinism & Reproducibility**
-   - No direct use of `time.Now()` in business logic
-   - Random number generation uses explicit seeds when determinism required
+   - No direct use of `time.Now()` in build logic
+   - Random number generation uses explicit seeds when determinism required for reproducible builds
    - No reliance on OS-specific or environment-dependent behavior
 
    **Error Handling**
