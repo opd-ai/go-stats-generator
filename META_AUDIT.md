@@ -43,11 +43,6 @@ WORKFLOW:
    - No race conditions (verify with `go test -race`)
    - Context cancellation properly handled
 
-   **Determinism & Reproducibility**
-   - No direct use of `time.Now()` in build logic
-   - Random number generation uses explicit seeds when determinism required for reproducible builds
-   - No reliance on OS-specific or environment-dependent behavior
-
    **Error Handling**
    - All returned errors checked
    - No swallowed errors (`_ = err`)
