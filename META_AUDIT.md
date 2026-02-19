@@ -16,7 +16,7 @@ WORKFLOW:
 
       # Quick count of audited vs unaudited sub-packages
       echo "Unaudited:"; find ./cmd ./internal ./pkg -type f -name '*.go' -exec dirname {} \; | sort -u | while read dir; do [ ! -f "$dir/AUDIT.md" ] && echo "  $dir"; done
-      echo "Audited:"; find ./cmd ./internal ./pkg -type f -name 'AUDIT.md' -exec dirname {} \; | sort -u | while read dir; do echo "  $dir"; done
+      echo "Audited:"; find ./cmd ./internal ./pkg -type f -name 'AUDIT.md' -exec dirname {} \; | sort -u | sed 's/^/  /'
       ```
    c) If all packages audited, report completion and exit
    d) Select ONE unaudited sub-package from `pkg/`, `internal/`, or `cmd/` prioritizing:
