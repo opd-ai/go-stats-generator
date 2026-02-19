@@ -6,12 +6,24 @@ WORKFLOW:
 
 1. PACKAGE SELECTION
    a) Read root `AUDIT.md` to identify audited packages
-   b) If all packages audited, report completion and exit
-   c) Select ONE unaudited sub-package from `pkg/`, `internal/`, or `cmd/` prioritizing:
+   b) Use the following `find` commands to discover sub-packages that do not have an `AUDIT.md` yet:
+      ```bash
+      # List all Go sub-packages (directories containing .go files) that lack an AUDIT.md
+      find ./cmd ./internal ./pkg -type f -name '*.go' -exec dirname {} \; | sort -u | while read dir; do [ ! -f "$dir/AUDIT.md" ] && echo "$dir"; done
+
+      # List all sub-packages that already have an AUDIT.md (for reference)
+      find ./cmd ./internal ./pkg -type f -name 'AUDIT.md' -exec dirname {} \;
+
+      # Quick count of audited vs unaudited sub-packages
+      echo "Unaudited:"; find ./cmd ./internal ./pkg -type f -name '*.go' -exec dirname {} \; | sort -u | while read dir; do [ ! -f "$dir/AUDIT.md" ] && echo "  $dir"; done
+      echo "Audited:"; find ./cmd ./internal ./pkg -type f -name 'AUDIT.md' -exec dirname {} \; | sort -u | while read dir; do echo "  $dir"; done
+      ```
+   c) If all packages audited, report completion and exit
+   d) Select ONE unaudited sub-package from `pkg/`, `internal/`, or `cmd/` prioritizing:
       - Packages listed in root `AUDIT.md` but unchecked
       - High integration surface (many imports/importers)
       - Core business logic packages
-   d) State chosen package path and 1-sentence rationale
+   e) State chosen package path and 1-sentence rationale
 
 2. CODE AUDIT
    Run checks on selected package, citing `file.go:LINE` for every finding:
