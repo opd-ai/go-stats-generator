@@ -14,7 +14,7 @@ WORKFLOW:
       # List all sub-packages that already have an AUDIT.md (for reference)
       find ./cmd ./internal ./pkg -type f -name 'AUDIT.md' -exec dirname {} \;
 
-      # Quick count of audited vs unaudited sub-packages
+      # Quick list of audited vs unaudited sub-packages
       echo "Unaudited:"; find ./cmd ./internal ./pkg -type f -name '*.go' -exec dirname {} \; | sort -u | while read dir; do [ ! -f "$dir/AUDIT.md" ] && echo "  $dir"; done
       echo "Audited:"; find ./cmd ./internal ./pkg -type f -name 'AUDIT.md' -exec dirname {} \; | sort -u | sed 's/^/  /'
       ```
