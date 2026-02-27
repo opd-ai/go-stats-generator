@@ -6,6 +6,16 @@ Discover all `*AUDIT*.md` files across the codebase, extract every **unfinished*
 ## Execution Mode
 **Report generation only** — do NOT modify source code or existing audit files.
 
+## Exclusions
+The following categories of findings MUST be excluded from the collated remediation plan:
+
+- **Test coverage percentage findings** — any finding reporting that test coverage is below a target threshold (e.g., "coverage below 65%")
+- **Missing test findings** — findings that flag missing unit tests, table-driven tests, benchmarks, or test files
+- **Test infrastructure findings** — findings about missing test helpers, test fixtures, or test utilities
+- **Coverage tooling findings** — findings related to `go test -cover`, coverage reports, or coverage configuration
+
+Exclusion applies at all stages: extraction, deduplication, and remediation generation. Any `- [ ]` item whose category is `testing` or `test-coverage`, or whose description relates to test coverage, missing tests, or coverage percentages MUST be silently omitted and not assigned a `REM-###` tracking ID.
+
 ## Workflow
 
 ### Step 1: Discovery
@@ -24,6 +34,11 @@ Collect each finding with:
 - **Severity** (critical / high / med / low)
 - **Category** (error-handling, testing, documentation, security, api-design, etc.)
 - **Description and code location** (e.g., `main.go:71`)
+
+**Filtering**: After extraction, discard any finding that matches the test-coverage exclusions defined in the Exclusions section above. Specifically, drop findings where:
+- The category is `testing` or `test-coverage`
+- The description mentions test coverage percentages, missing tests, missing benchmarks, or coverage targets
+- The finding originates from a `## Test Coverage` section of a sub-package audit
 
 ### Step 3: Collate and Deduplicate
 - Group findings by severity (CRITICAL → HIGH → MEDIUM → LOW)
@@ -93,7 +108,8 @@ The final `AUDIT.md` must use this structure:
 ```
 
 ## Success Criteria
-- Every `- [ ]` finding from every `*AUDIT*.md` file has a corresponding `REM-###` entry
-- Zero findings omitted, skipped, or deferred
+- Every `- [ ]` finding from every `*AUDIT*.md` file — **except** test-coverage related findings (see Exclusions) — has a corresponding `REM-###` entry
+- Test-coverage findings are explicitly excluded and do not appear in the output
+- Zero non-excluded findings omitted, skipped, or deferred
 - Each remediation is actionable without additional research
 - The output is a single valid Markdown file at `./AUDIT.md`
