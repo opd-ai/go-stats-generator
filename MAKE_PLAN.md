@@ -1,7 +1,7 @@
 # Generate Implementation Plan from Repository Documentation
 
 ## Execution Mode
-**Report generation** — Analyze repository documentation and produce structured markdown output. Do not commit files or open PRs.
+**Report generation** — Analyze repository documentation and produce structured markdown output. **IMPORTANT**: Create the `PLAN.md` file on disk in the repository root directory. Do not commit files or open PRs.
 
 ## Objective
 Identify the next incomplete development phase from project documentation and generate an actionable implementation plan as `PLAN.md`, with an optional `GAPS.md` for unresolved blockers.
@@ -20,7 +20,9 @@ Identify the next incomplete development phase from project documentation and ge
 - If no roadmap or planning document exists: state this clearly and derive a phase from open issues, audit findings, or `README` feature gaps
 
 ## Output Format
-Produce **three separate markdown code blocks**, each labeled with its filename:
+**Create the `PLAN.md` file on disk in the repository root directory.** The file should contain the structured plan described below.
+
+Additionally, produce **three separate markdown code blocks** for reference, each labeled with its filename:
 
 ### 1. `PLAN.md`
 
