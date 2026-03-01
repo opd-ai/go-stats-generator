@@ -1,37 +1,47 @@
 ## Objective
-Perform a repository cleanup by removing binary files, redundant/duplicate reports, and consolidating test files.
+Autonomously clean up the repository by removing binary files, redundant reports, and consolidating tests. Update `.gitignore` to prevent reintroduction of removed file types.
 
 ## Execution Mode
-**Report/Plan Generation** *(assumed — original prompt did not specify an execution mode)*
+**Autonomous Action** — Execute all steps directly. No user approval required between steps.
 
-## Task Breakdown
+## Task Steps (execute in order)
 
-1. **Identify binary files**: Scan the repository for committed binary files (e.g., compiled executables, `.o`, `.so`, `.dll`, `.exe`, `.bin`, `.pyc`, `.class`, and similar artifacts) that should not be tracked in version control. List each file with its path and size.
+### 1. Remove Binary Files
+- Scan the repository for committed binary artifacts (e.g., `.o`, `.so`, `.dll`, `.exe`, `.bin`, `.pyc`, `.class`, `.wasm`, compiled executables, and similar non-source files).
+- Delete all identified binary files from the repository.
+- **Do not remove** binaries that serve as intentional test fixtures or are documented as required assets.
 
-2. **Identify redundant reports**: Find duplicate or outdated report files (e.g., repeated coverage reports, stale build logs, duplicate analysis outputs). Flag files that are duplicates or superseded by newer versions.
+### 2. Remove Redundant Reports
+- Identify duplicate, outdated, or auto-generated report files (e.g., repeated coverage reports, stale build logs, duplicate analysis outputs).
+- Delete files that are exact duplicates or superseded by newer versions.
+- **Do not remove** the most recent version of any report that has no replacement.
 
-3. **Identify consolidation opportunities in tests**: Detect test files that contain overlapping or duplicate test cases, tests split unnecessarily across multiple files, or test utilities that could be merged. Group related findings by module or directory.
+### 3. Consolidate Tests
+- Merge test files that contain overlapping or duplicate test cases into single cohesive test files, grouped by module or feature.
+- Remove duplicate test cases while preserving full test coverage (no test logic lost).
+- Ensure all consolidated test files pass after merging.
 
-## Expected Output Format
-
-Produce a structured report with three sections:
-
-```
-### 1. Binary Files to Remove
-| File Path | File Type | Size |
-|-----------|-----------|------|
-
-### 2. Redundant Reports to Remove
-| File Path | Reason (duplicate/outdated/superseded by) |
-|-----------|-------------------------------------------|
-
-### 3. Test Consolidation Recommendations
-| Current Files | Proposed Action | Rationale |
-|---------------|-----------------|-----------|
-```
+### 4. Update `.gitignore`
+- Append entries to `.gitignore` (or create it if absent) to prevent future commits of:
+  - Binary artifact types removed in Step 1 (e.g., `*.o`, `*.so`, `*.dll`, `*.exe`, `*.bin`, `*.pyc`, `*.class`, `*.wasm`)
+  - Auto-generated report directories/patterns removed in Step 2
+- Do not duplicate entries already present in `.gitignore`.
+- Group new entries under a `# Repository cleanup` comment header.
 
 ## Success Criteria
-- All committed binary artifacts are identified
-- No actively used or necessary files are flagged for removal
-- Test consolidation suggestions preserve full test coverage (no test cases lost)
-- Each recommendation includes a clear rationale
+- All committed binary artifacts are removed (except intentional fixtures)
+- No actively used or necessary files are deleted
+- Full test coverage is preserved — no test cases lost
+- `.gitignore` prevents reintroduction of all removed file types
+- Repository builds and tests pass after all changes
+
+## Output Format
+After execution, provide a summary:
+```
+### Cleanup Summary
+- **Binaries removed**: <count> files (<total size>)
+- **Reports removed**: <count> files
+- **Tests consolidated**: <count> files merged into <count> files
+- **`.gitignore` entries added**: <count> new patterns
+- **Tests passing**: Yes/No
+```
