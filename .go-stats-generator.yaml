@@ -13,6 +13,10 @@ analysis:
   max_cyclomatic_complexity: 10
   max_struct_fields: 20
   min_documentation_coverage: 0.8
+  duplication:
+    min_block_lines: 6  # Minimum block size to consider for duplication detection
+    similarity_threshold: 0.80  # Threshold for near-duplicate detection (0.0-1.0)
+    ignore_test_files: false  # Exclude *_test.go files from duplication analysis
 
 output:
   format: console  # console, json, html

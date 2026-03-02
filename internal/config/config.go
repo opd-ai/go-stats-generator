@@ -29,6 +29,16 @@ type AnalysisConfig struct {
 	MaxCyclomaticComplexity  int     `mapstructure:"max_cyclomatic_complexity" json:"max_cyclomatic_complexity"`
 	MaxStructFields          int     `mapstructure:"max_struct_fields" json:"max_struct_fields"`
 	MinDocumentationCoverage float64 `mapstructure:"min_documentation_coverage" json:"min_documentation_coverage"`
+
+	// Duplication detection settings
+	Duplication DuplicationConfig `mapstructure:"duplication" json:"duplication"`
+}
+
+// DuplicationConfig controls code duplication detection
+type DuplicationConfig struct {
+	MinBlockLines        int     `mapstructure:"min_block_lines" json:"min_block_lines"`
+	SimilarityThreshold  float64 `mapstructure:"similarity_threshold" json:"similarity_threshold"`
+	IgnoreTestFiles      bool    `mapstructure:"ignore_test_files" json:"ignore_test_files"`
 }
 
 // OutputConfig controls output formatting
@@ -112,6 +122,11 @@ func DefaultConfig() *Config {
 			MaxCyclomaticComplexity:  10,
 			MaxStructFields:          20,
 			MinDocumentationCoverage: 0.7,
+			Duplication: DuplicationConfig{
+				MinBlockLines:       6,
+				SimilarityThreshold: 0.80,
+				IgnoreTestFiles:     false,
+			},
 		},
 		Output: OutputConfig{
 			Format:          FormatConsole,

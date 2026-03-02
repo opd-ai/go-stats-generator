@@ -121,6 +121,14 @@ func init() {
 	analyzeCmd.Flags().Float64("min-doc-coverage", 0.7,
 		"minimum documentation coverage warning threshold")
 
+	// Duplication detection flags
+	analyzeCmd.Flags().Int("min-block-lines", 6,
+		"minimum block size to consider for duplication detection")
+	analyzeCmd.Flags().Float64("similarity-threshold", 0.80,
+		"similarity threshold for near-duplicate detection (0.0-1.0)")
+	analyzeCmd.Flags().Bool("ignore-test-duplication", false,
+		"exclude test files from duplication analysis")
+
 	// Bind flags to viper
 	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
 	viper.BindPFlag("output.destination", analyzeCmd.Flags().Lookup("output"))
@@ -139,6 +147,9 @@ func init() {
 	viper.BindPFlag("analysis.max_function_length", analyzeCmd.Flags().Lookup("max-function-length"))
 	viper.BindPFlag("analysis.max_cyclomatic_complexity", analyzeCmd.Flags().Lookup("max-complexity"))
 	viper.BindPFlag("analysis.min_documentation_coverage", analyzeCmd.Flags().Lookup("min-doc-coverage"))
+	viper.BindPFlag("analysis.duplication.min_block_lines", analyzeCmd.Flags().Lookup("min-block-lines"))
+	viper.BindPFlag("analysis.duplication.similarity_threshold", analyzeCmd.Flags().Lookup("similarity-threshold"))
+	viper.BindPFlag("analysis.duplication.ignore_test_files", analyzeCmd.Flags().Lookup("ignore-test-duplication"))
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
@@ -723,12 +734,25 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 
 // finalizeDuplicationMetrics performs duplication analysis on all collected files
 func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *analyzer.DuplicationAnalyzer, collectedMetrics *CollectedMetrics, cfg *config.Config) {
-	// Default configuration values from PLAN.md
-	const minBlockLines = 6
-	const similarityThreshold = 0.80
+	// Get configuration values for duplication detection
+	minBlockLines := cfg.Analysis.Duplication.MinBlockLines
+	similarityThreshold := cfg.Analysis.Duplication.SimilarityThreshold
+	ignoreTestFiles := cfg.Analysis.Duplication.IgnoreTestFiles
+
+	// Filter files if ignoring test files
+	filesToAnalyze := collectedMetrics.Files
+	if ignoreTestFiles {
+		filtered := make(map[string]*ast.File)
+		for filename, file := range collectedMetrics.Files {
+			if !strings.HasSuffix(filename, "_test.go") {
+				filtered[filename] = file
+			}
+		}
+		filesToAnalyze = filtered
+	}
 
 	// Skip if no files were collected
-	if len(collectedMetrics.Files) == 0 {
+	if len(filesToAnalyze) == 0 {
 		report.Duplication = metrics.DuplicationMetrics{
 			ClonePairs:       0,
 			DuplicatedLines:  0,
@@ -740,12 +764,16 @@ func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *ana
 	}
 
 	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Running duplication analysis on %d files...\n", len(collectedMetrics.Files))
+		if ignoreTestFiles {
+			fmt.Fprintf(os.Stderr, "Running duplication analysis on %d files (excluding test files)...\n", len(filesToAnalyze))
+		} else {
+			fmt.Fprintf(os.Stderr, "Running duplication analysis on %d files...\n", len(filesToAnalyze))
+		}
 	}
 
 	// Run duplication analysis
 	duplicationMetrics := duplicationAnalyzer.AnalyzeDuplication(
-		collectedMetrics.Files,
+		filesToAnalyze,
 		minBlockLines,
 		similarityThreshold,
 	)

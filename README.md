@@ -23,6 +23,10 @@ go-stats-generator analyze [directory] [flags]
   - Package cohesion metrics for design quality assessment
   - Package coupling metrics for architectural complexity measurement
 - **Advanced Pattern Detection**: Design patterns, concurrency patterns, anti-patterns
+- **Code Duplication Detection**: AST-based detection of exact, renamed, and near-duplicate code blocks
+  - Configurable block size and similarity thresholds
+  - Support for Type 1 (exact), Type 2 (renamed), and Type 3 (near) clone detection
+  - Optional test file filtering for focused analysis
 - **Historical Metrics Storage**: SQLite/JSON backends for tracking metrics over time
 - **Complexity Differential Analysis**: Compare metrics snapshots with multi-dimensional comparisons
 - **Regression Detection**: Automated detection of complexity regressions with configurable thresholds
@@ -186,6 +190,10 @@ analysis:
   include_patterns: true
   max_function_length: 30
   max_cyclomatic_complexity: 10
+  duplication:
+    min_block_lines: 6            # Minimum block size for duplication detection
+    similarity_threshold: 0.80    # Threshold for near-duplicate detection (0.0-1.0)
+    ignore_test_files: false      # Exclude test files from duplication analysis
 
 output:
   format: console
@@ -207,6 +215,30 @@ filters:
   exclude_patterns:
     - "vendor/**"
     - "*.pb.go"
+```
+
+### Duplication Detection Configuration
+
+The tool includes advanced code duplication detection with configurable thresholds:
+
+**CLI Flags:**
+- `--min-block-lines` (default: 6) - Minimum number of statements in a block to consider for duplication
+- `--similarity-threshold` (default: 0.80) - Similarity threshold for near-duplicate detection (0.0-1.0)
+- `--ignore-test-duplication` (default: false) - Exclude test files (*_test.go) from duplication analysis
+
+**Examples:**
+```bash
+# Detect duplicates with smaller block size
+go-stats-generator analyze . --min-block-lines 3
+
+# Use stricter similarity threshold for near-duplicates
+go-stats-generator analyze . --similarity-threshold 0.90
+
+# Ignore test files in duplication analysis
+go-stats-generator analyze . --ignore-test-duplication
+
+# Combine multiple duplication settings
+go-stats-generator analyze . --min-block-lines 4 --similarity-threshold 0.85 --ignore-test-duplication
 ```
 
 ## Metrics Explained

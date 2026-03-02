@@ -54,6 +54,17 @@ func TestDefaultConfig(t *testing.T) {
 		if analysis.MinDocumentationCoverage != 0.7 {
 			t.Errorf("Expected MinDocumentationCoverage to be 0.7, got %f", analysis.MinDocumentationCoverage)
 		}
+
+		// Test duplication config defaults
+		if analysis.Duplication.MinBlockLines != 6 {
+			t.Errorf("Expected Duplication.MinBlockLines to be 6, got %d", analysis.Duplication.MinBlockLines)
+		}
+		if analysis.Duplication.SimilarityThreshold != 0.80 {
+			t.Errorf("Expected Duplication.SimilarityThreshold to be 0.80, got %f", analysis.Duplication.SimilarityThreshold)
+		}
+		if analysis.Duplication.IgnoreTestFiles {
+			t.Error("Expected Duplication.IgnoreTestFiles to be false")
+		}
 	})
 
 	// Test Output configuration
@@ -392,3 +403,68 @@ func TestConfig_JSONSerialization(t *testing.T) {
 		t.Error("Storage field should be accessible for JSON serialization")
 	}
 }
+
+func TestDuplicationConfig_CustomValues(t *testing.T) {
+	tests := []struct {
+		name                string
+		minBlockLines       int
+		similarityThreshold float64
+		ignoreTestFiles     bool
+	}{
+		{"Default values", 6, 0.80, false},
+		{"Custom values", 10, 0.75, true},
+		{"Minimum block size", 1, 0.90, false},
+		{"Maximum similarity", 20, 1.0, true},
+		{"Low similarity", 8, 0.50, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				Analysis: AnalysisConfig{
+					Duplication: DuplicationConfig{
+						MinBlockLines:       tt.minBlockLines,
+						SimilarityThreshold: tt.similarityThreshold,
+						IgnoreTestFiles:     tt.ignoreTestFiles,
+					},
+				},
+			}
+
+			if cfg.Analysis.Duplication.MinBlockLines != tt.minBlockLines {
+				t.Errorf("Expected MinBlockLines to be %d, got %d", tt.minBlockLines, cfg.Analysis.Duplication.MinBlockLines)
+			}
+			if cfg.Analysis.Duplication.SimilarityThreshold != tt.similarityThreshold {
+				t.Errorf("Expected SimilarityThreshold to be %f, got %f", tt.similarityThreshold, cfg.Analysis.Duplication.SimilarityThreshold)
+			}
+			if cfg.Analysis.Duplication.IgnoreTestFiles != tt.ignoreTestFiles {
+				t.Errorf("Expected IgnoreTestFiles to be %v, got %v", tt.ignoreTestFiles, cfg.Analysis.Duplication.IgnoreTestFiles)
+			}
+		})
+	}
+}
+
+func TestDuplicationConfig_FieldsAccessible(t *testing.T) {
+	// Ensure all duplication config fields are properly exported and accessible
+	cfg := DefaultConfig()
+
+	// Test field access
+	_ = cfg.Analysis.Duplication.MinBlockLines
+	_ = cfg.Analysis.Duplication.SimilarityThreshold
+	_ = cfg.Analysis.Duplication.IgnoreTestFiles
+
+	// Test field mutation
+	cfg.Analysis.Duplication.MinBlockLines = 10
+	cfg.Analysis.Duplication.SimilarityThreshold = 0.90
+	cfg.Analysis.Duplication.IgnoreTestFiles = true
+
+	if cfg.Analysis.Duplication.MinBlockLines != 10 {
+		t.Error("MinBlockLines field should be mutable")
+	}
+	if cfg.Analysis.Duplication.SimilarityThreshold != 0.90 {
+		t.Error("SimilarityThreshold field should be mutable")
+	}
+	if !cfg.Analysis.Duplication.IgnoreTestFiles {
+		t.Error("IgnoreTestFiles field should be mutable")
+	}
+}
+

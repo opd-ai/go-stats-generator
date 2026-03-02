@@ -25,6 +25,11 @@ func NewDuplicationAnalyzer(fset *token.FileSet) *DuplicationAnalyzer {
 	}
 }
 
+// FileSet returns the token.FileSet used by this analyzer
+func (da *DuplicationAnalyzer) FileSet() *token.FileSet {
+	return da.fset
+}
+
 // StatementBlock represents a block of statements extracted from a function
 type StatementBlock struct {
 	File       string
