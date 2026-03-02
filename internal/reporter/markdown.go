@@ -51,6 +51,7 @@ func (mr *MarkdownReporter) Generate(report *metrics.Report, output io.Writer) e
 		"formatPercent":  mr.formatPercent,
 		"truncateList":   mr.truncateList,
 		"escapeMarkdown": mr.escapeMarkdown,
+		"add":            func(a, b int) int { return a + b },
 	}).Parse(markdownTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to parse embedded markdown template: %w", err)

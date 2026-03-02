@@ -5,7 +5,7 @@
 - **Source Document**: `ROADMAP.md` (Phase 2: Naming Convention Analysis, Steps 2.2–2.4)
 - **Prerequisites**: Phase 2.1 (File Name Linting) — Complete ✅
 - **Estimated Scope**: Medium
-- **Current Status**: Step 2.3 Complete ✅ | Step 2.4 (Integration) TODO
+- **Current Status**: Phase 2 (Naming Convention Analysis) ✅ COMPLETE
 
 ## Implementation Steps
 
@@ -82,28 +82,37 @@
 
 **Coverage**: New package naming methods: 81-100% coverage
 
-### 3. Integrate Naming Metrics into Reporting (Step 2.4)
-- **Deliverable**: Updated `NamingMetrics` population and output format integration
-- **Dependencies**: Steps 1 and 2
+### 3. Integrate Naming Metrics into Reporting (Step 2.4) ✅ COMPLETE
 
-#### 3.1 Update Analyze Command Integration
-- **Deliverable**: Modify `cmd/analyze.go` to call identifier and package name analysis
-- **Logic**:
-  - After file parsing, run `AnalyzeIdentifiers` on each AST
-  - Run `AnalyzePackageName` for each unique package
+**Status**: All sub-steps implemented and tested with comprehensive coverage
+
+#### 3.1 Update Analyze Command Integration ✅
+- **Deliverable**: Modified `cmd/analyze.go` to call identifier and package name analysis
+- **Implementation**:
+  - `finalizeNamingMetrics` function added and integrated
+  - File naming analysis with `AnalyzeFileNames` for each parsed file
+  - Identifier analysis with `AnalyzeIdentifiers` on each AST
+  - Package name analysis with `AnalyzePackageName` for unique packages
   - Aggregate results into `report.Naming`
+- **Testing**: Verified end-to-end with test analysis runs
 
-#### 3.2 Add Console Reporter Section
+#### 3.2 Add Console Reporter Section ✅
 - **Deliverable**: Naming violations section in `internal/reporter/console.go`
-- **Logic**:
-  - Table with columns: Name, File, Line, Type, Violation, Suggested Fix
+- **Implementation**:
+  - `writeNamingAnalysis` function displays naming metrics
+  - Table with columns: Name, Type, Violation, File:Line
   - Summary line with violation counts and overall naming score
+  - Conditional display when violations > 0
+- **Testing**: Manual testing confirms proper display
 
-#### 3.3 Add JSON/HTML Reporter Fields
-- **Deliverable**: Ensure `NamingMetrics` serializes correctly in JSON and renders in HTML
-- **Logic**:
-  - JSON: Verify `IdentifierIssues` and `PackageNameIssues` arrays serialize
-  - HTML: Add naming section to template in `internal/reporter/html.go`
+#### 3.3 Add JSON/HTML/Markdown/CSV Reporter Fields ✅
+- **Deliverable**: Ensure `NamingMetrics` serializes correctly in all output formats
+- **Implementation**:
+  - **JSON**: Auto-serialization via Report struct ✅
+  - **HTML**: Naming section added to template with violation tables ✅
+  - **Markdown**: Naming section added with violation tables and summary ✅
+  - **CSV**: Naming section added with summary and detailed violation lists ✅
+- **Testing**: Verified all formats include naming data when violations present
 
 ### 4. Add Configuration Options
 - **Deliverable**: Configuration keys in `.go-stats-generator.yaml` parsing

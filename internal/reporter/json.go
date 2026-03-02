@@ -239,6 +239,119 @@ func (r *CSVReporter) Generate(report *metrics.Report, output io.Writer) error {
 		}
 	}
 
+	// Write naming metrics section
+	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
+	if totalNamingViolations > 0 {
+		if err := writer.Write([]string{""}); err != nil { // Empty row
+			return err
+		}
+		if err := writer.Write([]string{"# NAMING CONVENTION ANALYSIS"}); err != nil {
+			return fmt.Errorf("failed to write naming header: %w", err)
+		}
+
+		// Naming summary
+		namingSummary := [][]string{
+			{"File Name Violations", strconv.Itoa(report.Naming.FileNameViolations)},
+			{"Identifier Violations", strconv.Itoa(report.Naming.IdentifierViolations)},
+			{"Package Name Violations", strconv.Itoa(report.Naming.PackageNameViolations)},
+			{"Overall Naming Score", formatFloat(report.Naming.OverallNamingScore)},
+		}
+
+		for _, row := range namingSummary {
+			if err := writer.Write(row); err != nil {
+				return fmt.Errorf("failed to write naming summary row: %w", err)
+			}
+		}
+
+		// File name violations
+		if len(report.Naming.FileNameIssues) > 0 {
+			if err := writer.Write([]string{""}); err != nil { // Empty row
+				return err
+			}
+			if err := writer.Write([]string{"## FILE NAME ISSUES"}); err != nil {
+				return fmt.Errorf("failed to write file name issues header: %w", err)
+			}
+
+			fileNameHeaders := []string{"File", "Violation Type", "Description", "Suggested Name", "Severity"}
+			if err := writer.Write(fileNameHeaders); err != nil {
+				return fmt.Errorf("failed to write file name issue headers: %w", err)
+			}
+
+			for _, issue := range report.Naming.FileNameIssues {
+				row := []string{
+					issue.File,
+					issue.ViolationType,
+					issue.Description,
+					issue.SuggestedName,
+					issue.Severity,
+				}
+				if err := writer.Write(row); err != nil {
+					return fmt.Errorf("failed to write file name issue row: %w", err)
+				}
+			}
+		}
+
+		// Identifier violations
+		if len(report.Naming.IdentifierIssues) > 0 {
+			if err := writer.Write([]string{""}); err != nil { // Empty row
+				return err
+			}
+			if err := writer.Write([]string{"## IDENTIFIER ISSUES"}); err != nil {
+				return fmt.Errorf("failed to write identifier issues header: %w", err)
+			}
+
+			identifierHeaders := []string{"Name", "File", "Line", "Type", "Violation Type", "Description", "Suggested Name", "Severity"}
+			if err := writer.Write(identifierHeaders); err != nil {
+				return fmt.Errorf("failed to write identifier issue headers: %w", err)
+			}
+
+			for _, issue := range report.Naming.IdentifierIssues {
+				row := []string{
+					issue.Name,
+					issue.File,
+					strconv.Itoa(issue.Line),
+					issue.Type,
+					issue.ViolationType,
+					issue.Description,
+					issue.SuggestedName,
+					issue.Severity,
+				}
+				if err := writer.Write(row); err != nil {
+					return fmt.Errorf("failed to write identifier issue row: %w", err)
+				}
+			}
+		}
+
+		// Package name violations
+		if len(report.Naming.PackageNameIssues) > 0 {
+			if err := writer.Write([]string{""}); err != nil { // Empty row
+				return err
+			}
+			if err := writer.Write([]string{"## PACKAGE NAME ISSUES"}); err != nil {
+				return fmt.Errorf("failed to write package name issues header: %w", err)
+			}
+
+			packageNameHeaders := []string{"Package", "Directory", "Violation Type", "Description", "Suggested Name", "Severity"}
+			if err := writer.Write(packageNameHeaders); err != nil {
+				return fmt.Errorf("failed to write package name issue headers: %w", err)
+			}
+
+			for _, issue := range report.Naming.PackageNameIssues {
+				row := []string{
+					issue.Package,
+					issue.Directory,
+					issue.ViolationType,
+					issue.Description,
+					issue.SuggestedName,
+					issue.Severity,
+				}
+				if err := writer.Write(row); err != nil {
+					return fmt.Errorf("failed to write package name issue row: %w", err)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

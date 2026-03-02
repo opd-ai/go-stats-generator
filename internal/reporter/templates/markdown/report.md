@@ -109,6 +109,45 @@
 {{end}}{{end}}
 {{end}}
 
+{{$totalNamingViolations := add (add .Report.Naming.FileNameViolations .Report.Naming.IdentifierViolations) .Report.Naming.PackageNameViolations}}
+{{if gt $totalNamingViolations 0}}
+## 📝 Naming Convention Analysis
+
+| Metric | Value |
+|--------|-------|
+| **File Name Violations** | {{.Report.Naming.FileNameViolations}} |
+| **Identifier Violations** | {{.Report.Naming.IdentifierViolations}} |
+| **Package Name Violations** | {{.Report.Naming.PackageNameViolations}} |
+| **Overall Naming Score** | {{formatFloat .Report.Naming.OverallNamingScore}} |
+
+{{if gt (len .Report.Naming.FileNameIssues) 0}}
+### File Name Issues
+
+| File | Violation | Suggested Fix | Severity |
+|------|-----------|---------------|----------|
+{{range .Report.Naming.FileNameIssues}}| {{escapeMarkdown .File}} | {{escapeMarkdown .ViolationType}} | {{escapeMarkdown .SuggestedName}} | {{.Severity}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Naming.IdentifierIssues) 0}}
+### Identifier Issues
+
+| Name | File | Line | Type | Violation | Severity |
+|------|------|------|------|-----------|----------|
+{{range .Report.Naming.IdentifierIssues}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .File}} | {{.Line}} | {{escapeMarkdown .Type}} | {{escapeMarkdown .ViolationType}} | {{.Severity}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Naming.PackageNameIssues) 0}}
+### Package Name Issues
+
+| Package | Directory | Violation | Suggested Fix | Severity |
+|---------|-----------|-----------|---------------|----------|
+{{range .Report.Naming.PackageNameIssues}}| {{escapeMarkdown .Package}} | {{escapeMarkdown .Directory}} | {{escapeMarkdown .ViolationType}} | {{escapeMarkdown .SuggestedName}} | {{.Severity}} |
+{{end}}
+{{end}}
+{{end}}
+
 ## 📈 Analysis Summary
 
 This report provides comprehensive metrics for the Go codebase analysis. Key insights:
