@@ -20,12 +20,12 @@ type NamingAnalyzer struct {
 
 // identifierContext tracks context information for identifier analysis
 type identifierContext struct {
-	inLoop        bool
-	loopDepth     int
-	receiverType  string
-	packageName   string
-	functionName  string
-	isTestFile    bool
+	inLoop             bool
+	loopDepth          int
+	receiverType       string
+	packageName        string
+	functionName       string
+	isTestFile         bool
 	validSingleLetters map[string]bool
 }
 
@@ -49,29 +49,29 @@ func NewNamingAnalyzer() *NamingAnalyzer {
 		},
 		snakeCaseRegex: regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*(_test)?\.go$`),
 		acronyms: map[string]string{
-			"url":  "URL",
-			"http": "HTTP",
+			"url":   "URL",
+			"http":  "HTTP",
 			"https": "HTTPS",
-			"id":   "ID",
-			"api":  "API",
-			"json": "JSON",
-			"xml":  "XML",
-			"sql":  "SQL",
-			"html": "HTML",
-			"css":  "CSS",
-			"eof":  "EOF",
-			"ip":   "IP",
-			"tcp":  "TCP",
-			"udp":  "UDP",
-			"rpc":  "RPC",
-			"tls":  "TLS",
-			"ssl":  "SSL",
-			"grpc": "GRPC",
-			"ui":   "UI",
-			"uri":  "URI",
-			"uuid": "UUID",
+			"id":    "ID",
+			"api":   "API",
+			"json":  "JSON",
+			"xml":   "XML",
+			"sql":   "SQL",
+			"html":  "HTML",
+			"css":   "CSS",
+			"eof":   "EOF",
+			"ip":    "IP",
+			"tcp":   "TCP",
+			"udp":   "UDP",
+			"rpc":   "RPC",
+			"tls":   "TLS",
+			"ssl":   "SSL",
+			"grpc":  "GRPC",
+			"ui":    "UI",
+			"uri":   "URI",
+			"uuid":  "UUID",
 			"ascii": "ASCII",
-			"utf":  "UTF",
+			"utf":   "UTF",
 		},
 	}
 }
@@ -280,13 +280,13 @@ func (na *NamingAnalyzer) ComputeFileNamingScore(violations []metrics.FileNameVi
 // AnalyzeIdentifiers walks the AST to analyze all identifiers in a file
 func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fset *token.FileSet) []metrics.IdentifierViolation {
 	var violations []metrics.IdentifierViolation
-	
+
 	ctx := &identifierContext{
-		packageName:   file.Name.Name,
-		isTestFile:    strings.HasSuffix(filePath, "_test.go"),
+		packageName:        file.Name.Name,
+		isTestFile:         strings.HasSuffix(filePath, "_test.go"),
 		validSingleLetters: make(map[string]bool),
 	}
-	
+
 	// Walk the AST to analyze identifiers
 	ast.Inspect(file, func(n ast.Node) bool {
 		switch node := n.(type) {
@@ -300,10 +300,10 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 				} else {
 					ctx.receiverType = ""
 				}
-				
+
 				ctx.functionName = node.Name.Name
 				pos := fset.Position(node.Pos())
-				
+
 				// Check all identifier rules
 				if v := na.checkMixedCaps(node.Name.Name, ctx); v != nil {
 					v.File = filePath
@@ -311,14 +311,14 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 					v.Type = idType
 					violations = append(violations, *v)
 				}
-				
+
 				if v := na.checkAcronymCasing(node.Name.Name, ctx); v != nil {
 					v.File = filePath
 					v.Line = pos.Line
 					v.Type = idType
 					violations = append(violations, *v)
 				}
-				
+
 				if v := na.checkIdentifierStuttering(node.Name.Name, ctx); v != nil {
 					v.File = filePath
 					v.Line = pos.Line
@@ -326,7 +326,7 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 					violations = append(violations, *v)
 				}
 			}
-			
+
 		case *ast.GenDecl:
 			// Analyze type, const, and var declarations
 			for _, spec := range node.Specs {
@@ -334,21 +334,21 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 				case *ast.TypeSpec:
 					if s.Name != nil && s.Name.Name != "_" {
 						pos := fset.Position(s.Pos())
-						
+
 						if v := na.checkMixedCaps(s.Name.Name, ctx); v != nil {
 							v.File = filePath
 							v.Line = pos.Line
 							v.Type = "type"
 							violations = append(violations, *v)
 						}
-						
+
 						if v := na.checkAcronymCasing(s.Name.Name, ctx); v != nil {
 							v.File = filePath
 							v.Line = pos.Line
 							v.Type = "type"
 							violations = append(violations, *v)
 						}
-						
+
 						if v := na.checkIdentifierStuttering(s.Name.Name, ctx); v != nil {
 							v.File = filePath
 							v.Line = pos.Line
@@ -356,31 +356,31 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 							violations = append(violations, *v)
 						}
 					}
-					
+
 				case *ast.ValueSpec:
 					// Analyze const and var names
 					idType := "var"
 					if node.Tok == token.CONST {
 						idType = "const"
 					}
-					
+
 					for _, name := range s.Names {
 						if name != nil && name.Name != "_" {
 							pos := fset.Position(name.Pos())
-							
+
 							if v := na.checkMixedCaps(name.Name, ctx); v != nil {
 								v.File = filePath
 								v.Line = pos.Line
 								v.Type = idType
 								violations = append(violations, *v)
 							}
-							
+
 							if v := na.checkSingleLetterName(name.Name, idType, ctx); v != nil {
 								v.File = filePath
 								v.Line = pos.Line
 								violations = append(violations, *v)
 							}
-							
+
 							if v := na.checkAcronymCasing(name.Name, ctx); v != nil {
 								v.File = filePath
 								v.Line = pos.Line
@@ -391,12 +391,12 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 					}
 				}
 			}
-			
+
 		case *ast.ForStmt, *ast.RangeStmt:
 			// Track loop scope for valid single-letter names
 			ctx.inLoop = true
 			ctx.loopDepth++
-			
+
 		case *ast.AssignStmt:
 			// Track loop variables
 			if ctx.inLoop {
@@ -409,10 +409,10 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 				}
 			}
 		}
-		
+
 		return true
 	})
-	
+
 	return violations
 }
 
@@ -422,7 +422,7 @@ func (na *NamingAnalyzer) checkMixedCaps(name string, ctx *identifierContext) *m
 	if ctx.isTestFile && strings.HasPrefix(name, "Test_") {
 		return nil
 	}
-	
+
 	// Check for underscores
 	if strings.Contains(name, "_") {
 		suggested := na.toMixedCaps(name)
@@ -434,27 +434,27 @@ func (na *NamingAnalyzer) checkMixedCaps(name string, ctx *identifierContext) *m
 			Severity:      "medium",
 		}
 	}
-	
+
 	return nil
 }
 
 // checkSingleLetterName flags inappropriate single-letter names
-func (na *NamingAnalyzer) checkSingleLetterName(name string, idType string, ctx *identifierContext) *metrics.IdentifierViolation {
+func (na *NamingAnalyzer) checkSingleLetterName(name, idType string, ctx *identifierContext) *metrics.IdentifierViolation {
 	if len(name) != 1 {
 		return nil
 	}
-	
+
 	// Allow single-letter names in specific contexts
 	// Loop variables: i, j, k
 	if ctx.inLoop && ctx.validSingleLetters[name] {
 		return nil
 	}
-	
+
 	// Common receivers: r (reader), w (writer), s (server), c (client), etc.
 	if idType == "method" && (name == "r" || name == "w" || name == "s" || name == "c" || name == "t" || name == "b" || name == "e" || name == "p") {
 		return nil
 	}
-	
+
 	// Single-letter const and var outside loops should be descriptive
 	return &metrics.IdentifierViolation{
 		Name:          name,
@@ -469,15 +469,15 @@ func (na *NamingAnalyzer) checkSingleLetterName(name string, idType string, ctx 
 func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext) *metrics.IdentifierViolation {
 	// Check for common acronyms with wrong casing
 	nameLower := strings.ToLower(name)
-	
+
 	for acronym, correctForm := range na.acronyms {
 		acronymLen := len(acronym)
-		
+
 		// Look for the acronym in different positions
 		// Beginning of name: "Url" -> "URL", "UrlParser" -> "URLParser"
 		if strings.HasPrefix(nameLower, acronym) {
 			actualPrefix := name[:acronymLen]
-			
+
 			// Check if it's incorrectly cased
 			if actualPrefix != correctForm && isWrongAcronymCasing(actualPrefix, correctForm) {
 				suggested := correctForm + name[acronymLen:]
@@ -490,7 +490,7 @@ func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext
 				}
 			}
 		}
-		
+
 		// Middle/end of name: "GetUrl" -> "GetURL", "UserId" -> "UserID"
 		// We need to find word boundaries in MixedCaps names
 		for i := 1; i < len(name)-acronymLen+1; i++ {
@@ -498,7 +498,7 @@ func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext
 			if i > 0 && unicode.IsUpper(rune(name[i])) {
 				segment := name[i : i+acronymLen]
 				segmentLower := strings.ToLower(segment)
-				
+
 				if segmentLower == acronym && isWrongAcronymCasing(segment, correctForm) {
 					suggested := name[:i] + correctForm + name[i+acronymLen:]
 					return &metrics.IdentifierViolation{
@@ -512,24 +512,24 @@ func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 // checkIdentifierStuttering detects stuttering in identifiers
 func (na *NamingAnalyzer) checkIdentifierStuttering(name string, ctx *identifierContext) *metrics.IdentifierViolation {
 	nameLower := strings.ToLower(name)
-	
+
 	// Check method stuttering: User.GetUser, User.UserName
 	if ctx.receiverType != "" {
 		receiverLower := strings.ToLower(ctx.receiverType)
-		
+
 		// Method name starts with receiver type
 		if strings.HasPrefix(nameLower, receiverLower) && len(name) > len(ctx.receiverType) {
 			// GetUser from User is okay, but UserName from User stutters
 			if !strings.HasPrefix(nameLower, "get"+receiverLower) &&
-			   !strings.HasPrefix(nameLower, "set"+receiverLower) &&
-			   !strings.HasPrefix(nameLower, "new"+receiverLower) {
+				!strings.HasPrefix(nameLower, "set"+receiverLower) &&
+				!strings.HasPrefix(nameLower, "new"+receiverLower) {
 				suggested := name[len(ctx.receiverType):]
 				if len(suggested) > 0 {
 					return &metrics.IdentifierViolation{
@@ -543,18 +543,18 @@ func (na *NamingAnalyzer) checkIdentifierStuttering(name string, ctx *identifier
 			}
 		}
 	}
-	
+
 	// Check package stuttering: package user, func NewUser (okay), type UserService (stutters)
 	if ctx.packageName != "" && ctx.packageName != "main" {
 		packageLower := strings.ToLower(ctx.packageName)
-		
+
 		// Exported name starts with package name
 		if unicode.IsUpper(rune(name[0])) && strings.HasPrefix(nameLower, packageLower) && len(name) > len(ctx.packageName) {
 			// NewUser, ParseUser are okay (common constructors/operations)
 			// But UserService, UserHandler stutter
 			if !strings.HasPrefix(ctx.functionName, "New") &&
-			   !strings.HasPrefix(ctx.functionName, "Parse") &&
-			   !strings.HasPrefix(ctx.functionName, "Make") {
+				!strings.HasPrefix(ctx.functionName, "Parse") &&
+				!strings.HasPrefix(ctx.functionName, "Make") {
 				// Only flag types and exported vars/consts, not all functions
 				// This is a softer check
 				return &metrics.IdentifierViolation{
@@ -567,7 +567,7 @@ func (na *NamingAnalyzer) checkIdentifierStuttering(name string, ctx *identifier
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -576,14 +576,14 @@ func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.Ide
 	if totalIdentifiers == 0 {
 		return 1.0
 	}
-	
+
 	// Weight violations by severity
 	severityWeights := map[string]float64{
 		"low":    0.1,
 		"medium": 0.3,
 		"high":   0.5,
 	}
-	
+
 	totalPenalty := 0.0
 	for _, v := range violations {
 		weight, ok := severityWeights[v.Severity]
@@ -592,10 +592,10 @@ func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.Ide
 		}
 		totalPenalty += weight
 	}
-	
+
 	// Normalize penalty
 	normalizedPenalty := totalPenalty / float64(totalIdentifiers)
-	
+
 	score := 1.0 - normalizedPenalty
 	if score < 0 {
 		score = 0
@@ -603,7 +603,7 @@ func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.Ide
 	if score > 1 {
 		score = 1
 	}
-	
+
 	return score
 }
 
@@ -613,7 +613,7 @@ func (na *NamingAnalyzer) getReceiverTypeName(recv *ast.FieldList) string {
 	if recv == nil || len(recv.List) == 0 {
 		return ""
 	}
-	
+
 	field := recv.List[0]
 	switch t := field.Type.(type) {
 	case *ast.Ident:
@@ -623,20 +623,20 @@ func (na *NamingAnalyzer) getReceiverTypeName(recv *ast.FieldList) string {
 			return ident.Name
 		}
 	}
-	
+
 	return ""
 }
 
 func (na *NamingAnalyzer) toMixedCaps(s string) string {
 	parts := strings.Split(s, "_")
 	result := parts[0]
-	
+
 	for i := 1; i < len(parts); i++ {
 		if len(parts[i]) > 0 {
 			result += strings.ToUpper(parts[i][:1]) + parts[i][1:]
 		}
 	}
-	
+
 	return result
 }
 
@@ -645,13 +645,13 @@ func isWrongAcronymCasing(actual, correct string) bool {
 	if actual == correct {
 		return false
 	}
-	
+
 	// If it's all lowercase and should be all uppercase, it's wrong
 	if strings.ToLower(actual) == strings.ToLower(correct) {
 		// Check if it's improperly cased
 		// Wrong: "Url", "url" (in exported position), "Id"
 		// Correct: "URL", "ID"
-		
+
 		// If first letter is uppercase and rest is lowercase, it's wrong
 		if len(actual) > 0 && unicode.IsUpper(rune(actual[0])) {
 			for i := 1; i < len(actual); i++ {
@@ -662,6 +662,6 @@ func isWrongAcronymCasing(actual, correct string) bool {
 			return true // Only first letter uppercase
 		}
 	}
-	
+
 	return false
 }
