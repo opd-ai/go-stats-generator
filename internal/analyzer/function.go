@@ -242,6 +242,60 @@ func (fa *FunctionAnalyzer) countLinesInRange(file *token.File, startLine, endLi
 	}
 }
 
+// findCommentOutsideStrings finds the index of a comment marker (// or /*)
+// that is not inside a string literal. Returns -1 if not found outside strings.
+// Handles both double-quoted strings with escapes and backtick raw strings.
+func (fa *FunctionAnalyzer) findCommentOutsideStrings(line string, commentMarker string) int {
+	inDoubleQuote := false
+	inBacktick := false
+	escaped := false
+	
+	for i := 0; i < len(line); i++ {
+		ch := line[i]
+		
+		// Handle escape sequences in double-quoted strings
+		if inDoubleQuote {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if ch == '\\' {
+				escaped = true
+				continue
+			}
+			if ch == '"' {
+				inDoubleQuote = false
+			}
+			continue
+		}
+		
+		// Handle backtick raw strings (no escapes)
+		if inBacktick {
+			if ch == '`' {
+				inBacktick = false
+			}
+			continue
+		}
+		
+		// Not inside any string - check for string start or comment marker
+		if ch == '"' {
+			inDoubleQuote = true
+			continue
+		}
+		if ch == '`' {
+			inBacktick = true
+			continue
+		}
+		
+		// Check if we're at the start of our comment marker
+		if i+len(commentMarker) <= len(line) && line[i:i+len(commentMarker)] == commentMarker {
+			return i
+		}
+	}
+	
+	return -1
+}
+
 // classifyLine determines the type of a line (code, comment, or mixed)
 func (fa *FunctionAnalyzer) classifyLine(line string, inBlockComment *bool) string {
 	if line == "" {
@@ -253,13 +307,15 @@ func (fa *FunctionAnalyzer) classifyLine(line string, inBlockComment *bool) stri
 		return fa.classifyLineInBlockComment(line, inBlockComment)
 	}
 
-	// Check for new block comments
-	if blockStartIdx := strings.Index(line, "/*"); blockStartIdx >= 0 {
+	// Check for new block comments (outside of string literals)
+	blockStartIdx := fa.findCommentOutsideStrings(line, "/*")
+	if blockStartIdx >= 0 {
 		return fa.classifyLineWithBlockComment(line, blockStartIdx, inBlockComment)
 	}
 
-	// Check for line comments
-	if lineCommentIdx := strings.Index(line, "//"); lineCommentIdx >= 0 {
+	// Check for line comments (outside of string literals)
+	lineCommentIdx := fa.findCommentOutsideStrings(line, "//")
+	if lineCommentIdx >= 0 {
 		return fa.classifyLineWithLineComment(line, lineCommentIdx)
 	}
 
