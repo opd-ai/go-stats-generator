@@ -1,238 +1,292 @@
-# PROJECT: Go Codebase Production Readiness Analysis & Implementation Plan
+# TASK DESCRIPTION:
+Perform a data-driven production readiness analysis using `go-stats-generator` full report as the evidence base, assessing all metric dimensions to generate a prioritized remediation plan in ROADMAP.md.
 
-## OBJECTIVE:
-Analyze an existing Go codebase and create a comprehensive, actionable plan to transform it into a production-ready system. This includes identifying gaps in code quality, security, performance, observability, and operational readiness, then providing specific implementation steps to address each issue. Place the plan into a ROADMAP.md file and present it in a single unbroken ~~~~ codeblock.
+## CONSTRAINT:
 
-## TECHNICAL SPECIFICATIONS:
-- Language: Go
-- Type: Analysis and Remediation Plan
-- Scope: Complete codebase assessment (architecture, code quality, dependencies, deployment)
-- Output: Prioritized implementation roadmap
-- Timeline: Phased approach with clear milestones and effort estimates
+Use only `go-stats-generator` and existing tests for your analysis. You are a report generator only — do not write new application code or use any other code analysis tools. **DO NOT recommend TLS, HTTPS, or transport-layer encryption.** Transport security is assumed to be handled by reverse proxies, load balancers, or deployment infrastructure. Focus only on application-layer security concerns (input validation, authentication, authorization, data sanitization).
 
-## ANALYSIS FRAMEWORK:
+## PREREQUISITES:
+**Minimum Required Version:** `go-stats-generator` v1.0.0 or higher
+Install and configure `go-stats-generator` for comprehensive production readiness analysis:
 
-### Phase 1: Codebase Assessment
-**Required Actions:**
-1. **Code Quality Analysis:**
-   - Run `go mod tidy` and analyze dependencies for security vulnerabilities and maintenance status
-   - Map current directory structure against Go community standards
-   - Identify overly complex functions and deeply nested code
-   - Check for consistent error handling patterns and proper resource management
-
-2. **Testing & Coverage Analysis:**
-   - Generate test coverage reports and identify critical paths without adequate testing
-   - Assess test quality, organization, and coverage of edge cases
-   - Find missing mock implementations for external dependencies
-
-3. **Security Assessment:**
-   - Check for hardcoded credentials and sensitive data exposure
-   - Identify potential injection vulnerabilities and missing input validation
-   - Review authentication and authorization implementations
-   - Assess secure communication practices within application boundaries
-
-**IMPORTANT SECURITY SCOPE NOTE:**
-- **DO NOT recommend TLS, HTTPS, or transport-layer encryption** if not already present
-- **DO NOT suggest certificate management or SSL/TLS configuration**
-- Focus only on application-layer security concerns (input validation, authentication, authorization, data sanitization)
-- Transport security is assumed to be handled by reverse proxies, load balancers, or deployment infrastructure
-
-## IMPLEMENTATION PLAN:
-
-### PHASE 1: Critical Foundation (High Priority)
-**Focus: Essential production requirements**
-
-#### Task 1.1: Application Security and Error Handling
-```go
-// Implementation Requirements:
-1. Externalize all configuration and secrets
-2. Implement comprehensive input validation
-3. Establish consistent error handling patterns
-4. Add timeout handling for all external operations
-
-// Required Pattern:
-func ProcessData(ctx context.Context, input string) error {
-    if input == "" {
-        return fmt.Errorf("invalid input: empty string")
-    }
-    
-    result, err := externalService.Process(ctx, input)
-    if err != nil {
-        return fmt.Errorf("processing failed for input %q: %w", input, err)
-    }
-    
-    return nil
-}
+### Installation:
+```bash
+# First, check if go-stats-generator is already installed
+which go-stats-generator
+# If not, install it with `go install`
+go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-#### Task 1.2: Observability Foundation
-```go
-// Implementation Requirements:
-1. Implement structured logging throughout application
-2. Add application metrics and health indicators
-3. Create health check endpoints
-4. Implement request correlation for debugging
-
-// Logging Pattern:
-logger.Info("processing request",
-    zap.String("operation", "process_data"),
-    zap.String("request_id", requestID),
-    zap.Duration("duration", time.Since(start)),
-)
+## Recommendations:
+```bash
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json | jq .documentation
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
 
-### PHASE 2: Performance & Reliability (Medium Priority)
-**Focus: Production resilience**
+## CONTEXT:
+You are an automated production readiness auditor using `go-stats-generator` for evidence-based assessment across all metric dimensions. The tool provides precise metrics for functions (complexity, length), packages (coupling, cohesion, circular dependencies), documentation (coverage), naming (conventions), concurrency (safety patterns), and duplication (code clones). Use the full analysis report as quantitative evidence to evaluate production readiness gates and generate a prioritized remediation plan.
 
-#### Task 2.1: Resource Management
-```go
-// Implementation Requirements:
-1. Implement connection pooling for external services
-2. Add circuit breaker patterns for external dependencies
-3. Configure appropriate timeouts and retry logic
-4. Optimize resource usage and cleanup
+## INSTRUCTIONS:
 
-// Resource Management:
-ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-defer cancel()
+### Phase 1: Comprehensive Baseline
+1. **Run Full Analysis:**
+  ```bash
+  go-stats-generator analyze . --format json --output readiness-report.json \
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+  go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+  ```
+  - Capture the complete analysis across all metric dimensions
+  - Record the summary statistics for each dimension
+  - Note all threshold violations flagged by the tool
 
-resource, err := pool.Acquire(ctx)
-if err != nil {
-    return fmt.Errorf("failed to acquire resource: %w", err)
-}
-defer resource.Close()
+### Phase 2: Multi-Dimensional Assessment
+1. **Function Complexity:**
+  ```bash
+  cat readiness-report.json | jq '[.functions[] | select(.complexity > 10)] | length'
+  cat readiness-report.json | jq '[.functions[] | select(.lines > 30)] | sort_by(-.complexity)[:10]'
+  ```
+  - Count functions exceeding complexity threshold (max 10)
+  - Count functions exceeding length threshold (max 30 lines)
+  - Identify the top offenders by complexity score
+
+2. **Package Health:**
+  ```bash
+  cat readiness-report.json | jq '.packages[] | {name, coupling, cohesion, circular_deps}'
+  ```
+  - Evaluate coupling scores per package (lower is better)
+  - Evaluate cohesion scores per package (higher is better)
+  - Flag any circular dependencies (must be zero for production)
+
+3. **Documentation Coverage:**
+  ```bash
+  cat readiness-report.json | jq '.documentation'
+  ```
+  - Measure overall documentation coverage ratio (gate: ≥0.8)
+  - Identify undocumented exported functions and types
+  - Assess GoDoc quality across packages
+
+4. **Naming Conventions:**
+  ```bash
+  cat readiness-report.json | jq '.naming'
+  ```
+  - Check for naming convention violations
+  - Flag non-idiomatic Go naming patterns
+  - All naming conventions must pass for production readiness
+
+5. **Concurrency Safety:**
+  ```bash
+  cat readiness-report.json | jq '.concurrency'
+  ```
+  - Identify goroutine patterns and channel usage
+  - Flag high-risk concurrency patterns (unprotected shared state, missing synchronization)
+  - Evaluate sync primitive usage and worker pool patterns
+
+6. **Code Duplication:**
+  ```bash
+  cat readiness-report.json | jq '.duplication'
+  ```
+  - Measure duplication ratio (gate: <5%)
+  - Count clone pairs and duplicated lines
+  - Identify the largest clone groups for remediation
+
+### Phase 3: Production Readiness Gates
+Evaluate pass/fail for each dimension against production-readiness thresholds:
+
+| Dimension | Gate Criteria | Pass Condition |
+|---|---|---|
+| **Complexity** | Max function complexity | All functions ≤ 10 |
+| **Function Length** | Max function length | All functions ≤ 30 lines |
+| **Documentation** | Coverage ratio | ≥ 0.8 (80%) |
+| **Duplication** | Duplication ratio | < 5% |
+| **Circular Deps** | Circular dependency count | Zero |
+| **Naming** | Convention violations | All pass |
+| **Concurrency** | High-risk patterns | No high-risk patterns |
+
+```bash
+# Automated gate evaluation
+echo "=== PRODUCTION READINESS GATES ==="
+COMPLEX=$(cat readiness-report.json | jq '[.functions[] | select(.complexity > 10)] | length')
+LONG=$(cat readiness-report.json | jq '[.functions[] | select(.lines > 30)] | length')
+DOC_COV=$(cat readiness-report.json | jq '.documentation.coverage')
+DUP_RATIO=$(cat readiness-report.json | jq '.duplication.duplication_ratio')
+CIRCULAR=$(cat readiness-report.json | jq '[.packages[] | select(.circular_deps > 0)] | length')
+
+echo "Complexity gate:    $([ "$COMPLEX" -eq 0 ] && echo 'PASS' || echo "FAIL ($COMPLEX violations)")"
+echo "Length gate:         $([ "$LONG" -eq 0 ] && echo 'PASS' || echo "FAIL ($LONG violations)")"
+echo "Documentation gate: $(echo "$DOC_COV >= 0.8" | bc -l | grep -q 1 && echo 'PASS' || echo "FAIL ($DOC_COV)")"
+echo "Duplication gate:   $(echo "$DUP_RATIO < 0.05" | bc -l | grep -q 1 && echo 'PASS' || echo "FAIL ($DUP_RATIO)")"
+echo "Circular deps gate: $([ "$CIRCULAR" -eq 0 ] && echo 'PASS' || echo "FAIL ($CIRCULAR packages)")"
 ```
 
-#### Task 2.2: Configuration Management
-```go
-// Implementation Requirements:
-1. Centralize configuration management
-2. Implement configuration validation at startup
-3. Support environment-specific configurations
-4. Document all configuration options
-```
+### Phase 4: Generate ROADMAP.md
+1. **Compile Assessment Results:**
+  - Aggregate per-dimension scores and gate statuses from Phase 3
+  - Rank failed gates by severity and remediation effort
+  - Group related issues into actionable work items
 
-### PHASE 3: Operational Excellence (Lower Priority)
-**Focus: Long-term maintainability**
+2. **Write Prioritized Remediation Plan:**
+  - Place the complete plan into a ROADMAP.md file
+  - Organize by priority: Critical (failed gates) → High (near-threshold) → Medium (improvements)
+  - Include specific file and function references from the analysis
+  - Provide measurable acceptance criteria per task tied to `go-stats-generator` thresholds
 
-#### Task 3.1: Testing and Quality
-```go
-// Implementation Requirements:
-1. Achieve comprehensive test coverage for critical paths
-2. Implement integration testing for external dependencies
-3. Add performance testing for critical operations
-4. Establish code quality standards and automation
-```
-
-## VALIDATION CHECKLIST:
-
-### Application Security Requirements:
-- [ ] No hardcoded secrets or credentials
-- [ ] Input validation for all external data
-- [ ] Proper authentication and authorization within application
-- [ ] No sensitive data in logs or error messages
-- [ ] SQL injection prevention through parameterized queries
-- [ ] XSS prevention through proper output encoding
-
-### Reliability Requirements:
-- [ ] Comprehensive error handling with context
-- [ ] Circuit breakers for external dependencies
-- [ ] Appropriate timeout configurations
-- [ ] Graceful shutdown and resource cleanup
-
-### Performance Requirements:
-- [ ] Connection pooling for external services
-- [ ] No blocking operations without timeouts
-- [ ] Resource limits and memory management
-- [ ] Performance monitoring and profiling
-
-### Observability Requirements:
-- [ ] Structured logging with correlation IDs
-- [ ] Application metrics and health indicators
-- [ ] Health check endpoints
-- [ ] Error tracking and alerting
-
-### Testing Requirements:
-- [ ] Unit tests for business logic
-- [ ] Integration tests for external dependencies
-- [ ] Performance tests for critical operations
-- [ ] Test data management and isolation
-
-### Deployment Requirements:
-- [ ] Environment-specific configuration
-- [ ] Automated deployment procedures
-- [ ] Resource limits and monitoring
-- [ ] Rollback capabilities
+3. **Include Re-Validation Commands:**
+  ```bash
+  # After remediation, re-run to verify gates
+  go-stats-generator analyze . --format json --output post-remediation.json \
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+  go-stats-generator diff readiness-report.json post-remediation.json
+  ```
 
 ## OUTPUT FORMAT:
+
+Structure your response as ROADMAP.md with the following template:
 
 ```markdown
 # PRODUCTION READINESS ASSESSMENT: [Codebase Name]
 
-## CRITICAL ISSUES
-### Application Security Concerns:
-- [Specific application-layer security issues with location references]
-- [Note: Transport security (TLS/HTTPS) is outside scope - assumed handled by infrastructure]
+## READINESS SUMMARY
+| Dimension | Score | Gate | Status |
+|---|---|---|---|
+| Complexity | [n] violations | All functions ≤ 10 | PASS/FAIL |
+| Function Length | [n] violations | All functions ≤ 30 lines | PASS/FAIL |
+| Documentation | [x.xx] coverage | ≥ 0.8 | PASS/FAIL |
+| Duplication | [x.xx]% ratio | < 5% | PASS/FAIL |
+| Circular Deps | [n] detected | Zero | PASS/FAIL |
+| Naming | [n] violations | All pass | PASS/FAIL |
+| Concurrency | [n] high-risk | No high-risk patterns | PASS/FAIL |
 
-### Reliability Concerns:
-- [Specific issues with location references]
+**Overall Readiness: [n]/7 gates passing**
 
-### Performance Concerns:
-- [Specific issues with location references]
+## CRITICAL ISSUES (Failed Gates)
+### [Dimension]: [n] violations
+- [Specific issue with file:line reference from go-stats-generator output]
+- [Specific issue with file:line reference from go-stats-generator output]
 
-## IMPLEMENTATION ROADMAP
+## REMEDIATION ROADMAP
 
-### Phase 1: Foundation
-**Duration:** [timeframe]
-**Tasks:**
-1. [Specific task with acceptance criteria]
-2. [Specific task with acceptance criteria]
+### Priority 1: Critical (Failed Gates)
+**[Dimension]:** [n] items to remediate
+1. [Specific task] — [file:function] — current: [value], target: [threshold]
+2. [Specific task] — [file:function] — current: [value], target: [threshold]
 
-### Phase 2: Performance & Reliability
-**Duration:** [timeframe]
-**Tasks:**
-1. [Specific task with acceptance criteria]
-2. [Specific task with acceptance criteria]
-
-### Phase 3: Operational Excellence
-**Duration:** [timeframe]
-**Tasks:**
+### Priority 2: High (Near-Threshold)
 1. [Specific task with acceptance criteria]
 
-## RECOMMENDED LIBRARIES
-[Specific recommendations with justification]
-
-## SUCCESS CRITERIA
-[Measurable production readiness indicators]
-
-## RISK ASSESSMENT
-[Potential risks and mitigation strategies]
+### Priority 3: Medium (Quality Improvements)
+1. [Specific task with acceptance criteria]
 
 ## SECURITY SCOPE CLARIFICATION
 - Analysis focuses on application-layer security only
 - Transport encryption (TLS/HTTPS) assumed to be handled by deployment infrastructure
 - No recommendations for certificate management or SSL/TLS configuration
+
+## VALIDATION
+Verify remediation with:
+go-stats-generator analyze . --format json --output post-remediation.json \
+  --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+go-stats-generator diff readiness-report.json post-remediation.json
 ```
 
-## LIBRARY SELECTION GUIDANCE:
-**Prefer well-established, actively maintained libraries:**
+## PRODUCTION READINESS THRESHOLDS:
+```
+Production Readiness Gates:
+  Max Function Complexity      = 10
+  Max Function Length           = 30 lines
+  Documentation Coverage        ≥ 0.8 (80%)
+  Duplication Ratio             < 5% (0.05)
+  Circular Dependencies         = 0
+  Naming Convention Violations  = 0
+  High-Risk Concurrency Patterns = 0
 
-- Configuration: Choose based on complexity (stdlib, viper, etc.)
-- Logging: Structured logging solutions (zerolog, slog)
-- HTTP: Evaluate stdlib vs framework needs
-- Database: Consider query patterns and ORM requirements
-- Testing: Community standard frameworks
-- Monitoring: Standard observability patterns
+Readiness Verdict:
+  PRODUCTION READY    = All 7 gates passing
+  CONDITIONALLY READY = 5-6 gates passing, no critical failures
+  NOT READY           = <5 gates passing or any critical failure
+```
+<!-- Last verified: 2025-07-25 against analyzer thresholds and production gate defaults -->
 
-**Document selection rationale based on:**
-- Maintenance activity and community health
-- Documentation quality and completeness
-- Performance characteristics
-- Integration complexity
-- Long-term support considerations
+If all gates pass: "Production ready: go-stats-generator baseline analysis found no metric dimensions exceeding production readiness thresholds."
 
-**TRANSPORT SECURITY EXCLUSION:**
-- Do not recommend TLS/SSL libraries or configuration
-- Do not suggest HTTPS enforcement at application level
-- Do not recommend certificate management solutions
-- Assume transport security is handled by reverse proxies, load balancers, or container orchestration platforms
+## EXAMPLE WORKFLOW:
+```bash
+$ go-stats-generator analyze . --format json --output readiness-report.json \
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+
+=== PRODUCTION READINESS ANALYSIS ===
+Functions analyzed: 142
+Packages analyzed: 12
+Documentation coverage: 0.72
+Duplication ratio: 3.21%
+
+Threshold violations:
+  Complexity > 10: 4 functions
+  Length > 30 lines: 7 functions
+  Documentation < 0.7: flagged
+
+$ # Extract per-dimension metrics
+$ cat readiness-report.json | jq '[.functions[] | select(.complexity > 10)] | sort_by(-.complexity)[:5]'
+[
+  {"name": "processComplexOrder", "file": "order.go", "complexity": 18.4, "lines": 45},
+  {"name": "handleDataTransform", "file": "transform.go", "complexity": 15.2, "lines": 52},
+  {"name": "validateComplexInput", "file": "validator.go", "complexity": 12.8, "lines": 38},
+  {"name": "generateReport", "file": "reporter.go", "complexity": 11.3, "lines": 41}
+]
+
+$ cat readiness-report.json | jq '.packages[] | select(.circular_deps > 0)'
+# (no output — zero circular dependencies)
+
+$ cat readiness-report.json | jq '.documentation.coverage'
+0.72
+
+$ cat readiness-report.json | jq '.duplication | {duplication_ratio, clone_pairs, duplicated_lines}'
+{
+  "duplication_ratio": 0.0321,
+  "clone_pairs": 4,
+  "duplicated_lines": 58
+}
+
+$ cat readiness-report.json | jq '.naming.violations | length'
+0
+
+$ cat readiness-report.json | jq '.concurrency | {high_risk_patterns: [.patterns[] | select(.risk == "high")]}'
+{
+  "high_risk_patterns": []
+}
+
+$ # Evaluate gates
+$ echo "=== PRODUCTION READINESS GATES ==="
+=== PRODUCTION READINESS GATES ===
+Complexity gate:    FAIL (4 violations)
+Length gate:        FAIL (7 violations)
+Documentation gate: FAIL (0.72)
+Duplication gate:   PASS (3.21%)
+Circular deps gate: PASS (0)
+Naming gate:        PASS (0 violations)
+Concurrency gate:   PASS (0 high-risk)
+
+Overall Readiness: 4/7 gates passing — NOT READY
+
+$ # Generate ROADMAP.md with prioritized remediation...
+$ # After remediation, re-validate:
+$ go-stats-generator analyze . --format json --output post-remediation.json \
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+$ go-stats-generator diff readiness-report.json post-remediation.json
+=== IMPROVEMENT SUMMARY ===
+Complexity gate:    FAIL → PASS (4 → 0 violations)
+Length gate:        FAIL → PASS (7 → 0 violations)
+Documentation gate: FAIL → PASS (0.72 → 0.85)
+Duplication gate:   PASS → PASS (3.21% → 2.10%)
+Circular deps gate: PASS → PASS (0 → 0)
+Naming gate:        PASS → PASS (0 → 0)
+Concurrency gate:   PASS → PASS (0 → 0)
+
+Overall Readiness: 7/7 gates passing — PRODUCTION READY ✓
+```
+
+This data-driven approach ensures production readiness decisions are based on quantitative analysis from `go-stats-generator` rather than subjective assessment, with measurable validation of improvements across all metric dimensions.
