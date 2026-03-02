@@ -134,14 +134,6 @@ go-stats-generator analyze [file.go] [flags]
 | `--max-complexity` | Maximum cyclomatic complexity threshold | 10 |
 | `--verbose` | Verbose output | false |
 
-<!-- AUDIT_FLAG: NEEDS_REVIEW
-Issue: CSV and Markdown output formats mentioned in table but not implemented
-Found in code: CSV and Markdown reporters exist but return "not yet implemented" errors
-Current working formats: console, json, html
-Action needed: Either remove from docs or implement the formats
-Last verified: 2025-01-25 against current codebase
--->
-
 ### Example Output
 
 ```
