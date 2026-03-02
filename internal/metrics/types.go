@@ -17,6 +17,7 @@ type Report struct {
 	Documentation DocumentationMetrics `json:"documentation"`
 	Generics      GenericMetrics       `json:"generics"`
 	Duplication   DuplicationMetrics   `json:"duplication"`
+	Naming        NamingMetrics        `json:"naming"`
 }
 
 // ReportMetadata contains information about the analysis run
@@ -476,6 +477,48 @@ const (
 	CloneTypeRenamed CloneType = "renamed" // Type 2: same structure, different identifiers
 	CloneTypeNear    CloneType = "near"    // Type 3: similar structure above threshold
 )
+
+// NamingMetrics contains naming convention analysis results
+type NamingMetrics struct {
+	FileNameViolations       int                   `json:"file_name_violations"`
+	IdentifierViolations     int                   `json:"identifier_violations"`
+	PackageNameViolations    int                   `json:"package_name_violations"`
+	OverallNamingScore       float64               `json:"overall_naming_score"`
+	FileNameIssues           []FileNameViolation   `json:"file_name_issues"`
+	IdentifierIssues         []IdentifierViolation `json:"identifier_issues"`
+	PackageNameIssues        []PackageNameViolation `json:"package_name_issues"`
+}
+
+// FileNameViolation represents a file naming convention violation
+type FileNameViolation struct {
+	File           string `json:"file"`
+	ViolationType  string `json:"violation_type"`
+	Description    string `json:"description"`
+	SuggestedName  string `json:"suggested_name"`
+	Severity       string `json:"severity"`
+}
+
+// IdentifierViolation represents an identifier naming convention violation
+type IdentifierViolation struct {
+	Name           string `json:"name"`
+	File           string `json:"file"`
+	Line           int    `json:"line"`
+	Type           string `json:"type"` // function, method, type, const, var
+	ViolationType  string `json:"violation_type"`
+	Description    string `json:"description"`
+	SuggestedName  string `json:"suggested_name"`
+	Severity       string `json:"severity"`
+}
+
+// PackageNameViolation represents a package naming convention violation
+type PackageNameViolation struct {
+	Package        string `json:"package"`
+	Directory      string `json:"directory"`
+	ViolationType  string `json:"violation_type"`
+	Description    string `json:"description"`
+	SuggestedName  string `json:"suggested_name"`
+	Severity       string `json:"severity"`
+}
 
 // Diff and Historical Analysis Types
 

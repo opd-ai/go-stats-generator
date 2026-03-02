@@ -55,16 +55,25 @@ Detect duplicated or near-duplicate code blocks that force developers to make th
 
 Flag identifiers that violate Go conventions or harm readability.
 
-### Step 2.1 — File Name Linting
+### Step 2.1 — File Name Linting ✅ COMPLETE
 
-- Check every `.go` file name against Go conventions:
-  - Must be `snake_case` (lowercase, underscores).
-  - No stuttering with the parent directory name (e.g. `http/http_client.go`).
-  - `_test.go` suffix only for test files.
-  - Flag single-character or overly generic names (`utils.go`, `helpers.go`, `misc.go`, `common.go`).
-- Report a list of offending files with suggested renames.
+**Status**: Implemented and tested
+**Files**: `internal/analyzer/naming.go`, `internal/analyzer/naming_test.go`
+
+Implemented features:
+- ✅ Check every `.go` file name against Go conventions:
+  - ✅ Must be `snake_case` (lowercase, underscores)
+  - ✅ No stuttering with the parent directory name (e.g. `http/http_client.go`)
+  - ✅ `_test.go` suffix only for test files
+  - ✅ Flag single-character or overly generic names (`utils.go`, `helpers.go`, `misc.go`, `common.go`)
+- ✅ Report a list of offending files with suggested renames
+- ✅ Integrated into analyze command
+- ✅ Configuration added to `.go-stats-generator.yaml`
+- ✅ Comprehensive unit tests with >95% coverage
 
 ### Step 2.2 — Identifier Name Quality Scoring
+
+TODO: Not yet implemented
 
 - For every exported function, method, type, const, and var:
   - Verify `MixedCaps` (no underscores in Go identifiers except for test functions).

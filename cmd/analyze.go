@@ -354,6 +354,7 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	// Finalize report
 	finalizeReport(report, collectedMetrics, analyzers.Package, cfg)
 	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
+	finalizeNamingMetrics(report, analyzers.Naming, collectedMetrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	if cfg.Output.Verbose {
@@ -425,6 +426,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	// Step 5: Finalize report with all collected metrics
 	finalizeReport(report, metrics, packageAnalyzer, cfg)
 	finalizeDuplicationMetrics(report, analyzers.Duplication, metrics, cfg)
+	finalizeNamingMetrics(report, analyzers.Naming, metrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	return report, nil
@@ -438,6 +440,7 @@ type AnalyzerSet struct {
 	Package     *analyzer.PackageAnalyzer
 	Concurrency *analyzer.ConcurrencyAnalyzer
 	Duplication *analyzer.DuplicationAnalyzer
+	Naming      *analyzer.NamingAnalyzer
 }
 
 // CollectedMetrics holds all metrics collected during analysis
@@ -505,6 +508,7 @@ func createAnalyzers(fileSet *token.FileSet) *AnalyzerSet {
 		Package:     analyzer.NewPackageAnalyzer(fileSet),
 		Concurrency: analyzer.NewConcurrencyAnalyzer(fileSet),
 		Duplication: analyzer.NewDuplicationAnalyzer(fileSet),
+		Naming:      analyzer.NewNamingAnalyzer(),
 	}
 }
 
@@ -785,6 +789,56 @@ func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *ana
 			duplicationMetrics.ClonePairs,
 			duplicationMetrics.DuplicatedLines,
 			duplicationMetrics.DuplicationRatio*100)
+	}
+}
+
+// finalizeNamingMetrics performs naming convention analysis on all collected files
+func finalizeNamingMetrics(report *metrics.Report, namingAnalyzer *analyzer.NamingAnalyzer, collectedMetrics *CollectedMetrics, cfg *config.Config) {
+	// Get all file paths from collected metrics
+	var filePaths []string
+	for filePath := range collectedMetrics.Files {
+		filePaths = append(filePaths, filePath)
+	}
+
+	// Skip if no files
+	if len(filePaths) == 0 {
+		report.Naming = metrics.NamingMetrics{
+			FileNameViolations:    0,
+			IdentifierViolations:  0,
+			PackageNameViolations: 0,
+			OverallNamingScore:    1.0,
+			FileNameIssues:        []metrics.FileNameViolation{},
+			IdentifierIssues:      []metrics.IdentifierViolation{},
+			PackageNameIssues:     []metrics.PackageNameViolation{},
+		}
+		return
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Running naming convention analysis on %d files...\n", len(filePaths))
+	}
+
+	// Analyze file names
+	fileNameViolations := namingAnalyzer.AnalyzeFileNames(filePaths)
+
+	// Calculate naming score
+	fileNamingScore := namingAnalyzer.ComputeFileNamingScore(fileNameViolations, len(filePaths))
+
+	// Populate naming metrics
+	report.Naming = metrics.NamingMetrics{
+		FileNameViolations:    len(fileNameViolations),
+		IdentifierViolations:  0, // TODO: Implement in Phase 2.2
+		PackageNameViolations: 0, // TODO: Implement in Phase 2.3
+		OverallNamingScore:    fileNamingScore,
+		FileNameIssues:        fileNameViolations,
+		IdentifierIssues:      []metrics.IdentifierViolation{},
+		PackageNameIssues:     []metrics.PackageNameViolation{},
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Found %d file naming violations (score: %.2f)\n",
+			len(fileNameViolations),
+			fileNamingScore)
 	}
 }
 

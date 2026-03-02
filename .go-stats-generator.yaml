@@ -17,6 +17,10 @@ analysis:
     min_block_lines: 6  # Minimum block size to consider for duplication detection
     similarity_threshold: 0.80  # Threshold for near-duplicate detection (0.0-1.0)
     ignore_test_files: false  # Exclude *_test.go files from duplication analysis
+  naming:
+    flag_generic_filenames: true  # Flag overly generic file names like utils.go
+    flag_stuttering: true  # Flag file names that repeat directory names
+    min_name_length: 2  # Minimum length for identifier names
 
 output:
   format: console  # console, json, html

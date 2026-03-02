@@ -32,6 +32,9 @@ type AnalysisConfig struct {
 
 	// Duplication detection settings
 	Duplication DuplicationConfig `mapstructure:"duplication" json:"duplication"`
+
+	// Naming convention settings
+	Naming NamingConfig `mapstructure:"naming" json:"naming"`
 }
 
 // DuplicationConfig controls code duplication detection
@@ -39,6 +42,13 @@ type DuplicationConfig struct {
 	MinBlockLines       int     `mapstructure:"min_block_lines" json:"min_block_lines"`
 	SimilarityThreshold float64 `mapstructure:"similarity_threshold" json:"similarity_threshold"`
 	IgnoreTestFiles     bool    `mapstructure:"ignore_test_files" json:"ignore_test_files"`
+}
+
+// NamingConfig controls naming convention analysis
+type NamingConfig struct {
+	FlagGenericFilenames bool `mapstructure:"flag_generic_filenames" json:"flag_generic_filenames"`
+	FlagStuttering       bool `mapstructure:"flag_stuttering" json:"flag_stuttering"`
+	MinNameLength        int  `mapstructure:"min_name_length" json:"min_name_length"`
 }
 
 // OutputConfig controls output formatting
@@ -126,6 +136,11 @@ func DefaultConfig() *Config {
 				MinBlockLines:       6,
 				SimilarityThreshold: 0.80,
 				IgnoreTestFiles:     false,
+			},
+			Naming: NamingConfig{
+				FlagGenericFilenames: true,
+				FlagStuttering:       true,
+				MinNameLength:        2,
 			},
 		},
 		Output: OutputConfig{
