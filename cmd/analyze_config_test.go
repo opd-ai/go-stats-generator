@@ -259,7 +259,7 @@ func TestLoadPerformanceConfiguration(t *testing.T) {
 func TestConfigurationLoadingIntegration(t *testing.T) {
 	// This test verifies that all configuration loaders work together
 	viper.Reset()
-	
+
 	// Set all previously missing config values
 	viper.Set("analysis.include_functions", false)
 	viper.Set("analysis.include_structs", false)
@@ -267,21 +267,21 @@ func TestConfigurationLoadingIntegration(t *testing.T) {
 	viper.Set("analysis.duplication.min_block_lines", 12)
 	viper.Set("analysis.duplication.similarity_threshold", 0.75)
 	viper.Set("analysis.duplication.ignore_test_files", true)
-	
+
 	viper.Set("output.use_colors", false)
 	viper.Set("output.show_progress", false)
 	viper.Set("output.include_examples", true)
-	
+
 	viper.Set("performance.enable_cache", false)
 	viper.Set("performance.max_memory_mb", 768)
 	viper.Set("performance.enable_profiling", true)
-	
+
 	cfg := config.DefaultConfig()
-	
+
 	loadAnalysisConfiguration(cfg)
 	loadOutputConfiguration(cfg)
 	loadPerformanceConfiguration(cfg)
-	
+
 	// Verify all values were loaded correctly
 	require.False(t, cfg.Analysis.IncludeFunctions)
 	require.False(t, cfg.Analysis.IncludeStructs)
@@ -289,11 +289,11 @@ func TestConfigurationLoadingIntegration(t *testing.T) {
 	require.Equal(t, 12, cfg.Analysis.Duplication.MinBlockLines)
 	require.Equal(t, 0.75, cfg.Analysis.Duplication.SimilarityThreshold)
 	require.True(t, cfg.Analysis.Duplication.IgnoreTestFiles)
-	
+
 	require.False(t, cfg.Output.UseColors)
 	require.False(t, cfg.Output.ShowProgress)
 	require.True(t, cfg.Output.IncludeExamples)
-	
+
 	require.False(t, cfg.Performance.EnableCache)
 	require.Equal(t, 768, cfg.Performance.MaxMemoryMB)
 	require.True(t, cfg.Performance.EnableProfiling)
