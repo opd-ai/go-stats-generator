@@ -108,13 +108,12 @@ func TestNewStorage(t *testing.T) {
 			config: StorageConfig{
 				Type: "json",
 				JSON: JSONConfig{
-					Directory:   "/tmp/test",
+					Directory:   t.TempDir(),
 					Compression: true,
 					Pretty:      true,
 				},
 			},
-			expectError: true,
-			errorMsg:    "JSON storage not yet implemented",
+			expectError: false,
 		},
 		{
 			name: "Unsupported storage type",
@@ -217,25 +216,24 @@ func TestNewSQLiteStorage(t *testing.T) {
 // TestNewJSONStorage tests the NewJSONStorage function
 func TestNewJSONStorage(t *testing.T) {
 	config := JSONConfig{
-		Directory:   "/tmp/test",
+		Directory:   t.TempDir(),
 		Compression: true,
 		Pretty:      false,
 	}
 
 	storage, err := NewJSONStorage(config)
 
-	// Should return error since JSON storage is not implemented
-	if err == nil {
-		t.Error("Expected error but got none")
+	// Should succeed now that JSON storage is implemented
+	if err != nil {
+		t.Errorf("Expected no error but got: %v", err)
 	}
 
-	expectedErr := "JSON storage not yet implemented"
-	if err.Error() != expectedErr {
-		t.Errorf("Expected error message '%s', got '%s'", expectedErr, err.Error())
-	}
-
-	if storage != nil {
-		t.Errorf("Expected storage to be nil, got %v", storage)
+	if storage == nil {
+		t.Error("Expected storage instance but got nil")
+	} else {
+		// Verify it implements the interface
+		var _ MetricsStorage = storage
+		storage.Close()
 	}
 }
 

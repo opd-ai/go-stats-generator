@@ -140,6 +140,5 @@ func NewSQLiteStorage(config SQLiteConfig) (MetricsStorage, error) {
 
 // NewJSONStorage creates a new JSON file storage backend (forward declaration)
 func NewJSONStorage(config JSONConfig) (MetricsStorage, error) {
-	// Implementation will be in json.go
-	return nil, fmt.Errorf("JSON storage not yet implemented")
+	return NewJSONStorageImpl(config)
 }

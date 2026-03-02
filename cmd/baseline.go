@@ -137,12 +137,29 @@ func initializeStorageBackend() (storage.MetricsStorage, error) {
 		storageType = "sqlite" // Default to SQLite if not specified
 	}
 
+	// Get path configuration (works for both SQLite and JSON)
 	storagePath := viper.GetString("storage.path")
 	if storagePath == "" {
-		storagePath = ".go-stats-generator/metrics.db" // Default path
+		if storageType == "json" {
+			storagePath = ".go-stats-generator/snapshots" // Default directory for JSON
+		} else {
+			storagePath = ".go-stats-generator/metrics.db" // Default path for SQLite
+		}
+	}
+
+	// Check for more specific JSON configuration
+	jsonDir := viper.GetString("storage.json.directory")
+	if jsonDir != "" {
+		storagePath = jsonDir
 	}
 
 	compression := viper.GetBool("storage.compression")
+	jsonCompression := viper.GetBool("storage.json.compression")
+	if jsonCompression {
+		compression = jsonCompression
+	}
+
+	jsonPretty := viper.GetBool("storage.json.pretty")
 
 	// Convert to storage.StorageConfig format
 	storageConfig := storage.StorageConfig{
@@ -158,11 +175,11 @@ func initializeStorageBackend() (storage.MetricsStorage, error) {
 		EnableCompression: compression,
 	}
 
-	// Configure JSON settings (for when JSON storage is implemented)
+	// Configure JSON settings
 	storageConfig.JSON = storage.JSONConfig{
 		Directory:   storagePath,
 		Compression: compression,
-		Pretty:      false, // Compact JSON for storage efficiency
+		Pretty:      jsonPretty,
 	}
 
 	// Use the proper storage factory function that respects configuration
@@ -278,7 +295,7 @@ func outputJSONBaselineResult(snapshot metrics.MetricsSnapshot) error {
 }
 
 func runListBaselines(cmd *cobra.Command, args []string) error {
-	storageBackend, err := initializeStorage()
+	storageBackend, err := initializeStorageBackend()
 	if err != nil {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
@@ -290,19 +307,6 @@ func runListBaselines(cmd *cobra.Command, args []string) error {
 	}
 
 	return outputBaselines(snapshots)
-}
-
-// initializeStorage sets up the storage backend with default configuration
-func initializeStorage() (storage.MetricsStorage, error) {
-	cfg := config.DefaultConfig()
-	sqliteConfig := storage.SQLiteConfig{
-		Path:              cfg.Storage.Path,
-		EnableWAL:         true,
-		MaxConnections:    10,
-		EnableCompression: cfg.Storage.Compression,
-	}
-
-	return storage.NewSQLiteStorage(sqliteConfig)
 }
 
 // retrieveSnapshots fetches all snapshots from storage with default filtering
@@ -398,15 +402,7 @@ func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 	baselineID := args[0]
 
 	// Initialize storage
-	cfg := config.DefaultConfig()
-	sqliteConfig := storage.SQLiteConfig{
-		Path:              cfg.Storage.Path,
-		EnableWAL:         true,
-		MaxConnections:    10,
-		EnableCompression: cfg.Storage.Compression,
-	}
-
-	storageBackend, err := storage.NewSQLiteStorage(sqliteConfig)
+	storageBackend, err := initializeStorageBackend()
 	if err != nil {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
