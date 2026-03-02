@@ -882,11 +882,11 @@ func TestDuplicationAnalyzer_ComputeSimilarity(t *testing.T) {
 	analyzer := NewDuplicationAnalyzer(fset)
 
 	tests := []struct {
-		name           string
-		source1        string
-		source2        string
-		minSimilarity  float64
-		maxSimilarity  float64
+		name          string
+		source1       string
+		source2       string
+		minSimilarity float64
+		maxSimilarity float64
 	}{
 		{
 			name: "identical structures",

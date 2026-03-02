@@ -515,11 +515,11 @@ func (da *DuplicationAnalyzer) ClassifyClone(pair metrics.ClonePair, group []Blo
 	// Type 2: Renamed duplicates (identical structure, different identifiers)
 	// Since we already have the same hash, and it's not exact, it's renamed
 	// The hash is based on normalized structure, so same hash means same structure
-	
+
 	// Compute similarity to distinguish Type 2 from Type 3
 	normalized1 := da.NormalizeBlock(group[0].Original)
 	normalized2 := da.NormalizeBlock(group[1].Original)
-	
+
 	similarity := da.ComputeSimilarity(normalized1, normalized2)
 
 	// Type 2: Very high similarity (>= 0.95), just different identifiers
