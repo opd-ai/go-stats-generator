@@ -492,13 +492,13 @@ type NamingMetrics struct {
 
 // PlacementMetrics contains misplaced declaration analysis results
 type PlacementMetrics struct {
-	MisplacedFunctions int                       `json:"misplaced_functions"`
-	MisplacedMethods   int                       `json:"misplaced_methods"`
-	LowCohesionFiles   int                       `json:"low_cohesion_files"`
-	AvgFileCohesion    float64                   `json:"avg_file_cohesion"`
-	FunctionIssues     []MisplacedFunctionIssue  `json:"function_issues"`
-	MethodIssues       []MisplacedMethodIssue    `json:"method_issues"`
-	CohesionIssues     []FileCohesionIssue       `json:"cohesion_issues"`
+	MisplacedFunctions int                      `json:"misplaced_functions"`
+	MisplacedMethods   int                      `json:"misplaced_methods"`
+	LowCohesionFiles   int                      `json:"low_cohesion_files"`
+	AvgFileCohesion    float64                  `json:"avg_file_cohesion"`
+	FunctionIssues     []MisplacedFunctionIssue `json:"function_issues"`
+	MethodIssues       []MisplacedMethodIssue   `json:"method_issues"`
+	CohesionIssues     []FileCohesionIssue      `json:"cohesion_issues"`
 }
 
 // MisplacedFunctionIssue represents a function that may be better placed in another file

@@ -12,11 +12,11 @@ import (
 
 func TestPlacementAnalyzer_FunctionAffinity(t *testing.T) {
 	tests := []struct {
-		name                  string
-		files                 map[string]string
-		expectedMisplaced     int
-		checkSuggestedFile    string
-		checkCurrentAffinity  float64
+		name                   string
+		files                  map[string]string
+		expectedMisplaced      int
+		checkSuggestedFile     string
+		checkCurrentAffinity   float64
 		checkSuggestedAffinity float64
 	}{
 		{
@@ -144,11 +144,11 @@ func (c *Counter) Increment() { c.count++ }`,
 
 func TestPlacementAnalyzer_FileCohesion(t *testing.T) {
 	tests := []struct {
-		name              string
-		files             map[string]string
+		name                string
+		files               map[string]string
 		expectedLowCohesion int
-		checkCohesionScore float64
-		checkSeverity     string
+		checkCohesionScore  float64
+		checkSeverity       string
 	}{
 		{
 			name: "high cohesion file - all internal references",
