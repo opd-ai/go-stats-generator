@@ -100,12 +100,17 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   - Extract the duplicated block into a single shared function
   - Replace all instances with calls to the shared function
   - No parameterization needed — code is identical
-  - Place the shared function in the most appropriate package (where the majority of callers reside, or in a shared utility package if callers span multiple packages)
+  - **Placement rules:**
+    - If all instances reside in the **same package**, keep the shared function private in that package
+    - If instances span **multiple sub-packages**, move the shared function to a `common` sub-package and export it (uppercase name) so all consumer packages can import it
 
   **For Renamed Clones (Type 2):**
   - Identify the differing identifiers between instances
   - Extract a parameterized function where differing identifiers become parameters
   - Replace all instances with calls passing the appropriate arguments
+  - **Placement rules:**
+    - If all instances reside in the **same package**, keep the shared function private in that package
+    - If instances span **multiple sub-packages**, move the shared function to `common` and export it
   - Example: If two blocks differ only in variable names `userCount` vs `orderCount`, extract a function with a generic parameter name
 
   **For Near Clones (Type 3):**
@@ -116,6 +121,9 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
     * **Interfaces:** If differences represent distinct strategies
   - Extract the common structure and inject the varying parts
   - Accept slightly higher complexity in the shared function if it eliminates significant duplication
+  - **Placement rules:**
+    - If all instances reside in the **same package**, keep the shared function private in that package
+    - If instances span **multiple sub-packages**, move the shared function to `common` and export it; define any required interfaces in `common` as well to avoid import cycles
 
 2. **Create Consolidated Functions:**
   - Name functions using verb-first camelCase (e.g., `processBlock`, `validateEntry`)
@@ -146,7 +154,16 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
     - After refactoring concurrency-sensitive code, validate with `go test -race` to detect data races
   - **Maintain import consistency:**
     - If a shared function is moved to a different package, update all import paths
-    - Avoid circular imports — if consolidation would create a cycle, keep the function in a shared utility package
+    - Avoid circular imports — if consolidation would create a cycle, keep the function in `common`
+  - **Cross-package deduplication via `common`:**
+    - When clones are detected across different sub-packages, create a `common` package to house the shared implementation
+    - Export the consolidated function with an uppercase name (e.g., `common.ProcessBlock`) so all consumer packages can import it
+    - Keep shared types, helper functions, and interfaces that serve multiple packages in `common`
+    - The `common` package must remain a **leaf dependency** — it must not import other project packages to prevent circular imports
+    - If the shared function requires types defined in another package, either:
+      * Move those types to `common` as well, or
+      * Define a minimal interface in `common` that the other package's types satisfy
+    - Update all call sites to import `common` and call the exported function
 
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
