@@ -21,6 +21,9 @@ analysis:
     flag_generic_filenames: true  # Flag overly generic file names like utils.go
     flag_stuttering: true  # Flag file names that repeat directory names
     min_name_length: 2  # Minimum length for identifier names
+  placement:
+    affinity_margin: 0.25  # Margin for function affinity analysis (0.0-1.0)
+    min_cohesion: 0.3  # Minimum file cohesion score (0.0-1.0)
 
 output:
   format: console  # console, json, html

@@ -18,6 +18,7 @@ type Report struct {
 	Generics      GenericMetrics       `json:"generics"`
 	Duplication   DuplicationMetrics   `json:"duplication"`
 	Naming        NamingMetrics        `json:"naming"`
+	Placement     PlacementMetrics     `json:"placement"`
 }
 
 // ReportMetadata contains information about the analysis run
@@ -487,6 +488,48 @@ type NamingMetrics struct {
 	FileNameIssues        []FileNameViolation    `json:"file_name_issues"`
 	IdentifierIssues      []IdentifierViolation  `json:"identifier_issues"`
 	PackageNameIssues     []PackageNameViolation `json:"package_name_issues"`
+}
+
+// PlacementMetrics contains misplaced declaration analysis results
+type PlacementMetrics struct {
+	MisplacedFunctions int                       `json:"misplaced_functions"`
+	MisplacedMethods   int                       `json:"misplaced_methods"`
+	LowCohesionFiles   int                       `json:"low_cohesion_files"`
+	AvgFileCohesion    float64                   `json:"avg_file_cohesion"`
+	FunctionIssues     []MisplacedFunctionIssue  `json:"function_issues"`
+	MethodIssues       []MisplacedMethodIssue    `json:"method_issues"`
+	CohesionIssues     []FileCohesionIssue       `json:"cohesion_issues"`
+}
+
+// MisplacedFunctionIssue represents a function that may be better placed in another file
+type MisplacedFunctionIssue struct {
+	Name              string   `json:"name"`
+	CurrentFile       string   `json:"current_file"`
+	SuggestedFile     string   `json:"suggested_file"`
+	CurrentAffinity   float64  `json:"current_affinity"`
+	SuggestedAffinity float64  `json:"suggested_affinity"`
+	ReferencedSymbols []string `json:"referenced_symbols"`
+	Severity          string   `json:"severity"`
+}
+
+// MisplacedMethodIssue represents a method defined away from its receiver type
+type MisplacedMethodIssue struct {
+	MethodName   string `json:"method_name"`
+	ReceiverType string `json:"receiver_type"`
+	CurrentFile  string `json:"current_file"`
+	ReceiverFile string `json:"receiver_file"`
+	Distance     string `json:"distance"` // "same_package" or "different_package"
+	Severity     string `json:"severity"`
+}
+
+// FileCohesionIssue represents a file with low internal cohesion
+type FileCohesionIssue struct {
+	File            string   `json:"file"`
+	CohesionScore   float64  `json:"cohesion_score"`
+	IntraFileRefs   int      `json:"intra_file_refs"`
+	TotalRefs       int      `json:"total_refs"`
+	SuggestedSplits []string `json:"suggested_splits"`
+	Severity        string   `json:"severity"`
 }
 
 // FileNameViolation represents a file naming convention violation

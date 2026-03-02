@@ -35,6 +35,9 @@ type AnalysisConfig struct {
 
 	// Naming convention settings
 	Naming NamingConfig `mapstructure:"naming" json:"naming"`
+
+	// Placement analysis settings
+	Placement PlacementConfig `mapstructure:"placement" json:"placement"`
 }
 
 // DuplicationConfig controls code duplication detection
@@ -49,6 +52,12 @@ type NamingConfig struct {
 	FlagGenericFilenames bool `mapstructure:"flag_generic_filenames" json:"flag_generic_filenames"`
 	FlagStuttering       bool `mapstructure:"flag_stuttering" json:"flag_stuttering"`
 	MinNameLength        int  `mapstructure:"min_name_length" json:"min_name_length"`
+}
+
+// PlacementConfig controls placement and cohesion analysis
+type PlacementConfig struct {
+	AffinityMargin float64 `mapstructure:"affinity_margin" json:"affinity_margin"`
+	MinCohesion    float64 `mapstructure:"min_cohesion" json:"min_cohesion"`
 }
 
 // OutputConfig controls output formatting
@@ -142,6 +151,10 @@ func DefaultConfig() *Config {
 				FlagGenericFilenames: true,
 				FlagStuttering:       true,
 				MinNameLength:        2,
+			},
+			Placement: PlacementConfig{
+				AffinityMargin: 0.25,
+				MinCohesion:    0.3,
 			},
 		},
 		Output: OutputConfig{
