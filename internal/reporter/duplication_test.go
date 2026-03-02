@@ -310,7 +310,7 @@ func TestConsoleReporter_DuplicationSorting(t *testing.T) {
 	require.NoError(t, err)
 
 	output := buf.String()
-	
+
 	// Verify largest clone appears first in output
 	lines := strings.Split(output, "\n")
 	var cloneTableStarted bool

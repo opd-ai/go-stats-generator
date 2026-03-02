@@ -603,7 +603,7 @@ func (cr *ConsoleReporter) writeDuplicationAnalysis(output io.Writer, report *me
 	for i := 0; i < limit; i++ {
 		clone := clones[i]
 		cloneTypeStr := string(clone.Type)
-		
+
 		// Format first location
 		var locations string
 		if len(clone.Instances) > 0 {
