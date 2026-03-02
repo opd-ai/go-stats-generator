@@ -752,4 +752,3 @@ func TestHTMLReporter_WithPlacement(t *testing.T) {
 	require.Contains(t, html, "mixed.go", "Should include low cohesion file")
 	require.Contains(t, html, "handlers.go", "Should include suggested split")
 }
-
