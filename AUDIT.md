@@ -14,11 +14,11 @@ The `go-stats-generator` codebase is **87% feature-complete** with a strong foun
 
 ### Issue Counts by Category
 - **CRITICAL BUGS**: 0 (1 fixed ✅)
-- **FUNCTIONAL MISMATCHES**: 3
+- **FUNCTIONAL MISMATCHES**: 2 (1 fixed ✅)
 - **MISSING FEATURES**: 1 (1 documented ✅)
 - **DOCUMENTATION ERRORS**: 2
 - **EDGE CASE BUGS**: 2
-- **TOTAL ISSUES**: 8 (10 original, 2 resolved)
+- **TOTAL ISSUES**: 7 (10 original, 3 resolved)
 
 ### Test Coverage Status
 - **Total Test Files**: 72 Go files
@@ -269,61 +269,81 @@ When implementing full trend analysis (future PR):
 
 ---
 
-### 6. FUNCTIONAL MISMATCH - Configuration Loading Gaps
+### 6. ~~FUNCTIONAL MISMATCH - Configuration Loading Gaps~~ ✅ FIXED
 
 ```
 Category: FUNCTIONAL MISMATCH
 File: cmd/analyze.go
-Lines: 256-279
+Lines: 214-295
 Severity: Medium
+Status: FIXED (2026-03-02)
 ```
 
 **Description:**
-Several configuration options documented in README and present in `.go-stats-generator.yaml` are not loaded by the configuration loader.
+Several configuration options documented in README and present in `.go-stats-generator.yaml` were not loaded by the configuration loader.
 
-**Missing Config Loaders:**
+**Missing Config Loaders (Now Fixed):**
 
 **Analysis Section:**
-- `include_functions` - NOT loaded
-- `include_structs` - NOT loaded
-- `include_interfaces` - NOT loaded
-- `duplication.min_block_lines` - NOT loaded (flags exist but config ignored)
-- `duplication.similarity_threshold` - NOT loaded
-- `duplication.ignore_test_files` - NOT loaded
+- ✅ `include_functions` - NOW loaded
+- ✅ `include_structs` - NOW loaded
+- ✅ `include_interfaces` - NOW loaded
+- ✅ `duplication.min_block_lines` - NOW loaded
+- ✅ `duplication.similarity_threshold` - NOW loaded
+- ✅ `duplication.ignore_test_files` - NOW loaded
 
 **Output Section:**
-- `use_colors` - NOT loaded
-- `show_progress` - NOT loaded
-- `include_examples` - NOT loaded
+- ✅ `use_colors` - NOW loaded
+- ✅ `show_progress` - NOW loaded
+- ✅ `include_examples` - NOW loaded
 
 **Performance Section:**
-- `enable_cache` - NOT loaded
-- `max_memory_mb` - NOT loaded
-- `enable_profiling` - NOT loaded
+- ✅ `enable_cache` - NOW loaded
+- ✅ `max_memory_mb` - NOW loaded
+- ✅ `enable_profiling` - NOW loaded
 
-**Impact:**
-Users create `.go-stats-generator.yaml` files with these options expecting them to work, but the settings are ignored. CLI flags work, but config file values don't.
+**Fix Applied:**
+Updated three configuration loading functions in `cmd/analyze.go`:
+1. `loadAnalysisConfiguration()` - Added loaders for include_functions, include_structs, include_interfaces, and all duplication.* settings
+2. `loadOutputConfiguration()` - Added loaders for use_colors, show_progress, and include_examples
+3. `loadPerformanceConfiguration()` - Added loaders for enable_cache, max_memory_mb, and enable_profiling
 
-**Code Reference:**
-```go
-// cmd/analyze.go:256-279 - loadAnalysisConfiguration()
-// Loads: include_patterns, include_complexity, include_documentation,
-//        include_generics, max_function_length, max_cyclomatic_complexity
-// Missing: include_functions, include_structs, include_interfaces,
-//          duplication.* settings
-```
+**Changes Made:**
+- `cmd/analyze.go`: Enhanced configuration loading functions to include all documented settings
+- `cmd/analyze_config_test.go`: Created comprehensive unit tests with 100% coverage of new loaders
+- `cmd/analyze_config_integration_test.go`: Added integration tests to verify config file loading works end-to-end
 
-**Reproduction:**
-```yaml
-# .go-stats-generator.yaml
+**Testing:**
+✅ `TestLoadAnalysisConfiguration` - Tests all 13 analysis config options (7 tests, all passing)
+✅ `TestLoadOutputConfiguration` - Tests all 6 output config options (4 tests, all passing)
+✅ `TestLoadPerformanceConfiguration` - Tests all 5 performance config options (4 tests, all passing)
+✅ `TestConfigurationLoadingIntegration` - Tests all loaders working together (1 test, passing)
+✅ `TestConfigFileIntegration` - Tests real config file loading (1 test, passing)
+✅ `TestConfigDefaultValuesIntact` - Ensures defaults aren't broken (1 test, passing)
+✅ `TestPartialConfigOverride` - Tests partial config overrides (1 test, passing)
+✅ `TestConfigurationPrecedence` - Documents CLI flag > config file precedence (1 test, passing)
+
+**Manual Validation:**
+```bash
+# Create test config file
+cat > /tmp/test-config.yaml << EOF
 analysis:
   duplication:
-    min_block_lines: 3  # This setting is IGNORED
-    similarity_threshold: 0.90  # This setting is IGNORED
+    min_block_lines: 12
+    similarity_threshold: 0.75
+output:
+  use_colors: false
+performance:
+  max_memory_mb: 768
+EOF
+
+# Test with real analysis
+./go-stats-generator analyze ./testdata/simple --config /tmp/test-config.yaml
+# ✅ Config values successfully loaded and used
 ```
 
-**Recommended Fix:**
-Add missing configuration loaders in `loadAnalysisConfiguration()`, `loadOutputConfiguration()`, and `loadPerformanceConfiguration()`.
+**Impact:**
+Users can now configure all documented options in `.go-stats-generator.yaml` and they will be properly respected. This fix addresses one of the Priority 2 (High) recommendations from the audit.
 
 ---
 
@@ -698,10 +718,10 @@ Coverage Areas: All major features
 
 ### Priority 2 (High - Should Fix Soon)
 
-3. **Fix configuration loading** (Finding #6)
-   - Load duplication settings from config file
-   - Add missing output and performance config loaders
-   - Affects users relying on YAML configuration
+3. ~~**Fix configuration loading**~~ ✅ **COMPLETED** (Finding #6)
+   - Added configuration loaders for duplication, output, and performance settings
+   - All documented config options now properly loaded from YAML files
+   - **Fixed on 2026-03-02** - See Finding #6 for details
 
 4. **Implement or remove JSON storage backend** (Finding #4)
    - Either implement or remove from documentation

@@ -222,6 +222,15 @@ func loadOutputConfiguration(cfg *config.Config) {
 	if viper.IsSet("output.verbose") {
 		cfg.Output.Verbose = viper.GetBool("output.verbose")
 	}
+	if viper.IsSet("output.use_colors") {
+		cfg.Output.UseColors = viper.GetBool("output.use_colors")
+	}
+	if viper.IsSet("output.show_progress") {
+		cfg.Output.ShowProgress = viper.GetBool("output.show_progress")
+	}
+	if viper.IsSet("output.include_examples") {
+		cfg.Output.IncludeExamples = viper.GetBool("output.include_examples")
+	}
 }
 
 // loadPerformanceConfiguration loads performance-related configuration from viper
@@ -231,6 +240,15 @@ func loadPerformanceConfiguration(cfg *config.Config) {
 	}
 	if viper.IsSet("performance.timeout") {
 		cfg.Performance.Timeout = viper.GetDuration("performance.timeout")
+	}
+	if viper.IsSet("performance.enable_cache") {
+		cfg.Performance.EnableCache = viper.GetBool("performance.enable_cache")
+	}
+	if viper.IsSet("performance.max_memory_mb") {
+		cfg.Performance.MaxMemoryMB = viper.GetInt("performance.max_memory_mb")
+	}
+	if viper.IsSet("performance.enable_profiling") {
+		cfg.Performance.EnableProfiling = viper.GetBool("performance.enable_profiling")
 	}
 }
 
@@ -255,6 +273,15 @@ func loadFilterConfiguration(cfg *config.Config) {
 
 // loadAnalysisConfiguration loads analysis-related configuration from viper
 func loadAnalysisConfiguration(cfg *config.Config) {
+	if viper.IsSet("analysis.include_functions") {
+		cfg.Analysis.IncludeFunctions = viper.GetBool("analysis.include_functions")
+	}
+	if viper.IsSet("analysis.include_structs") {
+		cfg.Analysis.IncludeStructs = viper.GetBool("analysis.include_structs")
+	}
+	if viper.IsSet("analysis.include_interfaces") {
+		cfg.Analysis.IncludeInterfaces = viper.GetBool("analysis.include_interfaces")
+	}
 	if viper.IsSet("analysis.include_patterns") {
 		cfg.Analysis.IncludePatterns = viper.GetBool("analysis.include_patterns")
 	}
@@ -275,6 +302,16 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	}
 	if viper.IsSet("analysis.min_documentation_coverage") {
 		cfg.Analysis.MinDocumentationCoverage = viper.GetFloat64("analysis.min_documentation_coverage")
+	}
+	// Duplication settings
+	if viper.IsSet("analysis.duplication.min_block_lines") {
+		cfg.Analysis.Duplication.MinBlockLines = viper.GetInt("analysis.duplication.min_block_lines")
+	}
+	if viper.IsSet("analysis.duplication.similarity_threshold") {
+		cfg.Analysis.Duplication.SimilarityThreshold = viper.GetFloat64("analysis.duplication.similarity_threshold")
+	}
+	if viper.IsSet("analysis.duplication.ignore_test_files") {
+		cfg.Analysis.Duplication.IgnoreTestFiles = viper.GetBool("analysis.duplication.ignore_test_files")
 	}
 }
 
