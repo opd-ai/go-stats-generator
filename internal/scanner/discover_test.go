@@ -22,11 +22,11 @@ func createTestFiles(t *testing.T, files map[string]string) string {
 		fullPath := filepath.Join(tempDir, path)
 		dir := filepath.Dir(fullPath)
 
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("Failed to create directory %s: %v", dir, err)
 		}
 
-		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 			t.Fatalf("Failed to write file %s: %v", fullPath, err)
 		}
 	}

@@ -88,7 +88,7 @@ func AnotherFunction(x, y int) int {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testContent), 0644)
+	err := os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestRunFileAnalysisWithNonGoFile(t *testing.T) {
 	tempDir := t.TempDir()
 	testFile := filepath.Join(tempDir, "test.txt")
 
-	err := os.WriteFile(testFile, []byte("This is not a Go file"), 0644)
+	err := os.WriteFile(testFile, []byte("This is not a Go file"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -183,7 +183,7 @@ func SimpleFunction() {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testContent), 0644)
+	err := os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -273,7 +273,7 @@ func add(a, b int) int {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testContent), 0644)
+	err := os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}

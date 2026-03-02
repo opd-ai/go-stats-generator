@@ -33,7 +33,6 @@ func TestAnalyzeStructs_EmptyFile(t *testing.T) {
 
 	analyzer := NewStructAnalyzer(fset)
 	structs, err := analyzer.AnalyzeStructs(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeStructs failed: %v", err)
 	}
@@ -60,7 +59,6 @@ type User struct {
 
 	analyzer := NewStructAnalyzer(fset)
 	structs, err := analyzer.AnalyzeStructs(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeStructs failed: %v", err)
 	}
@@ -166,7 +164,6 @@ type Config struct {
 
 	analyzer := NewStructAnalyzer(fset)
 	structs, err := analyzer.AnalyzeStructs(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeStructs failed: %v", err)
 	}
@@ -246,7 +243,6 @@ type Embedded struct {
 
 	analyzer := NewStructAnalyzer(fset)
 	structs, err := analyzer.AnalyzeStructs(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeStructs failed: %v", err)
 	}
@@ -456,7 +452,6 @@ func TestAnalyzeStructs_Integration(t *testing.T) {
 
 	analyzer := NewStructAnalyzer(fset)
 	structs, err := analyzer.AnalyzeStructs(file, "simple")
-
 	if err != nil {
 		t.Fatalf("AnalyzeStructs failed: %v", err)
 	}
@@ -568,7 +563,6 @@ func (u *User) unexportedMethod() {
 
 	analyzer := NewStructAnalyzer(fset)
 	structs, err := analyzer.AnalyzeStructs(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeStructs failed: %v", err)
 	}

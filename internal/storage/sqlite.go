@@ -574,7 +574,7 @@ func (s *SQLiteStorage) Close() error {
 func createDirIfNotExists(path string) error {
 	dir := filepath.Dir(path)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return os.MkdirAll(dir, 0755)
+		return os.MkdirAll(dir, 0o755)
 	}
 	return nil
 }

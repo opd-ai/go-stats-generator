@@ -67,7 +67,6 @@ func (d *Discoverer) DiscoverFiles(rootDir string) ([]FileInfo, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover files in %s: %w", rootDir, err)
 	}

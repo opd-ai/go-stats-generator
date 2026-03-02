@@ -258,7 +258,7 @@ func outputJSONBaselineResult(snapshot metrics.MetricsSnapshot) error {
 		"baseline": snapshot,
 	}
 
-	var outputWriter = os.Stdout
+	outputWriter := os.Stdout
 	if outputFile != "" {
 		file, err := os.Create(outputFile)
 		if err != nil {
@@ -425,7 +425,7 @@ func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 			"baselineId": baselineID,
 		}
 
-		var outputWriter = os.Stdout
+		outputWriter := os.Stdout
 		if outputFile != "" {
 			file, err := os.Create(outputFile)
 			if err != nil {

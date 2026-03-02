@@ -20,7 +20,7 @@ func createTestFile(t *testing.T, content string) string {
 	t.Cleanup(func() { os.RemoveAll(tempDir) })
 
 	filepath := filepath.Join(tempDir, "test.go")
-	err = os.WriteFile(filepath, []byte(content), 0644)
+	err = os.WriteFile(filepath, []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}

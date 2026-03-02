@@ -52,7 +52,6 @@ func (mr *MarkdownReporter) Generate(report *metrics.Report, output io.Writer) e
 		"truncateList":   mr.truncateList,
 		"escapeMarkdown": mr.escapeMarkdown,
 	}).Parse(markdownTemplate)
-
 	if err != nil {
 		return fmt.Errorf("failed to parse embedded markdown template: %w", err)
 	}
@@ -76,7 +75,6 @@ func (mr *MarkdownReporter) WriteDiff(output io.Writer, diff *metrics.Complexity
 		"formatChangeSign": mr.formatChangeSign,
 		"escapeMarkdown":   mr.escapeMarkdown,
 	}).Parse(markdownDiffTemplate)
-
 	if err != nil {
 		return fmt.Errorf("failed to parse embedded markdown diff template: %w", err)
 	}

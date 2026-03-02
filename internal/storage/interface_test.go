@@ -198,11 +198,9 @@ func TestNewSQLiteStorage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage, err := NewSQLiteStorage(tt.config)
-
 			// Note: Since NewSQLiteStorage calls NewSQLiteStorageImpl which isn't implemented yet,
 			// we expect this to fail gracefully or return an error
 			// This test validates the function signature and basic behavior
-
 			if err != nil {
 				// Log the error but don't fail the test since implementation might not be complete
 				t.Logf("NewSQLiteStorage returned error (expected for incomplete implementation): %v", err)

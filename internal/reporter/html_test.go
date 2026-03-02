@@ -130,11 +130,11 @@ func TestHTMLReporter_DiffTemplateFieldsCorrect(t *testing.T) {
 		},
 		Changes: []metrics.MetricChange{
 			{
-				Category:    "function",       // Fix #8: Correct field
-				Name:        "TestFunc",       // Fix #8: Correct field
-				Description: "Lines changed",  // Fix #8: Correct field
-				OldValue:    20.0,             // Use float64
-				NewValue:    25.0,             // Use float64
+				Category:    "function",      // Fix #8: Correct field
+				Name:        "TestFunc",      // Fix #8: Correct field
+				Description: "Lines changed", // Fix #8: Correct field
+				OldValue:    20.0,            // Use float64
+				NewValue:    25.0,            // Use float64
 				Delta: metrics.Delta{ // Fix #8: Nested structure
 					Percentage: 25.0,
 				},

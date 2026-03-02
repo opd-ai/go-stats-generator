@@ -33,7 +33,6 @@ func TestAnalyzeInterfaces_EmptyFile(t *testing.T) {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -60,7 +59,6 @@ type Writer interface {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -159,7 +157,6 @@ type ReadCloser interface {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -229,7 +226,6 @@ type Handler interface {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -293,7 +289,6 @@ type Any interface{}`
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -525,7 +520,6 @@ type ReadWriteCloser interface {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -634,7 +628,6 @@ func (p *PartialImpl) Write(data []byte) (int, error) {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -696,7 +689,6 @@ type ReadWriter interface {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}
@@ -748,7 +740,6 @@ type ComplexInterface interface {
 
 	analyzer := NewInterfaceAnalyzer(fset)
 	interfaces, err := analyzer.AnalyzeInterfaces(file, "test")
-
 	if err != nil {
 		t.Fatalf("AnalyzeInterfaces failed: %v", err)
 	}

@@ -119,7 +119,7 @@ func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 	if outputFormat == "console" {
 		outputTrendAnalysisConsole(trendAnalysis)
 	} else {
-		var outputWriter = os.Stdout
+		outputWriter := os.Stdout
 		if outputFile != "" {
 			file, err := os.Create(outputFile)
 			if err != nil {
@@ -181,7 +181,7 @@ func runTrendForecast(cmd *cobra.Command, args []string) error {
 	if outputFormat == "console" {
 		outputForecastsConsole(forecasts)
 	} else {
-		var outputWriter = os.Stdout
+		outputWriter := os.Stdout
 		if outputFile != "" {
 			file, err := os.Create(outputFile)
 			if err != nil {
@@ -253,7 +253,7 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 	if outputFormat == "console" {
 		outputRegressionsConsole(regressions)
 	} else {
-		var outputWriter = os.Stdout
+		outputWriter := os.Stdout
 		if outputFile != "" {
 			file, err := os.Create(outputFile)
 			if err != nil {

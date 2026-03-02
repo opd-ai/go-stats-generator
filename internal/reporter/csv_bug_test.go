@@ -43,7 +43,6 @@ func TestCSVReporter_Generate(t *testing.T) {
 	var buf bytes.Buffer
 
 	err := csvReporter.Generate(report, &buf)
-
 	// This should now succeed
 	if err != nil {
 		t.Fatalf("Expected CSV reporter to succeed, but got error: %v", err)
@@ -81,7 +80,6 @@ func TestCSVReporter_WriteDiff(t *testing.T) {
 	}
 
 	err := csvReporter.WriteDiff(&buf, diff)
-
 	// This should now succeed
 	if err != nil {
 		t.Fatalf("Expected CSV diff reporter to succeed, but got error: %v", err)
