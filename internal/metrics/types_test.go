@@ -53,7 +53,7 @@ func TestDuplicationMetricsJSONSerialization(t *testing.T) {
 
 func TestCloneTypeConstants(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		cloneType CloneType
 		expected  string
 	}{
