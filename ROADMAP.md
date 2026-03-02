@@ -44,9 +44,9 @@ Detect duplicated or near-duplicate code blocks that force developers to make th
 ### Step 1.4 — Configuration & Thresholds
 
 - Add config keys in `.go-stats-generator.yaml`:
-  - `duplication.min_block_lines` (default: 6) — minimum block size to consider.
-  - `duplication.similarity_threshold` (default: 0.80) — threshold for Type 3 clones.
-  - `duplication.ignore_test_files` (default: false).
+  - `maintenance.duplication.min_block_lines` (default: 6) — minimum block size to consider.
+  - `maintenance.duplication.similarity_threshold` (default: 0.80) — threshold for Type 3 clones.
+  - `maintenance.duplication.ignore_test_files` (default: false).
 - Wire thresholds into the `analyze` command flags.
 
 ---
@@ -150,7 +150,7 @@ Surface documentation gaps that slow down onboarding and increase maintenance co
 
 ### Step 4.4 — Documentation Metrics & Reporting
 
-- Add `MaintenanceDocMetrics` to `internal/metrics/types.go`:
+- Add `DocumentationMetrics` to `internal/metrics/types.go`:
   - `ExportedWithoutDoc`, `DocCoveragePercent`, `PackagesWithoutDocGo`, `StaleAnnotations`, `AnnotationsByCategory`.
 - Integrate into all output formats with a per-symbol documentation status table.
 
@@ -164,22 +164,22 @@ Detect structural issues that make a codebase hard to navigate and maintain.
 
 - For each `.go` file, report total lines, code lines, comment lines, and blank lines (reuse existing `LineMetrics`).
 - Flag files exceeding configurable thresholds:
-  - `organization.max_file_lines` (default: 500) — total lines.
-  - `organization.max_file_functions` (default: 20) — functions/methods per file.
-  - `organization.max_file_types` (default: 5) — type declarations per file.
+  - `maintenance.organization.max_file_lines` (default: 500) — total lines.
+  - `maintenance.organization.max_file_functions` (default: 20) — functions/methods per file.
+  - `maintenance.organization.max_file_types` (default: 5) — type declarations per file.
 - Rank files by maintenance burden (composite score of size, complexity, and declaration count).
 
 ### Step 5.2 — Package Size & Depth Analysis
 
-- Flag packages with too many files (`organization.max_package_files`, default: 20).
-- Flag packages with too many exported symbols (`organization.max_exported_symbols`, default: 50).
-- Flag deeply nested directory structures (`organization.max_directory_depth`, default: 5).
+- Flag packages with too many files (`maintenance.organization.max_package_files`, default: 20).
+- Flag packages with too many exported symbols (`maintenance.organization.max_exported_symbols`, default: 50).
+- Flag deeply nested directory structures (`maintenance.organization.max_directory_depth`, default: 5).
 - Detect "mega-packages" that combine unrelated concerns (low cohesion + high symbol count).
 
 ### Step 5.3 — Import Graph Health
 
 - Extend the existing `PackageAnalyzer` to report:
-  - Files with excessive imports (`organization.max_file_imports`, default: 15).
+  - Files with excessive imports (`maintenance.organization.max_file_imports`, default: 15).
   - Packages that are imported by many other packages ("hub" packages) — high fan-in indicates a change bottleneck.
   - Packages that import many other packages ("authority" packages) — high fan-out indicates potential coupling.
 - Compute an instability metric per package: `fan-out / (fan-in + fan-out)`.
@@ -213,15 +213,15 @@ Catch common patterns that increase the cost of understanding and changing code.
 ### Step 6.3 — Parameter List & Return Value Complexity
 
 - Extend the existing `FunctionAnalyzer`:
-  - Flag functions with more than a configurable number of parameters (`burden.max_params`, default: 5).
-  - Flag functions with more than a configurable number of return values (`burden.max_returns`, default: 3).
+  - Flag functions with more than a configurable number of parameters (`maintenance.burden.max_params`, default: 5).
+  - Flag functions with more than a configurable number of return values (`maintenance.burden.max_returns`, default: 3).
   - Flag bool parameters ("flag arguments") that indicate the function does two things.
 - Suggest introducing option structs or splitting functions.
 
 ### Step 6.4 — Deep Nesting Detection
 
 - Extend the existing nesting depth analysis:
-  - Flag functions with nesting depth exceeding a configurable threshold (`burden.max_nesting`, default: 4).
+  - Flag functions with nesting depth exceeding a configurable threshold (`maintenance.burden.max_nesting`, default: 4).
   - Report the deepest nesting point with file and line for each flagged function.
 - Suggest early returns and guard clauses as refactoring strategies.
 
@@ -254,7 +254,7 @@ Combine all maintenance burden signals into a unified, prioritized report.
   - Documentation gaps (Phase 4)
   - Organizational problems (Phase 5)
   - Additional burden indicators (Phase 6)
-- Make weights configurable in `.go-stats-generator.yaml` under a `burden.weights` section.
+- Make weights configurable in `.go-stats-generator.yaml` under a `maintenance.scoring.weights` section.
 - Normalize the score to a 0–100 scale where 0 = no burden and 100 = critical maintenance risk.
 
 ### Step 7.2 — Prioritized Refactoring Suggestions
