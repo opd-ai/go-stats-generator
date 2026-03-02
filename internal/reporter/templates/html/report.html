@@ -35,6 +35,9 @@
             {{if gt .Report.Duplication.ClonePairs 0}}
             <button class="nav-tab" data-tab="duplication">Duplication</button>
             {{end}}
+            {{if or (gt .Report.Naming.FileNameViolations 0) (gt .Report.Naming.IdentifierViolations 0) (gt .Report.Naming.PackageNameViolations 0)}}
+            <button class="nav-tab" data-tab="naming">Naming</button>
+            {{end}}
             {{if .Report.Patterns.ConcurrencyPatterns}}
             <button class="nav-tab" data-tab="concurrency">Concurrency</button>
             {{end}}
@@ -284,6 +287,120 @@
                     </tbody>
                 </table>
             </div>
+        </section>
+        {{end}}
+
+        <!-- Naming Convention Tab -->
+        {{if or (gt .Report.Naming.FileNameViolations 0) (gt .Report.Naming.IdentifierViolations 0) (gt .Report.Naming.PackageNameViolations 0)}}
+        <section id="naming" class="tab-content">
+            <h2>Naming Convention Analysis</h2>
+            
+            <!-- Naming Summary Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>{{.Report.Naming.FileNameViolations}}</h3>
+                    <p>File Name Violations</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{.Report.Naming.IdentifierViolations}}</h3>
+                    <p>Identifier Violations</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{.Report.Naming.PackageNameViolations}}</h3>
+                    <p>Package Name Violations</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Naming.OverallNamingScore}}</h3>
+                    <p>Overall Naming Score</p>
+                </div>
+            </div>
+
+            <!-- Identifier Violations Table -->
+            {{if gt (len .Report.Naming.IdentifierIssues) 0}}
+            <div class="table-container">
+                <h3>Identifier Violations</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Name</th>
+                            <th role="columnheader">Type</th>
+                            <th role="columnheader">Violation</th>
+                            <th role="columnheader">Severity</th>
+                            <th role="columnheader">File:Line</th>
+                            <th role="columnheader">Suggested Fix</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Naming.IdentifierIssues}}
+                        <tr role="row">
+                            <td><code>{{.Name}}</code></td>
+                            <td>{{.Type}}</td>
+                            <td>{{.ViolationType}}</td>
+                            <td><span class="badge severity-{{.Severity}}">{{.Severity}}</span></td>
+                            <td>{{.File}}:{{.Line}}</td>
+                            <td>{{if .SuggestedName}}<code>{{.SuggestedName}}</code>{{else}}-{{end}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
+            <!-- Package Name Violations Table -->
+            {{if gt (len .Report.Naming.PackageNameIssues) 0}}
+            <div class="table-container">
+                <h3>Package Name Violations</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Package</th>
+                            <th role="columnheader">Violation</th>
+                            <th role="columnheader">Severity</th>
+                            <th role="columnheader">Description</th>
+                            <th role="columnheader">Suggested Fix</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Naming.PackageNameIssues}}
+                        <tr role="row">
+                            <td><code>{{.Package}}</code></td>
+                            <td>{{.ViolationType}}</td>
+                            <td><span class="badge severity-{{.Severity}}">{{.Severity}}</span></td>
+                            <td>{{.Description}}</td>
+                            <td>{{if .SuggestedName}}<code>{{.SuggestedName}}</code>{{else}}-{{end}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
+            <!-- File Name Violations Table -->
+            {{if gt (len .Report.Naming.FileNameIssues) 0}}
+            <div class="table-container">
+                <h3>File Name Violations</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">File</th>
+                            <th role="columnheader">Violation</th>
+                            <th role="columnheader">Severity</th>
+                            <th role="columnheader">Suggested Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Naming.FileNameIssues}}
+                        <tr role="row">
+                            <td>{{.File}}</td>
+                            <td>{{.ViolationType}}</td>
+                            <td><span class="badge severity-{{.Severity}}">{{.Severity}}</span></td>
+                            <td><code>{{.SuggestedName}}</code></td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
         </section>
         {{end}}
 

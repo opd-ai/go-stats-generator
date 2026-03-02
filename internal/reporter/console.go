@@ -63,6 +63,12 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writeDuplicationAnalysis(output, report)
 	}
 
+	// Naming analysis section
+	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
+	if cr.config.IncludeDetails && totalNamingViolations > 0 {
+		cr.writeNamingAnalysis(output, report)
+	}
+
 	// Footer
 	cr.writeFooter(output, report)
 
@@ -622,4 +628,143 @@ func (cr *ConsoleReporter) writeDuplicationAnalysis(output io.Writer, report *me
 		)
 	}
 	fmt.Fprintln(output)
+}
+
+// writeNamingAnalysis generates naming convention analysis output
+func (cr *ConsoleReporter) writeNamingAnalysis(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== NAMING CONVENTION ANALYSIS ===")
+
+	naming := report.Naming
+	fmt.Fprintf(output, "File Name Violations: %d\n", naming.FileNameViolations)
+	fmt.Fprintf(output, "Identifier Violations: %d\n", naming.IdentifierViolations)
+	fmt.Fprintf(output, "Package Name Violations: %d\n", naming.PackageNameViolations)
+	fmt.Fprintf(output, "Overall Naming Score: %.2f\n", naming.OverallNamingScore)
+	fmt.Fprintln(output)
+
+	// Display identifier violations (most common)
+	if len(naming.IdentifierIssues) > 0 {
+		cr.writeIdentifierViolations(output, naming.IdentifierIssues)
+	}
+
+	// Display package name violations
+	if len(naming.PackageNameIssues) > 0 {
+		cr.writePackageNameViolations(output, naming.PackageNameIssues)
+	}
+
+	// Display file name violations
+	if len(naming.FileNameIssues) > 0 {
+		cr.writeFileNameViolations(output, naming.FileNameIssues)
+	}
+}
+
+// writeIdentifierViolations displays identifier naming violations
+func (cr *ConsoleReporter) writeIdentifierViolations(output io.Writer, violations []metrics.IdentifierViolation) {
+	// Sort by severity (high > medium > low) then by file
+	sorted := make([]metrics.IdentifierViolation, len(violations))
+	copy(sorted, violations)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Severity != sorted[j].Severity {
+			return severityWeight(sorted[i].Severity) > severityWeight(sorted[j].Severity)
+		}
+		return sorted[i].File < sorted[j].File
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d Identifier Violations:\n", limit)
+	fmt.Fprintf(output, "%-25s %-10s %-12s %-40s\n", "Name", "Type", "Violation", "File:Line")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		v := sorted[i]
+		location := fmt.Sprintf("%s:%d", cr.truncate(v.File, 30), v.Line)
+		fmt.Fprintf(output, "%-25s %-10s %-12s %-40s\n",
+			cr.truncate(v.Name, 25),
+			v.Type,
+			cr.truncate(v.ViolationType, 12),
+			location,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writePackageNameViolations displays package naming violations
+func (cr *ConsoleReporter) writePackageNameViolations(output io.Writer, violations []metrics.PackageNameViolation) {
+	// Sort by severity
+	sorted := make([]metrics.PackageNameViolation, len(violations))
+	copy(sorted, violations)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Severity != sorted[j].Severity {
+			return severityWeight(sorted[i].Severity) > severityWeight(sorted[j].Severity)
+		}
+		return sorted[i].Package < sorted[j].Package
+	})
+
+	fmt.Fprintln(output, "Package Name Violations:")
+	fmt.Fprintf(output, "%-20s %-20s %-40s\n", "Package", "Violation", "Description")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for _, v := range sorted {
+		fmt.Fprintf(output, "%-20s %-20s %-40s\n",
+			cr.truncate(v.Package, 20),
+			cr.truncate(v.ViolationType, 20),
+			cr.truncate(v.Description, 40),
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeFileNameViolations displays file naming violations
+func (cr *ConsoleReporter) writeFileNameViolations(output io.Writer, violations []metrics.FileNameViolation) {
+	// Sort by severity
+	sorted := make([]metrics.FileNameViolation, len(violations))
+	copy(sorted, violations)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Severity != sorted[j].Severity {
+			return severityWeight(sorted[i].Severity) > severityWeight(sorted[j].Severity)
+		}
+		return sorted[i].File < sorted[j].File
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d File Name Violations:\n", limit)
+	fmt.Fprintf(output, "%-40s %-20s %-30s\n", "File", "Violation", "Suggested Name")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		v := sorted[i]
+		fmt.Fprintf(output, "%-40s %-20s %-30s\n",
+			cr.truncate(v.File, 40),
+			cr.truncate(v.ViolationType, 20),
+			cr.truncate(v.SuggestedName, 30),
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// severityWeight returns numeric weight for severity sorting
+func severityWeight(severity string) int {
+	switch severity {
+	case "high":
+		return 3
+	case "medium":
+		return 2
+	case "low":
+		return 1
+	default:
+		return 0
+	}
 }
