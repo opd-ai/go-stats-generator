@@ -36,9 +36,9 @@ type AnalysisConfig struct {
 
 // DuplicationConfig controls code duplication detection
 type DuplicationConfig struct {
-	MinBlockLines        int     `mapstructure:"min_block_lines" json:"min_block_lines"`
-	SimilarityThreshold  float64 `mapstructure:"similarity_threshold" json:"similarity_threshold"`
-	IgnoreTestFiles      bool    `mapstructure:"ignore_test_files" json:"ignore_test_files"`
+	MinBlockLines       int     `mapstructure:"min_block_lines" json:"min_block_lines"`
+	SimilarityThreshold float64 `mapstructure:"similarity_threshold" json:"similarity_threshold"`
+	IgnoreTestFiles     bool    `mapstructure:"ignore_test_files" json:"ignore_test_files"`
 }
 
 // OutputConfig controls output formatting

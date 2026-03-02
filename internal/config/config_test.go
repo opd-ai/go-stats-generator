@@ -467,4 +467,3 @@ func TestDuplicationConfig_FieldsAccessible(t *testing.T) {
 		t.Error("IgnoreTestFiles field should be mutable")
 	}
 }
-

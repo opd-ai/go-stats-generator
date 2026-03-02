@@ -122,8 +122,8 @@ func TestDuplicate(t *testing.T) {
 		report := &metrics.Report{}
 		collectedMetrics := &CollectedMetrics{
 			Files: map[string]*ast.File{
-				"regular.go":      regularFile,
-				"filter_test.go":  testFile,
+				"regular.go":     regularFile,
+				"filter_test.go": testFile,
 			},
 		}
 
@@ -161,8 +161,8 @@ func duplicate() {
 		report := &metrics.Report{}
 		collectedMetrics := &CollectedMetrics{
 			Files: map[string]*ast.File{
-				"regular.go":       regularFile,
-				"include_test.go":  testFile,
+				"regular.go":      regularFile,
+				"include_test.go": testFile,
 			},
 		}
 
