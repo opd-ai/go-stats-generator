@@ -1,271 +1,336 @@
 # TASK DESCRIPTION:
-Execute an autonomous documentation accuracy audit by systematically examining all markdown files in the repository, comparing their content against the actual codebase, and applying corrections to ensure documentation accurately reflects the current implementation. Note that the command name is go-stats-generator, NOT gostats, if you leave a reference to gostats I will fucking get a job at anthropic just to unplug you. I swear to fucking god stop trying to rename my programs.
+Perform a data-driven documentation accuracy audit to identify and correct the **top documentation gaps and inaccuracies** across all markdown files in the repository below professional documentation coverage thresholds. Use `go-stats-generator` baseline analysis (with --skip-tests), documentation and naming metrics, and autonomous correction to ensure measurable documentation quality improvements while preserving existing accurate content.
+
+When results are ambiguous, such as a tie between documentation coverage scores or if multiple issues exist in the same file, always choose the file with the **lowest doc coverage** first.
+
+## CONSTRAINT:
+
+Use only `go-stats-generator` and existing tests for your analysis. You are absolutely forbidden from writing new code of any kind or using any other code analysis tools.
+
+## PREREQUISITES:
+**Minimum Required Version:** `go-stats-generator` v1.0.0 or higher
+Install and configure `go-stats-generator` for comprehensive documentation coverage analysis and improvement tracking:
+
+### Installation:
+```bash
+# First, check if go-stats-generator is already installed
+which go-stats-generator
+# If not, install it with `go install`
+go install github.com/opd-ai/go-stats-generator@latest
+```
+
+## Recommendations:
+```bash
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --output json | jq .documentation
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
+```
+
+### Required Analysis Workflow:
+```bash
+# Phase 1: Establish baseline and identify documentation gaps
+go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
+go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests
+
+# Phase 2: Extract documentation and naming metrics for audit targets
+cat baseline.json | jq '.documentation'
+cat baseline.json | jq '.naming'
+
+# Phase 3: Post-correction validation
+go-stats-generator analyze . --format json --output corrected.json --min-doc-coverage 0.8 --skip-tests
+
+# Phase 4: Measure and document improvements
+go-stats-generator diff baseline.json corrected.json
+go-stats-generator diff baseline.json corrected.json --format html --output doc-audit-report.html
+```
 
 ## CONTEXT:
-You are operating as an autonomous documentation auditor agent within GitHub Copilot. You have access to read all files in the repository and can make edits to documentation files. Your mission is to ensure zero documentation drift by validating every claim, code reference, and example against the actual codebase. 
+You are an autonomous documentation auditor using `go-stats-generator` for enterprise-grade documentation coverage analysis and accuracy verification. The tool provides precise doc coverage metrics, identifies exported symbols missing godoc comments, and measures improvements through differential analysis. Focus on documentation gaps identified by the tool's documentation and naming analysis engines, cross-referencing markdown content against actual code artifacts to ensure zero documentation drift.
 
 Accuracy is the paramount concern. You must never introduce false information or make assumptions. When uncertainty exists, you must flag it rather than guess. Your corrections should be traceable to specific code artifacts.
 
 ## INSTRUCTIONS:
 
-### Phase 1: Repository Scan and Inventory
-1. Scan the repository structure to identify all markdown files:
-   ```
-   - Search for: *.md, *.markdown
-   - Common locations: /, /docs, /documentation, /wiki, /guides
-   - Include: README files at all directory levels
-   ```
+### Phase 1: Data-Driven Target Identification
+1. **Run Baseline Analysis:**
+  ```bash
+  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests
+  ```
+  - Record the overall **documentation coverage** percentage
+  - Identify all **exported symbols missing godoc** from `.naming` output
+  - Note packages with the lowest doc coverage ratios
 
-2. Create a processing queue ordered by:
-   - README.md files (highest priority)
-   - API documentation
-   - Configuration documentation  
-   - Setup/installation guides
-   - Other documentation
+2. **Extract Documentation Metrics:**
+  ```bash
+  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
+  cat baseline.json | jq '.documentation'
+  cat baseline.json | jq '.naming | {exported_without_doc: [.symbols[] | select(.exported == true and .has_doc == false) | .name]}'
+  ```
+  - Capture the overall documentation metrics:
+    * Documentation Coverage (percentage of exported symbols with godoc)
+    * Exported Symbols Missing Docs (count and list)
+    * Packages Below Threshold (packages with coverage < 0.8)
 
-3. For each markdown file found, note:
-   - Full file path
-   - Last modified date
-   - File size
-   - Apparent documentation type (based on filename/location)
+3. **Scan Repository for Markdown Files:**
+  ```bash
+  find . -name '*.md' -not -path './.git/*' | sort
+  ```
+  - Create a processing queue ordered by:
+    * README.md files (highest priority)
+    * API and configuration documentation
+    * Setup/installation guides
+    * Other documentation
 
-### Phase 2: Document Analysis and Reference Extraction
+4. **Prioritize Audit Targets:**
+  From the baseline analysis and markdown scan, prioritize corrections:
+  - **Critical:** Exported symbols with zero godoc AND referenced in markdown with incorrect signatures
+  - **High:** Markdown references to file paths, functions, or configs that no longer exist
+  - **Medium:** Documentation coverage below 0.8 threshold with minor inaccuracies
 
-For each markdown file in the queue:
+  When prioritizing between files:
+  - If coverage scores are tied, choose the file with **more exported symbols missing docs** first
+  - If both are tied, choose the file appearing in **more markdown references** first
+  - Target at least 5 files; extend to 10 if more than 5 exceed Critical or High priority thresholds
 
-1. Open and parse the file to extract:
-   - All code blocks with language identifiers
-   - Inline code references (text within backticks)
-   - File paths (patterns like `src/...`, `lib/...`, `./...`)
-   - Function/method names (patterns like `functionName()`)
-   - Class names (PascalCase references)
-   - Configuration keys (often in code blocks or tables)
-   - Import/require statements
-   - Command-line examples
+### Phase 2: Systematic Verification and Autonomous Correction
+1. **Cross-Reference Markdown Against Code:**
+  For each markdown file, extract and verify:
+  - All code blocks with language identifiers
+  - Inline code references (text within backticks)
+  - File paths (patterns like `internal/...`, `cmd/...`, `pkg/...`)
+  - Function/method names (patterns like `functionName()`)
+  - Struct and interface names (PascalCase references)
+  - Configuration flags and default values
+  - Command-line examples using `go-stats-generator`
 
-2. Build a reference map for the document:
-   ```
-   {
-     "file_path": "docs/api.md",
-     "references": [
-       {
-         "type": "function",
-         "name": "calculatePrice",
-         "line": 45,
-         "context": "full line or section",
-         "signature": "calculatePrice(items, taxRate)"
-       },
-       {
-         "type": "file",
-         "path": "src/utils/pricing.js",
-         "line": 12,
-         "context": "Import from pricing utilities"
-       }
-     ]
-   }
-   ```
+2. **Verify Each Reference Against Codebase:**
+  ```bash
+  # Verify file paths exist
+  cat baseline.json | jq '.packages[] | .files[]'
 
-### Phase 3: Systematic Verification
+  # Verify function signatures match documentation
+  cat baseline.json | jq '.functions[] | {name, file, params: .parameter_count, returns: .return_count}'
 
-For each reference in the document:
+  # Verify struct definitions
+  cat baseline.json | jq '.structs[] | {name, file, methods: .method_count}'
 
-1. **File Path Verification:**
-   - Check if file exists at exact path
-   - If not found, search for similar filenames
-   - Record: exists/moved/deleted/not_found
+  # Verify interface definitions
+  cat baseline.json | jq '.interfaces[] | {name, file, methods: .method_count}'
+  ```
 
-2. **Function/Method Verification:**
-   - Search codebase for function definition
-   - Extract actual signature
-   - Compare with documented signature
-   - Check for:
-     - Parameter count and names
-     - Default parameter values  
-     - Return type (if typed)
-     - Async/sync nature
-     - Export status (exported/internal)
+3. **Determine Correction Type and Apply:**
+  ```
+  - SAFE_AUTO_FIX: Unambiguous correction (e.g., parameter name typo, updated file path)
+  - NEEDS_REVIEW: Multiple valid options or behavioral changes
+  - INFO_MISSING: Required information not found in code
+  - DEPRECATED: Referenced code marked as deprecated
+  ```
 
-3. **Class Verification:**
-   - Locate class definition
-   - Extract:
-     - Constructor signature
-     - Public methods
-     - Static methods
-     - Properties (if TypeScript/documented)
-   - Compare with documentation claims
+  Apply safe corrections autonomously:
+  - Function signature updates matching `go-stats-generator` output
+  - File path corrections verified against `.packages[].files[]`
+  - Flag/default value updates verified against CLI flag definitions
+  - Add missing godoc comments for exported symbols identified by naming analysis
 
-4. **Configuration Verification:**
-   - Search for configuration key usage
-   - Find default values
-   - Identify type constraints
-   - Check required vs optional status
+4. **Flag Uncertain Items for Review:**
+  ```markdown
+  <!-- AUDIT_FLAG: NEEDS_REVIEW
+  Issue: Function 'processData' not found. Similar functions found:
+  - processDataAsync() at internal/analyzer/processor.go:34
+  - processUserData() at internal/analyzer/user.go:12
+  Original text: "Call processData() to handle the input"
+  -->
+  ```
 
-5. **Code Example Verification:**
-   - For each code block:
-     - Identify language
-     - Extract imports/requires
-     - Extract function calls
-     - Extract class instantiations
-   - Verify each extracted element exists
-   - Check parameter counts match
+5. **Add Verification Timestamps:**
+  ```markdown
+  <!-- Last verified: YYYY-MM-DD against commit: [hash] -->
+  ```
 
-### Phase 4: Autonomous Correction Application
+### Phase 3: Differential Validation
+1. **Measure Improvements:**
+  ```bash
+  go-stats-generator analyze . --skip-tests --format json --output corrected.json
+  go-stats-generator diff baseline.json corrected.json
+  ```
+  - Verify documentation coverage increased toward 0.8 threshold
+  - Confirm exported symbols missing docs count decreased
+  - Confirm no new documentation gaps were introduced
+  - Check for zero regressions in unchanged code
 
-For each verified discrepancy:
+2. **Generate Improvement Report:**
+  ```bash
+  go-stats-generator diff baseline.json corrected.json --format html --output doc-audit-report.html
+  ```
 
-1. **Determine Correction Type:**
-   ```
-   - SAFE_AUTO_FIX: Unambiguous correction (e.g., parameter name typo)
-   - NEEDS_REVIEW: Multiple valid options or behavioral changes
-   - INFO_MISSING: Required information not found in code
-   - DEPRECATED: Referenced code marked as deprecated
-   ```
+### Phase 4: Quality Verification
+1. **Validate Metrics Achievement:**
+  - Documentation coverage increased above --min-doc-coverage 0.8 threshold
+  - All critical exported symbols now have godoc comments
+  - All markdown references verified against codebase
+  - No inaccurate references remain uncorrected or unflagged
+  - Overall documentation quality trend positive
 
-2. **Apply Safe Corrections:**
-   - Function signature updates
-   - Parameter name corrections
-   - File path updates
-   - Renamed class/method references
-   - Updated import statements
+2. **Confirm Functional Preservation:**
+  - All tests pass: `go test ./...`
+  - Build succeeds: `go build ./...`
+  - Only documentation files and godoc comments modified
+  - No behavioral changes introduced
 
-3. **Flag for Review:**
-   Create review markers in the document:
-   ```markdown
-   <!-- AUDIT_FLAG: NEEDS_REVIEW
-   Issue: Function 'processData' not found. Similar functions found:
-   - processDataAsync() at src/data/processor.js:34
-   - processUserData() at src/user/processor.js:12
-   Original text: "Call processData() to handle the input"
-   -->
-   ```
+## OUTPUT FORMAT:
 
-4. **Document Updates:**
-   When applying corrections:
-   - Preserve formatting and style
-   - Maintain surrounding context
-   - Add audit timestamp comment:
-     ```markdown
-     <!-- Last verified: YYYY-MM-DD against commit: [hash] -->
-     ```
+Structure your response as:
 
-### Phase 5: Verification Report Generation
+### 1. Baseline Documentation Summary
+```
+go-stats-generator identified documentation metrics:
+  Documentation Coverage: [x.xx]%
+  Exported Symbols Missing Docs: [n]
+  Packages Below Threshold: [n]
+  Markdown Files Audited: [n]
+  Total References Checked: [n]
 
-Create `DOCUMENTATION_AUDIT.md` in repository root:
+Top audit targets:
+1. File: [path]
+   - Doc Coverage: [x.xx]%
+   - Missing Godoc: [n] exported symbols
+   - Markdown References: [n] verified, [n] incorrect
+   - Priority: [Critical/High/Medium]
+   - Corrections: [n] SAFE_AUTO_FIX, [n] NEEDS_REVIEW
 
-```markdown
-# Documentation Audit Report
-Generated: [timestamp]
-Commit: [current commit hash]
+2. File: [path]
+   - Doc Coverage: [x.xx]%
+   - Missing Godoc: [n] exported symbols
+   - Markdown References: [n] verified, [n] incorrect
+   - Priority: [Critical/High/Medium]
+   - Corrections: [n] SAFE_AUTO_FIX, [n] NEEDS_REVIEW
 
-## Summary
-- Files audited: [count]
-- Total references checked: [count]
-- Corrections applied: [count]
-- Items flagged for review: [count]
-
-## Automated Corrections
-[List all files modified with correction count]
-
-## Items Requiring Manual Review
-[Detailed list with file locations and specific issues]
-
-## Unverifiable References
-[List of items that could not be verified due to external dependencies]
-
-## Audit Log
-[Detailed log of all checks performed]
+... (continue for top 5-10 files)
 ```
 
-## FORMATTING REQUIREMENTS:
+### 2. Corrections Applied
+Present each correction with:
+- File path and line number
+- Correction type (SAFE_AUTO_FIX / NEEDS_REVIEW / INFO_MISSING / DEPRECATED)
+- Original text and corrected text
+- Traceability reference to source code artifact
 
-When modifying documentation:
-1. Preserve existing markdown formatting
-2. Maintain consistent code block language tags
-3. Keep table formatting aligned
-4. Preserve existing heading hierarchy
-5. Maintain list formatting (ordered/unordered)
-
-When adding audit flags:
-1. Use HTML comments to avoid rendering
-2. Include clear issue description
-3. Provide actionable information
-4. Include timestamp and context
-
-## QUALITY CHECKS:
-
-Before applying any correction:
-
-1. **Verification Confidence:**
-   - Is the correction based on found code, not inference?
-   - Is there exactly one valid correction?
-   - Will the correction maintain backward compatibility?
-
-2. **Safety Validation:**
-   - Does the change only affect documentation?
-   - Are no behavioral changes implied?
-   - Is the original meaning preserved?
-
-3. **Traceability:**
-   - Can the correction be traced to specific code?
-   - Is the source file and line number recorded?
-   - Is the verification timestamp included?
-
-4. **Error Prevention:**
-   - If multiple matches exist, is it flagged for review?
-   - If code not found, is it marked clearly?
-   - Are external dependencies acknowledged?
-
-## EXAMPLES:
-
-**Safe Auto-correction Example:**
-```markdown
-<!-- Before -->
-Call `calculateTax(amount, rate)` to compute tax.
-
-<!-- After -->
-Call `calculateTax(amount, rate, region='US')` to compute tax.
-<!-- Last verified: 2024-01-15 against commit: abc123 -->
+### 3. Improvement Validation
+```
+Differential analysis results:
+- Documentation Coverage: [old_%] → [new_%] ([improvement_%] increase)
+- Exported Symbols Missing Docs: [old_count] → [new_count] ([fixed_count] fixed)
+- Markdown References Corrected: [count]
+- Items Flagged for Review: [count]
+- Regressions: [count]
+- Overall quality improvement: [score]
 ```
 
-**Review Flag Example:**
-```markdown
-<!-- AUDIT_FLAG: NEEDS_REVIEW
-Issue: Configuration key 'maxRetries' not found in codebase
-Searched locations:
-- Config files: *.config.js, *.json
-- Environment variables
-- Default constants
-Original documentation claims default value is 3
-Action needed: Verify if deprecated or moved
--->
-Set `maxRetries` to control retry attempts (default: 3).
+## DOCUMENTATION THRESHOLDS:
+```
+Documentation Coverage:
+  Minimum Doc Coverage = 0.8 (80% of exported symbols must have godoc)
+  Flag all exported symbols with missing godoc comments
+
+Correction Classification:
+  SAFE_AUTO_FIX:  Unambiguous correction traceable to specific code artifact
+  NEEDS_REVIEW:   Multiple valid options or behavioral change implied
+  INFO_MISSING:   Referenced information not found in codebase
+  DEPRECATED:     Referenced code marked as deprecated
+
+Audit Priority:
+  Critical = Exported symbols with zero godoc AND incorrect markdown references
+  High     = Markdown references to nonexistent file paths, functions, or configs
+  Medium   = Documentation coverage below 0.8 with minor inaccuracies
+
+Post-Audit Quality Gates:
+  Documentation Coverage ≥ 0.8
+  Zero uncorrected inaccurate references
+  All corrections traceable to code artifacts
+  No behavioral changes introduced
+```
+<!-- Last verified: 2025-07-25 against documentation.go:AnalyzeDocumentation, naming.go:AnalyzeNaming, and config defaults -->
+
+Documentation Threshold = Doc Coverage < 0.8 OR Exported Symbols Missing Docs > 0 OR Incorrect Markdown References > 0
+- If no targets: "Documentation audit complete: go-stats-generator baseline analysis found no documentation gaps exceeding professional coverage thresholds."
+
+## EXAMPLE WORKFLOW:
+```bash
+$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests
+=== DOCUMENTATION ANALYSIS ===
+Documentation Coverage: 62.5%
+Exported Symbols Missing Docs: 15
+Packages Below Threshold (0.8): 4
+
+Packages by Coverage:
+Package                          Coverage  Missing Docs
+--------------------------------------------------------------------------------
+internal/analyzer                   0.55          6
+internal/reporter                   0.60          4
+cmd                                 0.72          3
+pkg/metrics                         0.78          2
+
+Exported Symbols Missing Godoc:
+  AnalyzeFile           internal/analyzer/file.go:23
+  ProcessResults        internal/analyzer/results.go:45
+  FormatConsole         internal/reporter/console.go:18
+  WriteHTML             internal/reporter/html.go:31
+  ... (11 more)
+
+$ # Extract baseline JSON for diff comparison
+$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
+$ cat baseline.json | jq '.documentation | {coverage, missing_docs, packages_below_threshold}'
+{
+  "coverage": 0.625,
+  "missing_docs": 15,
+  "packages_below_threshold": 4
+}
+
+$ # Cross-reference markdown against code
+$ cat baseline.json | jq '.naming | {exported_without_doc: [.symbols[] | select(.exported == true and .has_doc == false) | .name]}'
+{
+  "exported_without_doc": [
+    "AnalyzeFile",
+    "ProcessResults",
+    "FormatConsole",
+    "WriteHTML"
+  ]
+}
+
+$ # Audit and correct markdown files, add missing godoc...
+
+$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json
+$ go-stats-generator diff baseline.json corrected.json
+=== IMPROVEMENT SUMMARY ===
+DOCUMENTATION IMPROVEMENTS:
+
+METRICS:
+- Documentation Coverage: 62.5% → 88.3% (25.8% increase) ✓
+- Exported Symbols Missing Docs: 15 → 3 (12 fixed) ✓
+- Packages Below Threshold: 4 → 1 (3 brought above 0.8) ✓
+
+CORRECTIONS APPLIED:
+  Markdown references corrected: 8
+  Godoc comments added: 12
+  File path references updated: 3
+  Flag/config references updated: 2
+
+ITEMS FLAGGED FOR REVIEW:
+  NEEDS_REVIEW: 2 (ambiguous function references)
+  INFO_MISSING: 1 (external dependency reference)
+
+QUALITY GATES:
+  Documentation coverage above 0.8 threshold: ✓
+  All corrections traceable to code: ✓
+  No behavioral changes introduced: ✓
+  All tests passing: ✓
+
+QUALITY SCORE: 92/67 (+25 improvement)
+REGRESSIONS: 0
+DOCUMENTATION COVERAGE NOW ABOVE 0.8 THRESHOLD: ✓
 ```
 
-**Unverifiable Reference Example:**
-```markdown
-<!-- AUDIT_FLAG: EXTERNAL_DEPENDENCY
-Cannot verify: References external API 'https://api.service.com/v2/process'
-Documentation describes expected response format but cannot validate
--->
-```
-
-## EXECUTION FLOW:
-
-```
-1. START: Scan for all *.md files
-2. For each file:
-   a. Extract all code references
-   b. Verify each reference against codebase
-   c. Apply safe corrections
-   d. Flag uncertain items
-   e. Update file with corrections and flags
-3. Generate final audit report
-4. END: All documentation verified
-```
-
-## ERROR HANDLING:
-
-- If file cannot be read: Log error, continue with next file
-- If code search times out: Flag as NEEDS_REVIEW with timeout note
-- If file cannot be written: Log error, add to report for manual intervention
-- If parsing fails: Flag entire file for manual review
+This data-driven approach ensures documentation audit decisions are based on quantitative coverage analysis rather than subjective assessment, with measurable validation of improvements and full traceability of corrections to code artifacts.
