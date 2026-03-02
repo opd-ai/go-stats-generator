@@ -45,7 +45,7 @@ func TestBaselineListFormatFlag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset command state
 			rootCmd.SetArgs(tt.args)
-			
+
 			// Capture output
 			buf := new(bytes.Buffer)
 			rootCmd.SetOut(buf)
@@ -53,7 +53,6 @@ func TestBaselineListFormatFlag(t *testing.T) {
 
 			// Execute command
 			err := rootCmd.Execute()
-			
 			// Note: We expect execution to fail due to missing storage,
 			// but we're testing that the FLAG is recognized, not rejected
 			if err != nil {
@@ -70,11 +69,11 @@ func TestBaselineListFormatFlag(t *testing.T) {
 func TestBaselineListFlagParsing(t *testing.T) {
 	// Create a test command to verify flag definitions
 	cmd := listBaselinesCmd
-	
+
 	// Check that the command accepts format flag
 	formatFlag := cmd.Flags().Lookup("format")
 	assert.NotNil(t, formatFlag, "--format flag should be defined")
-	
+
 	// Check that the command accepts output flag
 	outputFlag := cmd.Flags().Lookup("output")
 	assert.NotNil(t, outputFlag, "--output flag should be defined")
@@ -83,17 +82,17 @@ func TestBaselineListFlagParsing(t *testing.T) {
 // TestBaselineListOutputFormat tests that different output formats work correctly
 func TestBaselineListOutputFormat(t *testing.T) {
 	// This test validates the outputBaselines function respects format setting
-	
+
 	// Test console format
 	t.Run("console format", func(t *testing.T) {
 		outputFormat = "console"
 		defer func() { outputFormat = "json" }()
-		
+
 		snapshots := []storage.SnapshotInfo{}
 		err := outputBaselines(snapshots)
 		require.NoError(t, err)
 	})
-	
+
 	// Test JSON format
 	t.Run("json format", func(t *testing.T) {
 		// Redirect stdout to capture output
@@ -101,20 +100,20 @@ func TestBaselineListOutputFormat(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 		defer func() { os.Stdout = oldStdout }()
-		
+
 		outputFormat = "json"
 		outputFile = "" // stdout
 		defer func() { outputFormat = "json"; outputFile = "" }()
-		
+
 		snapshots := []storage.SnapshotInfo{}
 		err := outputBaselines(snapshots)
 		require.NoError(t, err)
-		
+
 		w.Close()
 		var buf bytes.Buffer
 		buf.ReadFrom(r)
 		output := buf.String()
-		
+
 		// JSON output should contain expected structure
 		assert.Contains(t, output, "snapshots")
 		assert.Contains(t, output, "count")
@@ -124,7 +123,7 @@ func TestBaselineListOutputFormat(t *testing.T) {
 // TestBaselineCreateHasFlags ensures create command still has its flags
 func TestBaselineCreateHasFlags(t *testing.T) {
 	cmd := createBaselineCmd
-	
+
 	assert.NotNil(t, cmd.Flags().Lookup("id"), "--id flag should exist")
 	assert.NotNil(t, cmd.Flags().Lookup("message"), "--message flag should exist")
 	assert.NotNil(t, cmd.Flags().Lookup("tags"), "--tags flag should exist")
