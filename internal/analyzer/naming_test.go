@@ -1,6 +1,8 @@
 package analyzer
 
 import (
+	"go/parser"
+	"go/token"
 	"testing"
 
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
@@ -378,4 +380,390 @@ func TestNamingAnalyzer_ComputeFileNamingScore(t *testing.T) {
 			assert.LessOrEqual(t, score, 1.0)
 		})
 	}
+}
+
+func TestNamingAnalyzer_CheckMixedCaps(t *testing.T) {
+tests := []struct {
+name          string
+identifier    string
+isTestFile    bool
+shouldViolate bool
+}{
+{
+name:          "valid MixedCaps",
+identifier:    "getUserID",
+isTestFile:    false,
+shouldViolate: false,
+},
+{
+name:          "valid with acronym",
+identifier:    "HTTPClient",
+isTestFile:    false,
+shouldViolate: false,
+},
+{
+name:          "invalid with underscore",
+identifier:    "get_user",
+isTestFile:    false,
+shouldViolate: true,
+},
+{
+name:          "invalid with multiple underscores",
+identifier:    "get_user_by_id",
+isTestFile:    false,
+shouldViolate: true,
+},
+{
+name:          "test function with underscore - allowed",
+identifier:    "Test_UserService",
+isTestFile:    true,
+shouldViolate: false,
+},
+{
+name:          "regular function in test file with underscore - not allowed",
+identifier:    "helper_function",
+isTestFile:    true,
+shouldViolate: true,
+},
+}
+
+na := NewNamingAnalyzer()
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+ctx := &identifierContext{
+isTestFile: tt.isTestFile,
+}
+violation := na.checkMixedCaps(tt.identifier, ctx)
+
+if tt.shouldViolate {
+require.NotNil(t, violation, "expected violation for %s", tt.identifier)
+assert.Equal(t, "underscore_in_name", violation.ViolationType)
+assert.NotEmpty(t, violation.SuggestedName)
+} else {
+assert.Nil(t, violation, "expected no violation for %s", tt.identifier)
+}
+})
+}
+}
+
+func TestNamingAnalyzer_CheckSingleLetterName(t *testing.T) {
+tests := []struct {
+name          string
+identifier    string
+idType        string
+inLoop        bool
+shouldViolate bool
+}{
+{
+name:          "loop variable i",
+identifier:    "i",
+idType:        "var",
+inLoop:        true,
+shouldViolate: false,
+},
+{
+name:          "single letter outside loop",
+identifier:    "x",
+idType:        "var",
+inLoop:        false,
+shouldViolate: true,
+},
+{
+name:          "receiver r for reader",
+identifier:    "r",
+idType:        "method",
+inLoop:        false,
+shouldViolate: false,
+},
+{
+name:          "receiver w for writer",
+identifier:    "w",
+idType:        "method",
+inLoop:        false,
+shouldViolate: false,
+},
+{
+name:          "descriptive name",
+identifier:    "user",
+idType:        "var",
+inLoop:        false,
+shouldViolate: false,
+},
+}
+
+na := NewNamingAnalyzer()
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+ctx := &identifierContext{
+inLoop:             tt.inLoop,
+validSingleLetters: make(map[string]bool),
+}
+if tt.inLoop && (tt.identifier == "i" || tt.identifier == "j" || tt.identifier == "k") {
+ctx.validSingleLetters[tt.identifier] = true
+}
+
+violation := na.checkSingleLetterName(tt.identifier, tt.idType, ctx)
+
+if tt.shouldViolate {
+require.NotNil(t, violation, "expected violation for %s", tt.identifier)
+assert.Equal(t, "single_letter_name", violation.ViolationType)
+} else {
+assert.Nil(t, violation, "expected no violation for %s", tt.identifier)
+}
+})
+}
+}
+
+func TestNamingAnalyzer_CheckAcronymCasing(t *testing.T) {
+tests := []struct {
+name          string
+identifier    string
+shouldViolate bool
+suggested     string
+}{
+{
+name:          "correct URL",
+identifier:    "URL",
+shouldViolate: false,
+},
+{
+name:          "correct URLParser",
+identifier:    "URLParser",
+shouldViolate: false,
+},
+{
+name:          "incorrect Url",
+identifier:    "Url",
+shouldViolate: true,
+suggested:     "URL",
+},
+{
+name:          "incorrect UrlParser",
+identifier:    "UrlParser",
+shouldViolate: true,
+suggested:     "URLParser",
+},
+{
+name:          "incorrect GetUrl",
+identifier:    "GetUrl",
+shouldViolate: true,
+suggested:     "GetURL",
+},
+{
+name:          "correct GetURL",
+identifier:    "GetURL",
+shouldViolate: false,
+},
+{
+name:          "incorrect UserId",
+identifier:    "UserId",
+shouldViolate: true,
+suggested:     "UserID",
+},
+{
+name:          "correct UserID",
+identifier:    "UserID",
+shouldViolate: false,
+},
+{
+name:          "incorrect HttpClient",
+identifier:    "HttpClient",
+shouldViolate: true,
+suggested:     "HTTPClient",
+},
+{
+name:          "correct HTTPClient",
+identifier:    "HTTPClient",
+shouldViolate: false,
+},
+}
+
+na := NewNamingAnalyzer()
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+ctx := &identifierContext{}
+violation := na.checkAcronymCasing(tt.identifier, ctx)
+
+if tt.shouldViolate {
+require.NotNil(t, violation, "expected violation for %s", tt.identifier)
+assert.Equal(t, "acronym_casing", violation.ViolationType)
+if tt.suggested != "" {
+assert.Equal(t, tt.suggested, violation.SuggestedName)
+}
+} else {
+assert.Nil(t, violation, "expected no violation for %s", tt.identifier)
+}
+})
+}
+}
+
+func TestNamingAnalyzer_CheckIdentifierStuttering(t *testing.T) {
+tests := []struct {
+name          string
+identifier    string
+receiverType  string
+packageName   string
+functionName  string
+shouldViolate bool
+suggested     string
+}{
+{
+name:          "method stuttering - UserName",
+identifier:    "UserName",
+receiverType:  "User",
+shouldViolate: true,
+suggested:     "Name",
+},
+{
+name:          "no stuttering - GetName",
+identifier:    "GetName",
+receiverType:  "User",
+shouldViolate: false,
+},
+{
+name:          "package stuttering - UserService (flagged)",
+identifier:    "UserService",
+packageName:   "user",
+shouldViolate: true,
+suggested:     "Service",
+},
+{
+name:          "no package stuttering - Service",
+identifier:    "Service",
+packageName:   "user",
+shouldViolate: false,
+},
+{
+name:          "receiver Get prefix - okay",
+identifier:    "GetUser",
+receiverType:  "User",
+shouldViolate: false,
+},
+}
+
+na := NewNamingAnalyzer()
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+ctx := &identifierContext{
+receiverType: tt.receiverType,
+packageName:  tt.packageName,
+functionName: tt.functionName,
+}
+violation := na.checkIdentifierStuttering(tt.identifier, ctx)
+
+if tt.shouldViolate {
+require.NotNil(t, violation, "expected violation for %s", tt.identifier)
+assert.Contains(t, violation.ViolationType, "stuttering")
+if tt.suggested != "" {
+assert.Equal(t, tt.suggested, violation.SuggestedName)
+}
+} else {
+assert.Nil(t, violation, "expected no violation for %s", tt.identifier)
+}
+})
+}
+}
+
+func TestNamingAnalyzer_ComputeIdentifierQualityScore(t *testing.T) {
+na := NewNamingAnalyzer()
+
+tests := []struct {
+name              string
+violations        int
+totalIdentifiers  int
+expectedMinScore  float64
+expectedMaxScore  float64
+}{
+{
+name:              "perfect score",
+violations:        0,
+totalIdentifiers:  100,
+expectedMinScore:  1.0,
+expectedMaxScore:  1.0,
+},
+{
+name:              "some violations",
+violations:        5,
+totalIdentifiers:  100,
+expectedMinScore:  0.9,
+expectedMaxScore:  1.0,
+},
+{
+name:              "many violations",
+violations:        50,
+totalIdentifiers:  100,
+expectedMinScore:  0.5,
+expectedMaxScore:  1.0,
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+var violations []metrics.IdentifierViolation
+for i := 0; i < tt.violations; i++ {
+violations = append(violations, metrics.IdentifierViolation{
+Name:     "test",
+Severity: "low",
+})
+}
+
+score := na.ComputeIdentifierQualityScore(violations, tt.totalIdentifiers)
+
+assert.GreaterOrEqual(t, score, 0.0)
+assert.LessOrEqual(t, score, 1.0)
+assert.GreaterOrEqual(t, score, tt.expectedMinScore)
+assert.LessOrEqual(t, score, tt.expectedMaxScore)
+})
+}
+}
+
+func TestNamingAnalyzer_AnalyzeIdentifiers(t *testing.T) {
+sourceCode := `package user
+
+type UserId int  // Should flag: "Id" -> "ID"
+
+type User struct {
+UserName string  // Should flag: stuttering
+Age      int
+}
+
+func (u User) GetUrl() string {  // Should flag: "Url" -> "URL"
+return ""
+}
+
+func get_user() {  // Should flag: underscore
+}
+
+var x = 5  // Should flag: single letter outside loop
+`
+
+// Parse the source code
+fset := token.NewFileSet()
+file, err := parser.ParseFile(fset, "test.go", sourceCode, parser.ParseComments)
+require.NoError(t, err)
+
+na := NewNamingAnalyzer()
+violations := na.AnalyzeIdentifiers(file, "test.go", fset)
+
+// Should find violations for:
+// 1. UserId (acronym)
+// 2. UserName (stuttering)
+// 3. GetUrl (acronym)
+// 4. get_user (underscore)
+// 5. x (single letter)
+assert.GreaterOrEqual(t, len(violations), 5, "should find at least 5 violations")
+
+// Check specific violations
+violationTypes := make(map[string]int)
+for _, v := range violations {
+violationTypes[v.ViolationType]++
+}
+
+assert.Greater(t, violationTypes["acronym_casing"], 0, "should find acronym violations")
+assert.Greater(t, violationTypes["underscore_in_name"], 0, "should find underscore violations")
+assert.Greater(t, violationTypes["single_letter_name"], 0, "should find single letter violations")
 }
