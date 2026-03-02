@@ -370,3 +370,218 @@ func TestConsoleReporter_ComplexitySorting_MixedTiesAndDifferent(t *testing.T) {
 	assert.Equal(t, "Complexity5_Medium", functionOrder[4], "Complexity5_Medium (40 lines) should be fifth")
 	assert.Equal(t, "Complexity5_Short", functionOrder[5], "Complexity5_Short (15 lines) should be sixth")
 }
+
+func TestConsoleReporter_WithPlacement(t *testing.T) {
+	report := &metrics.Report{
+		Metadata: metrics.ReportMetadata{
+			Repository:     "test-repo",
+			GeneratedAt:    time.Now(),
+			AnalysisTime:   time.Second,
+			FilesProcessed: 5,
+			ToolVersion:    "1.0.0",
+		},
+		Overview: metrics.OverviewMetrics{
+			TotalLinesOfCode: 1000,
+			TotalFunctions:   10,
+		},
+		Placement: metrics.PlacementMetrics{
+			MisplacedFunctions: 2,
+			MisplacedMethods:   3,
+			LowCohesionFiles:   1,
+			AvgFileCohesion:    0.65,
+			FunctionIssues: []metrics.MisplacedFunctionIssue{
+				{
+					Name:              "ProcessData",
+					CurrentFile:       "handler.go",
+					SuggestedFile:     "processor.go",
+					CurrentAffinity:   0.2,
+					SuggestedAffinity: 0.8,
+					Severity:          "high",
+				},
+				{
+					Name:              "FormatOutput",
+					CurrentFile:       "utils.go",
+					SuggestedFile:     "formatter.go",
+					CurrentAffinity:   0.3,
+					SuggestedAffinity: 0.7,
+					Severity:          "medium",
+				},
+			},
+			MethodIssues: []metrics.MisplacedMethodIssue{
+				{
+					MethodName:   "Validate",
+					ReceiverType: "User",
+					CurrentFile:  "helpers.go",
+					ReceiverFile: "user.go",
+					Distance:     "same_package",
+					Severity:     "medium",
+				},
+				{
+					MethodName:   "Transform",
+					ReceiverType: "Data",
+					CurrentFile:  "external/util.go",
+					ReceiverFile: "data.go",
+					Distance:     "different_package",
+					Severity:     "high",
+				},
+				{
+					MethodName:   "Format",
+					ReceiverType: "Output",
+					CurrentFile:  "utils.go",
+					ReceiverFile: "output.go",
+					Distance:     "same_package",
+					Severity:     "low",
+				},
+			},
+			CohesionIssues: []metrics.FileCohesionIssue{
+				{
+					File:            "mixed.go",
+					CohesionScore:   0.15,
+					IntraFileRefs:   5,
+					TotalRefs:       33,
+					SuggestedSplits: []string{"mixed_auth.go", "mixed_db.go"},
+					Severity:        "high",
+				},
+			},
+		},
+	}
+
+	cfg := &config.OutputConfig{
+		UseColors:       false,
+		IncludeOverview: true,
+		IncludeDetails:  true,
+		Limit:           20,
+	}
+
+	reporter := NewConsoleReporter(cfg)
+	var buf bytes.Buffer
+	err := reporter.Generate(report, &buf)
+
+	assert.NoError(t, err)
+	output := buf.String()
+
+	// Check that placement analysis section exists
+	assert.Contains(t, output, "=== PLACEMENT ANALYSIS ===")
+	assert.Contains(t, output, "Misplaced Functions: 2")
+	assert.Contains(t, output, "Misplaced Methods: 3")
+	assert.Contains(t, output, "Low Cohesion Files: 1")
+	assert.Contains(t, output, "Average File Cohesion: 0.65")
+
+	// Check misplaced functions
+	assert.Contains(t, output, "Misplaced Functions:")
+	assert.Contains(t, output, "ProcessData")
+	assert.Contains(t, output, "handler.go")
+	assert.Contains(t, output, "processor.go")
+	assert.Contains(t, output, "+0.60") // affinity gain
+
+	// Check misplaced methods
+	assert.Contains(t, output, "Misplaced Methods:")
+	assert.Contains(t, output, "Validate")
+	assert.Contains(t, output, "User")
+	assert.Contains(t, output, "helpers.go")
+	assert.Contains(t, output, "user.go")
+
+	// Check cohesion issues
+	assert.Contains(t, output, "Low Cohesion Files:")
+	assert.Contains(t, output, "mixed.go")
+	assert.Contains(t, output, "0.15")
+	assert.Contains(t, output, "mixed_auth.go")
+}
+
+func TestConsoleReporter_PlacementSorting(t *testing.T) {
+	report := &metrics.Report{
+		Metadata: metrics.ReportMetadata{
+			Repository:     "test-repo",
+			GeneratedAt:    time.Now(),
+			AnalysisTime:   time.Second,
+			FilesProcessed: 5,
+			ToolVersion:    "1.0.0",
+		},
+		Overview: metrics.OverviewMetrics{
+			TotalLinesOfCode: 1000,
+			TotalFunctions:   10,
+		},
+		Placement: metrics.PlacementMetrics{
+			MisplacedFunctions: 0,
+			MisplacedMethods:   3,
+			LowCohesionFiles:   0,
+			AvgFileCohesion:    0.65,
+			MethodIssues: []metrics.MisplacedMethodIssue{
+				{
+					MethodName:   "LowSeverity_SamePackage",
+					ReceiverType: "TypeA",
+					CurrentFile:  "a1.go",
+					ReceiverFile: "a2.go",
+					Distance:     "same_package",
+					Severity:     "low",
+				},
+				{
+					MethodName:   "HighSeverity_DifferentPackage",
+					ReceiverType: "TypeB",
+					CurrentFile:  "pkg1/b.go",
+					ReceiverFile: "pkg2/b.go",
+					Distance:     "different_package",
+					Severity:     "high",
+				},
+				{
+					MethodName:   "MediumSeverity_SamePackage",
+					ReceiverType: "TypeC",
+					CurrentFile:  "c1.go",
+					ReceiverFile: "c2.go",
+					Distance:     "same_package",
+					Severity:     "medium",
+				},
+			},
+		},
+	}
+
+	cfg := &config.OutputConfig{
+		UseColors:       false,
+		IncludeOverview: false,
+		IncludeDetails:  true,
+		Limit:           20,
+	}
+
+	reporter := NewConsoleReporter(cfg)
+	var buf bytes.Buffer
+	err := reporter.Generate(report, &buf)
+
+	assert.NoError(t, err)
+	output := buf.String()
+
+	// Parse the method order from output
+	lines := strings.Split(output, "\n")
+	var methodOrder []string
+	inMethodSection := false
+	passedHeader := false
+
+	for _, line := range lines {
+		if strings.Contains(line, "Top") && strings.Contains(line, "Misplaced Methods:") {
+			inMethodSection = true
+			continue
+		}
+		if inMethodSection && strings.Contains(line, "Method") && strings.Contains(line, "Receiver Type") {
+			// Skip the header row
+			continue
+		}
+		if inMethodSection && strings.Contains(line, "---") {
+			passedHeader = true
+			continue
+		}
+		if inMethodSection && strings.TrimSpace(line) == "" {
+			break
+		}
+		if inMethodSection && passedHeader {
+			fields := strings.Fields(line)
+			if len(fields) > 0 {
+				methodOrder = append(methodOrder, fields[0])
+			}
+		}
+	}
+
+	// Expected order: high severity first, then medium, then low
+	assert.Equal(t, 3, len(methodOrder), "Should have 3 methods")
+	assert.Equal(t, "HighSeverity_DifferentPackage", methodOrder[0], "High severity should be first")
+	assert.Equal(t, "MediumSeverity_SamePackage", methodOrder[1], "Medium severity should be second")
+	assert.Equal(t, "LowSeverity_SamePackage", methodOrder[2], "Low severity should be third")
+}

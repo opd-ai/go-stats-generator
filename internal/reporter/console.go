@@ -69,6 +69,12 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writeNamingAnalysis(output, report)
 	}
 
+	// Placement analysis section
+	totalPlacementIssues := report.Placement.MisplacedFunctions + report.Placement.MisplacedMethods + report.Placement.LowCohesionFiles
+	if cr.config.IncludeDetails && totalPlacementIssues > 0 {
+		cr.writePlacementAnalysis(output, report)
+	}
+
 	// Footer
 	cr.writeFooter(output, report)
 
@@ -767,4 +773,150 @@ func severityWeight(severity string) int {
 	default:
 		return 0
 	}
+}
+
+// writePlacementAnalysis generates placement analysis output
+func (cr *ConsoleReporter) writePlacementAnalysis(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== PLACEMENT ANALYSIS ===")
+
+	placement := report.Placement
+	fmt.Fprintf(output, "Misplaced Functions: %d\n", placement.MisplacedFunctions)
+	fmt.Fprintf(output, "Misplaced Methods: %d\n", placement.MisplacedMethods)
+	fmt.Fprintf(output, "Low Cohesion Files: %d\n", placement.LowCohesionFiles)
+	fmt.Fprintf(output, "Average File Cohesion: %.2f\n", placement.AvgFileCohesion)
+	fmt.Fprintln(output)
+
+	// Display misplaced function issues
+	if len(placement.FunctionIssues) > 0 {
+		cr.writeMisplacedFunctions(output, placement.FunctionIssues)
+	}
+
+	// Display misplaced method issues
+	if len(placement.MethodIssues) > 0 {
+		cr.writeMisplacedMethods(output, placement.MethodIssues)
+	}
+
+	// Display file cohesion issues
+	if len(placement.CohesionIssues) > 0 {
+		cr.writeFileCohesionIssues(output, placement.CohesionIssues)
+	}
+}
+
+// writeMisplacedFunctions displays misplaced function issues
+func (cr *ConsoleReporter) writeMisplacedFunctions(output io.Writer, issues []metrics.MisplacedFunctionIssue) {
+	// Sort by severity (high > medium > low) then by suggested affinity (descending)
+	sorted := make([]metrics.MisplacedFunctionIssue, len(issues))
+	copy(sorted, issues)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Severity != sorted[j].Severity {
+			return severityWeight(sorted[i].Severity) > severityWeight(sorted[j].Severity)
+		}
+		return sorted[i].SuggestedAffinity > sorted[j].SuggestedAffinity
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d Misplaced Functions:\n", limit)
+	fmt.Fprintf(output, "%-30s %-25s %-25s %s\n", "Function", "Current File", "Suggested File", "Affinity Gain")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		issue := sorted[i]
+		affinityGain := issue.SuggestedAffinity - issue.CurrentAffinity
+		fmt.Fprintf(output, "%-30s %-25s %-25s +%.2f\n",
+			cr.truncate(issue.Name, 30),
+			cr.truncate(issue.CurrentFile, 25),
+			cr.truncate(issue.SuggestedFile, 25),
+			affinityGain,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeMisplacedMethods displays misplaced method issues
+func (cr *ConsoleReporter) writeMisplacedMethods(output io.Writer, issues []metrics.MisplacedMethodIssue) {
+	// Sort by severity (high > medium > low) then by distance
+	sorted := make([]metrics.MisplacedMethodIssue, len(issues))
+	copy(sorted, issues)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Severity != sorted[j].Severity {
+			return severityWeight(sorted[i].Severity) > severityWeight(sorted[j].Severity)
+		}
+		// "different_package" before "same_package"
+		if sorted[i].Distance != sorted[j].Distance {
+			return sorted[i].Distance > sorted[j].Distance
+		}
+		return sorted[i].MethodName < sorted[j].MethodName
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d Misplaced Methods:\n", limit)
+	fmt.Fprintf(output, "%-30s %-20s %-25s %-25s\n", "Method", "Receiver Type", "Current File", "Receiver File")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		issue := sorted[i]
+		fmt.Fprintf(output, "%-30s %-20s %-25s %-25s\n",
+			cr.truncate(issue.MethodName, 30),
+			cr.truncate(issue.ReceiverType, 20),
+			cr.truncate(issue.CurrentFile, 25),
+			cr.truncate(issue.ReceiverFile, 25),
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeFileCohesionIssues displays file cohesion issues
+func (cr *ConsoleReporter) writeFileCohesionIssues(output io.Writer, issues []metrics.FileCohesionIssue) {
+	// Sort by cohesion score (ascending - worst first) then by severity
+	sorted := make([]metrics.FileCohesionIssue, len(issues))
+	copy(sorted, issues)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Severity != sorted[j].Severity {
+			return severityWeight(sorted[i].Severity) > severityWeight(sorted[j].Severity)
+		}
+		return sorted[i].CohesionScore < sorted[j].CohesionScore
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d Low Cohesion Files:\n", limit)
+	fmt.Fprintf(output, "%-40s %-12s %s\n", "File", "Cohesion", "Suggested Splits")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		issue := sorted[i]
+		splits := ""
+		if len(issue.SuggestedSplits) > 0 {
+			splits = issue.SuggestedSplits[0]
+			if len(issue.SuggestedSplits) > 1 {
+				splits += fmt.Sprintf(" (+%d more)", len(issue.SuggestedSplits)-1)
+			}
+		}
+		fmt.Fprintf(output, "%-40s %-12.2f %s\n",
+			cr.truncate(issue.File, 40),
+			issue.CohesionScore,
+			splits,
+		)
+	}
+	fmt.Fprintln(output)
 }

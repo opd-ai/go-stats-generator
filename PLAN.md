@@ -189,9 +189,20 @@ Verified:
 - JSON output includes placement metrics
 - Analysis runs successfully on real codebase
 
-### 10. Add Console Reporter Output
+### 10. Add Console Reporter Output ✅ COMPLETE
 - **Deliverable**: Update `internal/reporter/console.go` with `writePlacementAnalysis()` method
 - **Dependencies**: Steps 1, 9
+- **Completed**: 2026-03-02
+
+Implementation:
+- Added placement section check in `Generate()` method to call `writePlacementAnalysis()` when violations exist
+- Created `writePlacementAnalysis()` method to display summary statistics (counts and average cohesion)
+- Created `writeMisplacedFunctions()` to display top misplaced function issues in table format with affinity gains
+- Created `writeMisplacedMethods()` to display top misplaced method issues with receiver information
+- Created `writeFileCohesionIssues()` to display low cohesion files with suggested splits
+- All methods use severity-based sorting (high > medium > low) and respect the configured display limit
+- Added comprehensive unit tests for both basic output and sorting behavior
+- Verified end-to-end: `./go-stats-generator analyze .` produces placement analysis in console output
 
 Output sections:
 - Placement Summary (counts, avg cohesion)
@@ -271,7 +282,7 @@ Ensure placement analysis doesn't degrade performance below 50,000-file-in-60-se
 - [x] PlacementAnalyzer integrated into analyze command workflow
 - [x] finalizePlacementMetrics() function created and called correctly
 - [x] JSON reporter includes placement metrics
-- [ ] Console reporter displays placement analysis when violations exist
+- [x] Console reporter displays placement analysis when violations exist
 - [ ] HTML reporter includes Placement tab when violations exist
 - [ ] Markdown reporter includes Placement section when violations exist
 - [x] Unit tests achieve >85% code coverage for `internal/analyzer/placement.go`
