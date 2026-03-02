@@ -594,3 +594,59 @@ func tokenize(s string) []string {
 	tokens := strings.Fields(s)
 	return tokens
 }
+
+// AnalyzeDuplication performs duplication analysis on a collection of files
+// Returns DuplicationMetrics summarizing all detected code clones
+func (da *DuplicationAnalyzer) AnalyzeDuplication(files map[string]*ast.File, minBlockLines int, similarityThreshold float64) metrics.DuplicationMetrics {
+	// Extract blocks from all files
+	var allBlocks []StatementBlock
+	totalLines := 0
+	
+	for filePath, file := range files {
+		blocks := da.ExtractBlocks(file, filePath, minBlockLines)
+		allBlocks = append(allBlocks, blocks...)
+		
+		// Calculate total lines in this file
+		if file != nil && file.End().IsValid() {
+			endPos := da.fset.Position(file.End())
+			totalLines += endPos.Line
+		}
+	}
+
+	// Fingerprint all blocks
+	fingerprints := da.FingerprintBlocks(allBlocks)
+
+	// Detect clone pairs
+	clonePairs := da.DetectClonePairs(fingerprints, similarityThreshold)
+
+	// Calculate duplicated lines
+	// Count unique duplicated lines (each set of duplicates counts once, not per instance)
+	duplicatedLines := 0
+	largestCloneSize := 0
+
+	for _, pair := range clonePairs {
+		// Each clone pair represents duplicated code
+		// Count the size once (it represents the duplicated code block size)
+		// Then multiply by (instances - 1) to get wasted lines
+		// Total duplicated = original + all copies
+		duplicatedLines += pair.LineCount * (len(pair.Instances) - 1)
+
+		if pair.LineCount > largestCloneSize {
+			largestCloneSize = pair.LineCount
+		}
+	}
+
+	// Calculate duplication ratio
+	duplicationRatio := 0.0
+	if totalLines > 0 {
+		duplicationRatio = float64(duplicatedLines) / float64(totalLines)
+	}
+
+	return metrics.DuplicationMetrics{
+		ClonePairs:       len(clonePairs),
+		DuplicatedLines:  duplicatedLines,
+		DuplicationRatio: duplicationRatio,
+		LargestCloneSize: largestCloneSize,
+		Clones:           clonePairs,
+	}
+}

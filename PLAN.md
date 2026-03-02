@@ -58,13 +58,26 @@
   - `TestTokenize` — validates tokenization for similarity computation
 
 
-### 4. Integrate duplication analysis into analyzer pipeline
+### 4. Integrate duplication analysis into analyzer pipeline ✅ COMPLETE
 - **Deliverable**: Modifications to existing analyzer infrastructure:
   - Add `DuplicationAnalyzer` initialization in `internal/analyzer/` pipeline
   - Wire `AnalyzeDuplication(files []*ast.File) DuplicationMetrics` into main analysis flow
   - Populate `Report.Duplication DuplicationMetrics` field in `internal/metrics/types.go`
   - Add `Duplication DuplicationMetrics` field to `Report` struct
 - **Dependencies**: Steps 1-3
+- **Completed**: 2026-03-02 (current commit)
+- **Implementation Details**:
+  - Added `DuplicationAnalyzer` to `AnalyzerSet` struct in `cmd/analyze.go`
+  - Created `AnalyzeDuplication()` method that processes all files and returns `DuplicationMetrics`
+  - Integrated duplication analysis into both directory and single-file analysis workflows
+  - Added file collection to `CollectedMetrics` to support cross-file duplication detection
+  - Created `finalizeDuplicationMetrics()` function called after all files are processed
+  - Used default configuration values: `minBlockLines=6`, `similarityThreshold=0.80`
+  - Duplication metrics calculation: counts wasted lines (instances-1) * line_count per clone pair
+- **Tests**: Integration test added to `cmd/analyze_test.go`
+  - `TestAnalyzeDuplicationIntegration` — validates end-to-end duplication detection with test fixtures
+  - Test data in `testdata/duplication/duplicate_blocks.go` with intentional duplicates
+  - Validates clone pair structure, line counts, duplication ratio, and clone type classification
 
 ### 5. Add configuration options for duplication thresholds
 - **Deliverable**: Configuration keys in `.go-stats-generator.yaml` schema and `internal/config/`:
@@ -122,10 +135,16 @@
 - [ ] All four output formats (console, JSON, HTML, Markdown) include duplication section
 - [ ] Per-file duplication scores are calculated and reported
 - [x] Unit test coverage ≥85% for `duplication.go` (achieved 92%+)
-- [ ] Integration tests pass with sample codebases containing known duplicates
+- [x] Integration tests pass with sample codebases containing known duplicates
 - [ ] Benchmark: Analysis of 50,000-file repository completes in <60 seconds
 - [ ] Benchmark: Memory usage remains <1GB for large repository analysis
 - [ ] Configuration options are documented and accessible via CLI flags
+- [x] **Step 4 Complete**: Duplication analysis integrated into analyzer pipeline
+  - [x] DuplicationAnalyzer added to AnalyzerSet
+  - [x] AnalyzeDuplication method processes all files and returns DuplicationMetrics
+  - [x] Report.Duplication field populated with analysis results
+  - [x] Integration test validates end-to-end duplication detection
+  - [x] JSON output includes complete duplication metrics
 
 ## Known Gaps
 

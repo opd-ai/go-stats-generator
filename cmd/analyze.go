@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"go/ast"
 	"go/token"
 	"os"
 	"path/filepath"
@@ -341,6 +342,7 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 
 	// Finalize report
 	finalizeReport(report, collectedMetrics, analyzers.Package, cfg)
+	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	if cfg.Output.Verbose {
@@ -411,6 +413,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 
 	// Step 5: Finalize report with all collected metrics
 	finalizeReport(report, metrics, packageAnalyzer, cfg)
+	finalizeDuplicationMetrics(report, analyzers.Duplication, metrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	return report, nil
@@ -423,6 +426,7 @@ type AnalyzerSet struct {
 	Interface   *analyzer.InterfaceAnalyzer
 	Package     *analyzer.PackageAnalyzer
 	Concurrency *analyzer.ConcurrencyAnalyzer
+	Duplication *analyzer.DuplicationAnalyzer
 }
 
 // CollectedMetrics holds all metrics collected during analysis
@@ -431,6 +435,7 @@ type CollectedMetrics struct {
 	Structs    []metrics.StructMetrics
 	Interfaces []metrics.InterfaceMetrics
 	TotalLines int
+	Files      map[string]*ast.File
 }
 
 // discoverAndValidateFiles discovers Go files in the target directory and validates the results
@@ -488,6 +493,7 @@ func createAnalyzers(fileSet *token.FileSet) *AnalyzerSet {
 		Interface:   analyzer.NewInterfaceAnalyzer(fileSet),
 		Package:     analyzer.NewPackageAnalyzer(fileSet),
 		Concurrency: analyzer.NewConcurrencyAnalyzer(fileSet),
+		Duplication: analyzer.NewDuplicationAnalyzer(fileSet),
 	}
 }
 
@@ -571,6 +577,12 @@ func handleScannerError(err error, cfg *config.Config) bool {
 
 // processFileAnalysis performs all analysis types on a single file
 func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, report *metrics.Report, cfg *config.Config) {
+	// Store the parsed file for duplication analysis
+	if collectedMetrics.Files == nil {
+		collectedMetrics.Files = make(map[string]*ast.File)
+	}
+	collectedMetrics.Files[result.FileInfo.RelPath] = result.File
+
 	collectStructuralMetrics(result, analyzers, collectedMetrics, cfg)
 	analyzePackageStructure(result, analyzers, cfg)
 	analyzeConcurrencyPatterns(result, analyzers, report, cfg)
@@ -707,6 +719,45 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 
 	// Finalize concurrency metrics summary statistics
 	finalizeConcurrencyMetrics(report)
+}
+
+// finalizeDuplicationMetrics performs duplication analysis on all collected files
+func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *analyzer.DuplicationAnalyzer, collectedMetrics *CollectedMetrics, cfg *config.Config) {
+	// Default configuration values from PLAN.md
+	const minBlockLines = 6
+	const similarityThreshold = 0.80
+
+	// Skip if no files were collected
+	if len(collectedMetrics.Files) == 0 {
+		report.Duplication = metrics.DuplicationMetrics{
+			ClonePairs:       0,
+			DuplicatedLines:  0,
+			DuplicationRatio: 0.0,
+			LargestCloneSize: 0,
+			Clones:           []metrics.ClonePair{},
+		}
+		return
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Running duplication analysis on %d files...\n", len(collectedMetrics.Files))
+	}
+
+	// Run duplication analysis
+	duplicationMetrics := duplicationAnalyzer.AnalyzeDuplication(
+		collectedMetrics.Files,
+		minBlockLines,
+		similarityThreshold,
+	)
+
+	report.Duplication = duplicationMetrics
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Found %d clone pairs, %d duplicated lines (%.2f%% duplication ratio)\n",
+			duplicationMetrics.ClonePairs,
+			duplicationMetrics.DuplicatedLines,
+			duplicationMetrics.DuplicationRatio*100)
+	}
 }
 
 // calculateOverviewMetrics calculates and sets the overview metrics in the report
