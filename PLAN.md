@@ -172,16 +172,22 @@ analysis:
     min_cohesion: 0.3
 ```
 
-### 9. Integrate into Analyze Command
+### 9. Integrate into Analyze Command ✅ COMPLETE
 - **Deliverable**: Update `cmd/analyze.go` to call `PlacementAnalyzer` and populate report
 - **Dependencies**: Steps 7, 8
+- **Completed**: 2026-03-02
 
-Add to `AnalyzerSet`:
-```go
-Placement *analyzer.PlacementAnalyzer
-```
+Implementation:
+- Added `Placement *analyzer.PlacementAnalyzer` to `AnalyzerSet` struct
+- Updated `createAnalyzers()` to accept config and initialize PlacementAnalyzer with config values
+- Created `finalizePlacementMetrics()` function similar to `finalizeNamingMetrics()`
+- Called finalizePlacementMetrics() in both `runFileAnalysis()` and `runAnalysisWorkflow()`
+- Added placement config loading to `loadAnalysisConfiguration()`
 
-Create `finalizePlacementMetrics()` function similar to `finalizeNamingMetrics()`
+Verified:
+- All existing tests pass
+- JSON output includes placement metrics
+- Analysis runs successfully on real codebase
 
 ### 10. Add Console Reporter Output
 - **Deliverable**: Update `internal/reporter/console.go` with `writePlacementAnalysis()` method
@@ -193,11 +199,13 @@ Output sections:
 - Misplaced Methods table (method, receiver, current file, receiver file, distance)
 - Low Cohesion Files table (file, cohesion score, suggested splits)
 
-### 11. Add JSON Reporter Output
+### 11. Add JSON Reporter Output ✅ COMPLETE
 - **Deliverable**: Update `internal/reporter/json.go` to include placement metrics
 - **Dependencies**: Steps 1, 9
+- **Completed**: 2026-03-02
 
-JSON output already includes full report struct serialization; verify placement field is serialized correctly.
+JSON output automatically includes full report struct serialization; placement field is serialized correctly.
+Verified with test output showing complete placement metrics in JSON format.
 
 ### 12. Add HTML Reporter Output
 - **Deliverable**: Update `internal/reporter/templates/html/report.html` with Placement tab
@@ -260,13 +268,16 @@ Ensure placement analysis doesn't degrade performance below 50,000-file-in-60-se
 - [x] `PlacementAnalyzer` flags methods defined in different files from their receiver type
 - [x] `PlacementAnalyzer` computes file cohesion scores and flags files below threshold
 - [x] Configuration options `placement.affinity_margin` and `placement.min_cohesion` work correctly
+- [x] PlacementAnalyzer integrated into analyze command workflow
+- [x] finalizePlacementMetrics() function created and called correctly
+- [x] JSON reporter includes placement metrics
 - [ ] Console reporter displays placement analysis when violations exist
 - [ ] HTML reporter includes Placement tab when violations exist
 - [ ] Markdown reporter includes Placement section when violations exist
 - [x] Unit tests achieve >85% code coverage for `internal/analyzer/placement.go`
 - [ ] Integration tests pass for all test fixtures
 - [ ] Benchmark tests confirm no performance regression (50K files in 60s target maintained)
-- [ ] Running `go-stats-generator analyze .` on this repository produces placement metrics
+- [x] Running `go-stats-generator analyze .` on this repository produces placement metrics
 
 ## Known Gaps
 

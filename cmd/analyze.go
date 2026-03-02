@@ -313,6 +313,13 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	if viper.IsSet("analysis.duplication.ignore_test_files") {
 		cfg.Analysis.Duplication.IgnoreTestFiles = viper.GetBool("analysis.duplication.ignore_test_files")
 	}
+	// Placement settings
+	if viper.IsSet("analysis.placement.affinity_margin") {
+		cfg.Analysis.Placement.AffinityMargin = viper.GetFloat64("analysis.placement.affinity_margin")
+	}
+	if viper.IsSet("analysis.placement.min_cohesion") {
+		cfg.Analysis.Placement.MinCohesion = viper.GetFloat64("analysis.placement.min_cohesion")
+	}
 }
 
 func runDirectoryAnalysis(ctx context.Context, targetDir string, cfg *config.Config) (*metrics.Report, error) {
@@ -381,7 +388,7 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	}
 
 	// Create analyzers
-	analyzers := createAnalyzers(discoverer.GetFileSet())
+	analyzers := createAnalyzers(discoverer.GetFileSet(), cfg)
 	report := createInitialReport(filepath.Dir(filePath), startTime, 1)
 
 	// Process the single file
@@ -392,6 +399,7 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	finalizeReport(report, collectedMetrics, analyzers.Package, cfg)
 	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
 	finalizeNamingMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizePlacementMetrics(report, analyzers, collectedMetrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	if cfg.Output.Verbose {
@@ -451,7 +459,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	}
 
 	// Step 3: Create analyzers and initial report structure
-	analyzers := createAnalyzers(discoverer.GetFileSet())
+	analyzers := createAnalyzers(discoverer.GetFileSet(), cfg)
 	report := createInitialReport(targetDir, startTime, len(files))
 
 	// Step 4: Process analysis results from worker pool
@@ -464,6 +472,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	finalizeReport(report, metrics, packageAnalyzer, cfg)
 	finalizeDuplicationMetrics(report, analyzers.Duplication, metrics, cfg)
 	finalizeNamingMetrics(report, analyzers, metrics, cfg)
+	finalizePlacementMetrics(report, analyzers, metrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	return report, nil
@@ -478,6 +487,7 @@ type AnalyzerSet struct {
 	Concurrency *analyzer.ConcurrencyAnalyzer
 	Duplication *analyzer.DuplicationAnalyzer
 	Naming      *analyzer.NamingAnalyzer
+	Placement   *analyzer.PlacementAnalyzer
 	fileSet     *token.FileSet
 }
 
@@ -538,7 +548,7 @@ func processFilesWithWorkerPool(ctx context.Context, files []scanner.FileInfo, d
 }
 
 // createAnalyzers creates and returns all analyzers needed for the workflow
-func createAnalyzers(fileSet *token.FileSet) *AnalyzerSet {
+func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 	return &AnalyzerSet{
 		Function:    analyzer.NewFunctionAnalyzer(fileSet),
 		Struct:      analyzer.NewStructAnalyzer(fileSet),
@@ -547,6 +557,7 @@ func createAnalyzers(fileSet *token.FileSet) *AnalyzerSet {
 		Concurrency: analyzer.NewConcurrencyAnalyzer(fileSet),
 		Duplication: analyzer.NewDuplicationAnalyzer(fileSet),
 		Naming:      analyzer.NewNamingAnalyzer(),
+		Placement:   analyzer.NewPlacementAnalyzer(cfg.Analysis.Placement.AffinityMargin, cfg.Analysis.Placement.MinCohesion),
 		fileSet:     fileSet,
 	}
 }
@@ -919,6 +930,45 @@ func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, colle
 			len(identifierViolations),
 			len(packageNameViolations),
 			overallScore)
+	}
+}
+
+// finalizePlacementMetrics performs placement and cohesion analysis on all collected files
+func finalizePlacementMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
+	// Convert collected files map to slice
+	var astFiles []*ast.File
+	for _, file := range collectedMetrics.Files {
+		astFiles = append(astFiles, file)
+	}
+
+	// Skip if no files
+	if len(astFiles) == 0 {
+		report.Placement = metrics.PlacementMetrics{
+			MisplacedFunctions: 0,
+			MisplacedMethods:   0,
+			LowCohesionFiles:   0,
+			AvgFileCohesion:    0.0,
+			FunctionIssues:     []metrics.MisplacedFunctionIssue{},
+			MethodIssues:       []metrics.MisplacedMethodIssue{},
+			CohesionIssues:     []metrics.FileCohesionIssue{},
+		}
+		return
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Running placement analysis on %d files...\n", len(astFiles))
+	}
+
+	// Perform placement analysis
+	placementMetrics := analyzers.Placement.Analyze(astFiles, analyzers.fileSet)
+	report.Placement = placementMetrics
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Found %d misplaced functions, %d misplaced methods, %d low cohesion files (avg cohesion: %.2f)\n",
+			placementMetrics.MisplacedFunctions,
+			placementMetrics.MisplacedMethods,
+			placementMetrics.LowCohesionFiles,
+			placementMetrics.AvgFileCohesion)
 	}
 }
 
