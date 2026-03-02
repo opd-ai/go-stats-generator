@@ -207,18 +207,6 @@ func TestMarkdownReporter_SimpleGenerate(t *testing.T) {
 		t.Error("Generated report is empty")
 	}
 
-	// Basic checks
-	if output == "" {
-		t.Error("Expected non-empty output")
-	}
-
 	t.Logf("Generated report length: %d characters", len(output))
 	t.Logf("First 200 characters: %s", output[:min(200, len(output))])
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
