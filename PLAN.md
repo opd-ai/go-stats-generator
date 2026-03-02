@@ -8,13 +8,15 @@
 
 ## Implementation Steps
 
-### 1. Create DuplicationMetrics type definitions
+### 1. Create DuplicationMetrics type definitions ✅ COMPLETE
 - **Deliverable**: New types in `internal/metrics/types.go`:
-  - `DuplicationMetrics` struct with fields: `ClonePairs int`, `DuplicatedLines int`, `DuplicationRatio float64`, `LargestCloneSize int`
+  - `DuplicationMetrics` struct with fields: `ClonePairs int`, `DuplicatedLines int`, `DuplicationRatio float64`, `LargestCloneSize int`, `Clones []ClonePair`
   - `ClonePair` struct with fields: `Hash string`, `Type CloneType`, `Instances []CloneInstance`, `LineCount int`
   - `CloneInstance` struct with fields: `File string`, `StartLine int`, `EndLine int`, `NodeCount int`
   - `CloneType` enum: `CloneTypeExact`, `CloneTypeRenamed`, `CloneTypeNear`
 - **Dependencies**: None
+- **Completed**: 2026-03-02 (commit 42b868f)
+- **Tests**: `internal/metrics/types_test.go` with 100% coverage of new types
 
 ### 2. Create AST-based block fingerprinting engine
 - **Deliverable**: New file `internal/analyzer/duplication.go` containing:
@@ -89,7 +91,7 @@
 
 ## Validation Criteria
 
-- [ ] `DuplicationMetrics` type is defined and integrated into `Report` struct
+- [x] `DuplicationMetrics` type is defined and integrated into `Report` struct
 - [ ] `DuplicationAnalyzer` successfully extracts statement blocks from all function/method bodies
 - [ ] Exact duplicates (Type 1) are correctly identified with 100% precision
 - [ ] Renamed duplicates (Type 2) are correctly identified — same structure with different identifiers
