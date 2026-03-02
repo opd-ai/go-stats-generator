@@ -21,32 +21,55 @@ var (
 
 var trendCmd = &cobra.Command{
 	Use:   "trend",
-	Short: "Analyze trends in code metrics over time",
+	Short: "Analyze trends in code metrics over time (BETA - basic functionality)",
 	Long: `Analyze trends and patterns in code metrics over time.
-This command provides trend analysis, forecasting, and regression detection
-based on historical metrics snapshots.`,
+
+⚠️  BETA FEATURE: The trend commands provide basic structural functionality
+for time-series analysis. Full statistical analysis (linear regression, ARIMA
+forecasting, hypothesis testing) is planned for a future release.
+
+Current capabilities:
+  - Basic snapshot aggregation over time periods
+  - Simple metric comparison between time points
+  - Structural foundation for advanced analysis
+
+For production use, consider the 'diff' command for comparing specific snapshots.`,
 	RunE: runTrend,
 }
 
 var trendAnalyzeCmd = &cobra.Command{
 	Use:   "analyze",
-	Short: "Analyze trends for specific metrics",
-	Long:  "Analyze trends for specific metrics over a time period.",
-	RunE:  runTrendAnalyze,
+	Short: "Basic trend overview for specific metrics (BETA)",
+	Long: `Analyze trends for specific metrics over a time period.
+
+⚠️  BETA: Currently provides basic snapshot aggregation. Full statistical
+trend analysis (slope calculation, variance, trend strength) is planned.`,
+	RunE: runTrendAnalyze,
 }
 
 var trendForecastCmd = &cobra.Command{
 	Use:   "forecast",
-	Short: "Forecast future metric values based on trends",
-	Long:  "Generate forecasts for future metric values based on historical trends.",
-	RunE:  runTrendForecast,
+	Short: "Forecast future metrics (PLACEHOLDER - implementation planned)",
+	Long: `Generate forecasts for future metric values based on historical trends.
+
+⚠️  PLACEHOLDER: This command currently returns structural output only.
+Full implementation with regression analysis and time series forecasting
+(ARIMA, exponential smoothing) is planned for a future release.`,
+	RunE: runTrendForecast,
 }
 
 var trendRegressionsCmd = &cobra.Command{
 	Use:   "regressions",
-	Short: "Detect potential regressions in recent snapshots",
-	Long:  "Detect potential regressions by analyzing recent changes against historical baselines.",
-	RunE:  runTrendRegressions,
+	Short: "Detect metric regressions (PLACEHOLDER - implementation planned)",
+	Long: `Detect potential regressions by analyzing recent changes.
+
+⚠️  PLACEHOLDER: This command currently returns structural output only.
+Full implementation with statistical hypothesis testing and significance
+analysis is planned for a future release.
+
+For production regression detection, use the 'diff' command to compare
+specific baseline snapshots.`,
+	RunE: runTrendRegressions,
 }
 
 func init() {
@@ -274,17 +297,19 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 // Helper functions for trend analysis
 
 func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, threshold float64) map[string]interface{} {
-	// This is a simplified trend analysis implementation
-	// In a real implementation, you would perform statistical analysis
+	// BETA IMPLEMENTATION: Basic trend structure only
+	// Full statistical analysis (linear regression, trend strength, variance)
+	// will be implemented in a future release
 
 	result := map[string]interface{}{
-		"period":    fmt.Sprintf("%d days", trendDays),
-		"snapshots": len(snapshots),
-		"metric":    metric,
-		"entity":    entity,
-		"threshold": threshold,
-		"trends":    []map[string]interface{}{},
-		"summary":   map[string]interface{}{},
+		"beta_notice": "⚠️  BETA: Basic trend aggregation only. Full statistical analysis planned for future release.",
+		"period":      fmt.Sprintf("%d days", trendDays),
+		"snapshots":   len(snapshots),
+		"metric":      metric,
+		"entity":      entity,
+		"threshold":   threshold,
+		"trends":      []map[string]interface{}{},
+		"summary":     map[string]interface{}{},
 	}
 
 	if len(snapshots) >= 2 {
@@ -302,25 +327,29 @@ func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, thre
 }
 
 func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) map[string]interface{} {
-	// This is a simplified forecasting implementation
-	// In a real implementation, you would use regression analysis or time series forecasting
+	// PLACEHOLDER IMPLEMENTATION
+	// Full forecasting with regression analysis, ARIMA, or exponential smoothing
+	// will be implemented in a future release
 
 	result := map[string]interface{}{
-		"metric":     metric,
-		"entity":     entity,
-		"method":     "linear_regression",
-		"forecasts":  []map[string]interface{}{},
-		"confidence": 0.0,
+		"placeholder_notice": "⚠️  PLACEHOLDER: Full forecasting implementation (regression, ARIMA, exponential smoothing) planned for future release.",
+		"metric":             metric,
+		"entity":             entity,
+		"method":             "linear_regression (planned)",
+		"forecasts":          []map[string]interface{}{},
+		"confidence":         0.0,
 	}
 
 	return result
 }
 
 func detectRegressions(historical, recent []storage.SnapshotInfo, threshold float64) map[string]interface{} {
-	// This is a simplified regression detection implementation
-	// In a real implementation, you would compare metrics statistically
+	// PLACEHOLDER IMPLEMENTATION
+	// Full regression detection with statistical hypothesis testing and
+	// significance analysis will be implemented in a future release
 
 	result := map[string]interface{}{
+		"placeholder_notice":   "⚠️  PLACEHOLDER: Full regression detection with statistical testing planned for future release. Use 'diff' command for production comparisons.",
 		"threshold":            threshold,
 		"historical_count":     len(historical),
 		"recent_count":         len(recent),
@@ -335,6 +364,14 @@ func detectRegressions(historical, recent []storage.SnapshotInfo, threshold floa
 
 func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 	fmt.Println("=== TREND ANALYSIS ===")
+	
+	// Display beta notice prominently
+	if notice, ok := analysis["beta_notice"].(string); ok {
+		fmt.Println()
+		fmt.Println(notice)
+		fmt.Println()
+	}
+	
 	fmt.Printf("Period: %v\n", analysis["period"])
 	fmt.Printf("Snapshots analyzed: %v\n", analysis["snapshots"])
 
@@ -365,6 +402,14 @@ func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 
 func outputForecastsConsole(forecasts map[string]interface{}) {
 	fmt.Println("=== METRIC FORECASTS ===")
+	
+	// Display placeholder notice prominently
+	if notice, ok := forecasts["placeholder_notice"].(string); ok {
+		fmt.Println()
+		fmt.Println(notice)
+		fmt.Println()
+	}
+	
 	fmt.Printf("Method: %v\n", forecasts["method"])
 
 	if metric := forecasts["metric"]; metric != nil && metric != "" {
@@ -377,19 +422,21 @@ func outputForecastsConsole(forecasts map[string]interface{}) {
 
 	fmt.Printf("Confidence: %.1f%%\n", forecasts["confidence"])
 	fmt.Println()
-
-	fmt.Println("Forecasting functionality is under development.")
-	fmt.Println("This will provide predictions for future metric values based on historical trends.")
 }
 
 func outputRegressionsConsole(regressions map[string]interface{}) {
 	fmt.Println("=== REGRESSION DETECTION ===")
+	
+	// Display placeholder notice prominently
+	if notice, ok := regressions["placeholder_notice"].(string); ok {
+		fmt.Println()
+		fmt.Println(notice)
+		fmt.Println()
+	}
+	
 	fmt.Printf("Threshold: %.1f%%\n", regressions["threshold"])
 	fmt.Printf("Historical snapshots: %v\n", regressions["historical_count"])
 	fmt.Printf("Recent snapshots: %v\n", regressions["recent_count"])
 	fmt.Printf("Severity: %v\n", regressions["severity"])
 	fmt.Println()
-
-	fmt.Println("Regression detection functionality is under development.")
-	fmt.Println("This will identify significant negative changes in code quality metrics.")
 }
