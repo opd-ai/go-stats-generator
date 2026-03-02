@@ -25,11 +25,11 @@ func NewDuplicationAnalyzer(fset *token.FileSet) *DuplicationAnalyzer {
 
 // StatementBlock represents a block of statements extracted from a function
 type StatementBlock struct {
-	File      string
-	StartLine int
-	EndLine   int
+	File       string
+	StartLine  int
+	EndLine    int
 	Statements []ast.Stmt
-	NodeCount int
+	NodeCount  int
 }
 
 // NormalizedBlock represents a structurally normalized block

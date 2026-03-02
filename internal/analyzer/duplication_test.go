@@ -149,10 +149,10 @@ func test2() {
 
 func TestDuplicationAnalyzer_ComputeHash(t *testing.T) {
 	tests := []struct {
-		name      string
-		source1   string
-		source2   string
-		sameHash  bool
+		name     string
+		source1  string
+		source2  string
+		sameHash bool
 	}{
 		{
 			name: "identical code same hash",
