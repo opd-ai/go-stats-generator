@@ -38,6 +38,9 @@
             {{if or (gt .Report.Naming.FileNameViolations 0) (gt .Report.Naming.IdentifierViolations 0) (gt .Report.Naming.PackageNameViolations 0)}}
             <button class="nav-tab" data-tab="naming">Naming</button>
             {{end}}
+            {{if or (gt .Report.Placement.MisplacedFunctions 0) (gt .Report.Placement.MisplacedMethods 0) (gt .Report.Placement.LowCohesionFiles 0)}}
+            <button class="nav-tab" data-tab="placement">Placement</button>
+            {{end}}
             {{if .Report.Patterns.ConcurrencyPatterns}}
             <button class="nav-tab" data-tab="concurrency">Concurrency</button>
             {{end}}
@@ -395,6 +398,128 @@
                             <td>{{.ViolationType}}</td>
                             <td><span class="badge severity-{{.Severity}}">{{.Severity}}</span></td>
                             <td><code>{{.SuggestedName}}</code></td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+        </section>
+        {{end}}
+
+        <!-- Placement Analysis Tab -->
+        {{if or (gt .Report.Placement.MisplacedFunctions 0) (gt .Report.Placement.MisplacedMethods 0) (gt .Report.Placement.LowCohesionFiles 0)}}
+        <section id="placement" class="tab-content">
+            <h2>Placement Analysis</h2>
+            
+            <!-- Placement Summary Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>{{.Report.Placement.MisplacedFunctions}}</h3>
+                    <p>Misplaced Functions</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{.Report.Placement.MisplacedMethods}}</h3>
+                    <p>Misplaced Methods</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{.Report.Placement.LowCohesionFiles}}</h3>
+                    <p>Low Cohesion Files</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Placement.AvgFileCohesion}}</h3>
+                    <p>Avg File Cohesion</p>
+                </div>
+            </div>
+
+            <!-- Misplaced Functions Table -->
+            {{if gt (len .Report.Placement.FunctionIssues) 0}}
+            <div class="table-container">
+                <h3>Misplaced Functions</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Function</th>
+                            <th role="columnheader">Current File</th>
+                            <th role="columnheader">Suggested File</th>
+                            <th role="columnheader">Current Affinity</th>
+                            <th role="columnheader">Suggested Affinity</th>
+                            <th role="columnheader">Affinity Gain</th>
+                            <th role="columnheader">Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Placement.FunctionIssues}}
+                        <tr role="row">
+                            <td><code>{{.Name}}</code></td>
+                            <td>{{.CurrentFile}}</td>
+                            <td>{{.SuggestedFile}}</td>
+                            <td>{{formatPercent .CurrentAffinity}}</td>
+                            <td>{{formatPercent .SuggestedAffinity}}</td>
+                            <td>{{formatPercent (subtract .SuggestedAffinity .CurrentAffinity)}}</td>
+                            <td><span class="badge severity-{{.Severity}}">{{.Severity}}</span></td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
+            <!-- Misplaced Methods Table -->
+            {{if gt (len .Report.Placement.MethodIssues) 0}}
+            <div class="table-container">
+                <h3>Misplaced Methods</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Method</th>
+                            <th role="columnheader">Receiver Type</th>
+                            <th role="columnheader">Current File</th>
+                            <th role="columnheader">Receiver File</th>
+                            <th role="columnheader">Distance</th>
+                            <th role="columnheader">Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Placement.MethodIssues}}
+                        <tr role="row">
+                            <td><code>{{.MethodName}}</code></td>
+                            <td><code>{{.ReceiverType}}</code></td>
+                            <td>{{.CurrentFile}}</td>
+                            <td>{{.ReceiverFile}}</td>
+                            <td>{{.Distance}}</td>
+                            <td><span class="badge severity-{{.Severity}}">{{.Severity}}</span></td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
+            <!-- Low Cohesion Files Table -->
+            {{if gt (len .Report.Placement.CohesionIssues) 0}}
+            <div class="table-container">
+                <h3>Low Cohesion Files</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">File</th>
+                            <th role="columnheader">Cohesion Score</th>
+                            <th role="columnheader">Intra-File Refs</th>
+                            <th role="columnheader">Total Refs</th>
+                            <th role="columnheader">Suggested Splits</th>
+                            <th role="columnheader">Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Placement.CohesionIssues}}
+                        <tr role="row">
+                            <td>{{.File}}</td>
+                            <td>{{formatFloat .CohesionScore}}</td>
+                            <td>{{.IntraFileRefs}}</td>
+                            <td>{{.TotalRefs}}</td>
+                            <td>{{range $index, $split := .SuggestedSplits}}{{if $index}}, {{end}}{{$split}}{{end}}</td>
+                            <td><span class="badge severity-{{.Severity}}">{{.Severity}}</span></td>
                         </tr>
                         {{end}}
                     </tbody>

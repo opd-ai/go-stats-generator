@@ -218,11 +218,33 @@ Output sections:
 JSON output automatically includes full report struct serialization; placement field is serialized correctly.
 Verified with test output showing complete placement metrics in JSON format.
 
-### 12. Add HTML Reporter Output
+### 12. Add HTML Reporter Output ✅ COMPLETE
 - **Deliverable**: Update `internal/reporter/templates/html/report.html` with Placement tab
 - **Dependencies**: Steps 1, 9
+- **Completed**: 2026-03-02
 
-Add new tab and content section following existing patterns (Naming, Duplication tabs).
+Implementation:
+- Added conditional placement tab button in navigation (displays when violations exist)
+- Created placement content section with summary cards showing:
+  - Misplaced Functions count
+  - Misplaced Methods count
+  - Low Cohesion Files count
+  - Average File Cohesion score
+- Added three detailed tables:
+  - Misplaced Functions: shows function name, current/suggested files, affinity scores, affinity gain, and severity
+  - Misplaced Methods: shows method name, receiver type, current/receiver files, distance, and severity
+  - Low Cohesion Files: shows file, cohesion score, intra-file refs, total refs, suggested splits, and severity
+- Added `subtract` template function to html.go for calculating affinity gain
+- Created comprehensive unit test in html_test.go (TestHTMLReporter_WithPlacement)
+- All existing tests continue to pass
+- Verified end-to-end: `./go-stats-generator analyze . --format=html` produces placement section when violations exist
+
+Output sections:
+- Placement tab button (conditional on violations)
+- Placement Summary (counts, avg cohesion)
+- Misplaced Functions table (name, current file, suggested file, affinity scores with gain calculation)
+- Misplaced Methods table (method, receiver, current file, receiver file, distance)
+- Low Cohesion Files table (file, cohesion score, intra/total refs, suggested splits)
 
 ### 13. Add Markdown Reporter Output
 - **Deliverable**: Update `internal/reporter/templates/markdown/report.md` with Placement section
@@ -283,7 +305,7 @@ Ensure placement analysis doesn't degrade performance below 50,000-file-in-60-se
 - [x] finalizePlacementMetrics() function created and called correctly
 - [x] JSON reporter includes placement metrics
 - [x] Console reporter displays placement analysis when violations exist
-- [ ] HTML reporter includes Placement tab when violations exist
+- [x] HTML reporter includes Placement tab when violations exist
 - [ ] Markdown reporter includes Placement section when violations exist
 - [x] Unit tests achieve >85% code coverage for `internal/analyzer/placement.go`
 - [ ] Integration tests pass for all test fixtures

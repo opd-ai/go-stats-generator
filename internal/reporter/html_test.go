@@ -655,3 +655,101 @@ func createLargeTestReport(functionCount int) *metrics.Report {
 		Functions: functions,
 	}
 }
+
+// TestHTMLReporter_WithPlacement tests HTML output with placement metrics
+func TestHTMLReporter_WithPlacement(t *testing.T) {
+	report := &metrics.Report{
+		Metadata: metrics.ReportMetadata{
+			Repository:     "test-repo",
+			GeneratedAt:    time.Now(),
+			AnalysisTime:   time.Second,
+			FilesProcessed: 3,
+		},
+		Overview: metrics.OverviewMetrics{
+			TotalFiles:       3,
+			TotalLinesOfCode: 500,
+			TotalFunctions:   10,
+		},
+		Placement: metrics.PlacementMetrics{
+			MisplacedFunctions: 2,
+			MisplacedMethods:   1,
+			LowCohesionFiles:   1,
+			AvgFileCohesion:    0.65,
+			FunctionIssues: []metrics.MisplacedFunctionIssue{
+				{
+					Name:              "HelperFunc",
+					CurrentFile:       "main.go",
+					SuggestedFile:     "helper.go",
+					CurrentAffinity:   0.2,
+					SuggestedAffinity: 0.8,
+					ReferencedSymbols: []string{"HelperStruct", "HelperMethod"},
+					Severity:          "high",
+				},
+				{
+					Name:              "UtilFunc",
+					CurrentFile:       "controller.go",
+					SuggestedFile:     "utils.go",
+					CurrentAffinity:   0.3,
+					SuggestedAffinity: 0.7,
+					ReferencedSymbols: []string{"StringUtils"},
+					Severity:          "medium",
+				},
+			},
+			MethodIssues: []metrics.MisplacedMethodIssue{
+				{
+					MethodName:   "Process",
+					ReceiverType: "Handler",
+					CurrentFile:  "utils.go",
+					ReceiverFile: "handler.go",
+					Distance:     "same_package",
+					Severity:     "medium",
+				},
+			},
+			CohesionIssues: []metrics.FileCohesionIssue{
+				{
+					File:            "mixed.go",
+					CohesionScore:   0.25,
+					IntraFileRefs:   5,
+					TotalRefs:       20,
+					SuggestedSplits: []string{"handlers.go", "models.go"},
+					Severity:        "high",
+				},
+			},
+		},
+	}
+
+	reporter := NewHTMLReporterWithConfig(&config.OutputConfig{
+		IncludeOverview: true,
+		IncludeDetails:  true,
+		Limit:           10,
+	})
+
+	var output bytes.Buffer
+	err := reporter.Generate(report, &output)
+
+	require.NoError(t, err, "HTML generation should not fail")
+
+	html := output.String()
+
+	// Verify placement tab exists
+	require.Contains(t, html, `data-tab="placement"`, "HTML should include placement tab button")
+	require.Contains(t, html, `id="placement"`, "HTML should include placement section")
+
+	// Verify summary metrics
+	require.Contains(t, html, "Misplaced Functions", "Should show misplaced functions label")
+	require.Contains(t, html, "Misplaced Methods", "Should show misplaced methods label")
+	require.Contains(t, html, "Low Cohesion Files", "Should show low cohesion files label")
+
+	// Verify function issues table
+	require.Contains(t, html, "HelperFunc", "Should include misplaced function name")
+	require.Contains(t, html, "helper.go", "Should include suggested file")
+
+	// Verify method issues table
+	require.Contains(t, html, "Process", "Should include method name")
+	require.Contains(t, html, "Handler", "Should include receiver type")
+
+	// Verify cohesion issues table
+	require.Contains(t, html, "mixed.go", "Should include low cohesion file")
+	require.Contains(t, html, "handlers.go", "Should include suggested split")
+}
+
