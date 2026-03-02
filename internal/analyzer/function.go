@@ -359,9 +359,10 @@ func (fa *FunctionAnalyzer) findBlockCommentEnd(line string, startIdx int) (int,
 }
 
 // classifyLineWithCompleteBlockComment handles lines with complete block comments
-func (fa *FunctionAnalyzer) classifyLineWithCompleteBlockComment(line string, blockStartIdx, blockEndIdx int) string {
+// blockContentLength is the length of the comment content (excluding /* and */)
+func (fa *FunctionAnalyzer) classifyLineWithCompleteBlockComment(line string, blockStartIdx, blockContentLength int) string {
 	beforeBlock := strings.TrimSpace(line[:blockStartIdx])
-	afterBlock := strings.TrimSpace(line[blockStartIdx+blockEndIdx+2:])
+	afterBlock := strings.TrimSpace(line[blockStartIdx+blockContentLength+2:])
 	hasCodeBefore := beforeBlock != ""
 	hasCodeAfter := afterBlock != "" && !strings.HasPrefix(afterBlock, "//")
 

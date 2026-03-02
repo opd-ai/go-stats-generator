@@ -17,8 +17,8 @@ The `go-stats-generator` codebase is **90% feature-complete** with a strong foun
 - **FUNCTIONAL MISMATCHES**: 1 (2 fixed ✅)
 - **MISSING FEATURES**: 0 (2 documented/fixed ✅)
 - **DOCUMENTATION ERRORS**: 1 (1 fixed ✅)
-- **EDGE CASE BUGS**: 2
-- **TOTAL ISSUES**: 4 (10 original, 6 resolved)
+- **EDGE CASE BUGS**: 1 (1 fixed ✅)
+- **TOTAL ISSUES**: 3 (10 original, 7 resolved)
 
 ### Test Coverage Status
 - **Total Test Files**: 72 Go files
@@ -452,13 +452,14 @@ Added `--format` and `--output` flags to `listBaselinesCmd` in the `init()` func
 
 ---
 
-### 8. EDGE CASE BUG - Parameter Naming Confusion in Line Classification
+### 8. ~~EDGE CASE BUG - Parameter Naming Confusion in Line Classification~~ ✅ FIXED
 
 ```
 Category: EDGE CASE BUG
 File: internal/analyzer/function.go
-Line: 324
+Line: 324, 362
 Severity: Low
+Status: FIXED (2026-03-02)
 ```
 
 **Description:**
@@ -466,14 +467,14 @@ Confusing parameter naming in `classifyLineWithCompleteBlockComment()` call that
 
 **Code Reference:**
 ```go
-// Line 324
+// Line 324 (before fix)
 return fa.classifyLineWithCompleteBlockComment(
     line, 
     blockStartIdx, 
     endIdx-blockStartIdx-2  // Passes offset, not index
 )
 
-// But the function signature (line 362) expects blockEndIdx:
+// But the function signature (line 362) was named blockEndIdx:
 func (fa *FunctionAnalyzer) classifyLineWithCompleteBlockComment(
     line string, 
     blockStartIdx int, 
@@ -482,12 +483,26 @@ func (fa *FunctionAnalyzer) classifyLineWithCompleteBlockComment(
 ```
 
 **Impact:**
-- Code works but parameter name is misleading
-- Future maintainers may misinterpret parameter semantics
+- Code worked correctly but parameter name was misleading
+- Future maintainers could misinterpret parameter semantics
 - No functional bug, just confusing API
 
-**Recommended Fix:**
-Rename parameter to `blockLength` or `blockOffset` to clarify semantics.
+**Fix Applied:**
+Renamed parameter from `blockEndIdx` to `blockContentLength` and added clarifying comment:
+```go
+// classifyLineWithCompleteBlockComment handles lines with complete block comments
+// blockContentLength is the length of the comment content (excluding /* and */)
+func (fa *FunctionAnalyzer) classifyLineWithCompleteBlockComment(
+    line string, 
+    blockStartIdx, 
+    blockContentLength int
+) string
+```
+
+**Testing:**
+✅ All line counting tests passing
+✅ Full test suite passing
+✅ No functional changes, pure refactoring
 
 ---
 
@@ -818,9 +833,10 @@ Coverage Areas: All major features
    - Edge case, minimal real-world impact
    - Improves accuracy for rare cases
 
-8. **Clarify parameter naming** (Finding #8)
-   - Code hygiene, no functional impact
-   - Helps future maintainers
+8. ~~**Clarify parameter naming**~~ ✅ **COMPLETED** (Finding #8)
+   - Renamed `blockEndIdx` to `blockContentLength` for clarity
+   - Added clarifying comment about parameter semantics
+   - **Fixed on 2026-03-02** - See Finding #8 for details
 
 9. **Verify or adjust performance claims** (Finding #9)
    - Add benchmarks or adjust documentation
