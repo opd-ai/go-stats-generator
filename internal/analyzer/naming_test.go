@@ -767,3 +767,453 @@ var x = 5  // Should flag: single letter outside loop
 	assert.Greater(t, violationTypes["underscore_in_name"], 0, "should find underscore violations")
 	assert.Greater(t, violationTypes["single_letter_name"], 0, "should find single letter violations")
 }
+
+func TestNamingAnalyzer_AnalyzePackageName(t *testing.T) {
+	tests := []struct {
+		name               string
+		pkgName            string
+		dirName            string
+		filePath           string
+		expectedViolations []string // violation types expected
+	}{
+		{
+			name:               "valid package name",
+			pkgName:            "user",
+			dirName:            "user",
+			filePath:           "/path/to/user/service.go",
+			expectedViolations: nil,
+		},
+		{
+			name:               "valid package name with number",
+			pkgName:            "http2",
+			dirName:            "http2",
+			filePath:           "/path/to/http2/client.go",
+			expectedViolations: nil,
+		},
+		{
+			name:               "main package always valid",
+			pkgName:            "main",
+			dirName:            "cmd",
+			filePath:           "/path/to/cmd/main.go",
+			expectedViolations: nil,
+		},
+		{
+			name:               "package with underscore",
+			pkgName:            "user_service",
+			dirName:            "user_service",
+			filePath:           "/path/to/user_service/service.go",
+			expectedViolations: []string{"non_conventional_name"},
+		},
+		{
+			name:               "package with mixed case",
+			pkgName:            "userService",
+			dirName:            "userService",
+			filePath:           "/path/to/userService/service.go",
+			expectedViolations: []string{"non_conventional_name"},
+		},
+		{
+			name:               "generic package name util",
+			pkgName:            "util",
+			dirName:            "util",
+			filePath:           "/path/to/util/helpers.go",
+			expectedViolations: []string{"generic_package_name"},
+		},
+		{
+			name:               "generic package name helpers",
+			pkgName:            "helpers",
+			dirName:            "helpers",
+			filePath:           "/path/to/helpers/string.go",
+			expectedViolations: []string{"generic_package_name"},
+		},
+		{
+			name:               "generic package name common",
+			pkgName:            "common",
+			dirName:            "common",
+			filePath:           "/path/to/common/types.go",
+			expectedViolations: []string{"generic_package_name"},
+		},
+		{
+			name:               "stdlib collision http",
+			pkgName:            "http",
+			dirName:            "http",
+			filePath:           "/path/to/http/server.go",
+			expectedViolations: []string{"stdlib_collision"},
+		},
+		{
+			name:               "stdlib collision fmt",
+			pkgName:            "fmt",
+			dirName:            "fmt",
+			filePath:           "/path/to/fmt/format.go",
+			expectedViolations: []string{"stdlib_collision"},
+		},
+		{
+			name:               "stdlib collision strings",
+			pkgName:            "strings",
+			dirName:            "strings",
+			filePath:           "/path/to/strings/util.go",
+			expectedViolations: []string{"stdlib_collision"},
+		},
+		{
+			name:               "directory mismatch",
+			pkgName:            "service",
+			dirName:            "user",
+			filePath:           "/path/to/user/service.go",
+			expectedViolations: []string{"directory_mismatch"},
+		},
+		{
+			name:               "multiple violations",
+			pkgName:            "util",
+			dirName:            "utilities",
+			filePath:           "/path/to/utilities/helpers.go",
+			expectedViolations: []string{"generic_package_name", "directory_mismatch"},
+		},
+	}
+
+	na := NewNamingAnalyzer()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			violations := na.AnalyzePackageName(tt.pkgName, tt.dirName, tt.filePath)
+
+			if len(tt.expectedViolations) == 0 {
+				assert.Empty(t, violations, "expected no violations for %s", tt.pkgName)
+			} else {
+				require.Len(t, violations, len(tt.expectedViolations), "expected %d violations for %s", len(tt.expectedViolations), tt.pkgName)
+
+				violationTypes := make(map[string]bool)
+				for _, v := range violations {
+					violationTypes[v.ViolationType] = true
+					assert.Equal(t, tt.pkgName, v.Package)
+				}
+
+				for _, expectedType := range tt.expectedViolations {
+					assert.True(t, violationTypes[expectedType], "expected violation type %s", expectedType)
+				}
+			}
+		})
+	}
+}
+
+func TestNamingAnalyzer_CheckPackageConvention(t *testing.T) {
+	tests := []struct {
+		name          string
+		pkgName       string
+		shouldViolate bool
+		suggested     string
+	}{
+		{
+			name:          "valid lowercase",
+			pkgName:       "user",
+			shouldViolate: false,
+		},
+		{
+			name:          "valid with number",
+			pkgName:       "http2",
+			shouldViolate: false,
+		},
+		{
+			name:          "main package",
+			pkgName:       "main",
+			shouldViolate: false,
+		},
+		{
+			name:          "invalid underscore",
+			pkgName:       "user_service",
+			shouldViolate: true,
+			suggested:     "userservice",
+		},
+		{
+			name:          "invalid mixed case",
+			pkgName:       "userService",
+			shouldViolate: true,
+			suggested:     "userservice",
+		},
+		{
+			name:          "invalid uppercase",
+			pkgName:       "User",
+			shouldViolate: true,
+			suggested:     "user",
+		},
+	}
+
+	na := NewNamingAnalyzer()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			violation := na.checkPackageConvention(tt.pkgName, "/path/to/file.go")
+
+			if tt.shouldViolate {
+				require.NotNil(t, violation, "expected violation for %s", tt.pkgName)
+				assert.Equal(t, "non_conventional_name", violation.ViolationType)
+				if tt.suggested != "" {
+					assert.Equal(t, tt.suggested, violation.SuggestedName)
+				}
+			} else {
+				assert.Nil(t, violation, "expected no violation for %s", tt.pkgName)
+			}
+		})
+	}
+}
+
+func TestNamingAnalyzer_CheckGenericPackageName(t *testing.T) {
+	tests := []struct {
+		name          string
+		pkgName       string
+		shouldViolate bool
+	}{
+		{
+			name:          "specific name",
+			pkgName:       "authentication",
+			shouldViolate: false,
+		},
+		{
+			name:          "main package",
+			pkgName:       "main",
+			shouldViolate: false,
+		},
+		{
+			name:          "generic util",
+			pkgName:       "util",
+			shouldViolate: true,
+		},
+		{
+			name:          "generic utils",
+			pkgName:       "utils",
+			shouldViolate: true,
+		},
+		{
+			name:          "generic common",
+			pkgName:       "common",
+			shouldViolate: true,
+		},
+		{
+			name:          "generic helpers",
+			pkgName:       "helpers",
+			shouldViolate: true,
+		},
+		{
+			name:          "generic base",
+			pkgName:       "base",
+			shouldViolate: true,
+		},
+	}
+
+	na := NewNamingAnalyzer()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			violation := na.checkGenericPackageName(tt.pkgName, "/path/to/file.go")
+
+			if tt.shouldViolate {
+				require.NotNil(t, violation, "expected violation for %s", tt.pkgName)
+				assert.Equal(t, "generic_package_name", violation.ViolationType)
+			} else {
+				assert.Nil(t, violation, "expected no violation for %s", tt.pkgName)
+			}
+		})
+	}
+}
+
+func TestNamingAnalyzer_CheckStdLibCollision(t *testing.T) {
+	tests := []struct {
+		name          string
+		pkgName       string
+		shouldViolate bool
+	}{
+		{
+			name:          "no collision",
+			pkgName:       "authentication",
+			shouldViolate: false,
+		},
+		{
+			name:          "main package",
+			pkgName:       "main",
+			shouldViolate: false,
+		},
+		{
+			name:          "collision with fmt",
+			pkgName:       "fmt",
+			shouldViolate: true,
+		},
+		{
+			name:          "collision with http",
+			pkgName:       "http",
+			shouldViolate: true,
+		},
+		{
+			name:          "collision with strings",
+			pkgName:       "strings",
+			shouldViolate: true,
+		},
+		{
+			name:          "collision with io",
+			pkgName:       "io",
+			shouldViolate: true,
+		},
+		{
+			name:          "collision with os",
+			pkgName:       "os",
+			shouldViolate: true,
+		},
+	}
+
+	na := NewNamingAnalyzer()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			violation := na.checkStdLibCollision(tt.pkgName, "/path/to/file.go")
+
+			if tt.shouldViolate {
+				require.NotNil(t, violation, "expected violation for %s", tt.pkgName)
+				assert.Equal(t, "stdlib_collision", violation.ViolationType)
+			} else {
+				assert.Nil(t, violation, "expected no violation for %s", tt.pkgName)
+			}
+		})
+	}
+}
+
+func TestNamingAnalyzer_CheckDirectoryMismatch(t *testing.T) {
+	tests := []struct {
+		name          string
+		pkgName       string
+		dirName       string
+		shouldViolate bool
+		suggested     string
+	}{
+		{
+			name:          "matching names",
+			pkgName:       "user",
+			dirName:       "user",
+			shouldViolate: false,
+		},
+		{
+			name:          "main package with cmd dir",
+			pkgName:       "main",
+			dirName:       "cmd",
+			shouldViolate: false,
+		},
+		{
+			name:          "internal directory",
+			pkgName:       "user",
+			dirName:       "internal",
+			shouldViolate: false,
+		},
+		{
+			name:          "vendor directory",
+			pkgName:       "user",
+			dirName:       "vendor",
+			shouldViolate: false,
+		},
+		{
+			name:          "testdata directory",
+			pkgName:       "user",
+			dirName:       "testdata",
+			shouldViolate: false,
+		},
+		{
+			name:          "mismatch",
+			pkgName:       "service",
+			dirName:       "user",
+			shouldViolate: true,
+			suggested:     "user",
+		},
+		{
+			name:          "mismatch different names",
+			pkgName:       "handlers",
+			dirName:       "controller",
+			shouldViolate: true,
+			suggested:     "controller",
+		},
+	}
+
+	na := NewNamingAnalyzer()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			violation := na.checkDirectoryMismatch(tt.pkgName, tt.dirName, "/path/to/"+tt.dirName+"/file.go")
+
+			if tt.shouldViolate {
+				require.NotNil(t, violation, "expected violation for pkg=%s dir=%s", tt.pkgName, tt.dirName)
+				assert.Equal(t, "directory_mismatch", violation.ViolationType)
+				if tt.suggested != "" {
+					assert.Equal(t, tt.suggested, violation.SuggestedName)
+				}
+			} else {
+				assert.Nil(t, violation, "expected no violation for pkg=%s dir=%s", tt.pkgName, tt.dirName)
+			}
+		})
+	}
+}
+
+func TestNamingAnalyzer_ComputePackageNamingScore(t *testing.T) {
+	na := NewNamingAnalyzer()
+
+	tests := []struct {
+		name          string
+		violations    []metrics.PackageNameViolation
+		totalPackages int
+		expectedScore float64
+		minScore      float64
+		maxScore      float64
+	}{
+		{
+			name:          "no violations",
+			violations:    []metrics.PackageNameViolation{},
+			totalPackages: 10,
+			expectedScore: 1.0,
+		},
+		{
+			name: "one low severity violation",
+			violations: []metrics.PackageNameViolation{
+				{Severity: "low"},
+			},
+			totalPackages: 10,
+			minScore:      0.98,
+			maxScore:      1.0,
+		},
+		{
+			name: "one medium severity violation",
+			violations: []metrics.PackageNameViolation{
+				{Severity: "medium"},
+			},
+			totalPackages: 10,
+			minScore:      0.95,
+			maxScore:      1.0,
+		},
+		{
+			name: "multiple violations",
+			violations: []metrics.PackageNameViolation{
+				{Severity: "low"},
+				{Severity: "medium"},
+				{Severity: "high"},
+			},
+			totalPackages: 10,
+			minScore:      0.85,
+			maxScore:      1.0,
+		},
+		{
+			name:          "zero packages",
+			violations:    []metrics.PackageNameViolation{},
+			totalPackages: 0,
+			expectedScore: 1.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			score := na.ComputePackageNamingScore(tt.violations, tt.totalPackages)
+
+			if tt.expectedScore > 0 {
+				assert.Equal(t, tt.expectedScore, score)
+			} else {
+				assert.GreaterOrEqual(t, score, tt.minScore)
+				assert.LessOrEqual(t, score, tt.maxScore)
+			}
+
+			// Score should always be in [0, 1]
+			assert.GreaterOrEqual(t, score, 0.0)
+			assert.LessOrEqual(t, score, 1.0)
+		})
+	}
+}

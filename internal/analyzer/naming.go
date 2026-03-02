@@ -16,6 +16,9 @@ type NamingAnalyzer struct {
 	genericFileNames map[string]bool
 	snakeCaseRegex   *regexp.Regexp
 	acronyms         map[string]string // lowercase -> correct casing
+	genericPackages  map[string]bool
+	stdLibPackages   map[string]bool
+	packageNameRegex *regexp.Regexp
 }
 
 // identifierContext tracks context information for identifier analysis
@@ -73,6 +76,42 @@ func NewNamingAnalyzer() *NamingAnalyzer {
 			"ascii": "ASCII",
 			"utf":   "UTF",
 		},
+		genericPackages: map[string]bool{
+			"util":    true,
+			"utils":   true,
+			"common":  true,
+			"base":    true,
+			"shared":  true,
+			"lib":     true,
+			"core":    true,
+			"misc":    true,
+			"helpers": true,
+			"helper":  true,
+		},
+		stdLibPackages: map[string]bool{
+			"fmt":     true,
+			"http":    true,
+			"io":      true,
+			"os":      true,
+			"net":     true,
+			"sync":    true,
+			"time":    true,
+			"strings": true,
+			"bytes":   true,
+			"errors":  true,
+			"context": true,
+			"testing": true,
+			"regexp":  true,
+			"sort":    true,
+			"path":    true,
+			"log":     true,
+			"json":    true,
+			"xml":     true,
+			"sql":     true,
+			"html":    true,
+			"url":     true,
+		},
+		packageNameRegex: regexp.MustCompile(`^[a-z][a-z0-9]*$`),
 	}
 }
 
@@ -664,4 +703,169 @@ func isWrongAcronymCasing(actual, correct string) bool {
 	}
 
 	return false
+}
+
+// AnalyzePackageName validates package names against Go naming conventions
+func (na *NamingAnalyzer) AnalyzePackageName(pkgName, dirName, filePath string) []metrics.PackageNameViolation {
+	var violations []metrics.PackageNameViolation
+
+	// Check 1: Package name must be lowercase, single word (no underscores or mixedCaps)
+	if violation := na.checkPackageConvention(pkgName, filePath); violation != nil {
+		violations = append(violations, *violation)
+	}
+
+	// Check 2: Avoid generic package names
+	if violation := na.checkGenericPackageName(pkgName, filePath); violation != nil {
+		violations = append(violations, *violation)
+	}
+
+	// Check 3: Avoid standard library collisions
+	if violation := na.checkStdLibCollision(pkgName, filePath); violation != nil {
+		violations = append(violations, *violation)
+	}
+
+	// Check 4: Package name should match directory name
+	if violation := na.checkDirectoryMismatch(pkgName, dirName, filePath); violation != nil {
+		violations = append(violations, *violation)
+	}
+
+	return violations
+}
+
+// checkPackageConvention verifies package name follows Go conventions
+func (na *NamingAnalyzer) checkPackageConvention(pkgName, filePath string) *metrics.PackageNameViolation {
+	// Skip main package
+	if pkgName == "main" {
+		return nil
+	}
+
+	// Package name should be lowercase, single word
+	if !na.packageNameRegex.MatchString(pkgName) {
+		suggested := strings.ToLower(strings.ReplaceAll(pkgName, "_", ""))
+
+		description := "Package names should be lowercase, single word (no underscores or mixedCaps)"
+		if strings.Contains(pkgName, "_") {
+			description = "Package names should not contain underscores; use lowercase concatenation"
+		} else if pkgName != strings.ToLower(pkgName) {
+			description = "Package names should be all lowercase"
+		}
+
+		return &metrics.PackageNameViolation{
+			Package:       pkgName,
+			Directory:     filepath.Dir(filePath),
+			ViolationType: "non_conventional_name",
+			Description:   description,
+			SuggestedName: suggested,
+			Severity:      "medium",
+		}
+	}
+
+	return nil
+}
+
+// checkGenericPackageName flags overly generic package names
+func (na *NamingAnalyzer) checkGenericPackageName(pkgName, filePath string) *metrics.PackageNameViolation {
+	// Skip main package
+	if pkgName == "main" {
+		return nil
+	}
+
+	if na.genericPackages[pkgName] {
+		return &metrics.PackageNameViolation{
+			Package:       pkgName,
+			Directory:     filepath.Dir(filePath),
+			ViolationType: "generic_package_name",
+			Description:   "Package name is too generic; use a more specific, descriptive name",
+			SuggestedName: "", // Cannot suggest without context
+			Severity:      "low",
+		}
+	}
+
+	return nil
+}
+
+// checkStdLibCollision flags package names that collide with standard library
+func (na *NamingAnalyzer) checkStdLibCollision(pkgName, filePath string) *metrics.PackageNameViolation {
+	// Skip main package
+	if pkgName == "main" {
+		return nil
+	}
+
+	if na.stdLibPackages[pkgName] {
+		return &metrics.PackageNameViolation{
+			Package:       pkgName,
+			Directory:     filepath.Dir(filePath),
+			ViolationType: "stdlib_collision",
+			Description:   "Package name collides with Go standard library package; this may cause confusion",
+			SuggestedName: "", // Cannot suggest without context
+			Severity:      "medium",
+		}
+	}
+
+	return nil
+}
+
+// checkDirectoryMismatch flags packages whose name doesn't match directory name
+func (na *NamingAnalyzer) checkDirectoryMismatch(pkgName, dirName, filePath string) *metrics.PackageNameViolation {
+	// Skip main package
+	if pkgName == "main" {
+		return nil
+	}
+
+	// Normalize directory name for comparison (handle special cases)
+	normalizedDir := filepath.Base(dirName)
+
+	// Skip internal/vendor/testdata directories and similar
+	if normalizedDir == "internal" || normalizedDir == "vendor" || normalizedDir == "testdata" {
+		return nil
+	}
+
+	if pkgName != normalizedDir {
+		return &metrics.PackageNameViolation{
+			Package:       pkgName,
+			Directory:     filepath.Dir(filePath),
+			ViolationType: "directory_mismatch",
+			Description:   "Package name does not match directory name; they should be the same",
+			SuggestedName: normalizedDir,
+			Severity:      "medium",
+		}
+	}
+
+	return nil
+}
+
+// ComputePackageNamingScore calculates an overall package naming quality score
+func (na *NamingAnalyzer) ComputePackageNamingScore(violations []metrics.PackageNameViolation, totalPackages int) float64 {
+	if totalPackages == 0 {
+		return 1.0
+	}
+
+	// Weight violations by severity
+	severityWeights := map[string]float64{
+		"low":    0.1,
+		"medium": 0.3,
+		"high":   0.5,
+	}
+
+	totalPenalty := 0.0
+	for _, v := range violations {
+		weight, ok := severityWeights[v.Severity]
+		if !ok {
+			weight = 0.2
+		}
+		totalPenalty += weight
+	}
+
+	// Normalize penalty
+	normalizedPenalty := totalPenalty / float64(totalPackages)
+
+	score := 1.0 - normalizedPenalty
+	if score < 0 {
+		score = 0
+	}
+	if score > 1 {
+		score = 1
+	}
+
+	return score
 }
