@@ -59,7 +59,7 @@ func TestNamingAnalyzer_CheckSnakeCase(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			violation := na.checkSnakeCase("/path/to/"+tt.fileName, tt.fileName)
-			
+
 			if tt.shouldViolate {
 				require.NotNil(t, violation, "expected violation for %s", tt.fileName)
 				assert.Equal(t, "non_snake_case", violation.ViolationType)
@@ -123,7 +123,7 @@ func TestNamingAnalyzer_CheckStuttering(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			violation := na.checkStuttering(tt.filePath, tt.fileName, tt.dirName)
-			
+
 			if tt.shouldViolate {
 				require.NotNil(t, violation, "expected stuttering violation")
 				assert.Equal(t, "stuttering", violation.ViolationType)
@@ -178,7 +178,7 @@ func TestNamingAnalyzer_CheckGenericName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			violation := na.checkGenericName("/path/to/"+tt.fileName, tt.fileName)
-			
+
 			if tt.shouldViolate {
 				require.NotNil(t, violation, "expected generic name violation")
 				assert.Equal(t, "generic_name", violation.ViolationType)
@@ -223,7 +223,7 @@ func TestNamingAnalyzer_CheckTestSuffix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			violation := na.checkTestSuffix("/path/to/"+tt.fileName, tt.fileName)
-			
+
 			if tt.shouldViolate {
 				require.NotNil(t, violation, "expected test suffix violation")
 				assert.Equal(t, "improper_test_name", violation.ViolationType)
@@ -284,8 +284,8 @@ func TestNamingAnalyzer_ToSnakeCase(t *testing.T) {
 
 func TestNamingAnalyzer_AnalyzeFileNames(t *testing.T) {
 	tests := []struct {
-		name              string
-		filePaths         []string
+		name               string
+		filePaths          []string
 		expectedViolations int
 	}{
 		{
@@ -300,10 +300,10 @@ func TestNamingAnalyzer_AnalyzeFileNames(t *testing.T) {
 		{
 			name: "mixed violations",
 			filePaths: []string{
-				"pkg/user/UserService.go",     // CamelCase
-				"pkg/http/http_client.go",     // stuttering
-				"pkg/common/utils.go",         // generic
-				"pkg/auth/test_auth.go",       // improper test
+				"pkg/user/UserService.go", // CamelCase
+				"pkg/http/http_client.go", // stuttering
+				"pkg/common/utils.go",     // generic
+				"pkg/auth/test_auth.go",   // improper test
 			},
 			expectedViolations: 4,
 		},
@@ -373,7 +373,7 @@ func TestNamingAnalyzer_ComputeFileNamingScore(t *testing.T) {
 			}
 
 			score := na.ComputeFileNamingScore(violations, tt.totalFiles)
-			
+
 			assert.GreaterOrEqual(t, score, 0.0)
 			assert.LessOrEqual(t, score, 1.0)
 		})

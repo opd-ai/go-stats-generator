@@ -19,19 +19,19 @@ type NamingAnalyzer struct {
 func NewNamingAnalyzer() *NamingAnalyzer {
 	return &NamingAnalyzer{
 		genericFileNames: map[string]bool{
-			"utils.go":    true,
-			"util.go":     true,
-			"helpers.go":  true,
-			"helper.go":   true,
-			"misc.go":     true,
-			"common.go":   true,
-			"shared.go":   true,
-			"base.go":     true,
-			"core.go":     true,
-			"lib.go":      true,
-			"types.go":    true, // too generic in most contexts
+			"utils.go":     true,
+			"util.go":      true,
+			"helpers.go":   true,
+			"helper.go":    true,
+			"misc.go":      true,
+			"common.go":    true,
+			"shared.go":    true,
+			"base.go":      true,
+			"core.go":      true,
+			"lib.go":       true,
+			"types.go":     true, // too generic in most contexts
 			"constants.go": true,
-			"errors.go":   true, // better to be specific
+			"errors.go":    true, // better to be specific
 		},
 		snakeCaseRegex: regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*(_test)?\.go$`),
 	}
@@ -80,7 +80,7 @@ func (na *NamingAnalyzer) checkSnakeCase(filePath, fileName string) *metrics.Fil
 	if !na.snakeCaseRegex.MatchString(fileName) {
 		// Try to suggest a snake_case version
 		suggested := na.toSnakeCase(fileName)
-		
+
 		return &metrics.FileNameViolation{
 			File:          filePath,
 			ViolationType: "non_snake_case",
@@ -145,11 +145,11 @@ func (na *NamingAnalyzer) checkGenericName(filePath, fileName string) *metrics.F
 // checkTestSuffix verifies _test.go suffix is only on test files
 func (na *NamingAnalyzer) checkTestSuffix(filePath, fileName string) *metrics.FileNameViolation {
 	hasTestSuffix := strings.HasSuffix(fileName, "_test.go")
-	
+
 	// If it has _test.go, it's presumably a test file (good)
 	// We can't easily check if it's NOT a test file with _test.go without parsing
 	// So we'll check for the opposite: non-test files trying to use test-like names
-	
+
 	// Check for improper test naming patterns
 	if !hasTestSuffix && (strings.Contains(fileName, "test_") || strings.HasPrefix(fileName, "test")) {
 		suggested := strings.Replace(fileName, "test_", "", 1)
@@ -225,7 +225,7 @@ func (na *NamingAnalyzer) ComputeFileNamingScore(violations []metrics.FileNameVi
 
 	// Normalize penalty (max penalty = 1.0 per file)
 	normalizedPenalty := totalPenalty / float64(totalFiles)
-	
+
 	// Score is 1.0 - penalty, clamped to [0, 1]
 	score := 1.0 - normalizedPenalty
 	if score < 0 {
