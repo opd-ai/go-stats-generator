@@ -245,14 +245,14 @@ func (fa *FunctionAnalyzer) countLinesInRange(file *token.File, startLine, endLi
 // findCommentOutsideStrings finds the index of a comment marker (// or /*)
 // that is not inside a string literal. Returns -1 if not found outside strings.
 // Handles both double-quoted strings with escapes and backtick raw strings.
-func (fa *FunctionAnalyzer) findCommentOutsideStrings(line string, commentMarker string) int {
+func (fa *FunctionAnalyzer) findCommentOutsideStrings(line, commentMarker string) int {
 	inDoubleQuote := false
 	inBacktick := false
 	escaped := false
-	
+
 	for i := 0; i < len(line); i++ {
 		ch := line[i]
-		
+
 		// Handle escape sequences in double-quoted strings
 		if inDoubleQuote {
 			if escaped {
@@ -268,7 +268,7 @@ func (fa *FunctionAnalyzer) findCommentOutsideStrings(line string, commentMarker
 			}
 			continue
 		}
-		
+
 		// Handle backtick raw strings (no escapes)
 		if inBacktick {
 			if ch == '`' {
@@ -276,7 +276,7 @@ func (fa *FunctionAnalyzer) findCommentOutsideStrings(line string, commentMarker
 			}
 			continue
 		}
-		
+
 		// Not inside any string - check for string start or comment marker
 		if ch == '"' {
 			inDoubleQuote = true
@@ -286,13 +286,13 @@ func (fa *FunctionAnalyzer) findCommentOutsideStrings(line string, commentMarker
 			inBacktick = true
 			continue
 		}
-		
+
 		// Check if we're at the start of our comment marker
 		if i+len(commentMarker) <= len(line) && line[i:i+len(commentMarker)] == commentMarker {
 			return i
 		}
 	}
-	
+
 	return -1
 }
 

@@ -14,11 +14,11 @@ import (
 // inside string literals are not treated as actual comments
 func TestCountLines_StringLiteralWithCommentMarkers(t *testing.T) {
 	tests := []struct {
-		name           string
-		code           string
-		expectedCode   int
+		name             string
+		code             string
+		expectedCode     int
 		expectedComments int
-		expectedBlank  int
+		expectedBlank    int
 	}{
 		{
 			name: "URL with // in string literal",
@@ -26,9 +26,9 @@ func TestCountLines_StringLiteralWithCommentMarkers(t *testing.T) {
 func example() {
 	url := "https://example.com"
 }`,
-			expectedCode:   1, // Just the url line
+			expectedCode:     1, // Just the url line
 			expectedComments: 0,
-			expectedBlank:  0,
+			expectedBlank:    0,
 		},
 		{
 			name: "URL with // and actual comment",
@@ -36,9 +36,9 @@ func example() {
 func example() {
 	url := "https://example.com" // This is a URL
 }`,
-			expectedCode:   1, // url line (mixed counted as code)
+			expectedCode:     1, // url line (mixed counted as code)
 			expectedComments: 0,
-			expectedBlank:  0,
+			expectedBlank:    0,
 		},
 		{
 			name: "String with /* inside",
@@ -46,9 +46,9 @@ func example() {
 func example() {
 	pattern := "/* This is not a comment */"
 }`,
-			expectedCode:   1, // pattern line
+			expectedCode:     1, // pattern line
 			expectedComments: 0,
-			expectedBlank:  0,
+			expectedBlank:    0,
 		},
 		{
 			name: "Multiple strings with comment markers",
@@ -59,9 +59,9 @@ func example() {
 	comment := "/* not a comment */"
 	slash := "//"
 }`,
-			expectedCode:   4, // 4 var lines
+			expectedCode:     4, // 4 var lines
 			expectedComments: 0,
-			expectedBlank:  0,
+			expectedBlank:    0,
 		},
 		{
 			name: "String literal with // followed by real comment",
@@ -71,9 +71,9 @@ func example() {
 	url := "https://example.com" // URL comment
 	path := "//" // Double slash
 }`,
-			expectedCode:   2, // url line (mixed), path line (mixed)
+			expectedCode:     2, // url line (mixed), path line (mixed)
 			expectedComments: 1, // The standalone comment line
-			expectedBlank:  0,
+			expectedBlank:    0,
 		},
 		{
 			name: "Backtick string with // and /*",
@@ -81,9 +81,9 @@ func example() {
 func example() {
 	text := ` + "`" + `This // is /* all */ text` + "`" + `
 }`,
-			expectedCode:   1,
+			expectedCode:     1,
 			expectedComments: 0,
-			expectedBlank:  0,
+			expectedBlank:    0,
 		},
 		{
 			name: "Escaped quotes in string",
@@ -91,9 +91,9 @@ func example() {
 func example() {
 	s := "She said \"https://example.com\" to me"
 }`,
-			expectedCode:   1,
+			expectedCode:     1,
 			expectedComments: 0,
-			expectedBlank:  0,
+			expectedBlank:    0,
 		},
 	}
 
@@ -101,7 +101,7 @@ func example() {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create temp file for accurate position information
 			filepath := createTestFile(t, tt.code)
-			
+
 			fset := token.NewFileSet()
 			file, err := parser.ParseFile(fset, filepath, nil, parser.ParseComments)
 			require.NoError(t, err)
@@ -120,11 +120,11 @@ func example() {
 			analyzer := NewFunctionAnalyzer(fset)
 			result := analyzer.countLines(funcDecl)
 
-			assert.Equal(t, tt.expectedCode, result.Code, 
+			assert.Equal(t, tt.expectedCode, result.Code,
 				"Code lines mismatch in %s", tt.name)
-			assert.Equal(t, tt.expectedComments, result.Comments, 
+			assert.Equal(t, tt.expectedComments, result.Comments,
 				"Comment lines mismatch in %s", tt.name)
-			assert.Equal(t, tt.expectedBlank, result.Blank, 
+			assert.Equal(t, tt.expectedBlank, result.Blank,
 				"Blank lines mismatch in %s", tt.name)
 		})
 	}
