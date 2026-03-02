@@ -22,7 +22,7 @@ type JSONStorage struct {
 
 // snapshotFile represents the JSON file structure for a stored snapshot
 type snapshotFile struct {
-	ID       string                  `json:"id"`
+	ID       string                   `json:"id"`
 	Metadata metrics.SnapshotMetadata `json:"metadata"`
 	Report   metrics.Report           `json:"report"`
 }

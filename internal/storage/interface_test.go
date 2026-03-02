@@ -222,7 +222,6 @@ func TestNewJSONStorage(t *testing.T) {
 	}
 
 	storage, err := NewJSONStorage(config)
-
 	// Should succeed now that JSON storage is implemented
 	if err != nil {
 		t.Errorf("Expected no error but got: %v", err)

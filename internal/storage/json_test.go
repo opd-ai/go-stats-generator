@@ -98,7 +98,7 @@ func TestJSONStorage_Store_Pretty(t *testing.T) {
 	// Read file and verify it's pretty-printed
 	data, err := os.ReadFile(filepath.Join(tempDir, "test-3.json"))
 	require.NoError(t, err)
-	
+
 	// Pretty JSON should contain newlines and indentation
 	assert.Contains(t, string(data), "\n")
 	assert.Contains(t, string(data), "  ")
