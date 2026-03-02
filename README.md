@@ -310,8 +310,10 @@ github.com/opd-ai/go-stats-generator/
 
 ### Benchmarks
 
-| Repository | Files | LOC | Analysis Time | Memory Usage |
-|------------|-------|-----|---------------|--------------|
+*Note: These are estimated performance targets based on the tool's architecture. Actual performance may vary depending on code complexity, system resources, and analysis configuration.*
+
+| Repository | Files | LOC | Analysis Time (est.) | Memory Usage (est.) |
+|------------|-------|-----|---------------------|---------------------|
 | Standard Library | 400+ | 500K+ | <10s | <100MB |
 | Kubernetes | 10K+ | 2M+ | <60s | <800MB |
 | Docker | 2K+ | 300K+ | <15s | <200MB |

@@ -16,9 +16,9 @@ The `go-stats-generator` codebase is **90% feature-complete** with a strong foun
 - **CRITICAL BUGS**: 0 (1 fixed ✅)
 - **FUNCTIONAL MISMATCHES**: 1 (2 fixed ✅)
 - **MISSING FEATURES**: 0 (2 documented/fixed ✅)
-- **DOCUMENTATION ERRORS**: 1 (1 fixed ✅)
+- **DOCUMENTATION ERRORS**: 0 (2 fixed ✅)
 - **EDGE CASE BUGS**: 1 (1 fixed ✅)
-- **TOTAL ISSUES**: 3 (10 original, 7 resolved)
+- **TOTAL ISSUES**: 2 (10 original, 8 resolved)
 
 ### Test Coverage Status
 - **Total Test Files**: 72 Go files
@@ -506,17 +506,18 @@ func (fa *FunctionAnalyzer) classifyLineWithCompleteBlockComment(
 
 ---
 
-### 9. DOCUMENTATION ERROR - Enterprise Scale Benchmarks
+### 9. ~~DOCUMENTATION ERROR - Enterprise Scale Benchmarks~~ ✅ FIXED
 
 ```
 Category: DOCUMENTATION ERROR
 File: README.md
-Lines: 320-326
+Lines: 311-317
 Severity: Low
+Status: FIXED (2026-03-02)
 ```
 
 **Description:**
-README claims specific benchmark results but provides no verification or test data.
+README claimed specific benchmark results but provided no verification or test data.
 
 **Claimed Benchmarks:**
 ```markdown
@@ -536,11 +537,21 @@ README claims specific benchmark results but provides no verification or test da
 **Impact:**
 Misleading performance claims without supporting evidence. Users may have different expectations than reality.
 
-**Recommended Fix:**
-Either:
-1. Add benchmark tests verifying these claims
-2. Mark as "estimated" or "target" performance
-3. Remove specific numbers until verified
+**Fix Applied:**
+Added disclaimer noting these are estimated targets, not verified benchmarks:
+```markdown
+### Benchmarks
+
+*Note: These are estimated performance targets based on the tool's architecture. 
+Actual performance may vary depending on code complexity, system resources, 
+and analysis configuration.*
+```
+
+Updated table headers to clearly indicate "(est.)" for estimated values.
+
+**Alternative Considered:**
+Implementing full benchmark tests was considered but deemed lower priority than
+other features. The documentation now accurately reflects the current state.
 
 ---
 
@@ -838,9 +849,10 @@ Coverage Areas: All major features
    - Added clarifying comment about parameter semantics
    - **Fixed on 2026-03-02** - See Finding #8 for details
 
-9. **Verify or adjust performance claims** (Finding #9)
-   - Add benchmarks or adjust documentation
-   - Sets accurate expectations
+9. ~~**Verify or adjust performance claims**~~ ✅ **COMPLETED** (Finding #9)
+   - Added disclaimer noting benchmarks are estimated targets
+   - Updated table headers to indicate "(est.)" values
+   - **Fixed on 2026-03-02** - See Finding #9 for details
 
 10. **Implement or remove MaxMemoryMB** (Finding #10)
     - Currently configured but not enforced
