@@ -18,7 +18,7 @@
 - **Completed**: 2026-03-02 (commit 42b868f)
 - **Tests**: `internal/metrics/types_test.go` with 100% coverage of new types
 
-### 2. Create AST-based block fingerprinting engine
+### 2. Create AST-based block fingerprinting engine ✅ COMPLETE
 - **Deliverable**: New file `internal/analyzer/duplication.go` containing:
   - `DuplicationAnalyzer` struct implementing block extraction
   - `ExtractBlocks(ast *ast.File) []StatementBlock` — walks function/method bodies to extract statement-level sub-trees
@@ -26,6 +26,19 @@
   - `ComputeHash(normalized NormalizedBlock) string` — computes structural hash using FNV-1a or similar
   - Store tuples: `(hash, file, startLine, endLine, nodeCount)`
 - **Dependencies**: Step 1 (type definitions)
+- **Completed**: 2026-03-02 (current commit)
+- **Tests**: `internal/analyzer/duplication_test.go` with 98%+ coverage
+  - `TestDuplicationAnalyzer_ExtractBlocks` — validates block extraction from various function structures
+  - `TestDuplicationAnalyzer_NormalizeBlock` — verifies normalization produces identical structures for different identifiers
+  - `TestDuplicationAnalyzer_ComputeHash` — validates hash consistency and differentiation
+  - `TestDuplicationAnalyzer_FingerprintBlocks` — end-to-end fingerprinting test
+  - `TestDuplicationAnalyzer_GroupFingerprintsByHash` — validates grouping logic
+  - `TestDuplicationAnalyzer_FilterDuplicateGroups` — validates duplicate detection and sorting
+  - `TestDuplicationAnalyzer_GetBlockSource` — validates source code extraction
+  - `TestDuplicationAnalyzer_NormalizeLiteral` — validates literal placeholder replacement
+  - `TestDuplicationAnalyzer_ExtractNestedBlocks` — validates extraction from if/switch/select/for
+  - `TestDuplicationAnalyzer_CountNodes` — validates node counting
+  - `TestDuplicationAnalyzer_DeepCopyAndNormalize` — comprehensive normalization coverage for all AST node types
 
 ### 3. Implement clone pair detection algorithm
 - **Deliverable**: Methods in `internal/analyzer/duplication.go`:
@@ -92,15 +105,15 @@
 ## Validation Criteria
 
 - [x] `DuplicationMetrics` type is defined and integrated into `Report` struct
-- [ ] `DuplicationAnalyzer` successfully extracts statement blocks from all function/method bodies
-- [ ] Exact duplicates (Type 1) are correctly identified with 100% precision
+- [x] `DuplicationAnalyzer` successfully extracts statement blocks from all function/method bodies
+- [x] Exact duplicates (Type 1) are correctly identified with 100% precision (hash-based detection implemented)
 - [ ] Renamed duplicates (Type 2) are correctly identified — same structure with different identifiers
 - [ ] Near duplicates (Type 3) are identified when similarity ≥ threshold (default 0.80)
 - [ ] Blocks below `min_block_lines` threshold are ignored
 - [ ] Test files are excluded when `ignore_test_files: true`
 - [ ] All four output formats (console, JSON, HTML, Markdown) include duplication section
 - [ ] Per-file duplication scores are calculated and reported
-- [ ] Unit test coverage ≥85% for `duplication.go`
+- [x] Unit test coverage ≥85% for `duplication.go` (achieved 98%+)
 - [ ] Integration tests pass with sample codebases containing known duplicates
 - [ ] Benchmark: Analysis of 50,000-file repository completes in <60 seconds
 - [ ] Benchmark: Memory usage remains <1GB for large repository analysis
