@@ -16,6 +16,7 @@ type Report struct {
 	Complexity    ComplexityMetrics    `json:"complexity"`
 	Documentation DocumentationMetrics `json:"documentation"`
 	Generics      GenericMetrics       `json:"generics"`
+	Duplication   DuplicationMetrics   `json:"duplication"`
 }
 
 // ReportMetadata contains information about the analysis run
@@ -439,6 +440,42 @@ type GenericInstantiation struct {
 	Line        int      `json:"line"`
 	Usage       string   `json:"usage"`
 }
+
+// Duplication Analysis Types
+
+// DuplicationMetrics contains code duplication analysis results
+type DuplicationMetrics struct {
+	ClonePairs       int         `json:"clone_pairs"`
+	DuplicatedLines  int         `json:"duplicated_lines"`
+	DuplicationRatio float64     `json:"duplication_ratio"`
+	LargestCloneSize int         `json:"largest_clone_size"`
+	Clones           []ClonePair `json:"clones"`
+}
+
+// ClonePair represents a set of duplicated code blocks
+type ClonePair struct {
+	Hash      string          `json:"hash"`
+	Type      CloneType       `json:"type"`
+	Instances []CloneInstance `json:"instances"`
+	LineCount int             `json:"line_count"`
+}
+
+// CloneInstance represents a single instance of duplicated code
+type CloneInstance struct {
+	File      string `json:"file"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
+	NodeCount int    `json:"node_count"`
+}
+
+// CloneType represents the category of code duplication
+type CloneType string
+
+const (
+	CloneTypeExact   CloneType = "exact"   // Type 1: exact duplicates
+	CloneTypeRenamed CloneType = "renamed" // Type 2: same structure, different identifiers
+	CloneTypeNear    CloneType = "near"    // Type 3: similar structure above threshold
+)
 
 // Diff and Historical Analysis Types
 
