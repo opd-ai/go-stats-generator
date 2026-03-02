@@ -53,10 +53,10 @@ func TestDuplicationIntegration_ExactClones(t *testing.T) {
 // TestDuplicationIntegration_ConfigThresholds tests configuration threshold handling
 func TestDuplicationIntegration_ConfigThresholds(t *testing.T) {
 	tests := []struct {
-		name              string
-		minBlockLines     int
-		similarityThresh  float64
-		expectDuplicates  bool
+		name             string
+		minBlockLines    int
+		similarityThresh float64
+		expectDuplicates bool
 	}{
 		{
 			name:             "default_thresholds",

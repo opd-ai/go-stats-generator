@@ -182,7 +182,6 @@ func BenchmarkDuplicationAnalysis_LargeCodebase(b *testing.B) {
 		}
 		return nil
 	})
-
 	if err != nil {
 		b.Fatalf("Failed to walk directory: %v", err)
 	}
