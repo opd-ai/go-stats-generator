@@ -364,14 +364,14 @@ func detectRegressions(historical, recent []storage.SnapshotInfo, threshold floa
 
 func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 	fmt.Println("=== TREND ANALYSIS ===")
-	
+
 	// Display beta notice prominently
 	if notice, ok := analysis["beta_notice"].(string); ok {
 		fmt.Println()
 		fmt.Println(notice)
 		fmt.Println()
 	}
-	
+
 	fmt.Printf("Period: %v\n", analysis["period"])
 	fmt.Printf("Snapshots analyzed: %v\n", analysis["snapshots"])
 
@@ -402,14 +402,14 @@ func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 
 func outputForecastsConsole(forecasts map[string]interface{}) {
 	fmt.Println("=== METRIC FORECASTS ===")
-	
+
 	// Display placeholder notice prominently
 	if notice, ok := forecasts["placeholder_notice"].(string); ok {
 		fmt.Println()
 		fmt.Println(notice)
 		fmt.Println()
 	}
-	
+
 	fmt.Printf("Method: %v\n", forecasts["method"])
 
 	if metric := forecasts["metric"]; metric != nil && metric != "" {
@@ -426,14 +426,14 @@ func outputForecastsConsole(forecasts map[string]interface{}) {
 
 func outputRegressionsConsole(regressions map[string]interface{}) {
 	fmt.Println("=== REGRESSION DETECTION ===")
-	
+
 	// Display placeholder notice prominently
 	if notice, ok := regressions["placeholder_notice"].(string); ok {
 		fmt.Println()
 		fmt.Println(notice)
 		fmt.Println()
 	}
-	
+
 	fmt.Printf("Threshold: %.1f%%\n", regressions["threshold"])
 	fmt.Printf("Historical snapshots: %v\n", regressions["historical_count"])
 	fmt.Printf("Recent snapshots: %v\n", regressions["recent_count"])
