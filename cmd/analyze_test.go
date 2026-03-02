@@ -307,101 +307,101 @@ func TestAnalyzeCommandNonExistentPath(t *testing.T) {
 
 // TestAnalyzeDuplicationIntegration tests duplication analysis integration
 func TestAnalyzeDuplicationIntegration(t *testing.T) {
-// Create a temporary test directory with duplicated code
-testDir := filepath.Join("..", "testdata", "duplication")
+	// Create a temporary test directory with duplicated code
+	testDir := filepath.Join("..", "testdata", "duplication")
 
-// Check if test directory exists
-if _, err := os.Stat(testDir); os.IsNotExist(err) {
-t.Skip("Test directory does not exist, skipping integration test")
-}
+	// Check if test directory exists
+	if _, err := os.Stat(testDir); os.IsNotExist(err) {
+		t.Skip("Test directory does not exist, skipping integration test")
+	}
 
-cfg := config.DefaultConfig()
-cfg.Output.Verbose = false
+	cfg := config.DefaultConfig()
+	cfg.Output.Verbose = false
 
-ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-// Run analysis
-report, err := runAnalysisWorkflow(ctx, testDir, cfg)
-if err != nil {
-t.Fatalf("Analysis failed: %v", err)
-}
+	// Run analysis
+	report, err := runAnalysisWorkflow(ctx, testDir, cfg)
+	if err != nil {
+		t.Fatalf("Analysis failed: %v", err)
+	}
 
-// Verify duplication metrics were populated
-if report.Duplication.ClonePairs == 0 {
-t.Error("Expected to find clone pairs in test data with intentional duplication")
-}
+	// Verify duplication metrics were populated
+	if report.Duplication.ClonePairs == 0 {
+		t.Error("Expected to find clone pairs in test data with intentional duplication")
+	}
 
-if report.Duplication.DuplicatedLines == 0 {
-t.Error("Expected to find duplicated lines in test data")
-}
+	if report.Duplication.DuplicatedLines == 0 {
+		t.Error("Expected to find duplicated lines in test data")
+	}
 
-if report.Duplication.DuplicationRatio < 0.0 || report.Duplication.DuplicationRatio > 1.0 {
-t.Errorf("Duplication ratio should be between 0 and 1, got: %f", report.Duplication.DuplicationRatio)
-}
+	if report.Duplication.DuplicationRatio < 0.0 || report.Duplication.DuplicationRatio > 1.0 {
+		t.Errorf("Duplication ratio should be between 0 and 1, got: %f", report.Duplication.DuplicationRatio)
+	}
 
-// Verify clone pairs have proper structure
-for i, pair := range report.Duplication.Clones {
-if len(pair.Instances) < 2 {
-t.Errorf("Clone pair %d should have at least 2 instances, got %d", i, len(pair.Instances))
-}
+	// Verify clone pairs have proper structure
+	for i, pair := range report.Duplication.Clones {
+		if len(pair.Instances) < 2 {
+			t.Errorf("Clone pair %d should have at least 2 instances, got %d", i, len(pair.Instances))
+		}
 
-if pair.Hash == "" {
-t.Errorf("Clone pair %d should have a non-empty hash", i)
-}
+		if pair.Hash == "" {
+			t.Errorf("Clone pair %d should have a non-empty hash", i)
+		}
 
-if pair.LineCount <= 0 {
-t.Errorf("Clone pair %d should have positive line count, got %d", i, pair.LineCount)
-}
+		if pair.LineCount <= 0 {
+			t.Errorf("Clone pair %d should have positive line count, got %d", i, pair.LineCount)
+		}
 
-// Verify clone type is valid
-validTypes := map[string]bool{
-"exact":   true,
-"renamed": true,
-"near":    true,
-}
-if !validTypes[string(pair.Type)] {
-t.Errorf("Clone pair %d has invalid type: %s", i, pair.Type)
-}
+		// Verify clone type is valid
+		validTypes := map[string]bool{
+			"exact":   true,
+			"renamed": true,
+			"near":    true,
+		}
+		if !validTypes[string(pair.Type)] {
+			t.Errorf("Clone pair %d has invalid type: %s", i, pair.Type)
+		}
 
-// Verify instances have valid data
-for j, instance := range pair.Instances {
-if instance.File == "" {
-t.Errorf("Clone pair %d, instance %d has empty file path", i, j)
-}
-if instance.StartLine <= 0 {
-t.Errorf("Clone pair %d, instance %d has invalid start line: %d", i, j, instance.StartLine)
-}
-if instance.EndLine < instance.StartLine {
-t.Errorf("Clone pair %d, instance %d has end line < start line: %d < %d", 
-i, j, instance.EndLine, instance.StartLine)
-}
-}
-}
+		// Verify instances have valid data
+		for j, instance := range pair.Instances {
+			if instance.File == "" {
+				t.Errorf("Clone pair %d, instance %d has empty file path", i, j)
+			}
+			if instance.StartLine <= 0 {
+				t.Errorf("Clone pair %d, instance %d has invalid start line: %d", i, j, instance.StartLine)
+			}
+			if instance.EndLine < instance.StartLine {
+				t.Errorf("Clone pair %d, instance %d has end line < start line: %d < %d",
+					i, j, instance.EndLine, instance.StartLine)
+			}
+		}
+	}
 
-t.Logf("Duplication analysis found: %d clone pairs, %d duplicated lines (%.2f%% ratio)",
-report.Duplication.ClonePairs,
-report.Duplication.DuplicatedLines,
-report.Duplication.DuplicationRatio*100)
+	t.Logf("Duplication analysis found: %d clone pairs, %d duplicated lines (%.2f%% ratio)",
+		report.Duplication.ClonePairs,
+		report.Duplication.DuplicatedLines,
+		report.Duplication.DuplicationRatio*100)
 }
 
 // TestDuplicationAnalysisWithNoFiles tests duplication analysis with empty file set
 func TestDuplicationAnalysisWithNoFiles(t *testing.T) {
-cfg := config.DefaultConfig()
+	cfg := config.DefaultConfig()
 
-ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-// Create a temp directory with no Go files
-tmpDir := t.TempDir()
+	// Create a temp directory with no Go files
+	tmpDir := t.TempDir()
 
-report, err := runAnalysisWorkflow(ctx, tmpDir, cfg)
+	report, err := runAnalysisWorkflow(ctx, tmpDir, cfg)
 
-// Should fail because no files found
-if err == nil {
-t.Error("Expected error when analyzing directory with no Go files")
-}
-if report != nil {
-t.Error("Expected nil report when analysis fails")
-}
+	// Should fail because no files found
+	if err == nil {
+		t.Error("Expected error when analyzing directory with no Go files")
+	}
+	if report != nil {
+		t.Error("Expected nil report when analysis fails")
+	}
 }

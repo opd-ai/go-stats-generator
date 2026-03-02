@@ -601,11 +601,11 @@ func (da *DuplicationAnalyzer) AnalyzeDuplication(files map[string]*ast.File, mi
 	// Extract blocks from all files
 	var allBlocks []StatementBlock
 	totalLines := 0
-	
+
 	for filePath, file := range files {
 		blocks := da.ExtractBlocks(file, filePath, minBlockLines)
 		allBlocks = append(allBlocks, blocks...)
-		
+
 		// Calculate total lines in this file
 		if file != nil && file.End().IsValid() {
 			endPos := da.fset.Position(file.End())
