@@ -1,7 +1,7 @@
 # TASK DESCRIPTION:
 Perform a data-driven duplication elimination analysis to identify and consolidate the **top 5-10 most significant code clone groups** in the codebase below professional duplication thresholds. Use `go-stats-generator` baseline analysis (with --skip-tests), targeted deduplication guidance, and differential validation to ensure measurable duplication reduction while preserving functionality.
 
-When results are ambiguous, such as a tie between clone sizes or if multiple clone types exist for the same block, always choose the **largest clone group** (by line count) first.
+When results are ambiguous, such as a tie between clone sizes or if multiple clone types exist for the same block, always choose the **shortest clone group** (by line count) first. Working from shortest to longest ensures simpler, lower-risk consolidations happen first and can collapse larger clones that contain them.
 
 ## CONSTRAINT:
 
@@ -47,7 +47,7 @@ go-stats-generator diff baseline.json deduplicated.json --format html --output d
 ```
 
 ## CONTEXT:
-You are an automated Go code auditor using `go-stats-generator` for enterprise-grade duplication detection and elimination validation. The tool provides precise clone metrics, identifies duplication targets by type (exact, renamed, near), and measures improvements through differential analysis. Focus on clone groups with the highest line counts and instance counts identified by the tool's duplication analysis engine.
+You are an automated Go code auditor using `go-stats-generator` for enterprise-grade duplication detection and elimination validation. The tool provides precise clone metrics, identifies duplication targets by type (exact, renamed, near), and measures improvements through differential analysis. Focus on clone groups identified by the tool's duplication analysis engine, working from shortest to longest within each priority tier for incremental, low-risk consolidation.
 
 ## INSTRUCTIONS:
 
@@ -78,9 +78,12 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   - **Medium (≥6 duplicated lines, ≥2 instances):** Consolidate if time permits
   
   When prioritizing between clone groups:
+  - Within each priority tier, work from **shortest to longest** clone groups
   - If line counts are tied, choose the clone group with **more instances** first
   - If both line count and instance count are tied, choose the clone group appearing in **more distinct files** first
   - Target at least 5 clone groups; extend to 10 if more than 5 clone groups exceed Critical or High priority thresholds
+  
+  **Rationale:** Shorter clones are safer to consolidate, and eliminating them first may reduce or collapse larger overlapping clones, simplifying subsequent passes.
 
 4. **Classify Clone Types for Strategy Selection:**
   ```bash
