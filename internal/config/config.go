@@ -82,7 +82,8 @@ const (
 
 // PerformanceConfig controls performance-related settings
 type PerformanceConfig struct {
-	WorkerCount     int           `mapstructure:"worker_count" json:"worker_count"`
+	WorkerCount int `mapstructure:"worker_count" json:"worker_count"`
+	// MaxMemoryMB is reserved for future memory enforcement features (currently not enforced)
 	MaxMemoryMB     int           `mapstructure:"max_memory_mb" json:"max_memory_mb"`
 	Timeout         time.Duration `mapstructure:"timeout" json:"timeout"`
 	EnableProfiling bool          `mapstructure:"enable_profiling" json:"enable_profiling"`
