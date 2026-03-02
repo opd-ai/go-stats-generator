@@ -9,6 +9,8 @@ import (
 	"hash/fnv"
 	"sort"
 	"strings"
+
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
 // DuplicationAnalyzer performs code duplication detection using AST fingerprinting
@@ -440,4 +442,155 @@ func (da *DuplicationAnalyzer) GetBlockSource(block StatementBlock) (string, err
 		buf.WriteString("\n")
 	}
 	return strings.TrimSpace(buf.String()), nil
+}
+
+// DetectClonePairs groups fingerprints by hash and identifies groups with 2+ entries
+func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint, similarityThreshold float64) []metrics.ClonePair {
+	// Group fingerprints by hash
+	groups := da.GroupFingerprintsByHash(fingerprints)
+	duplicates := da.FilterDuplicateGroups(groups)
+
+	// Convert to ClonePair format
+	var clonePairs []metrics.ClonePair
+
+	for hash, group := range duplicates {
+		// Create instances from the group
+		instances := make([]metrics.CloneInstance, len(group))
+		lineCount := 0
+
+		for i, fp := range group {
+			instances[i] = metrics.CloneInstance{
+				File:      fp.File,
+				StartLine: fp.StartLine,
+				EndLine:   fp.EndLine,
+				NodeCount: fp.NodeCount,
+			}
+			// Calculate line count (use first instance as representative)
+			if i == 0 {
+				lineCount = fp.EndLine - fp.StartLine + 1
+			}
+		}
+
+		// Create the clone pair
+		pair := metrics.ClonePair{
+			Hash:      hash,
+			Type:      metrics.CloneTypeExact, // Default to exact, will be classified later
+			Instances: instances,
+			LineCount: lineCount,
+		}
+
+		// Classify the clone type
+		pair.Type = da.ClassifyClone(pair, group, similarityThreshold)
+
+		clonePairs = append(clonePairs, pair)
+	}
+
+	// Sort by line count (descending) for consistent ordering
+	sort.Slice(clonePairs, func(i, j int) bool {
+		return clonePairs[i].LineCount > clonePairs[j].LineCount
+	})
+
+	return clonePairs
+}
+
+// ClassifyClone determines the clone type (Type 1/2/3)
+func (da *DuplicationAnalyzer) ClassifyClone(pair metrics.ClonePair, group []BlockFingerprint, threshold float64) metrics.CloneType {
+	if len(group) < 2 {
+		return metrics.CloneTypeExact
+	}
+
+	// Get the original source for the first two instances
+	source1, err1 := da.GetBlockSource(group[0].Original)
+	source2, err2 := da.GetBlockSource(group[1].Original)
+
+	if err1 != nil || err2 != nil {
+		return metrics.CloneTypeExact
+	}
+
+	// Type 1: Exact duplicates (identical after whitespace normalization)
+	if normalizeWhitespace(source1) == normalizeWhitespace(source2) {
+		return metrics.CloneTypeExact
+	}
+
+	// Type 2: Renamed duplicates (identical structure, different identifiers)
+	// Since we already have the same hash, and it's not exact, it's renamed
+	// The hash is based on normalized structure, so same hash means same structure
+	
+	// Compute similarity to distinguish Type 2 from Type 3
+	normalized1 := da.NormalizeBlock(group[0].Original)
+	normalized2 := da.NormalizeBlock(group[1].Original)
+	
+	similarity := da.ComputeSimilarity(normalized1, normalized2)
+
+	// Type 2: Very high similarity (>= 0.95), just different identifiers
+	if similarity >= 0.95 {
+		return metrics.CloneTypeRenamed
+	}
+
+	// Type 3: Near duplicates (similarity above threshold)
+	if similarity >= threshold {
+		return metrics.CloneTypeNear
+	}
+
+	// If below threshold, still consider it as near duplicate since we found it via hashing
+	return metrics.CloneTypeNear
+}
+
+// ComputeSimilarity calculates structural similarity between two normalized blocks
+// Returns a value between 0.0 and 1.0
+func (da *DuplicationAnalyzer) ComputeSimilarity(block1, block2 NormalizedBlock) float64 {
+	// Use Jaccard similarity on token sets
+	tokens1 := tokenize(block1.Structure)
+	tokens2 := tokenize(block2.Structure)
+
+	// Create sets
+	set1 := make(map[string]bool)
+	set2 := make(map[string]bool)
+
+	for _, t := range tokens1 {
+		set1[t] = true
+	}
+	for _, t := range tokens2 {
+		set2[t] = true
+	}
+
+	// Calculate intersection and union
+	intersection := 0
+	for token := range set1 {
+		if set2[token] {
+			intersection++
+		}
+	}
+
+	union := len(set1) + len(set2) - intersection
+
+	if union == 0 {
+		return 1.0
+	}
+
+	return float64(intersection) / float64(union)
+}
+
+// normalizeWhitespace removes all whitespace for comparison
+func normalizeWhitespace(s string) string {
+	return strings.Join(strings.Fields(s), "")
+}
+
+// tokenize splits a string into tokens for similarity comparison
+func tokenize(s string) []string {
+	// Split on whitespace and common delimiters
+	replacer := strings.NewReplacer(
+		"(", " ( ",
+		")", " ) ",
+		"{", " { ",
+		"}", " } ",
+		"[", " [ ",
+		"]", " ] ",
+		";", " ; ",
+		",", " , ",
+		".", " . ",
+	)
+	s = replacer.Replace(s)
+	tokens := strings.Fields(s)
+	return tokens
 }

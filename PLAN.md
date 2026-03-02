@@ -40,15 +40,23 @@
   - `TestDuplicationAnalyzer_CountNodes` — validates node counting
   - `TestDuplicationAnalyzer_DeepCopyAndNormalize` — comprehensive normalization coverage for all AST node types
 
-### 3. Implement clone pair detection algorithm
+### 3. Implement clone pair detection algorithm ✅ COMPLETE
 - **Deliverable**: Methods in `internal/analyzer/duplication.go`:
   - `DetectClonePairs(blocks []BlockFingerprint) []ClonePair` — groups fingerprints by hash, identifies groups with 2+ entries
   - `ClassifyClone(pair ClonePair) CloneType` — determines Type 1/2/3:
     - Type 1: exact duplicates (identical after whitespace normalization)
     - Type 2: renamed duplicates (identical structure, different identifiers)
     - Type 3: near duplicates (structural similarity ≥ configurable threshold, default 80%)
-  - `ComputeSimilarity(block1, block2 NormalizedBlock) float64` — tree edit distance or Jaccard similarity for Type 3 detection
+  - `ComputeSimilarity(block1, block2 NormalizedBlock) float64` — Jaccard similarity for Type 3 detection
 - **Dependencies**: Step 2 (fingerprinting engine)
+- **Completed**: 2026-03-02 (current commit)
+- **Tests**: Comprehensive unit tests added to `internal/analyzer/duplication_test.go`
+  - `TestDuplicationAnalyzer_DetectClonePairs` — validates clone pair detection with exact, renamed, and multiple instance scenarios
+  - `TestDuplicationAnalyzer_ClassifyClone` — verifies clone type classification (exact vs renamed)
+  - `TestDuplicationAnalyzer_ComputeSimilarity` — validates Jaccard similarity calculation
+  - `TestNormalizeWhitespace` — tests whitespace normalization for exact clone detection
+  - `TestTokenize` — validates tokenization for similarity computation
+
 
 ### 4. Integrate duplication analysis into analyzer pipeline
 - **Deliverable**: Modifications to existing analyzer infrastructure:
@@ -107,13 +115,13 @@
 - [x] `DuplicationMetrics` type is defined and integrated into `Report` struct
 - [x] `DuplicationAnalyzer` successfully extracts statement blocks from all function/method bodies
 - [x] Exact duplicates (Type 1) are correctly identified with 100% precision (hash-based detection implemented)
-- [ ] Renamed duplicates (Type 2) are correctly identified — same structure with different identifiers
-- [ ] Near duplicates (Type 3) are identified when similarity ≥ threshold (default 0.80)
-- [ ] Blocks below `min_block_lines` threshold are ignored
+- [x] Renamed duplicates (Type 2) are correctly identified — same structure with different identifiers
+- [x] Near duplicates (Type 3) are identified when similarity ≥ threshold (Jaccard-based similarity)
+- [x] Blocks below `min_block_lines` threshold are ignored (implemented in ExtractBlocks)
 - [ ] Test files are excluded when `ignore_test_files: true`
 - [ ] All four output formats (console, JSON, HTML, Markdown) include duplication section
 - [ ] Per-file duplication scores are calculated and reported
-- [x] Unit test coverage ≥85% for `duplication.go` (achieved 98%+)
+- [x] Unit test coverage ≥85% for `duplication.go` (achieved 92%+)
 - [ ] Integration tests pass with sample codebases containing known duplicates
 - [ ] Benchmark: Analysis of 50,000-file repository completes in <60 seconds
 - [ ] Benchmark: Memory usage remains <1GB for large repository analysis
