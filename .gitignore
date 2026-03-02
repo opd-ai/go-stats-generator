@@ -34,5 +34,22 @@ go.work.sum
 # .idea/
 # .vscode/
 /go-stats-generator
-/go-stats-generator
 /test-binary
+
+# Repository cleanup
+# Binary artifacts
+*.o
+*.bin
+*.pyc
+*.class
+*.wasm
+
+# SQLite database files
+*.db
+*.db-wal
+*.db-shm
+
+# Auto-generated reports and test outputs
+*.gen.html
+*.gen.md
+*.gen.csv
