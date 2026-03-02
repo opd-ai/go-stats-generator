@@ -27,11 +27,11 @@ go-stats-generator analyze [directory] [flags]
   - Configurable block size and similarity thresholds
   - Support for Type 1 (exact), Type 2 (renamed), and Type 3 (near) clone detection
   - Optional test file filtering for focused analysis
-- **Historical Metrics Storage**: SQLite/JSON backends for tracking metrics over time
+- **Historical Metrics Storage**: SQLite backend for tracking metrics over time (JSON backend planned)
 - **Complexity Differential Analysis**: Compare metrics snapshots with multi-dimensional comparisons
-- **Regression Detection**: Automated detection of complexity regressions with configurable thresholds
-- **Trend Analysis**: Statistical analysis of metrics over time with forecasting capabilities
 - **Baseline Management**: Create and manage reference snapshots for comparisons
+- **Regression Detection**: Compare snapshots to identify metric increases and decreases
+- **Trend Analysis**: ⚠️ **BETA** - Basic trend commands available; advanced statistical analysis and forecasting planned for future release
 - **CI/CD Integration**: Exit codes and reporting for automated quality gates
 - **Concurrent Processing**: Worker pools for analyzing large codebases efficiently
 - **Multiple Output Formats**: Console, JSON, HTML with rich reporting
@@ -93,11 +93,11 @@ go-stats-generator diff baseline-report.json current-report.json
 # List all baselines
 go-stats-generator baseline list
 
-# Analyze trends over time
-go-stats-generator trend analyze --days 30
-
-# Detect regressions
-go-stats-generator trend regressions --threshold 10.0
+# Note: Trend commands are in BETA with basic functionality
+# Advanced statistical analysis and forecasting coming in future release
+go-stats-generator trend analyze --days 30    # Basic trend overview
+go-stats-generator trend forecast             # Placeholder - full implementation planned
+go-stats-generator trend regressions --threshold 10.0  # Basic structure only
 ```
 
 ## Usage
@@ -371,6 +371,35 @@ func main() {
         len(report.Functions), report.Complexity.AverageFunction)
 }
 ```
+
+## Planned Features
+
+The following features are under development and will be included in future releases:
+
+### Statistical Trend Analysis (Roadmap)
+- **Linear regression** for trend lines across metric history
+- **ARIMA/exponential smoothing** for time series forecasting
+- **Statistical hypothesis testing** for regression detection
+- **Confidence interval calculations** for forecast reliability
+- **Correlation analysis** between different metrics
+
+### Storage Backend Expansion
+- **JSON storage backend** - File-based metrics storage as alternative to SQLite
+- **Memory storage** - In-memory storage for temporary analysis runs
+
+### Advanced Maintenance Detection
+See [ROADMAP.md](ROADMAP.md) for detailed implementation plans for:
+- Enhanced code duplication analysis with semantic similarity
+- Naming convention analysis with automated suggestions
+- Misplaced declaration detection (functions/methods in wrong files)
+- Documentation gap detection and quality scoring
+- Organizational health metrics (file size, package cohesion)
+- Additional burden indicators (magic numbers, dead code, deep nesting)
+
+### Configuration Enhancement
+- Complete configuration file loader for all documented options
+- Per-project configuration inheritance
+- Team-level default profiles
 
 ## Contributing
 

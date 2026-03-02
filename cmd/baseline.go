@@ -75,6 +75,10 @@ func init() {
 	createBaselineCmd.Flags().StringVarP(&outputFormat, "format", "f", "json", "Output format (json, console)")
 	createBaselineCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file (default: stdout)")
 	createBaselineCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+
+	// Flags for list baselines
+	listBaselinesCmd.Flags().StringVarP(&outputFormat, "format", "f", "console", "Output format (json, console)")
+	listBaselinesCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file (default: stdout)")
 }
 
 func runBaseline(cmd *cobra.Command, args []string) error {
