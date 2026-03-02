@@ -198,8 +198,9 @@ Catch common patterns that increase the cost of understanding and changing code.
 
 ### Step 6.1 — Magic Number & String Detection
 
-- Walk function bodies to find numeric and string literals used directly in expressions (not in const declarations or struct initialization).
-- Ignore common benign values: `0`, `1`, `-1`, `""`, `true`, `false`, `nil`.
+- Walk function bodies to find numeric and string literals (`*ast.BasicLit`) and, where configured, predeclared boolean/pointer constants (`true`, `false`, `nil` as `*ast.Ident`) used directly in expressions (not in const declarations or struct initialization).
+- Ignore common benign numeric/string literals: `0`, `1`, `-1`, `""`.
+- Optionally ignore benign predeclared constants: `true`, `false`, `nil` (handled as `*ast.Ident` rather than literals in the Go AST).
 - Flag magic values with their location, value, and usage context.
 - Suggest extraction to named constants.
 
