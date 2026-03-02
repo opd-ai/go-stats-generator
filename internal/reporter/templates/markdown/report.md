@@ -91,6 +91,24 @@
 {{end}}
 {{end}}
 
+{{if gt .Report.Duplication.ClonePairs 0}}
+## 🔄 Code Duplication
+
+| Metric | Value |
+|--------|-------|
+| **Clone Pairs** | {{.Report.Duplication.ClonePairs}} |
+| **Duplicated Lines** | {{.Report.Duplication.DuplicatedLines}} |
+| **Duplication Ratio** | {{formatPercent .Report.Duplication.DuplicationRatio}} |
+| **Largest Clone** | {{.Report.Duplication.LargestCloneSize}} lines |
+
+### Top Clone Pairs
+
+| Type | Lines | Instances | First Location |
+|------|-------|-----------|----------------|
+{{range .Report.Duplication.Clones}}{{if ge .LineCount 6}}| {{.Type}} | {{.LineCount}} | {{len .Instances}} | {{escapeMarkdown (index .Instances 0).File}}:{{(index .Instances 0).StartLine}}-{{(index .Instances 0).EndLine}} |
+{{end}}{{end}}
+{{end}}
+
 ## 📈 Analysis Summary
 
 This report provides comprehensive metrics for the Go codebase analysis. Key insights:

@@ -58,6 +58,11 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writePackageAnalysis(output, report)
 	}
 
+	// Duplication analysis section
+	if cr.config.IncludeDetails && report.Duplication.ClonePairs > 0 {
+		cr.writeDuplicationAnalysis(output, report)
+	}
+
 	// Footer
 	cr.writeFooter(output, report)
 
@@ -557,6 +562,64 @@ func (cr *ConsoleReporter) writePackageDependencies(output io.Writer, packages [
 				fmt.Fprintf(output, "    → %s\n", dep)
 			}
 		}
+	}
+	fmt.Fprintln(output)
+}
+
+// writeDuplicationAnalysis generates duplication analysis output
+func (cr *ConsoleReporter) writeDuplicationAnalysis(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== DUPLICATION ANALYSIS ===")
+
+	dup := report.Duplication
+	fmt.Fprintf(output, "Clone Pairs Detected: %d\n", dup.ClonePairs)
+	fmt.Fprintf(output, "Duplicated Lines: %d\n", dup.DuplicatedLines)
+	fmt.Fprintf(output, "Duplication Ratio: %.2f%%\n", dup.DuplicationRatio*100)
+	fmt.Fprintf(output, "Largest Clone Size: %d lines\n", dup.LargestCloneSize)
+	fmt.Fprintln(output)
+
+	if len(dup.Clones) == 0 {
+		return
+	}
+
+	// Show top clone pairs sorted by line count
+	clones := make([]metrics.ClonePair, len(dup.Clones))
+	copy(clones, dup.Clones)
+	sort.Slice(clones, func(i, j int) bool {
+		return clones[i].LineCount > clones[j].LineCount
+	})
+
+	limit := cr.config.Limit
+	if limit > len(clones) {
+		limit = len(clones)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d Clone Pairs (by size):\n", limit)
+	fmt.Fprintf(output, "%-15s %8s %8s %s\n", "Type", "Lines", "Instances", "Locations")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		clone := clones[i]
+		cloneTypeStr := string(clone.Type)
+		
+		// Format first location
+		var locations string
+		if len(clone.Instances) > 0 {
+			inst := clone.Instances[0]
+			locations = fmt.Sprintf("%s:%d-%d", cr.truncate(inst.File, 40), inst.StartLine, inst.EndLine)
+			if len(clone.Instances) > 1 {
+				locations += fmt.Sprintf(" (+%d more)", len(clone.Instances)-1)
+			}
+		}
+
+		fmt.Fprintf(output, "%-15s %8d %8d %s\n",
+			cloneTypeStr,
+			clone.LineCount,
+			len(clone.Instances),
+			locations,
+		)
 	}
 	fmt.Fprintln(output)
 }

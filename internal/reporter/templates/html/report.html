@@ -32,6 +32,9 @@
             <button class="nav-tab" data-tab="functions">Functions</button>
             <button class="nav-tab" data-tab="structures">Structures</button>
             <button class="nav-tab" data-tab="packages">Packages</button>
+            {{if gt .Report.Duplication.ClonePairs 0}}
+            <button class="nav-tab" data-tab="duplication">Duplication</button>
+            {{end}}
             {{if .Report.Patterns.ConcurrencyPatterns}}
             <button class="nav-tab" data-tab="concurrency">Concurrency</button>
             {{end}}
@@ -220,6 +223,69 @@
             </div>
             {{end}}
         </section>
+
+        <!-- Duplication Tab -->
+        {{if gt .Report.Duplication.ClonePairs 0}}
+        <section id="duplication" class="tab-content">
+            <h2>Code Duplication Analysis</h2>
+            
+            <!-- Duplication Summary Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>{{.Report.Duplication.ClonePairs}}</h3>
+                    <p>Clone Pairs</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{.Report.Duplication.DuplicatedLines}}</h3>
+                    <p>Duplicated Lines</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatPercent .Report.Duplication.DuplicationRatio}}</h3>
+                    <p>Duplication Ratio</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{.Report.Duplication.LargestCloneSize}}</h3>
+                    <p>Largest Clone (lines)</p>
+                </div>
+            </div>
+
+            <!-- Clone Pairs Table -->
+            <div class="table-container">
+                <h3>Detected Clone Pairs</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Type</th>
+                            <th role="columnheader">Lines</th>
+                            <th role="columnheader">Instances</th>
+                            <th role="columnheader">Locations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Duplication.Clones}}
+                        <tr role="row">
+                            <td><span class="badge clone-{{.Type}}">{{.Type}}</span></td>
+                            <td>{{.LineCount}}</td>
+                            <td>{{len .Instances}}</td>
+                            <td>
+                                {{if .Instances}}
+                                <details>
+                                    <summary>{{(index .Instances 0).File}}:{{(index .Instances 0).StartLine}} (+{{sub (len .Instances) 1}} more)</summary>
+                                    <ul class="instance-list">
+                                        {{range .Instances}}
+                                        <li>{{.File}}:{{.StartLine}}-{{.EndLine}} ({{.NodeCount}} nodes)</li>
+                                        {{end}}
+                                    </ul>
+                                </details>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {{end}}
 
         <!-- Concurrency Tab -->
         {{if .Report.Patterns.ConcurrencyPatterns}}
