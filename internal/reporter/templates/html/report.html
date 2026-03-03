@@ -52,6 +52,10 @@
             {{if .Report.Patterns.ConcurrencyPatterns}}
             <button class="nav-tab" data-tab="concurrency">Concurrency</button>
             {{end}}
+            {{$totalBurdenIssues := add (add (add (add (len .Report.Burden.MagicNumbers) (len .Report.Burden.DeadCode.UnreferencedFunctions)) (len .Report.Burden.ComplexSignatures)) (len .Report.Burden.DeeplyNestedFunctions)) (len .Report.Burden.FeatureEnvyMethods)}}
+            {{if gt $totalBurdenIssues 0}}
+            <button class="nav-tab" data-tab="burden">Maintenance Burden</button>
+            {{end}}
         </nav>
 
         <!-- Overview Tab -->
@@ -699,6 +703,131 @@
                 <h3>Concurrency Patterns</h3>
                 <canvas id="concurrencyChart"></canvas>
             </div>
+        </section>
+        {{end}}
+
+        <!-- Maintenance Burden Tab -->
+        {{$totalBurdenIssues := add (add (add (add (len .Report.Burden.MagicNumbers) (len .Report.Burden.DeadCode.UnreferencedFunctions)) (len .Report.Burden.ComplexSignatures)) (len .Report.Burden.DeeplyNestedFunctions)) (len .Report.Burden.FeatureEnvyMethods)}}
+        {{if gt $totalBurdenIssues 0}}
+        <section id="burden" class="tab-content">
+            <h2>Maintenance Burden Analysis</h2>
+            
+            <!-- Burden Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>{{len .Report.Burden.MagicNumbers}}</h3>
+                    <p>Magic Numbers</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{len .Report.Burden.DeadCode.UnreferencedFunctions}}</h3>
+                    <p>Unreferenced Functions</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{len .Report.Burden.DeadCode.UnreachableCode}}</h3>
+                    <p>Unreachable Blocks</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Burden.DeadCode.DeadCodePercent}}%</h3>
+                    <p>Dead Code Percentage</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{len .Report.Burden.ComplexSignatures}}</h3>
+                    <p>Complex Signatures</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{len .Report.Burden.DeeplyNestedFunctions}}</h3>
+                    <p>Deeply Nested Functions</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{len .Report.Burden.FeatureEnvyMethods}}</h3>
+                    <p>Feature Envy Methods</p>
+                </div>
+            </div>
+
+            <!-- Complex Signatures Table -->
+            {{if gt (len .Report.Burden.ComplexSignatures) 0}}
+            <div class="table-container">
+                <h3>Top Complex Signatures</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Function</th>
+                            <th role="columnheader">File</th>
+                            <th role="columnheader">Params</th>
+                            <th role="columnheader">Returns</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $idx, $sig := .Report.Burden.ComplexSignatures -}}
+                        {{if lt $idx 10 -}}
+                        <tr role="row">
+                            <td><code>{{$sig.Function}}</code></td>
+                            <td><code>{{$sig.File}}</code></td>
+                            <td>{{$sig.ParameterCount}}</td>
+                            <td>{{$sig.ReturnCount}}</td>
+                        </tr>
+                        {{end -}}
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
+            <!-- Deeply Nested Functions Table -->
+            {{if gt (len .Report.Burden.DeeplyNestedFunctions) 0}}
+            <div class="table-container">
+                <h3>Top Deeply Nested Functions</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Function</th>
+                            <th role="columnheader">File</th>
+                            <th role="columnheader">Max Depth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $idx, $nest := .Report.Burden.DeeplyNestedFunctions -}}
+                        {{if lt $idx 10 -}}
+                        <tr role="row">
+                            <td><code>{{$nest.Function}}</code></td>
+                            <td><code>{{$nest.File}}</code></td>
+                            <td>{{$nest.MaxDepth}}</td>
+                        </tr>
+                        {{end -}}
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
+            <!-- Magic Numbers Table -->
+            {{if gt (len .Report.Burden.MagicNumbers) 0}}
+            <div class="table-container">
+                <h3>Top Magic Numbers</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Value</th>
+                            <th role="columnheader">File</th>
+                            <th role="columnheader">Line</th>
+                            <th role="columnheader">Context</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $idx, $magic := .Report.Burden.MagicNumbers -}}
+                        {{if lt $idx 10 -}}
+                        <tr role="row">
+                            <td><code>{{$magic.Value}}</code></td>
+                            <td><code>{{$magic.File}}</code></td>
+                            <td>{{$magic.Line}}</td>
+                            <td>{{$magic.Context}}</td>
+                        </tr>
+                        {{end -}}
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
         </section>
         {{end}}
     </div>

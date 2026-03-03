@@ -292,6 +292,57 @@
 {{end}}
 {{end}}
 
+{{$totalBurdenIssues := add (add (add (add (len .Report.Burden.MagicNumbers) (len .Report.Burden.DeadCode.UnreferencedFunctions)) (len .Report.Burden.ComplexSignatures)) (len .Report.Burden.DeeplyNestedFunctions)) (len .Report.Burden.FeatureEnvyMethods)}}
+{{if gt $totalBurdenIssues 0}}
+## 🔧 Maintenance Burden
+
+| Metric | Count |
+|--------|-------|
+| **Magic Numbers** | {{len .Report.Burden.MagicNumbers}} |
+| **Dead Code (Unreferenced)** | {{len .Report.Burden.DeadCode.UnreferencedFunctions}} functions |
+| **Dead Code (Unreachable)** | {{len .Report.Burden.DeadCode.UnreachableCode}} blocks |
+| **Dead Code Percentage** | {{formatFloat .Report.Burden.DeadCode.DeadCodePercent}}% |
+| **Complex Signatures** | {{len .Report.Burden.ComplexSignatures}} |
+| **Deeply Nested Functions** | {{len .Report.Burden.DeeplyNestedFunctions}} |
+| **Feature Envy Methods** | {{len .Report.Burden.FeatureEnvyMethods}} |
+
+{{if gt (len .Report.Burden.ComplexSignatures) 0}}
+### Top Complex Signatures
+
+| Function | File | Params | Returns |
+|----------|------|--------|---------|
+{{range $idx, $sig := .Report.Burden.ComplexSignatures -}}
+{{if lt $idx 10 -}}
+| `{{escapeMarkdown $sig.Function}}` | `{{escapeMarkdown $sig.File}}` | {{$sig.ParameterCount}} | {{$sig.ReturnCount}} |
+{{end -}}
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Burden.DeeplyNestedFunctions) 0}}
+### Top Deeply Nested Functions
+
+| Function | File | Max Depth |
+|----------|------|-----------|
+{{range $idx, $nest := .Report.Burden.DeeplyNestedFunctions -}}
+{{if lt $idx 10 -}}
+| `{{escapeMarkdown $nest.Function}}` | `{{escapeMarkdown $nest.File}}` | {{$nest.MaxDepth}} |
+{{end -}}
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Burden.MagicNumbers) 0}}
+### Top Magic Numbers
+
+| Value | File | Line | Context |
+|-------|------|------|---------|
+{{range $idx, $magic := .Report.Burden.MagicNumbers -}}
+{{if lt $idx 10 -}}
+| `{{escapeMarkdown $magic.Value}}` | `{{escapeMarkdown $magic.File}}` | {{$magic.Line}} | {{$magic.Context}} |
+{{end -}}
+{{end}}
+{{end}}
+{{end}}
+
 
 ## 📈 Analysis Summary
 
