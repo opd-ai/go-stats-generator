@@ -66,3 +66,14 @@ docs-report.html
 cleanup-report.html
 pre-*.json
 post-*.json
+
+# Additional analysis artifacts
+*-fresh.json
+*-check.json
+*-validation.json
+*-circular.json
+final.json
+corrected.json
+diff-report.json
+test-full*.json
+audit-*.json
