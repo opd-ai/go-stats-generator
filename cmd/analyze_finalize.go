@@ -35,6 +35,9 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 	report.Packages = packageReport.Packages
 	report.CircularDependencies = packageReport.CircularDependencies
 
+	// Aggregate generics metrics from all files
+	aggregateGenericsMetrics(report, collectedMetrics)
+
 	// Calculate overview metrics
 	calculateOverviewMetrics(report, collectedMetrics, packageReport)
 
@@ -612,4 +615,52 @@ func finalizeRefactoringSuggestions(report *metrics.Report, cfg *config.Config) 
 			AffectedLines: s.AffectedLines,
 		})
 	}
+}
+
+// aggregateGenericsMetrics merges generic metrics from all analyzed files
+func aggregateGenericsMetrics(report *metrics.Report, collected *CollectedMetrics) {
+	if len(collected.Generics) == 0 {
+		return
+	}
+
+	merged := metrics.GenericMetrics{
+		TypeParameters: metrics.GenericTypeParameters{
+			Constraints: make(map[string]int),
+		},
+		ConstraintUsage: make(map[string]int),
+	}
+
+	for _, gen := range collected.Generics {
+		merged.TypeParameters.Count += gen.TypeParameters.Count
+		merged.TypeParameters.Complexity = append(
+			merged.TypeParameters.Complexity,
+			gen.TypeParameters.Complexity...)
+
+		for k, v := range gen.TypeParameters.Constraints {
+			merged.TypeParameters.Constraints[k] += v
+		}
+		for k, v := range gen.ConstraintUsage {
+			merged.ConstraintUsage[k] += v
+		}
+
+		merged.Instantiations.Functions = append(
+			merged.Instantiations.Functions,
+			gen.Instantiations.Functions...)
+		merged.Instantiations.Types = append(
+			merged.Instantiations.Types,
+			gen.Instantiations.Types...)
+		merged.Instantiations.Methods = append(
+			merged.Instantiations.Methods,
+			gen.Instantiations.Methods...)
+	}
+
+	if len(merged.TypeParameters.Complexity) > 0 {
+		total := 0.0
+		for _, c := range merged.TypeParameters.Complexity {
+			total += c.ComplexityScore
+		}
+		merged.ComplexityScore = total / float64(len(merged.TypeParameters.Complexity))
+	}
+
+	report.Generics = merged
 }

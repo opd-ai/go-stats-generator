@@ -205,6 +205,7 @@ type AnalyzerSet struct {
 	Documentation *analyzer.DocumentationAnalyzer
 	Organization  *analyzer.OrganizationAnalyzer
 	Burden        *analyzer.BurdenAnalyzer
+	Generic       *analyzer.GenericAnalyzer
 	fileSet       *token.FileSet
 }
 
@@ -213,6 +214,7 @@ type CollectedMetrics struct {
 	Functions  []metrics.FunctionMetrics
 	Structs    []metrics.StructMetrics
 	Interfaces []metrics.InterfaceMetrics
+	Generics   []metrics.GenericMetrics
 	TotalLines int
 	Files      map[string]*ast.File
 }
@@ -285,6 +287,7 @@ func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 		Documentation: analyzer.NewDocumentationAnalyzer(fileSet, docConfig),
 		Organization:  analyzer.NewOrganizationAnalyzer(fileSet),
 		Burden:        analyzer.NewBurdenAnalyzer(fileSet),
+		Generic:       analyzer.NewGenericAnalyzer(fileSet),
 		fileSet:       fileSet,
 	}
 }
@@ -408,6 +411,10 @@ func collectStructuralMetrics(result scanner.Result, analyzers *AnalyzerSet, col
 	if interfaces, err := analyzeInterfacesInFile(analyzers.Interface, result, cfg); err == nil {
 		collectedMetrics.Interfaces = append(collectedMetrics.Interfaces, interfaces...)
 	}
+
+	if generics, err := analyzeGenericsInFile(analyzers.Generic, result, cfg); err == nil {
+		collectedMetrics.Generics = append(collectedMetrics.Generics, generics)
+	}
 }
 
 // analyzePackageStructure analyzes package information for a file
@@ -473,6 +480,17 @@ func analyzeInterfacesInFile(interfaceAnalyzer *analyzer.InterfaceAnalyzer, resu
 		return nil, err
 	}
 	return interfaces, nil
+}
+
+// analyzeGenericsInFile analyzes generic types and functions in a single file result
+func analyzeGenericsInFile(genericAnalyzer *analyzer.GenericAnalyzer, result scanner.Result, cfg *config.Config) (metrics.GenericMetrics, error) {
+	generics, err := genericAnalyzer.AnalyzeGenerics(result.File, result.FileInfo.Package, result.FileInfo.RelPath)
+	if err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze generics in %s: %v\n",
+			result.FileInfo.Path, err)
+		return metrics.GenericMetrics{}, err
+	}
+	return generics, nil
 }
 
 // analyzePackageInFile analyzes package information for a single file result

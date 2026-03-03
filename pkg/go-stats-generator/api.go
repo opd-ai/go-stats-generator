@@ -111,6 +111,7 @@ type collectedMetrics struct {
 	structs    []metrics.StructMetrics
 	interfaces []metrics.InterfaceMetrics
 	files      map[string]*ast.File
+	generics   []metrics.GenericMetrics
 }
 
 // analyzerSet holds all analyzers for comprehensive analysis
@@ -122,6 +123,7 @@ type analyzerSet struct {
 	concurrency *analyzer.ConcurrencyAnalyzer
 	pattern     *analyzer.PatternAnalyzer
 	duplication *analyzer.DuplicationAnalyzer
+	generic     *analyzer.GenericAnalyzer
 }
 
 // createAnalyzers initializes all analyzers for comprehensive analysis
@@ -134,6 +136,7 @@ func createAnalyzers(fset *token.FileSet, cfg *config.Config) *analyzerSet {
 		concurrency: analyzer.NewConcurrencyAnalyzer(fset),
 		pattern:     analyzer.NewPatternAnalyzer(fset),
 		duplication: analyzer.NewDuplicationAnalyzer(fset),
+		generic:     analyzer.NewGenericAnalyzer(fset),
 	}
 }
 
@@ -173,6 +176,10 @@ func processFile(result scanner.Result, analyzers *analyzerSet, collected *colle
 
 	if ifaces, err := analyzers.iface.AnalyzeInterfacesWithPath(result.File, result.FileInfo.Package, result.FileInfo.RelPath); err == nil {
 		collected.interfaces = append(collected.interfaces, ifaces...)
+	}
+
+	if generics, err := analyzers.generic.AnalyzeGenerics(result.File, result.FileInfo.Package, result.FileInfo.RelPath); err == nil {
+		collected.generics = append(collected.generics, generics)
 	}
 
 	analyzers.pkg.AnalyzePackage(result.File, result.FileInfo.Path)
@@ -235,6 +242,7 @@ func finalizeReport(report *metrics.Report, collected *collectedMetrics, analyze
 		report.Duplication = dupReport
 	}
 
+	aggregateGenerics(report, collected)
 	calculateComplexityMetrics(report, collected)
 
 	report.Overview = metrics.OverviewMetrics{
@@ -262,4 +270,52 @@ func calculateComplexityMetrics(report *metrics.Report, collected *collectedMetr
 	if len(collected.structs) > 0 {
 		report.Complexity.AverageStruct = totalStructComplexity / float64(len(collected.structs))
 	}
+}
+
+// aggregateGenerics merges generic metrics from all files
+func aggregateGenerics(report *metrics.Report, collected *collectedMetrics) {
+	if len(collected.generics) == 0 {
+		return
+	}
+
+	merged := metrics.GenericMetrics{
+		TypeParameters: metrics.GenericTypeParameters{
+			Constraints: make(map[string]int),
+		},
+		ConstraintUsage: make(map[string]int),
+	}
+
+	for _, gen := range collected.generics {
+		merged.TypeParameters.Count += gen.TypeParameters.Count
+		merged.TypeParameters.Complexity = append(
+			merged.TypeParameters.Complexity,
+			gen.TypeParameters.Complexity...)
+
+		for k, v := range gen.TypeParameters.Constraints {
+			merged.TypeParameters.Constraints[k] += v
+		}
+		for k, v := range gen.ConstraintUsage {
+			merged.ConstraintUsage[k] += v
+		}
+
+		merged.Instantiations.Functions = append(
+			merged.Instantiations.Functions,
+			gen.Instantiations.Functions...)
+		merged.Instantiations.Types = append(
+			merged.Instantiations.Types,
+			gen.Instantiations.Types...)
+		merged.Instantiations.Methods = append(
+			merged.Instantiations.Methods,
+			gen.Instantiations.Methods...)
+	}
+
+	if len(merged.TypeParameters.Complexity) > 0 {
+		total := 0.0
+		for _, c := range merged.TypeParameters.Complexity {
+			total += c.ComplexityScore
+		}
+		merged.ComplexityScore = total / float64(len(merged.TypeParameters.Complexity))
+	}
+
+	report.Generics = merged
 }
