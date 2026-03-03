@@ -553,10 +553,10 @@ func processFilesWithWorkerPool(ctx context.Context, files []scanner.FileInfo, d
 // createAnalyzers creates and returns all analyzers needed for the workflow
 func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 	docConfig := &analyzer.DocumentationConfig{
-		RequireExportedDoc:  true,
-		RequirePackageDoc:   true,
-		StaleAnnotationDays: 180,
-		MinCommentWords:     5,
+		RequireExportedDoc:  cfg.Analysis.Documentation.RequireExportedDoc,
+		RequirePackageDoc:   cfg.Analysis.Documentation.RequirePackageDoc,
+		StaleAnnotationDays: cfg.Analysis.Documentation.StaleAnnotationDays,
+		MinCommentWords:     cfg.Analysis.Documentation.MinCommentWords,
 	}
 
 	return &AnalyzerSet{

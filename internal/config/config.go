@@ -38,6 +38,9 @@ type AnalysisConfig struct {
 
 	// Placement analysis settings
 	Placement PlacementConfig `mapstructure:"placement" json:"placement"`
+
+	// Documentation analysis settings
+	Documentation DocumentationConfig `mapstructure:"documentation" json:"documentation"`
 }
 
 // DuplicationConfig controls code duplication detection
@@ -58,6 +61,14 @@ type NamingConfig struct {
 type PlacementConfig struct {
 	AffinityMargin float64 `mapstructure:"affinity_margin" json:"affinity_margin"`
 	MinCohesion    float64 `mapstructure:"min_cohesion" json:"min_cohesion"`
+}
+
+// DocumentationConfig controls documentation analysis
+type DocumentationConfig struct {
+	RequireExportedDoc  bool `mapstructure:"require_exported_doc" json:"require_exported_doc"`
+	RequirePackageDoc   bool `mapstructure:"require_package_doc" json:"require_package_doc"`
+	StaleAnnotationDays int  `mapstructure:"stale_annotation_days" json:"stale_annotation_days"`
+	MinCommentWords     int  `mapstructure:"min_comment_words" json:"min_comment_words"`
 }
 
 // OutputConfig controls output formatting
@@ -155,6 +166,12 @@ func DefaultConfig() *Config {
 			Placement: PlacementConfig{
 				AffinityMargin: 0.25,
 				MinCohesion:    0.3,
+			},
+			Documentation: DocumentationConfig{
+				RequireExportedDoc:  true,
+				RequirePackageDoc:   true,
+				StaleAnnotationDays: 180,
+				MinCommentWords:     5,
 			},
 		},
 		Output: OutputConfig{
