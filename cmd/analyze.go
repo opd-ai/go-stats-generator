@@ -151,6 +151,8 @@ func init() {
 		"maximum nesting depth before flagging deeply nested code")
 	analyzeCmd.Flags().Float64("feature-envy-ratio", 2.0,
 		"threshold ratio for detecting feature envy (external references / self references)")
+	analyzeCmd.Flags().Float64("max-burden-score", 70.0,
+		"maximum Maintenance Burden Index (MBI) score allowed (0-100 scale, default 70=critical threshold)")
 
 	// Bind flags to viper
 	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
@@ -185,6 +187,7 @@ func init() {
 	viper.BindPFlag("analysis.burden.max_returns", analyzeCmd.Flags().Lookup("max-returns"))
 	viper.BindPFlag("analysis.burden.max_nesting", analyzeCmd.Flags().Lookup("max-nesting"))
 	viper.BindPFlag("analysis.burden.feature_envy_ratio", analyzeCmd.Flags().Lookup("feature-envy-ratio"))
+	viper.BindPFlag("analysis.scoring.max_burden_score", analyzeCmd.Flags().Lookup("max-burden-score"))
 }
 
 // runAnalyze is the main entry point for the analyze command. Validates the target
@@ -287,6 +290,34 @@ func checkQualityGates(report *metrics.Report, cfg *config.Config) error {
 			report.Documentation.Coverage.Overall,
 			thresholdPercent,
 		))
+	}
+
+	// Check MBI score thresholds for files and packages
+	maxBurdenScore := cfg.Analysis.Scoring.MaxBurdenScore
+	if maxBurdenScore > 0 {
+		for _, fileScore := range report.Scores.FileScores {
+			if fileScore.Score > maxBurdenScore {
+				violations = append(violations, fmt.Sprintf(
+					"File %s has MBI score %.2f (exceeds threshold %.2f, risk level: %s)",
+					fileScore.File,
+					fileScore.Score,
+					maxBurdenScore,
+					fileScore.Risk,
+				))
+			}
+		}
+
+		for _, pkgScore := range report.Scores.PackageScores {
+			if pkgScore.Score > maxBurdenScore {
+				violations = append(violations, fmt.Sprintf(
+					"Package %s has MBI score %.2f (exceeds threshold %.2f, risk level: %s)",
+					pkgScore.Package,
+					pkgScore.Score,
+					maxBurdenScore,
+					pkgScore.Risk,
+				))
+			}
+		}
 	}
 
 	// If violations exist, print them and return error

@@ -74,6 +74,7 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	loadOrganizationSettings(cfg)
 	loadBurdenSettings(cfg)
 	loadDocumentationSettings(cfg)
+	loadScoringSettings(cfg)
 }
 
 // loadBasicAnalysisSettings loads core analysis toggles from viper
@@ -185,6 +186,13 @@ func loadDocumentationSettings(cfg *config.Config) {
 	}
 	if viper.IsSet("analysis.documentation.min_comment_words") {
 		cfg.Analysis.Documentation.MinCommentWords = viper.GetInt("analysis.documentation.min_comment_words")
+	}
+}
+
+// loadScoringSettings loads MBI scoring settings from viper
+func loadScoringSettings(cfg *config.Config) {
+	if viper.IsSet("analysis.scoring.max_burden_score") {
+		cfg.Analysis.Scoring.MaxBurdenScore = viper.GetFloat64("analysis.scoring.max_burden_score")
 	}
 }
 

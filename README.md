@@ -138,7 +138,42 @@ go-stats-generator analyze [file.go] [flags]
 | `--exclude` | Exclude patterns (glob) | - |
 | `--max-function-length` | Maximum function length threshold | 30 |
 | `--max-complexity` | Maximum cyclomatic complexity threshold | 10 |
+| `--max-burden-score` | Maximum Maintenance Burden Index (MBI) score (0-100) | 70.0 |
+| `--min-doc-coverage` | Minimum documentation coverage (fraction) | 0.7 |
+| `--enforce-thresholds` | Exit with code 1 if thresholds exceeded | false |
 | `--verbose` | Verbose output | false |
+
+### CI/CD Integration
+
+Use the `--enforce-thresholds` flag with threshold flags to fail builds when quality standards are not met:
+
+```bash
+# Fail build if MBI score exceeds 50 (medium risk)
+go-stats-generator analyze . --max-burden-score 50 --enforce-thresholds
+
+# Fail build if documentation coverage below 80%
+go-stats-generator analyze . --min-doc-coverage 0.8 --enforce-thresholds
+
+# Combined quality gates
+go-stats-generator analyze . \
+  --max-burden-score 50 \
+  --min-doc-coverage 0.8 \
+  --max-complexity 15 \
+  --enforce-thresholds
+```
+
+When `--enforce-thresholds` is enabled, the tool exits with code 1 if any threshold is violated, making it suitable for CI/CD pipelines. Violations are printed to stderr with details about which files/packages failed.
+
+**GitHub Actions Example:**
+```yaml
+- name: Code Quality Check
+  run: |
+    go install github.com/opd-ai/go-stats-generator@latest
+    go-stats-generator analyze . \
+      --max-burden-score 70 \
+      --min-doc-coverage 0.7 \
+      --enforce-thresholds
+```
 
 ### Example Output
 
