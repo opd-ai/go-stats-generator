@@ -128,6 +128,8 @@ func NewStorage(config StorageConfig) (MetricsStorage, error) {
 		return NewSQLiteStorage(config.SQLite)
 	case "json":
 		return NewJSONStorage(config.JSON)
+	case "memory":
+		return NewMemoryStorage(), nil
 	default:
 		return nil, fmt.Errorf("unsupported storage type: %s", config.Type)
 	}
