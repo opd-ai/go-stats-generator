@@ -204,57 +204,75 @@ func (j *JSONStorage) Cleanup(ctx context.Context, policy RetentionPolicy) error
 		return fmt.Errorf("failed to list snapshots: %w", err)
 	}
 
+	toDelete := j.identifySnapshotsToDelete(snapshots, policy)
+	j.executeCleanupDeletions(ctx, toDelete)
+
+	return nil
+}
+
+// identifySnapshotsToDelete determines which snapshots should be deleted based on retention policy
+func (j *JSONStorage) identifySnapshotsToDelete(snapshots []SnapshotInfo, policy RetentionPolicy) []string {
+	toDelete := j.findSnapshotsOlderThanMaxAge(snapshots, policy)
+	toDelete = j.addExcessSnapshotsOverMaxCount(snapshots, policy, toDelete)
+	return toDelete
+}
+
+// findSnapshotsOlderThanMaxAge returns snapshot IDs older than the policy's maximum age
+func (j *JSONStorage) findSnapshotsOlderThanMaxAge(snapshots []SnapshotInfo, policy RetentionPolicy) []string {
+	if policy.MaxAge == 0 {
+		return nil
+	}
+
 	var toDelete []string
-
-	// Delete by age
-	if policy.MaxAge > 0 {
-		cutoff := time.Now().Add(-policy.MaxAge)
-		for _, snapshot := range snapshots {
-			if snapshot.Timestamp.Before(cutoff) {
-				// Skip tagged snapshots if policy says to keep them
-				if policy.KeepTagged && len(snapshot.Tags) > 0 {
-					continue
-				}
-				// Skip releases if policy says to keep them
-				if policy.KeepReleases && snapshot.GitTag != "" {
-					continue
-				}
-				toDelete = append(toDelete, snapshot.ID)
-			}
+	cutoff := time.Now().Add(-policy.MaxAge)
+	for _, snapshot := range snapshots {
+		if snapshot.Timestamp.Before(cutoff) && !j.shouldKeepSnapshot(snapshot, policy) {
+			toDelete = append(toDelete, snapshot.ID)
 		}
 	}
+	return toDelete
+}
 
-	// Delete by count (keep only the most recent N)
-	if policy.MaxCount > 0 && len(snapshots) > policy.MaxCount {
-		// Sort by timestamp descending (already sorted from List)
-		excess := snapshots[policy.MaxCount:]
-		for _, snapshot := range excess {
-			// Skip tagged snapshots if policy says to keep them
-			if policy.KeepTagged && len(snapshot.Tags) > 0 {
-				continue
-			}
-			// Skip releases if policy says to keep them
-			if policy.KeepReleases && snapshot.GitTag != "" {
-				continue
-			}
-			// Avoid duplicates
-			found := false
-			for _, id := range toDelete {
-				if id == snapshot.ID {
-					found = true
-					break
-				}
-			}
-			if !found {
-				toDelete = append(toDelete, snapshot.ID)
-			}
-		}
+// addExcessSnapshotsOverMaxCount adds snapshots exceeding the maximum count to deletion list
+func (j *JSONStorage) addExcessSnapshotsOverMaxCount(snapshots []SnapshotInfo, policy RetentionPolicy, toDelete []string) []string {
+	if policy.MaxCount == 0 || len(snapshots) <= policy.MaxCount {
+		return toDelete
 	}
 
-	// Delete identified snapshots
+	excess := snapshots[policy.MaxCount:]
+	for _, snapshot := range excess {
+		if !j.shouldKeepSnapshot(snapshot, policy) && !j.isDuplicate(snapshot.ID, toDelete) {
+			toDelete = append(toDelete, snapshot.ID)
+		}
+	}
+	return toDelete
+}
+
+// shouldKeepSnapshot checks if a snapshot should be kept based on tags or releases
+func (j *JSONStorage) shouldKeepSnapshot(snapshot SnapshotInfo, policy RetentionPolicy) bool {
+	if policy.KeepTagged && len(snapshot.Tags) > 0 {
+		return true
+	}
+	if policy.KeepReleases && snapshot.GitTag != "" {
+		return true
+	}
+	return false
+}
+
+// isDuplicate checks if an ID already exists in the deletion list
+func (j *JSONStorage) isDuplicate(id string, toDelete []string) bool {
+	for _, existing := range toDelete {
+		if existing == id {
+			return true
+		}
+	}
+	return false
+}
+
+// executeCleanupDeletions performs the actual deletion of snapshots
+func (j *JSONStorage) executeCleanupDeletions(ctx context.Context, toDelete []string) {
 	for _, id := range toDelete {
 		if err := j.Delete(ctx, id); err != nil {
-			// Log but continue with other deletions
 			fmt.Printf("Warning: failed to delete snapshot %s: %v\n", id, err)
 		}
 	}
@@ -262,8 +280,6 @@ func (j *JSONStorage) Cleanup(ctx context.Context, policy RetentionPolicy) error
 	if len(toDelete) > 0 {
 		fmt.Printf("Cleaned up %d old snapshots\n", len(toDelete))
 	}
-
-	return nil
 }
 
 // GetLatest returns the most recent snapshot

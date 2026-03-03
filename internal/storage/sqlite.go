@@ -575,73 +575,113 @@ func (s *SQLiteStorage) Delete(ctx context.Context, id string) error {
 
 // Cleanup removes old snapshots based on retention policy
 func (s *SQLiteStorage) Cleanup(ctx context.Context, policy RetentionPolicy) error {
-	var deletedCount int64
-
-	// Delete by age
-	if policy.MaxAge > 0 {
-		cutoff := time.Now().Add(-policy.MaxAge)
-		query := "DELETE FROM snapshots WHERE timestamp < ?"
-
-		if policy.KeepTagged {
-			query += " AND id NOT IN (SELECT DISTINCT snapshot_id FROM snapshot_tags)"
-		}
-
-		if policy.KeepReleases {
-			query += " AND (git_tag IS NULL OR git_tag = '')"
-		}
-
-		result, err := s.db.ExecContext(ctx, query, cutoff)
-		if err != nil {
-			return fmt.Errorf("failed to delete old snapshots: %w", err)
-		}
-
-		if affected, err := result.RowsAffected(); err == nil {
-			deletedCount += affected
-		}
+	deletedCount, err := s.deleteByAge(ctx, policy)
+	if err != nil {
+		return err
 	}
 
-	// Delete by count (keep only the most recent N)
-	if policy.MaxCount > 0 {
-		countQuery := "SELECT COUNT(*) FROM snapshots"
-		var currentCount int
-		if err := s.db.QueryRowContext(ctx, countQuery).Scan(&currentCount); err != nil {
-			return fmt.Errorf("failed to count snapshots: %w", err)
-		}
-
-		if currentCount > policy.MaxCount {
-			toDelete := currentCount - policy.MaxCount
-			query := `DELETE FROM snapshots WHERE id IN (
-				SELECT id FROM snapshots 
-				ORDER BY timestamp ASC 
-				LIMIT ?
-			)`
-
-			if policy.KeepTagged {
-				query = `DELETE FROM snapshots WHERE id IN (
-					SELECT id FROM snapshots 
-					WHERE id NOT IN (SELECT DISTINCT snapshot_id FROM snapshot_tags)
-					ORDER BY timestamp ASC 
-					LIMIT ?
-				)`
-			}
-
-			result, err := s.db.ExecContext(ctx, query, toDelete)
-			if err != nil {
-				return fmt.Errorf("failed to delete excess snapshots: %w", err)
-			}
-
-			if affected, err := result.RowsAffected(); err == nil {
-				deletedCount += affected
-			}
-		}
+	countDeleted, err := s.deleteByCount(ctx, policy)
+	if err != nil {
+		return err
 	}
 
-	// Log cleanup results (would normally use a logger)
+	s.reportCleanupResults(deletedCount + countDeleted)
+	return nil
+}
+
+// deleteByAge removes snapshots older than the maximum age specified in the policy
+func (s *SQLiteStorage) deleteByAge(ctx context.Context, policy RetentionPolicy) (int64, error) {
+	if policy.MaxAge == 0 {
+		return 0, nil
+	}
+
+	cutoff := time.Now().Add(-policy.MaxAge)
+	query := s.buildAgeBasedDeleteQuery(policy)
+
+	result, err := s.db.ExecContext(ctx, query, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete old snapshots: %w", err)
+	}
+
+	affected, _ := result.RowsAffected()
+	return affected, nil
+}
+
+// deleteByCount removes excess snapshots beyond the maximum count specified in the policy
+func (s *SQLiteStorage) deleteByCount(ctx context.Context, policy RetentionPolicy) (int64, error) {
+	if policy.MaxCount == 0 {
+		return 0, nil
+	}
+
+	currentCount, err := s.countSnapshots(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	if currentCount <= policy.MaxCount {
+		return 0, nil
+	}
+
+	toDelete := currentCount - policy.MaxCount
+	query := s.buildCountBasedDeleteQuery(policy)
+
+	result, err := s.db.ExecContext(ctx, query, toDelete)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete excess snapshots: %w", err)
+	}
+
+	affected, _ := result.RowsAffected()
+	return affected, nil
+}
+
+// buildAgeBasedDeleteQuery constructs the SQL query for age-based deletion
+func (s *SQLiteStorage) buildAgeBasedDeleteQuery(policy RetentionPolicy) string {
+	query := "DELETE FROM snapshots WHERE timestamp < ?"
+
+	if policy.KeepTagged {
+		query += " AND id NOT IN (SELECT DISTINCT snapshot_id FROM snapshot_tags)"
+	}
+
+	if policy.KeepReleases {
+		query += " AND (git_tag IS NULL OR git_tag = '')"
+	}
+
+	return query
+}
+
+// buildCountBasedDeleteQuery constructs the SQL query for count-based deletion
+func (s *SQLiteStorage) buildCountBasedDeleteQuery(policy RetentionPolicy) string {
+	if policy.KeepTagged {
+		return `DELETE FROM snapshots WHERE id IN (
+			SELECT id FROM snapshots 
+			WHERE id NOT IN (SELECT DISTINCT snapshot_id FROM snapshot_tags)
+			ORDER BY timestamp ASC 
+			LIMIT ?
+		)`
+	}
+
+	return `DELETE FROM snapshots WHERE id IN (
+		SELECT id FROM snapshots 
+		ORDER BY timestamp ASC 
+		LIMIT ?
+	)`
+}
+
+// countSnapshots returns the total number of snapshots in the database
+func (s *SQLiteStorage) countSnapshots(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM snapshots").Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count snapshots: %w", err)
+	}
+	return count, nil
+}
+
+// reportCleanupResults logs the number of deleted snapshots
+func (s *SQLiteStorage) reportCleanupResults(deletedCount int64) {
 	if deletedCount > 0 {
 		fmt.Printf("Cleaned up %d old snapshots\n", deletedCount)
 	}
-
-	return nil
 }
 
 // GetLatest returns the most recent snapshot

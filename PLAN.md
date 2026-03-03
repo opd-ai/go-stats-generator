@@ -223,13 +223,36 @@
       - Zero regressions in unrelated code
       - Quality score: 100/100 from differential analysis
 
-4.2. **Refactor Cleanup functions in storage package (complexity 24.1, 18.4)**
+4.2. **Refactor Cleanup functions in storage package (complexity 24.1, 18.4)** ✅ COMPLETED
    - **Deliverable**: Refactored `internal/storage/json.go` and `internal/storage/sqlite.go` Cleanup methods
    - **Dependencies**: None — standalone cleanup
+   - **Status**: COMPLETE - Implemented (2026-03-03)
    - **Metric Justification**: Two functions above critical threshold in same package
-   - **Technical Details**:
-     - Extract error handling and resource cleanup into helpers
-     - Target complexity ≤12 for each
+   - **Files Modified**:
+      - internal/storage/json.go (refactored Cleanup, added 6 helper functions)
+      - internal/storage/sqlite.go (refactored Cleanup, added 6 helper functions)
+   - **Implementation Details**:
+      - JSON Storage Cleanup: complexity 24.1 → 3.1 (87.1% reduction)
+         - Extracted identifySnapshotsToDelete() (complexity: 1.3, 3 lines)
+         - Extracted findSnapshotsOlderThanMaxAge() (complexity: 6.2, 11 lines)
+         - Extracted addExcessSnapshotsOverMaxCount() (complexity: 6.2, 10 lines)
+         - Extracted shouldKeepSnapshot() (complexity: 4.4, 7 lines)
+         - Extracted isDuplicate() (complexity: 4.9, 6 lines)
+         - Extracted executeCleanupDeletions() (complexity: 6.2, 8 lines)
+      - SQLite Storage Cleanup: complexity 18.4 → 4.4 (76.1% reduction)
+         - Extracted deleteByAge() (complexity: 4.4, 11 lines)
+         - Extracted deleteByCount() (complexity: 7.0, 18 lines)
+         - Extracted buildAgeBasedDeleteQuery() (complexity: 4.4, 8 lines)
+         - Extracted buildCountBasedDeleteQuery() (complexity: 3.1, 13 lines)
+         - Extracted countSnapshots() (complexity: 3.1, 6 lines)
+         - Extracted reportCleanupResults() (complexity: 3.1, 3 lines)
+      - All helper functions meet thresholds: ≤30 lines and complexity ≤10
+   - **Validation**:
+      - All storage tests passing with race detector
+      - Build successful
+      - Zero regressions in unrelated code
+      - Quality score improved: 4 improvements, 1 neutral cohesion change
+      - Average function complexity: 4.82 → 4.77 (-0.9% improvement)
 
 4.3. **Refactor buildSymbolIndex in placement.go (complexity 20.7)**
    - **Deliverable**: Refactored function with complexity ≤15
