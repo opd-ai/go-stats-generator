@@ -323,8 +323,8 @@ func TestMarkdownReporter_WithPlacement(t *testing.T) {
 		"User",
 		"user.go",
 		"mixed.go",
-		"0.25", // cohesion score
-		"user\\_ops.go", // Escaped by markdown
+		"0.25",            // cohesion score
+		"user\\_ops.go",   // Escaped by markdown
 		"config\\_ops.go", // Escaped by markdown
 	}
 
@@ -345,4 +345,3 @@ func TestMarkdownReporter_WithPlacement(t *testing.T) {
 		t.Error("Low cohesion files count not found in summary")
 	}
 }
-
