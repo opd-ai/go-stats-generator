@@ -382,8 +382,82 @@ func (ba *BurdenAnalyzer) getTerminationReason(stmt ast.Stmt) string {
 
 // AnalyzeSignatureComplexity flags functions with excessive parameters or returns
 func (ba *BurdenAnalyzer) AnalyzeSignatureComplexity(fn *ast.FuncDecl, maxParams, maxReturns int) *metrics.SignatureIssue {
-	// TODO: Implement signature complexity analysis
-	return nil
+	if fn == nil || fn.Type == nil {
+		return nil
+	}
+
+	paramCount, boolParams := ba.countParameters(fn.Type)
+	returnCount := ba.countReturns(fn.Type)
+
+	if paramCount <= maxParams && returnCount <= maxReturns && len(boolParams) == 0 {
+		return nil
+	}
+
+	severity := ba.calculateSeverity(paramCount, returnCount, maxParams, maxReturns)
+	pos := ba.fset.Position(fn.Pos())
+
+	return &metrics.SignatureIssue{
+		Function:       fn.Name.Name,
+		File:           pos.Filename,
+		Line:           pos.Line,
+		ParameterCount: paramCount,
+		ReturnCount:    returnCount,
+		BoolParams:     boolParams,
+		Severity:       severity,
+	}
+}
+
+func (ba *BurdenAnalyzer) countParameters(fnType *ast.FuncType) (int, []string) {
+	paramCount := 0
+	var boolParams []string
+
+	if fnType.Params == nil {
+		return 0, nil
+	}
+
+	for _, field := range fnType.Params.List {
+		numNames := len(field.Names)
+		if numNames == 0 {
+			numNames = 1
+		}
+		paramCount += numNames
+
+		// Check for bool parameters (flag arguments)
+		if ident, ok := field.Type.(*ast.Ident); ok && ident.Name == "bool" {
+			for _, name := range field.Names {
+				boolParams = append(boolParams, name.Name)
+			}
+		}
+	}
+
+	return paramCount, boolParams
+}
+
+func (ba *BurdenAnalyzer) countReturns(fnType *ast.FuncType) int {
+	if fnType.Results == nil {
+		return 0
+	}
+
+	returnCount := 0
+	for _, field := range fnType.Results.List {
+		numNames := len(field.Names)
+		if numNames == 0 {
+			numNames = 1
+		}
+		returnCount += numNames
+	}
+
+	return returnCount
+}
+
+func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, maxReturns int) string {
+	if paramCount > maxParams*2 || returnCount > maxReturns*2 {
+		return "high"
+	}
+	if paramCount > maxParams || returnCount > maxReturns {
+		return "medium"
+	}
+	return "low"
 }
 
 // DetectDeepNesting identifies functions exceeding nesting depth threshold

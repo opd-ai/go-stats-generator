@@ -259,13 +259,148 @@ func Example() {
 	}
 }
 
-func TestAnalyzeSignatureComplexity_Placeholder(t *testing.T) {
-	fset := token.NewFileSet()
-	analyzer := NewBurdenAnalyzer(fset)
+func TestAnalyzeSignatureComplexity(t *testing.T) {
+	tests := []struct {
+		name           string
+		src            string
+		maxParams      int
+		maxReturns     int
+		wantIssue      bool
+		wantSeverity   string
+		wantParamCount int
+		wantRetCount   int
+		wantBoolParams int
+	}{
+		{
+			name: "function under thresholds",
+			src: `package test
+func Simple(a, b int) int {
+	return a + b
+}`,
+			maxParams:      5,
+			maxReturns:     3,
+			wantIssue:      false,
+			wantParamCount: 2,
+			wantRetCount:   1,
+		},
+		{
+			name: "function with too many params",
+			src: `package test
+func TooManyParams(a, b, c, d, e, f int) int {
+	return a + b
+}`,
+			maxParams:      5,
+			maxReturns:     3,
+			wantIssue:      true,
+			wantSeverity:   "medium",
+			wantParamCount: 6,
+			wantRetCount:   1,
+		},
+		{
+			name: "function with too many returns",
+			src: `package test
+func TooManyReturns(a int) (int, int, int, int) {
+	return a, a, a, a
+}`,
+			maxParams:      5,
+			maxReturns:     3,
+			wantIssue:      true,
+			wantSeverity:   "medium",
+			wantParamCount: 1,
+			wantRetCount:   4,
+		},
+		{
+			name: "function with bool params",
+			src: `package test
+func WithBoolParam(value int, flag bool) int {
+	return value
+}`,
+			maxParams:      5,
+			maxReturns:     3,
+			wantIssue:      true,
+			wantSeverity:   "low",
+			wantParamCount: 2,
+			wantRetCount:   1,
+			wantBoolParams: 1,
+		},
+		{
+			name: "high severity - double threshold",
+			src: `package test
+func Extreme(a, b, c, d, e, f, g, h, i, j, k int) int {
+	return a
+}`,
+			maxParams:      5,
+			maxReturns:     3,
+			wantIssue:      true,
+			wantSeverity:   "high",
+			wantParamCount: 11,
+			wantRetCount:   1,
+		},
+		{
+			name: "nil function",
+			src: `package test
+// empty file`,
+			maxParams:  5,
+			maxReturns: 3,
+			wantIssue:  false,
+		},
+	}
 
-	result := analyzer.AnalyzeSignatureComplexity(nil, 5, 3)
-	if result != nil {
-		t.Error("Expected nil result from placeholder implementation")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			analyzer := NewBurdenAnalyzer(fset)
+
+			file, err := parser.ParseFile(fset, "test.go", tt.src, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var fn *ast.FuncDecl
+			ast.Inspect(file, func(n ast.Node) bool {
+				if f, ok := n.(*ast.FuncDecl); ok {
+					fn = f
+					return false
+				}
+				return true
+			})
+
+			result := analyzer.AnalyzeSignatureComplexity(fn, tt.maxParams, tt.maxReturns)
+
+			if tt.wantIssue {
+				if result == nil {
+					t.Fatal("expected issue but got nil")
+				}
+
+				if result.Severity != tt.wantSeverity {
+					t.Errorf("severity = %s, want %s", result.Severity, tt.wantSeverity)
+				}
+
+				if result.ParameterCount != tt.wantParamCount {
+					t.Errorf("parameter count = %d, want %d", result.ParameterCount, tt.wantParamCount)
+				}
+
+				if result.ReturnCount != tt.wantRetCount {
+					t.Errorf("return count = %d, want %d", result.ReturnCount, tt.wantRetCount)
+				}
+
+				if len(result.BoolParams) != tt.wantBoolParams {
+					t.Errorf("bool params count = %d, want %d", len(result.BoolParams), tt.wantBoolParams)
+				}
+
+				if result.File == "" {
+					t.Error("expected non-empty file name")
+				}
+
+				if result.Line == 0 {
+					t.Error("expected non-zero line number")
+				}
+			} else {
+				if result != nil {
+					t.Errorf("expected no issue but got: %+v", result)
+				}
+			}
+		})
 	}
 }
 
