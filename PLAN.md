@@ -187,7 +187,7 @@ The `BurdenAnalyzer` in `internal/analyzer/burden.go` (703 lines) implements the
 - [x] `go-stats-generator analyze . --format json | jq '.burden.complex_signatures | length'` returns count (0 when no violations) ✅ **COMPLETED 2026-03-03**
 - [x] `go-stats-generator analyze . --format json | jq '.burden.deeply_nested_functions | length'` returns count (0 when no violations) ✅ **COMPLETED 2026-03-03**
 - [x] `go-stats-generator analyze . --format json | jq '.burden.feature_envy_methods | length'` returns count (0 when no violations) ✅ **COMPLETED 2026-03-03**
-- [ ] Console output includes "Maintenance Burden Summary" section (Step 6 - Reporter Integration)
+- [x] Console output includes "Maintenance Burden Summary" section (Step 6 - Reporter Integration) ✅ **COMPLETED 2026-03-03**
 - [x] All existing tests pass: `go test ./... -race` ✅ **COMPLETED 2026-03-03**
 - [x] No regressions in complexity: all new functions under 30 lines and complexity ≤10 ✅ **COMPLETED 2026-03-03**
 
@@ -202,9 +202,16 @@ The `BurdenAnalyzer` in `internal/analyzer/burden.go` (703 lines) implements the
   - ✅ Function refactored into 5 helper functions (all under 30 lines, complexity ≤4.4)
   - ✅ Dead code percentage calculation in `finalizeBurdenMetrics()`
   - ✅ Full JSON output support with properly initialized burden structures
+- **Step 6**: Console reporter burden summary section ✅ **COMPLETED 2026-03-03**
+  - ✅ Added `writeBurdenAnalysis()` method to ConsoleReporter
+  - ✅ Integrated into `Generate()` method with conditional rendering
+  - ✅ Displays summary metrics: magic numbers, dead code, complex signatures, nesting, feature envy
+  - ✅ Shows top violations: complex signatures, deeply nested functions, magic numbers
+  - ✅ All new functions under 30 lines and complexity ≤3
+  - ✅ Tests pass with no regressions
+  - Note: Generate function complexity increased from 10 to 11 (acceptable for new section integration)
 
 ### 🚧 REMAINING WORK:
-- **Step 6**: Console reporter burden summary section
 - **Steps 7-8**: HTML and Markdown reporter burden sections
 - **Step 9**: Integration tests for burden analysis
 

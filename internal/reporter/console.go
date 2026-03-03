@@ -81,6 +81,12 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writeDocumentationAnalysis(output, report)
 	}
 
+	// Maintenance burden analysis section
+	totalBurdenIssues := len(report.Burden.MagicNumbers) + len(report.Burden.DeadCode.UnreferencedFunctions) + len(report.Burden.DeadCode.UnreachableCode) + len(report.Burden.ComplexSignatures) + len(report.Burden.DeeplyNestedFunctions) + len(report.Burden.FeatureEnvyMethods)
+	if cr.config.IncludeDetails && totalBurdenIssues > 0 {
+		cr.writeBurdenAnalysis(output, report)
+	}
+
 	// Organization analysis section
 	totalOrgIssues := len(report.Organization.OversizedFiles) + len(report.Organization.OversizedPackages) + len(report.Organization.DeepDirectories) + len(report.Organization.HighFanInPackages) + len(report.Organization.HighFanOutPackages)
 	if cr.config.IncludeDetails && totalOrgIssues > 0 {
@@ -1031,6 +1037,102 @@ func (cr *ConsoleReporter) writeTopAnnotations(output io.Writer, doc metrics.Doc
 			cr.truncate(a.file, 50),
 			a.line,
 			cr.truncate(a.desc, 40),
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeBurdenAnalysis generates maintenance burden analysis output
+func (cr *ConsoleReporter) writeBurdenAnalysis(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== MAINTENANCE BURDEN ===")
+
+	burden := report.Burden
+
+	// Summary metrics
+	fmt.Fprintf(output, "Magic Numbers: %d\n", len(burden.MagicNumbers))
+	fmt.Fprintf(output, "Dead Code (Unreferenced): %d functions\n", len(burden.DeadCode.UnreferencedFunctions))
+	fmt.Fprintf(output, "Dead Code (Unreachable): %d blocks\n", len(burden.DeadCode.UnreachableCode))
+	fmt.Fprintf(output, "Dead Code Percentage: %.2f%%\n", burden.DeadCode.DeadCodePercent)
+	fmt.Fprintf(output, "Complex Signatures: %d\n", len(burden.ComplexSignatures))
+	fmt.Fprintf(output, "Deeply Nested Functions: %d\n", len(burden.DeeplyNestedFunctions))
+	fmt.Fprintf(output, "Feature Envy Methods: %d\n", len(burden.FeatureEnvyMethods))
+	fmt.Fprintln(output)
+
+	cr.writeTopBurdenIssues(output, burden)
+
+	fmt.Fprintln(output)
+}
+
+// writeTopBurdenIssues displays top burden violations
+func (cr *ConsoleReporter) writeTopBurdenIssues(output io.Writer, burden metrics.BurdenMetrics) {
+	cr.writeTopComplexSignatures(output, burden.ComplexSignatures)
+	cr.writeTopDeeplyNestedFunctions(output, burden.DeeplyNestedFunctions)
+	cr.writeTopMagicNumbers(output, burden.MagicNumbers)
+}
+
+// writeTopComplexSignatures displays functions with complex signatures
+func (cr *ConsoleReporter) writeTopComplexSignatures(output io.Writer, signatures []metrics.SignatureIssue) {
+	if len(signatures) == 0 {
+		return
+	}
+
+	limit := cr.getDisplayLimit(len(signatures))
+	fmt.Fprintf(output, "Top %d Complex Signatures:\n", limit)
+	fmt.Fprintf(output, "%-40s %-20s %8s %8s\n", "Function", "File", "Params", "Returns")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		s := signatures[i]
+		fmt.Fprintf(output, "%-40s %-20s %8d %8d\n",
+			cr.truncate(s.Function, 40),
+			cr.truncate(s.File, 20),
+			s.ParameterCount,
+			s.ReturnCount,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeTopDeeplyNestedFunctions displays functions with deep nesting
+func (cr *ConsoleReporter) writeTopDeeplyNestedFunctions(output io.Writer, nesting []metrics.NestingIssue) {
+	if len(nesting) == 0 {
+		return
+	}
+
+	limit := cr.getDisplayLimit(len(nesting))
+	fmt.Fprintf(output, "Top %d Deeply Nested Functions:\n", limit)
+	fmt.Fprintf(output, "%-40s %-20s %8s\n", "Function", "File", "Max Depth")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		n := nesting[i]
+		fmt.Fprintf(output, "%-40s %-20s %8d\n",
+			cr.truncate(n.Function, 40),
+			cr.truncate(n.File, 20),
+			n.MaxDepth,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeTopMagicNumbers displays top magic number occurrences
+func (cr *ConsoleReporter) writeTopMagicNumbers(output io.Writer, numbers []metrics.MagicNumber) {
+	if len(numbers) == 0 {
+		return
+	}
+
+	limit := cr.getDisplayLimit(len(numbers))
+	fmt.Fprintf(output, "Top %d Magic Numbers:\n", limit)
+	fmt.Fprintf(output, "%-20s %-30s %8s %s\n", "Value", "File", "Line", "Context")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		m := numbers[i]
+		fmt.Fprintf(output, "%-20s %-30s %8d %s\n",
+			cr.truncate(m.Value, 20),
+			cr.truncate(m.File, 30),
+			m.Line,
+			cr.truncate(m.Context, 30),
 		)
 	}
 	fmt.Fprintln(output)
