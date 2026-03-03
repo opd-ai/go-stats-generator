@@ -289,15 +289,25 @@ Test cases:
 - Low cohesion file (<0.3 score)
 - File with distinct clusters of declarations
 
-### 15. Create Integration Tests
+### 15. Create Integration Tests ✅ COMPLETE
 - **Deliverable**: Add test fixtures in `testdata/placement/` and integration test
 - **Dependencies**: Steps 9-13
+- **Completed**: 2026-03-03
 
-Test fixtures:
-- `testdata/placement/misplaced_function/` - function referencing wrong file
-- `testdata/placement/misplaced_method/` - method away from receiver
-- `testdata/placement/low_cohesion/` - file with unrelated declarations
-- `testdata/placement/high_cohesion/` - well-organized file
+Test fixtures created:
+- `testdata/placement/misplaced_function/` - ValidateUser function defined in handler.go but heavily referenced in database.go
+- `testdata/placement/misplaced_method/` - User methods (Validate, IsAdmin) defined in validator.go away from User type in user.go
+- `testdata/placement/low_cohesion/` - mixed.go with low internal cohesion (primarily external references)
+- `testdata/placement/high_cohesion/` - user.go with well-organized User-related declarations
+
+Integration test created: `internal/analyzer/placement_integration_test.go`
+- TestPlacementAnalyzer_Integration_MisplacedFunction - Verifies detection of functions with high affinity to other files
+- TestPlacementAnalyzer_Integration_MisplacedMethod - Verifies detection of methods defined away from their receiver types
+- TestPlacementAnalyzer_Integration_LowCohesion - Verifies detection of files with low internal cohesion
+- TestPlacementAnalyzer_Integration_HighCohesion - Verifies that well-organized files are not flagged
+- TestPlacementAnalyzer_Integration_AllScenarios - Combined test ensuring all scenarios work together
+
+All integration tests pass successfully.
 
 ### 16. Add Benchmark Tests
 - **Deliverable**: Create `internal/analyzer/placement_bench_test.go`
@@ -329,7 +339,7 @@ Ensure placement analysis doesn't degrade performance below 50,000-file-in-60-se
 - [x] HTML reporter includes Placement tab when violations exist
 - [x] Markdown reporter includes Placement section when violations exist
 - [x] Unit tests achieve >85% code coverage for `internal/analyzer/placement.go`
-- [ ] Integration tests pass for all test fixtures
+- [x] Integration tests pass for all test fixtures
 - [ ] Benchmark tests confirm no performance regression (50K files in 60s target maintained)
 - [x] Running `go-stats-generator analyze .` on this repository produces placement metrics
 
