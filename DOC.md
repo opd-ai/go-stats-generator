@@ -110,13 +110,13 @@ Accuracy is the paramount concern. You must never introduce false information or
   find . -name '*.go' -not -path './.git/*' -not -name '*_test.go' | sort
 
   # Verify function signatures match documentation
-  grep -rn '^func ' --include='*.go' --exclude='*_test.go'
+  grep -rn '^func ' --include='*.go' --exclude='*_test.go' .
 
   # Verify struct definitions
-  grep -rn '^type .* struct' --include='*.go' --exclude='*_test.go'
+  grep -rn '^type .* struct' --include='*.go' --exclude='*_test.go' .
 
   # Verify interface definitions
-  grep -rn '^type .* interface' --include='*.go' --exclude='*_test.go'
+  grep -rn '^type .* interface' --include='*.go' --exclude='*_test.go' .
   ```
 
 3. **Determine Correction Type and Apply:**

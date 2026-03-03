@@ -20,10 +20,10 @@ go install github.com/opd-ai/go-stats-generator@latest
 ## Recommendations:
 ```bash
 # Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, packages: .packages, documentation: .documentation, naming: .naming, concurrency: .concurrency, duplication: .duplication}'
+go-stats-generator analyze --format json | jq '{functions: .functions, packages: .packages, documentation: .documentation, naming: .naming, concurrency: .patterns.concurrency_patterns, duplication: .duplication}'
 which jq || sudo apt-get install -y jq
 ```
-**Section filter**: Use only `.functions`, `.packages`, `.documentation`, `.naming`, `.concurrency`, and `.duplication` from the report. Exclude `.structs`, `.interfaces`, `.complexity`, `.generics`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to production readiness assessment.
+**Section filter**: Use only `.functions`, `.packages`, `.documentation`, `.naming`, `.patterns.concurrency_patterns`, and `.duplication` from the report (`--sections concurrency` includes the `patterns` section). Exclude `.structs`, `.interfaces`, `.complexity`, `.generics`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to production readiness assessment.
 
 ## CONTEXT:
 You are an automated production readiness auditor using `go-stats-generator` for evidence-based assessment across all metric dimensions. The tool provides precise metrics for functions (complexity, length), packages (coupling, cohesion, circular dependencies), documentation (coverage), naming (conventions), concurrency (safety patterns), and duplication (code clones). Use the full analysis report as quantitative evidence to evaluate production readiness gates and generate a prioritized remediation plan.
@@ -77,7 +77,7 @@ You are an automated production readiness auditor using `go-stats-generator` for
 
 5. **Concurrency Safety:**
   ```bash
-  cat readiness-report.json | jq '.concurrency'
+  cat readiness-report.json | jq '.patterns.concurrency_patterns'
   ```
   - Identify goroutine patterns and channel usage
   - Flag high-risk concurrency patterns (unprotected shared state, missing synchronization)
@@ -252,7 +252,7 @@ $ cat readiness-report.json | jq '.duplication | {duplication_ratio, clone_pairs
 $ cat readiness-report.json | jq '.naming.violations | length'
 0
 
-$ cat readiness-report.json | jq '.concurrency | {high_risk_patterns: [.patterns[] | select(.risk == "high")]}'
+$ cat readiness-report.json | jq '.patterns.concurrency_patterns | {high_risk_patterns: [.patterns[] | select(.risk == "high")]}'
 {
   "high_risk_patterns": []
 }

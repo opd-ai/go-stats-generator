@@ -22,10 +22,10 @@ go install github.com/opd-ai/go-stats-generator@latest
 ## Recommendations:
 ```bash
 # Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, concurrency: .concurrency}'
+go-stats-generator analyze --format json | jq '{functions: .functions, concurrency: .patterns.concurrency_patterns}'
 which jq || sudo apt-get install -y jq
 ```
-**Section filter**: Use only `.functions` and `.concurrency` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to test failure analysis.
+**Section filter**: Use only `.functions` and `.patterns.concurrency_patterns` from the report (`--sections concurrency` includes the `patterns` section). Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to test failure analysis.
 
 ### Required Analysis Workflow:
 ```bash

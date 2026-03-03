@@ -20,10 +20,10 @@ go install github.com/opd-ai/go-stats-generator@latest
 ## Recommendations:
 ```bash
 # Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, duplication: .duplication, documentation: .documentation, packages: .packages, concurrency: .concurrency}'
+go-stats-generator analyze --format json | jq '{functions: .functions, duplication: .duplication, documentation: .documentation, packages: .packages, concurrency: .patterns.concurrency_patterns}'
 which jq || sudo apt-get install -y jq
 ```
-**Section filter**: Use only `.functions`, `.duplication`, `.documentation`, `.packages`, and `.concurrency` from the report. Exclude `.structs`, `.interfaces`, `.complexity`, `.generics`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to data-driven implementation planning.
+**Section filter**: Use only `.functions`, `.duplication`, `.documentation`, `.packages`, and `.patterns.concurrency_patterns` from the report (`--sections concurrency` includes the `patterns` section). Exclude `.structs`, `.interfaces`, `.complexity`, `.generics`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to data-driven implementation planning.
 
 ## CONTEXT:
 You are an automated Go project planner using `go-stats-generator` for data-driven development planning. The tool provides precise codebase metrics — complexity hotspots, duplication ratios, documentation coverage, package coupling, and concurrency patterns — that you correlate with roadmap milestones to prioritize work, estimate scope, and ground every planning decision in quantitative evidence rather than subjective assessment.
@@ -54,7 +54,7 @@ You are an automated Go project planner using `go-stats-generator` for data-driv
   cat metrics.json | jq '[.packages[] | {name, coupling_score, cohesion_score, dependencies: (.dependencies | length)}] | sort_by(-.coupling_score)'
 
   # Concurrency patterns — complexity of concurrent code
-  cat metrics.json | jq '.concurrency'
+  cat metrics.json | jq '.patterns.concurrency_patterns'
   ```
 
 ### Phase 2: Documentation Review and Phase Selection

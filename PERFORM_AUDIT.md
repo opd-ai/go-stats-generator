@@ -15,10 +15,10 @@ go install github.com/opd-ai/go-stats-generator@latest
 ## Recommendations:
 ```bash
 # Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, documentation: .documentation, naming: .naming, concurrency: .concurrency, duplication: .duplication, interfaces: .interfaces, structs: .structs, packages: .packages}'
+go-stats-generator analyze --format json | jq '{functions: .functions, documentation: .documentation, naming: .naming, concurrency: .patterns.concurrency_patterns, duplication: .duplication, interfaces: .interfaces, structs: .structs, packages: .packages}'
 which jq || sudo apt-get install -y jq
 ```
-**Section filter**: Use only `.functions`, `.documentation`, `.naming`, `.concurrency`, `.duplication`, `.interfaces`, `.structs`, and `.packages` from the report. Exclude `.complexity`, `.generics`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to comprehensive functional auditing.
+**Section filter**: Use only `.functions`, `.documentation`, `.naming`, `.patterns.concurrency_patterns`, `.duplication`, `.interfaces`, `.structs`, and `.packages` from the report (`--sections concurrency` includes the `patterns` section). Exclude `.complexity`, `.generics`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to comprehensive functional auditing.
 
 ## INSTRUCTIONS:
 
