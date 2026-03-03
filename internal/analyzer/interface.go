@@ -196,7 +196,12 @@ func (ia *InterfaceAnalyzer) analyzeEnhancedImplementations(pkgName string) {
 
 	// Build embedding graph for depth calculation
 	for interfaceName, interfaceType := range ia.interfaceDefinitions {
-		embedded := ia.extractEmbeddedInterfaceNames(interfaceType)
+		// Extract package from fully qualified name (e.g., "test.Level1" -> "test")
+		pkgName := ""
+		if idx := strings.Index(interfaceName, "."); idx > 0 {
+			pkgName = interfaceName[:idx]
+		}
+		embedded := ia.extractEmbeddedInterfaceNamesWithPkg(interfaceType, pkgName)
 		ia.embeddingGraph[interfaceName] = embedded
 	}
 }
@@ -236,10 +241,8 @@ func (ia *InterfaceAnalyzer) updateEnhancedImplementationMetrics(interfaceMetric
 	}
 
 	// Enhanced embedding depth calculation using graph traversal
-	// TODO: Fix enhanced embedding depth calculation - for now use basic calculation
-	// enhancedDepth := ia.calculateEnhancedEmbeddingDepth(interfaceName, make(map[string]bool))
-	// fmt.Printf("DEBUG: updateEnhancedImplementationMetrics setting depth to %d (was %d)\n", enhancedDepth, interfaceMetric.EmbeddingDepth)
-	// interfaceMetric.EmbeddingDepth = enhancedDepth
+	enhancedDepth := ia.calculateEnhancedEmbeddingDepth(interfaceName, make(map[string]bool))
+	interfaceMetric.EmbeddingDepth = enhancedDepth
 }
 
 // calculateEnhancedEmbeddingDepth calculates embedding depth using graph traversal to detect cycles
@@ -250,7 +253,20 @@ func (ia *InterfaceAnalyzer) calculateEnhancedEmbeddingDepth(interfaceName strin
 	}
 
 	embedded, exists := ia.embeddingGraph[interfaceName]
-	if !exists || len(embedded) == 0 {
+
+	// Interface not in our graph - it's external
+	if !exists {
+		// Check if it looks like an external interface (has package selector)
+		if strings.Contains(interfaceName, ".") {
+			// External interfaces are treated as having base depth 1
+			// to maintain compatibility with the basic calculation heuristic
+			return 1
+		}
+		return 0
+	}
+
+	// No embeddings
+	if len(embedded) == 0 {
 		return 0
 	}
 
@@ -270,6 +286,12 @@ func (ia *InterfaceAnalyzer) calculateEnhancedEmbeddingDepth(interfaceName strin
 
 // extractEmbeddedInterfaceNames extracts all embedded interface names from an interface type
 func (ia *InterfaceAnalyzer) extractEmbeddedInterfaceNames(interfaceType *ast.InterfaceType) []string {
+	return ia.extractEmbeddedInterfaceNamesWithPkg(interfaceType, "")
+}
+
+// extractEmbeddedInterfaceNamesWithPkg extracts all embedded interface names from an interface type
+// and qualifies local interface names with the given package name
+func (ia *InterfaceAnalyzer) extractEmbeddedInterfaceNamesWithPkg(interfaceType *ast.InterfaceType, pkgName string) []string {
 	var embedded []string
 
 	if interfaceType.Methods != nil {
@@ -278,6 +300,11 @@ func (ia *InterfaceAnalyzer) extractEmbeddedInterfaceNames(interfaceType *ast.In
 				// Embedded interface
 				embeddedName := ia.extractEmbeddedInterfaceName(field.Type)
 				if embeddedName != "" {
+					// If it's a simple name (no package qualifier) and we have a package name,
+					// qualify it with the package
+					if !strings.Contains(embeddedName, ".") && pkgName != "" {
+						embeddedName = pkgName + "." + embeddedName
+					}
 					embedded = append(embedded, embeddedName)
 				}
 			}
