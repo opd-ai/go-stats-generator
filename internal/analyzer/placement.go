@@ -92,7 +92,7 @@ func (pa *PlacementAnalyzer) buildSymbolIndex(files []*ast.File, fset *token.Fil
 				funcName := decl.Name.Name
 				if decl.Recv != nil && len(decl.Recv.List) > 0 {
 					// It's a method
-					recvType := pa.extractReceiverType(decl.Recv.List[0].Type)
+					recvType := ExtractReceiverType(decl.Recv.List[0].Type)
 					methodName := recvType + "." + funcName
 					pa.methods[methodName] = methodInfo{
 						receiverType: recvType,
@@ -138,7 +138,7 @@ func (pa *PlacementAnalyzer) buildSymbolIndex(files []*ast.File, fset *token.Fil
 			if funcDecl, ok := n.(*ast.FuncDecl); ok {
 				currentFunc = funcDecl.Name.Name
 				if funcDecl.Recv != nil && len(funcDecl.Recv.List) > 0 {
-					recvType := pa.extractReceiverType(funcDecl.Recv.List[0].Type)
+					recvType := ExtractReceiverType(funcDecl.Recv.List[0].Type)
 					currentFunc = recvType + "." + funcDecl.Name.Name
 				}
 			}
@@ -181,21 +181,6 @@ func (pa *PlacementAnalyzer) recordSymbolRef(symbol, file string) {
 		pa.fileRefs[file] = make(map[string]int)
 	}
 	pa.fileRefs[file][symbol]++
-}
-
-// extractReceiverType extracts the type name from a receiver expression
-func (pa *PlacementAnalyzer) extractReceiverType(expr ast.Expr) string {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.StarExpr:
-		return pa.extractReceiverType(t.X)
-	case *ast.IndexExpr:
-		// Generic type instantiation
-		return pa.extractReceiverType(t.X)
-	default:
-		return ""
-	}
 }
 
 // AnalyzeFunctionAffinity identifies functions that may be misplaced

@@ -99,7 +99,7 @@ func (da *DuplicationAnalyzer) extractBlocksFromStmtList(stmts []ast.Stmt, fileP
 			endPos := da.fset.Position(blockStmts[len(blockStmts)-1].End())
 
 			// Count nodes in the block
-			nodeCount := da.countNodes(blockStmts)
+			nodeCount := CountNodes(blockStmts)
 
 			block := StatementBlock{
 				File:       filePath,
@@ -170,20 +170,6 @@ func (da *DuplicationAnalyzer) extractNestedBlocks(stmt ast.Stmt, filePath strin
 	}
 
 	return blocks
-}
-
-// countNodes counts the number of AST nodes in a set of statements
-func (da *DuplicationAnalyzer) countNodes(stmts []ast.Stmt) int {
-	count := 0
-	for _, stmt := range stmts {
-		ast.Inspect(stmt, func(n ast.Node) bool {
-			if n != nil {
-				count++
-			}
-			return true
-		})
-	}
-	return count
 }
 
 // NormalizeBlock strips identifiers, literals, and comments to produce structural form

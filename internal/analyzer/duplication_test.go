@@ -509,8 +509,6 @@ func test() {
 	file, err := parser.ParseFile(fset, "test.go", source, parser.ParseComments)
 	require.NoError(t, err)
 
-	analyzer := NewDuplicationAnalyzer(fset)
-
 	var stmts []ast.Stmt
 	ast.Inspect(file, func(n ast.Node) bool {
 		if funcDecl, ok := n.(*ast.FuncDecl); ok && funcDecl.Body != nil {
@@ -522,7 +520,7 @@ func test() {
 
 	require.NotEmpty(t, stmts)
 
-	count := analyzer.countNodes(stmts)
+	count := CountNodes(stmts)
 	assert.Greater(t, count, len(stmts), "Node count should be greater than statement count due to sub-nodes")
 }
 

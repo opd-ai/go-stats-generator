@@ -353,7 +353,7 @@ func (na *NamingAnalyzer) analyzeFunctionDecl(node *ast.FuncDecl, filePath strin
 	idType := "function"
 	if node.Recv != nil && len(node.Recv.List) > 0 {
 		idType = "method"
-		ctx.receiverType = na.getReceiverTypeName(node.Recv)
+		ctx.receiverType = ExtractReceiverType(node.Recv.List[0].Type)
 	} else {
 		ctx.receiverType = ""
 	}
@@ -657,24 +657,6 @@ func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.Ide
 }
 
 // Helper functions
-
-func (na *NamingAnalyzer) getReceiverTypeName(recv *ast.FieldList) string {
-	if recv == nil || len(recv.List) == 0 {
-		return ""
-	}
-
-	field := recv.List[0]
-	switch t := field.Type.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.StarExpr:
-		if ident, ok := t.X.(*ast.Ident); ok {
-			return ident.Name
-		}
-	}
-
-	return ""
-}
 
 func (na *NamingAnalyzer) toMixedCaps(s string) string {
 	parts := strings.Split(s, "_")
