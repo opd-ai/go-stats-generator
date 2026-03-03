@@ -608,12 +608,12 @@ type PackageNameViolation struct {
 
 // OrganizationMetrics contains organizational structure and health analysis
 type OrganizationMetrics struct {
-	OversizedFiles      []OversizedFile      `json:"oversized_files"`
-	OversizedPackages   []OversizedPackage   `json:"oversized_packages"`
-	DeepDirectories     []DeepDirectory      `json:"deep_directories"`
-	HighFanInPackages   []FanInPackage       `json:"high_fan_in_packages"`
-	HighFanOutPackages  []FanOutPackage      `json:"high_fan_out_packages"`
-	AvgPackageStability float64              `json:"avg_package_instability"`
+	OversizedFiles      []OversizedFile    `json:"oversized_files"`
+	OversizedPackages   []OversizedPackage `json:"oversized_packages"`
+	DeepDirectories     []DeepDirectory    `json:"deep_directories"`
+	HighFanInPackages   []FanInPackage     `json:"high_fan_in_packages"`
+	HighFanOutPackages  []FanOutPackage    `json:"high_fan_out_packages"`
+	AvgPackageStability float64            `json:"avg_package_instability"`
 }
 
 // OversizedFile represents a file that exceeds recommended size thresholds
@@ -641,21 +641,21 @@ type OversizedPackage struct {
 
 // DeepDirectory represents a directory structure that may be too nested
 type DeepDirectory struct {
-	Path        string `json:"path"`
-	Depth       int    `json:"depth"`
-	FileCount   int    `json:"file_count"`
-	Severity    string `json:"severity"`
-	Suggestion  string `json:"suggestion"`
+	Path       string `json:"path"`
+	Depth      int    `json:"depth"`
+	FileCount  int    `json:"file_count"`
+	Severity   string `json:"severity"`
+	Suggestion string `json:"suggestion"`
 }
 
 // FanInPackage represents a package with high incoming dependencies (hub)
 type FanInPackage struct {
-	Package     string   `json:"package"`
-	FanIn       int      `json:"fan_in"`
-	Dependents  []string `json:"dependents"`
-	IsBottleneck bool    `json:"is_bottleneck"`
-	RiskLevel   string   `json:"risk_level"`
-	Suggestion  string   `json:"suggestion"`
+	Package      string   `json:"package"`
+	FanIn        int      `json:"fan_in"`
+	Dependents   []string `json:"dependents"`
+	IsBottleneck bool     `json:"is_bottleneck"`
+	RiskLevel    string   `json:"risk_level"`
+	Suggestion   string   `json:"suggestion"`
 }
 
 // FanOutPackage represents a package with high outgoing dependencies (authority)
