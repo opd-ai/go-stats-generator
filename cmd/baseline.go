@@ -399,6 +399,8 @@ type nopCloser struct {
 // Close implements io.Closer with a no-op for nopCloser.
 func (nopCloser) Close() error { return nil }
 
+// runDeleteBaseline removes a stored baseline snapshot from the storage backend
+// by its ID, providing user feedback on success or failure.
 func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 	baselineID := args[0]
 

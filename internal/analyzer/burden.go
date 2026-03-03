@@ -119,6 +119,8 @@ func (ba *BurdenAnalyzer) extractContext(lit *ast.BasicLit, file *ast.File) stri
 	return context
 }
 
+// checkNodeContext determines the usage context of a literal within an AST node,
+// categorizing it as assignment, return, function_call, binary_expression, or generic expression.
 func (ba *BurdenAnalyzer) checkNodeContext(n ast.Node, lit *ast.BasicLit) string {
 	switch node := n.(type) {
 	case *ast.AssignStmt:
@@ -287,6 +289,9 @@ func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn stri
 	return unreachable
 }
 
+// checkStmtForUnreachable analyzes a statement for unreachable code blocks,
+// recursively checking nested control structures (if/else, for, switch, select).
+// Returns all unreachable blocks found within the statement and its children.
 func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
 
@@ -332,6 +337,8 @@ func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []me
 	return unreachable
 }
 
+// isTerminating checks if a statement unconditionally terminates execution,
+// detecting return statements, os.Exit calls, and panic calls.
 func (ba *BurdenAnalyzer) isTerminating(stmt ast.Stmt) bool {
 	switch s := stmt.(type) {
 	case *ast.ReturnStmt:
@@ -357,6 +364,8 @@ func (ba *BurdenAnalyzer) isTerminating(stmt ast.Stmt) bool {
 	return false
 }
 
+// getTerminationReason returns a human-readable description of why a statement
+// terminates execution (e.g., "return statement", "os.Exit call", "panic call").
 func (ba *BurdenAnalyzer) getTerminationReason(stmt ast.Stmt) string {
 	switch s := stmt.(type) {
 	case *ast.ReturnStmt:
@@ -407,6 +416,9 @@ func (ba *BurdenAnalyzer) AnalyzeSignatureComplexity(fn *ast.FuncDecl, maxParams
 	}
 }
 
+// countParameters counts the total parameters in a function signature and
+// identifies boolean parameters by name, returning the count and a list of
+// boolean parameter names for complexity analysis.
 func (ba *BurdenAnalyzer) countParameters(fnType *ast.FuncType) (int, []string) {
 	paramCount := 0
 	var boolParams []string
@@ -487,6 +499,9 @@ func (ba *BurdenAnalyzer) DetectDeepNesting(fn *ast.FuncDecl, maxNesting int) *m
 	}
 }
 
+// walkForNestingDepth recursively traverses the AST to find the maximum nesting depth
+// of control flow structures (if, for, switch, select). Updates maxDepth and deepestLoc
+// when a deeper nesting level is found.
 func (ba *BurdenAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
 	if node == nil {
 		return

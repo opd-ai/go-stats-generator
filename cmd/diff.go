@@ -63,6 +63,9 @@ func init() {
 	diffCmd.Flags().Float64Var(&thresholdPercent, "threshold", 5.0, "Threshold percentage for significant changes")
 }
 
+// runDiff loads baseline and comparison reports from JSON files, creates snapshots,
+// performs differential analysis, applies change threshold filtering if requested,
+// and outputs the diff results in the specified format (console/JSON/CSV/Markdown).
 func runDiff(cmd *cobra.Command, args []string) error {
 	baselineFile := args[0]
 	comparisonFile := args[1]

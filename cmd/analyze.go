@@ -178,6 +178,10 @@ func init() {
 	viper.BindPFlag("analysis.organization.max_file_imports", analyzeCmd.Flags().Lookup("max-file-imports"))
 }
 
+// runAnalyze is the main entry point for the analyze command. Validates the target
+// path (file or directory), loads configuration from flags and config file, performs
+// analysis, enforces quality thresholds, saves baseline if requested, and outputs
+// results in the specified format (console/JSON/HTML/CSV/Markdown).
 func runAnalyze(cmd *cobra.Command, args []string) error {
 	// Determine target path
 	targetPath := "."
@@ -311,6 +315,10 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	loadOrganizationSettings(cfg)
 }
 
+// loadBasicAnalysisSettings reads basic analysis configuration from viper,
+// updating cfg with settings for which analysis types to include (functions,
+// structs, interfaces, patterns, complexity, documentation, naming, duplication,
+// placement, organization, concurrency, generics).
 func loadBasicAnalysisSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.include_functions") {
 		cfg.Analysis.IncludeFunctions = viper.GetBool("analysis.include_functions")
@@ -371,6 +379,9 @@ func loadPlacementSettings(cfg *config.Config) {
 	}
 }
 
+// loadOrganizationSettings reads organization analysis configuration from viper,
+// updating cfg with thresholds for file lines, file functions, file types,
+// package files, exported symbols, directory depth, and file imports.
 func loadOrganizationSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_file_lines") {
 		cfg.Analysis.Organization.MaxFileLines = viper.GetInt("analysis.organization.max_file_lines")
@@ -399,6 +410,9 @@ func runDirectoryAnalysis(ctx context.Context, targetDir string, cfg *config.Con
 	return runAnalysisWorkflow(ctx, targetDir, cfg)
 }
 
+// runFileAnalysis performs comprehensive code analysis on a single Go source file,
+// validating it's a .go file, parsing the AST, and running all analyzers (function,
+// struct, interface, package, concurrency, duplication, etc.) on the parsed content.
 func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (*metrics.Report, error) {
 	startTime := time.Now()
 

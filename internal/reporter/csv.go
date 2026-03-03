@@ -99,6 +99,9 @@ func (r *CSVReporter) writeOverviewSection(writer *csv.Writer, report *metrics.R
 	return nil
 }
 
+// writeFunctionsSection outputs the functions analysis section to CSV format,
+// writing headers (name, package, file, metrics) and detailed rows for each
+// function with complexity, line counts, signature details, and documentation status.
 func (r *CSVReporter) writeFunctionsSection(writer *csv.Writer, report *metrics.Report) error {
 	if len(report.Functions) == 0 {
 		return nil
@@ -155,6 +158,9 @@ func (r *CSVReporter) writeFunctionsSection(writer *csv.Writer, report *metrics.
 	return nil
 }
 
+// writeStructsSection outputs the structs analysis section to CSV format,
+// writing headers (name, package, file, fields, methods) and detailed rows
+// for each struct with complexity metrics and field categorization.
 func (r *CSVReporter) writeStructsSection(writer *csv.Writer, report *metrics.Report) error {
 	if len(report.Structs) == 0 {
 		return nil
@@ -200,6 +206,9 @@ func (r *CSVReporter) writeStructsSection(writer *csv.Writer, report *metrics.Re
 	return nil
 }
 
+// writePackagesSection outputs the packages analysis section to CSV format,
+// writing headers (name, path, files, functions, structs) and detailed rows
+// for each package with dependency metrics, cohesion, and coupling scores.
 func (r *CSVReporter) writePackagesSection(writer *csv.Writer, report *metrics.Report) error {
 	if len(report.Packages) == 0 {
 		return nil
@@ -247,6 +256,9 @@ func (r *CSVReporter) writePackagesSection(writer *csv.Writer, report *metrics.R
 	return nil
 }
 
+// writeNamingSection outputs the naming convention analysis section to CSV format,
+// including file name violations, identifier violations, package name violations,
+// and overall naming score with detailed violation listings.
 func (r *CSVReporter) writeNamingSection(writer *csv.Writer, report *metrics.Report) error {
 	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
 	if totalNamingViolations == 0 {
@@ -288,6 +300,8 @@ func (r *CSVReporter) writeNamingSection(writer *csv.Writer, report *metrics.Rep
 	return nil
 }
 
+// writeFileNameIssues outputs file naming violations to CSV format, listing
+// each file with naming issues, violation type, suggested name, and severity.
 func (r *CSVReporter) writeFileNameIssues(writer *csv.Writer, report *metrics.Report) error {
 	if len(report.Naming.FileNameIssues) == 0 {
 		return nil
@@ -321,6 +335,9 @@ func (r *CSVReporter) writeFileNameIssues(writer *csv.Writer, report *metrics.Re
 	return nil
 }
 
+// writeIdentifierIssues outputs identifier naming violations to CSV format,
+// listing each identifier with naming issues (underscores, wrong acronyms),
+// violation type, suggested name, and severity.
 func (r *CSVReporter) writeIdentifierIssues(writer *csv.Writer, report *metrics.Report) error {
 	if len(report.Naming.IdentifierIssues) == 0 {
 		return nil
@@ -357,6 +374,9 @@ func (r *CSVReporter) writeIdentifierIssues(writer *csv.Writer, report *metrics.
 	return nil
 }
 
+// writePackageNameIssues outputs package naming violations to CSV format,
+// listing each package with naming issues (underscores, non-conventional),
+// violation description, and severity.
 func (r *CSVReporter) writePackageNameIssues(writer *csv.Writer, report *metrics.Report) error {
 	if len(report.Naming.PackageNameIssues) == 0 {
 		return nil

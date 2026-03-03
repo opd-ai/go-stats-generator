@@ -275,6 +275,9 @@ type functionStats struct {
 	HighComplexity       int
 }
 
+// calculateFunctionStats aggregates statistics across all functions, computing
+// average length, average complexity, counts of long/very long/high complexity
+// functions, and identifying the longest function by line count.
 func (cr *ConsoleReporter) calculateFunctionStats(functions []metrics.FunctionMetrics) functionStats {
 	if len(functions) == 0 {
 		return functionStats{}
@@ -359,6 +362,9 @@ func (cr *ConsoleReporter) writeDiffSummary(output io.Writer, diff *metrics.Comp
 	fmt.Fprintln(output, "")
 }
 
+// writeDiffRegressions outputs regression findings to the console with severity
+// icons (🚨 critical, ❌ error, ⚠️ warning), displaying type, location, file,
+// function, old/new values, and change percentage for each regression.
 func (cr *ConsoleReporter) writeDiffRegressions(output io.Writer, regressions []metrics.Regression) {
 	fmt.Fprintln(output, "=== REGRESSIONS ===")
 
@@ -421,6 +427,9 @@ func (cr *ConsoleReporter) writeDiffImprovements(output io.Writer, improvements 
 	}
 }
 
+// writeDiffChanges outputs all metric changes to the console, grouped by category
+// (functions, structs, packages), displaying name, old value, new value, and
+// change percentage/direction for each metric that changed.
 func (cr *ConsoleReporter) writeDiffChanges(output io.Writer, changes []metrics.MetricChange) {
 	fmt.Fprintln(output, "=== DETAILED CHANGES ===")
 

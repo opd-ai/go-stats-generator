@@ -98,6 +98,10 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	return runTrendAnalyze(cmd, args)
 }
 
+// runTrendAnalyze retrieves historical snapshots from storage within the specified
+// time window and outputs trend statistics (avg complexity, duplication, doc coverage)
+// in console or JSON format. Currently provides basic aggregation; advanced statistical
+// analysis (regression, forecasting) is planned for future releases.
 func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 	if verbose {
 		fmt.Printf("Analyzing trends for the last %d days\n", trendDays)
@@ -160,6 +164,9 @@ func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// runTrendForecast generates future trend predictions based on historical data
+// within the specified time window. Currently provides placeholder forecasts; advanced
+// statistical forecasting (ARIMA, linear regression) is planned for future releases.
 func runTrendForecast(cmd *cobra.Command, args []string) error {
 	if verbose {
 		fmt.Printf("Generating forecasts based on %d days of data\n", trendDays)
@@ -222,6 +229,9 @@ func runTrendForecast(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// runTrendRegressions detects quality regressions by comparing recent snapshots
+// against older baselines within the specified time window. Identifies increases
+// in complexity, duplication, or decreases in documentation coverage.
 func runTrendRegressions(cmd *cobra.Command, args []string) error {
 	if verbose {
 		fmt.Printf("Detecting regressions in the last %d days\n", trendDays)
@@ -362,6 +372,9 @@ func detectRegressions(historical, recent []storage.SnapshotInfo, threshold floa
 
 // Output functions
 
+// outputTrendAnalysisConsole displays trend analysis results to the console,
+// including beta notice, time period, snapshot count, and aggregated metrics
+// (complexity, duplication, documentation coverage) with visual formatting.
 func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 	fmt.Println("=== TREND ANALYSIS ===")
 

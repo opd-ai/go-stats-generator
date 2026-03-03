@@ -671,6 +671,9 @@ func (na *NamingAnalyzer) toMixedCaps(s string) string {
 	return result
 }
 
+// isWrongAcronymCasing checks if an identifier uses incorrect casing for common
+// acronyms (e.g., "Url" instead of "URL", "Id" instead of "ID"), enforcing
+// Go naming conventions where acronyms should be all uppercase or all lowercase.
 func isWrongAcronymCasing(actual, correct string) bool {
 	// If it matches correct form, it's fine
 	if actual == correct {

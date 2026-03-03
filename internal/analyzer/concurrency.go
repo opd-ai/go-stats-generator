@@ -453,6 +453,10 @@ func (ca *ConcurrencyAnalyzer) hasInfiniteLoop(call *ast.CallExpr) bool {
 	return false
 }
 
+// detectWorkerPools identifies worker pool patterns in the code by analyzing
+// goroutine usage, channel operations, and WaitGroup synchronization. Groups
+// goroutines by file and detects pools with multiple workers, shared channels,
+// and synchronization primitives.
 func (ca *ConcurrencyAnalyzer) detectWorkerPools(concurrency *metrics.ConcurrencyPatternMetrics) {
 	// Detect worker pool patterns based on goroutine and channel usage
 	// Pattern: Multiple goroutines reading from the same channel + WaitGroup for synchronization

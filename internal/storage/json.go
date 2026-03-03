@@ -391,6 +391,8 @@ func (j *JSONStorage) tryReadFile(filepath string) ([]byte, error) {
 	return io.ReadAll(file)
 }
 
+// matchesFilter evaluates whether a snapshot file matches the provided filter criteria,
+// checking time range (After/Before), Git branch, tag, and author constraints.
 func (j *JSONStorage) matchesFilter(fileData snapshotFile, filter SnapshotFilter) bool {
 	// Filter by time range
 	if filter.After != nil && !fileData.Metadata.Timestamp.After(*filter.After) {

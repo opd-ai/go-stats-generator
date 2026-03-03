@@ -587,6 +587,9 @@ func generateDiffSummary(changes []MetricChange, regressions []Regression, impro
 
 // Helper functions
 
+// calculateDelta computes the absolute and percentage change between old and new values,
+// determines change direction (increase/decrease/neutral), and classifies magnitude
+// (critical ≥50%, major ≥25%, moderate ≥10%, minor <10%) based on percentage threshold.
 func calculateDelta(oldValue, newValue, threshold float64) Delta {
 	absolute := newValue - oldValue
 	var percentage float64
