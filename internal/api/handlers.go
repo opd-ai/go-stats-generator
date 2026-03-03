@@ -7,19 +7,25 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/opd-ai/go-stats-generator/internal/api/storage"
 	"github.com/opd-ai/go-stats-generator/internal/config"
 )
 
 // Server handles REST API requests.
 type Server struct {
-	storage *Storage
+	storage storage.ResultStore
 	version string
 }
 
-// NewServer creates a new API server.
+// NewServer creates a new API server with in-memory storage.
 func NewServer(version string) *Server {
+	return NewServerWithStorage(version, storage.NewMemory())
+}
+
+// NewServerWithStorage creates a new API server with custom storage.
+func NewServerWithStorage(version string, store storage.ResultStore) *Server {
 	return &Server{
-		storage: NewStorage(),
+		storage: store,
 		version: version,
 	}
 }

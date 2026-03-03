@@ -1,7 +1,13 @@
 // Package api provides REST API types and structures for go-stats-generator.
 package api
 
-import "github.com/opd-ai/go-stats-generator/internal/metrics"
+import (
+	"github.com/opd-ai/go-stats-generator/internal/api/storage"
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
+)
+
+// AnalysisResult is an alias for storage.AnalysisResult for backward compatibility.
+type AnalysisResult = storage.AnalysisResult
 
 // AnalyzeRequest represents a request to analyze a repository.
 type AnalyzeRequest struct {
