@@ -1,160 +1,157 @@
-# Implementation Gaps: Phase 7 — Composite Scoring & Actionable Output
+# Implementation Gaps: Statistical Trend Analysis Phase
 
-Generated: 2026-03-03T09:54:00Z
+Generated: 2026-03-03T19:26:00Z
 Analysis Tool: go-stats-generator v1.0.0
-Source: ROADMAP.md Phase 7, go-stats-generator metrics analysis
+Source: ROADMAP.md, README.md "Planned Features", go-stats-generator metrics analysis
 
 ---
 
-## Gap 1: Shotgun Surgery Detection Incomplete
+## Gap 1: Trend Forecast and Regressions Commands Are Placeholders
 
-- **Description**: ROADMAP Step 6.5 explicitly deferred shotgun surgery detection because it requires git history analysis via subprocess integration. This was noted as "deferred" and remains unimplemented.
+- **Description**: The `trend forecast` and `trend regressions` subcommands are explicitly marked as "PLACEHOLDER - implementation planned" in the CLI help text and source code (cmd/trend.go lines 54-77).
 
-- **Impact**: The suggestions generator (Step 7.2) cannot include recommendations to consolidate functions that are frequently changed together — a key indicator of maintenance burden that would improve refactoring prioritization.
+- **Impact**: Users cannot perform time-series forecasting or automated regression detection. This blocks the statistical analysis features promised in README.md under "Planned Features: Statistical Trend Analysis".
 
 - **Metrics Context**: 
   ```
-  Current analysis scope: AST-based (go/ast, go/parser, go/token)
-  Required for shotgun surgery: git subprocess (git log --name-only)
-  Feature envy detection: Implemented (identifies methods with poor cohesion)
+  cmd/trend.go contains 13 placeholder markers
+  internal/analyzer/concurrency.go contains 1 placeholder marker
+  internal/analyzer/duplication.go contains 4 placeholder markers
+  Total placeholders: 18 across codebase
   ```
-  Feature envy was implemented as a partial substitute but provides static analysis only, not temporal change patterns.
+  The `trend` subcommands are the most user-visible incomplete features.
 
 - **Resolution**: 
-  1. Accept limitation for Phase 7 — proceed without shotgun surgery suggestions
-  2. Future phase could integrate `git log` analysis to detect files frequently modified in the same commits
-  3. Document this as a known limitation in CLI help text
+  1. Implement linear regression analysis in `internal/analyzer/statistics.go`
+  2. Implement forecast generation in `internal/analyzer/forecast.go`
+  3. Implement regression detection in `internal/analyzer/regression_detect.go`
+  4. Update cmd/trend.go to call new analyzer functions
+  5. Remove "PLACEHOLDER" warnings from help text
 
 ---
 
-## Gap 2: MBI Score Display Missing from Console/HTML/Markdown
+## Gap 2: Insufficient Historical Data for Statistical Analysis
 
-- **Description**: ROADMAP Step 7.1 notes that MBI (Maintenance Burden Index) scores are computed and available in JSON output under `.scores.file_scores` and `.scores.package_scores`, but console/HTML/Markdown reporters do not render them. Additionally, the Step 7.1 notes state: "Console/HTML/Markdown output for MBI scores not yet implemented (deferred to Step 7.2)."
+- **Description**: Statistical trend analysis requires multiple historical metric snapshots stored via `baseline create`. New users or projects without baseline history cannot use forecast/regression features.
 
-- **Impact**: Users running `go-stats-generator analyze` (default console output) cannot see MBI scores without switching to JSON format and using `jq`. This undermines the value of the MBI scoring feature for most users.
+- **Impact**: First-time users running `trend forecast` will receive no useful output if they haven't established a baseline history. This creates a poor onboarding experience.
 
-- **Metrics Context**: 
-  ```bash
-  $ cat metrics.json | jq '.scores'
-  null
+- **Metrics Context**:
   ```
-  The `.scores` field returns `null`, suggesting scores may not be fully integrated into the analyze command despite the ROADMAP claiming Step 7.1 is complete.
+  Required minimum data points: 7 (for regression)
+  Current recommendation: "use diff command for production regression detection"
+  Storage backend: SQLite (internal/storage/sqlite.go)
+  ```
 
 - **Resolution**:
-  1. Step 1.4 of PLAN.md must include MBI score table in console output
-  2. HTML reporter needs MBI heatmap or similar visualization
-  3. Markdown reporter needs MBI summary table
-  4. **Critical**: Verify `internal/analyzer/scoring.go` is wired into `cmd/analyze.go` — current analysis suggests it may not be
+  1. Add helpful error message when insufficient data points exist
+  2. Document baseline workflow requirement in README.md
+  3. Consider generating synthetic "cold start" baseline from current snapshot
 
 ---
 
-## Gap 3: Duplication Ratio Anomaly — Production vs Test Files
+## Gap 3: ARIMA/Exponential Smoothing Not Implemented
 
-- **Description**: The duplication ratio of 33.42% (6182 duplicated lines, 135 clone pairs) is extremely high for a codebase of this maturity. Analysis with `--skip-tests` was used but `testdata/` directory may still be included. Test data files contain intentionally duplicated code for testing purposes.
+- **Description**: README.md "Planned Features" promises "ARIMA/exponential smoothing for time series forecasting" but this is beyond the scope of linear regression.
+
+- **Impact**: Linear regression assumes a monotonic trend, which may not fit cyclical or seasonal patterns in real codebases. Forecasts may be inaccurate for complex metric histories.
+
+- **Metrics Context**:
+  ```
+  README.md line 450: "ARIMA/exponential smoothing for time series forecasting"
+  Current implementation: None (placeholder)
+  Complexity: ARIMA requires parameter estimation (p,d,q), differencing, stationarity tests
+  ```
+
+- **Resolution**:
+  1. Implement linear regression first (covers 80% of use cases)
+  2. Add ARIMA/exponential smoothing in future phase
+  3. Document limitations of linear regression in help text
+  4. Accept this as a known limitation for the current phase
+
+---
+
+## Gap 4: High Duplication Ratio Affects Metric Accuracy
+
+- **Description**: The duplication ratio of 49.23% is extremely high, likely inflated by intentional duplicates in `testdata/` directory. This affects effort estimates and may trigger CI/CD quality gate failures unexpectedly.
 
 - **Impact**: 
-  - Effort estimates for deduplication suggestions may be significantly overestimated
-  - CI/CD quality gates using `--max-duplication-ratio` may be unrealistic if based on inflated numbers
-  - Top clones identified include files that may be test fixtures
+  - Effort estimates for deduplication may be significantly overestimated
+  - `--max-duplication-ratio` quality gates may fail on false positives
+  - Developers may spend time investigating duplicates that are test fixtures
 
 - **Metrics Context**:
   ```json
   {
-    "clone_pairs": 135,
-    "duplicated_lines": 6182,
-    "duplication_ratio": 0.3342,
-    "largest_clone_size": 35
+    "clone_pairs": 116,
+    "duplicated_lines": 9870,
+    "duplication_ratio": 0.49231843575418993,
+    "largest_clone_size": 36
   }
   ```
-  Top clone locations:
-  - `internal/analyzer/interface.go:555-589` (35 lines)
-  - `cmd/trend.go:106-140` (35 lines)
-  - `internal/analyzer/naming.go:284-316` (33 lines, 3 instances)
+  Running with `--exclude testdata` would provide accurate production metrics.
 
 - **Resolution**:
-  1. Verify `--skip-tests` excludes `testdata/` directory (may need explicit `--exclude testdata`)
-  2. Run analysis with `--exclude testdata` to get accurate production duplication ratio
-  3. Adjust PLAN.md effort estimates if production ratio is significantly lower
-  4. Document expected duplication in `testdata/` as intentional for test coverage
+  1. Run analysis with `--exclude testdata` for production metrics
+  2. Document expected duplication in `testdata/` as intentional
+  3. Consider adding `testdata` to default exclusion list in config
 
 ---
 
-## Gap 4: Package Documentation Coverage Critically Low
+## Gap 5: Package Documentation Coverage Low (30%)
 
-- **Description**: Package-level documentation coverage is only 10.0% (2 of 20 packages), meaning most packages lack `doc.go` files or package-level comments. This is well below acceptable thresholds for a public tool.
+- **Description**: Package-level documentation coverage is only 30% (6 of 20 packages have doc.go or package comments), well below the 70% target.
 
 - **Impact**: 
   - New contributors cannot understand package purposes from documentation
-  - Step 3.3 (CI/CD documentation) will be less effective without proper package docs
-  - The tool itself has poor discoverability for new users
+  - godoc output is incomplete for the public API
+  - Undermines the tool's credibility as a documentation analyzer
 
 - **Metrics Context**:
   ```json
   {
     "coverage": {
-      "packages": 10.0,
-      "functions": 68.5,
-      "types": 58.1,
-      "methods": 79.3,
-      "overall": 66.6
+      "packages": 30.0,
+      "functions": 70.77,
+      "types": 65.38,
+      "methods": 82.91,
+      "overall": 71.43
     }
   }
   ```
-  Package coverage (10.0%) is a significant outlier compared to other coverage metrics.
+  Package coverage (30%) is a significant outlier compared to other metrics.
 
 - **Resolution**:
-  1. Add package documentation as a prerequisite step before Step 3.3
-  2. Create `doc.go` files for core packages: `analyzer`, `reporter`, `storage`, `scanner`, `metrics`, `config`
-  3. Target: raise package coverage from 10% to ≥50% before Phase 7 completion
+  1. Create doc.go files for core packages: analyzer, reporter, storage, scanner, metrics, config
+  2. Target: raise package coverage from 30% to ≥50%
+  3. Include as a validation criterion for phase completion
 
 ---
 
-## Gap 5: `.scores` JSON Field Returns Null
+## Previous Gaps (Resolved or Deferred)
 
-- **Description**: Running `cat metrics.json | jq '.scores'` returns `null`, suggesting MBI scoring is not integrated into the JSON output despite ROADMAP claiming Step 7.1 is complete.
+### From Phase 7 Analysis (2026-03-03T09:54:00Z):
 
-- **Impact**: Steps 7.2-7.4 depend on MBI scores being available in the metrics output. If scoring isn't functional, the entire Phase 7 implementation plan requires revision.
-
-- **Metrics Context**: 
-  ROADMAP Step 7.1 states: "Integrated into JSON output with `.scores.file_scores` and `.scores.package_scores`"
-  
-  Actual output:
-  ```bash
-  $ cat metrics.json | jq '.scores'
-  null
-  ```
-
-- **Resolution**:
-  1. **Critical**: Verify Step 7.1 is actually complete by checking `internal/analyzer/scoring.go` implementation
-  2. Verify `NewScoringAnalyzer()` is called in `cmd/analyze.go`
-  3. If scoring analyzer exists but isn't wired into analyze command, this is a blocking issue
-  4. If Step 7.1 is incomplete, it must be completed before Steps 7.2-7.4 can proceed
+| Gap | Status | Resolution |
+|-----|--------|------------|
+| Shotgun Surgery Detection | Deferred | Requires git history subprocess integration |
+| MBI Display in Console/HTML | Deferred | Included in PLAN.md Step 7 |
+| `.scores` Returns Null | Resolved | Scores now populated in metrics.json |
+| Annotation Age Tracking | Deferred | Requires git integration |
 
 ---
 
 ## Summary
 
-| Gap | Severity | Phase 7 Impact | Resolution |
-|-----|----------|----------------|------------|
-| Shotgun Surgery | Moderate | Partial suggestions | Accept limitation |
-| MBI Display Missing | High | Step 1.4 blocked | Include in Step 1.4 |
-| Duplication Anomaly | Medium | Estimate accuracy | Exclude testdata/ |
-| Package Doc Coverage | High | Step 3.3 quality | Add doc.go files |
-| **`.scores` Returns Null** | **Critical** | **Blocks 7.2-7.4** | **Verify 7.1 complete** |
+| Gap | Severity | Impact | Resolution Status |
+|-----|----------|--------|-------------------|
+| **Placeholder Trend Commands** | **Critical** | Blocks statistical features | PLAN.md Steps 1-5 |
+| **Insufficient Historical Data** | High | Poor onboarding | PLAN.md Step 8 |
+| **ARIMA Not Implemented** | Medium | Limited forecasting | Deferred to future phase |
+| **High Duplication Ratio** | Medium | Inflated metrics | Use --exclude testdata |
+| **Low Package Doc Coverage** | Medium | Poor discoverability | PLAN.md validation criteria |
 
 **Total Gaps**: 5
 - **Critical** (blocks implementation): 1
-- **High** (significant impact): 2
-- **Medium** (accuracy/quality): 1
-- **Moderate** (partial feature): 1
-
----
-
-## Previous Phase 6 Gaps (Resolved)
-
-The following gaps from Phase 6 have been resolved or deferred:
-
-- ✅ **Burden Analyzer Integration**: Phase 6 Step 6.6 marked complete in ROADMAP
-- ⏳ **Shotgun Surgery**: Explicitly deferred to future phase (see Gap 1 above)
-- ⏳ **Annotation Age Tracking**: Deferred (requires git integration)
-- ⚠️ **csv.go Complexity**: WriteDiff still at 24.9 complexity — included in PLAN.md Step 4
+- **High** (significant impact): 1  
+- **Medium** (accuracy/quality): 3

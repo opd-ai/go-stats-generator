@@ -7,7 +7,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/opd-ai/go-stats-generator/internal/analyzer"
 	"github.com/opd-ai/go-stats-generator/internal/config"
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/opd-ai/go-stats-generator/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -53,26 +55,33 @@ Shows start/end values, delta, and direction (improving/degrading/stable).`,
 
 var trendForecastCmd = &cobra.Command{
 	Use:   "forecast",
-	Short: "Forecast future metrics (PLACEHOLDER - implementation planned)",
+	Short: "Forecast future metrics using linear regression",
 	Long: `Generate forecasts for future metric values based on historical trends.
 
-⚠️  PLACEHOLDER: This command currently returns structural output only.
-Full implementation with regression analysis and time series forecasting
-(ARIMA, exponential smoothing) is planned for a future release.`,
+Uses linear regression analysis to extrapolate trends and provide:
+  - Point estimates for 7, 14, and 30 days ahead
+  - 95% confidence intervals
+  - Reliability scores (R² values)
+  - Warnings for low-quality forecasts
+
+Requires at least 3 historical baseline snapshots.`,
 	RunE: runTrendForecast,
 }
 
 var trendRegressionsCmd = &cobra.Command{
 	Use:   "regressions",
-	Short: "Detect metric regressions (PLACEHOLDER - implementation planned)",
-	Long: `Detect potential regressions by analyzing recent changes.
+	Short: "Detect metric regressions using statistical analysis",
+	Long: `Detect potential regressions by analyzing recent changes against historical trends.
 
-⚠️  PLACEHOLDER: This command currently returns structural output only.
-Full implementation with statistical hypothesis testing and significance
-analysis is planned for a future release.
+Uses statistical regression detection to identify:
+  - Significant deviations from expected values
+  - Severity classification (low/medium/high/critical)
+  - P-values for statistical significance
+  - Multiple metrics: MBI, duplication, documentation, complexity
 
-For production regression detection, use the 'diff' command to compare
-specific baseline snapshots.`,
+Requires at least 2 historical and 1 recent snapshot.
+
+For direct baseline comparisons, use the 'diff' command.`,
 	RunE: runTrendRegressions,
 }
 
@@ -180,8 +189,7 @@ func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 }
 
 // runTrendForecast generates future trend predictions based on historical data
-// within the specified time window. Currently provides placeholder forecasts; advanced
-// statistical forecasting (ARIMA, linear regression) is planned for future releases.
+// using linear regression analysis with confidence intervals.
 func runTrendForecast(cmd *cobra.Command, args []string) error {
 	if verbose {
 		fmt.Printf("Generating forecasts based on %d days of data\n", trendDays)
@@ -329,37 +337,135 @@ func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, thre
 	return result
 }
 
-// generateForecasts produces metric forecasts based on historical trend data.
+// generateForecasts produces metric forecasts based on historical trend data using linear regression.
 func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) map[string]interface{} {
-	// PLACEHOLDER IMPLEMENTATION
-	// Full forecasting with regression analysis, ARIMA, or exponential smoothing
-	// will be implemented in a future release
+	if len(snapshots) < 2 {
+		return map[string]interface{}{
+			"error": "Insufficient data for forecasting",
+		}
+	}
+
+	// Build time series from snapshots based on requested metric
+	series := buildTimeSeriesFromSnapshots(snapshots, metric)
+	if len(series.DataPoints) < 2 {
+		return map[string]interface{}{
+			"error": fmt.Sprintf("No data available for metric: %s", metric),
+		}
+	}
+
+	// Generate forecasts for 7, 14, and 30 days ahead
+	forecast7 := analyzer.GenerateForecast(series, 7)
+	forecast14 := analyzer.GenerateForecast(series, 14)
+	forecast30 := analyzer.GenerateForecast(series, 30)
 
 	result := map[string]interface{}{
-		"placeholder_notice": "⚠️  PLACEHOLDER: Full forecasting implementation (regression, ARIMA, exponential smoothing) planned for future release.",
-		"metric":             metric,
-		"entity":             entity,
-		"method":             "linear_regression (planned)",
-		"forecasts":          []map[string]interface{}{},
-		"confidence":         0.0,
+		"metric":      metric,
+		"entity":      entity,
+		"method":      "linear_regression",
+		"data_points": len(series.DataPoints),
+		"forecasts": []map[string]interface{}{
+			{
+				"horizon_days": 7,
+				"date":         forecast7.PredictionDate.Format("2006-01-02"),
+				"value":        forecast7.PointEstimate,
+				"lower_bound":  forecast7.LowerBound,
+				"upper_bound":  forecast7.UpperBound,
+				"reliability":  forecast7.ReliabilityScore,
+				"warning":      forecast7.Warning,
+			},
+			{
+				"horizon_days": 14,
+				"date":         forecast14.PredictionDate.Format("2006-01-02"),
+				"value":        forecast14.PointEstimate,
+				"lower_bound":  forecast14.LowerBound,
+				"upper_bound":  forecast14.UpperBound,
+				"reliability":  forecast14.ReliabilityScore,
+				"warning":      forecast14.Warning,
+			},
+			{
+				"horizon_days": 30,
+				"date":         forecast30.PredictionDate.Format("2006-01-02"),
+				"value":        forecast30.PointEstimate,
+				"lower_bound":  forecast30.LowerBound,
+				"upper_bound":  forecast30.UpperBound,
+				"reliability":  forecast30.ReliabilityScore,
+				"warning":      forecast30.Warning,
+			},
+		},
+		"trend_statistics": map[string]interface{}{
+			"slope":       forecast7.TrendStatistics.Slope,
+			"intercept":   forecast7.TrendStatistics.Intercept,
+			"r_squared":   forecast7.TrendStatistics.RSquared,
+			"correlation": forecast7.TrendStatistics.Correlation,
+			"start_date":  forecast7.TrendStatistics.StartDate,
+			"end_date":    forecast7.TrendStatistics.EndDate,
+		},
 	}
 
 	return result
 }
 
-// detectRegressions identifies metric regressions by comparing historical and recent snapshots.
+// detectRegressions identifies metric regressions by comparing historical and recent snapshots using statistical analysis.
 func detectRegressions(historical, recent []storage.SnapshotInfo, threshold float64) map[string]interface{} {
-	// PLACEHOLDER IMPLEMENTATION
-	// Full regression detection with statistical hypothesis testing and
-	// significance analysis will be implemented in a future release
+	if len(historical) < 2 || len(recent) < 1 {
+		return map[string]interface{}{
+			"error": "Insufficient data for regression detection",
+		}
+	}
+
+	// Build time series from all available data
+	allSnapshots := append(historical, recent...)
+
+	// Analyze multiple metrics
+	metrics := []string{"mbi_score", "duplication_ratio", "doc_coverage", "complexity_violations"}
+	allRegressions := []map[string]interface{}{}
+
+	for _, metricName := range metrics {
+		series := buildTimeSeriesFromSnapshots(allSnapshots, metricName)
+		if len(series.DataPoints) < 3 {
+			continue
+		}
+
+		// Detect regressions for this metric
+		results := analyzer.DetectRegressions(series, threshold*100) // Convert to percentage
+		for _, reg := range results {
+			allRegressions = append(allRegressions, map[string]interface{}{
+				"metric":            reg.MetricName,
+				"current_value":     reg.CurrentValue,
+				"expected_value":    reg.ExpectedValue,
+				"percent_deviation": reg.PercentDeviation,
+				"classification":    reg.Classification,
+				"severity":          reg.Severity,
+				"p_value":           reg.PValue,
+				"detected_at":       reg.DetectedAt.Format("2006-01-02"),
+			})
+		}
+	}
+
+	// Determine overall severity
+	overallSeverity := "low"
+	for _, reg := range allRegressions {
+		if sev, ok := reg["severity"].(string); ok {
+			if sev == "critical" {
+				overallSeverity = "critical"
+				break
+			}
+			if sev == "high" && overallSeverity != "critical" {
+				overallSeverity = "high"
+			}
+			if sev == "medium" && overallSeverity == "low" {
+				overallSeverity = "medium"
+			}
+		}
+	}
 
 	result := map[string]interface{}{
-		"placeholder_notice":   "⚠️  PLACEHOLDER: Full regression detection with statistical testing planned for future release. Use 'diff' command for production comparisons.",
 		"threshold":            threshold,
 		"historical_count":     len(historical),
 		"recent_count":         len(recent),
-		"detected_regressions": []map[string]interface{}{},
-		"severity":             "low",
+		"detected_regressions": allRegressions,
+		"severity":             overallSeverity,
+		"total_regressions":    len(allRegressions),
 	}
 
 	return result
@@ -422,6 +528,46 @@ func calculateBurdenTrends(first, last storage.SnapshotInfo) map[string]interfac
 	}
 
 	return trends
+}
+
+// buildTimeSeriesFromSnapshots extracts a time series for a specific metric from snapshot data.
+func buildTimeSeriesFromSnapshots(snapshots []storage.SnapshotInfo, metricName string) metrics.MetricTimeSeries {
+	series := metrics.MetricTimeSeries{
+		MetricName: metricName,
+		DataPoints: []metrics.TimeSeriesPoint{},
+	}
+
+	for _, snap := range snapshots {
+		var value *float64
+
+		switch metricName {
+		case "mbi_score":
+			value = snap.MBIScoreAvg
+		case "duplication_ratio":
+			value = snap.DuplicationRatio
+		case "doc_coverage":
+			value = snap.DocCoverage
+		case "complexity_violations":
+			if snap.ComplexityViolations != nil {
+				floatVal := float64(*snap.ComplexityViolations)
+				value = &floatVal
+			}
+		case "naming_violations":
+			if snap.NamingViolations != nil {
+				floatVal := float64(*snap.NamingViolations)
+				value = &floatVal
+			}
+		}
+
+		if value != nil {
+			series.DataPoints = append(series.DataPoints, metrics.TimeSeriesPoint{
+				Timestamp: snap.Timestamp,
+				Value:     *value,
+			})
+		}
+	}
+
+	return series
 }
 
 // getTrendDirection returns trend direction indicator based on delta
