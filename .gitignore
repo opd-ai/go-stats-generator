@@ -53,3 +53,16 @@ go.work.sum
 *.gen.html
 *.gen.md
 *.gen.csv
+
+# go-stats-generator analysis outputs
+*-baseline.json
+*-report.json
+*-output.json
+*-cleanup.json
+*-metrics.json
+baseline.json
+metrics.json
+docs-report.html
+cleanup-report.html
+pre-*.json
+post-*.json
