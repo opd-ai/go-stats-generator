@@ -187,11 +187,53 @@
 {{end}}
 {{end}}
 
+{{$totalAnnotations := add (add (add (add (add (add (len .Report.Documentation.TODOComments) (len .Report.Documentation.FIXMEComments)) (len .Report.Documentation.HACKComments)) (len .Report.Documentation.BUGComments)) (len .Report.Documentation.XXXComments)) (len .Report.Documentation.DEPRECATEDComments)) (len .Report.Documentation.NOTEComments)}}
+{{if or (gt .Report.Documentation.Coverage.Overall 0.0) (gt $totalAnnotations 0)}}
+## 📚 Documentation Analysis
+
+| Metric | Coverage |
+|--------|----------|
+| **Overall Coverage** | {{formatFloat .Report.Documentation.Coverage.Overall}}% |
+| **Package Coverage** | {{formatFloat .Report.Documentation.Coverage.Packages}}% |
+| **Function Coverage** | {{formatFloat .Report.Documentation.Coverage.Functions}}% |
+| **Type Coverage** | {{formatFloat .Report.Documentation.Coverage.Types}}% |
+| **Method Coverage** | {{formatFloat .Report.Documentation.Coverage.Methods}}% |
+
+{{if gt $totalAnnotations 0}}
+### Code Annotations
+
+| Type | Count | Severity |
+|------|-------|----------|
+| **TODO** | {{len .Report.Documentation.TODOComments}} | Medium |
+| **FIXME** | {{len .Report.Documentation.FIXMEComments}} | Critical |
+| **HACK** | {{len .Report.Documentation.HACKComments}} | High |
+| **BUG** | {{len .Report.Documentation.BUGComments}} | Critical |
+| **XXX** | {{len .Report.Documentation.XXXComments}} | Medium |
+| **DEPRECATED** | {{len .Report.Documentation.DEPRECATEDComments}} | Medium |
+| **NOTE** | {{len .Report.Documentation.NOTEComments}} | Low |
+| **Total** | {{$totalAnnotations}} | - |
+
+{{if gt (len .Report.Documentation.FIXMEComments) 0}}
+#### Critical FIXME Items
+{{range .Report.Documentation.FIXMEComments}}
+- **{{escapeMarkdown .File}}:{{.Line}}**: {{escapeMarkdown .Description}}
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Documentation.BUGComments) 0}}
+#### Critical BUG Items
+{{range .Report.Documentation.BUGComments}}
+- **{{escapeMarkdown .File}}:{{.Line}}**: {{escapeMarkdown .Description}}
+{{end}}
+{{end}}
+{{end}}
+{{end}}
+
 ## 📈 Analysis Summary
 
 This report provides comprehensive metrics for the Go codebase analysis. Key insights:
 
-- **Code Quality**: {{if ge .Report.Documentation.Coverage.Overall 0.8}}Good documentation coverage ({{formatPercent .Report.Documentation.Coverage.Overall}}){{else}}Consider improving documentation ({{formatPercent .Report.Documentation.Coverage.Overall}}){{end}}
+- **Code Quality**: {{if ge .Report.Documentation.Coverage.Overall 0.8}}Good documentation coverage ({{formatFloat .Report.Documentation.Coverage.Overall}}){{else}}Consider improving documentation ({{formatFloat .Report.Documentation.Coverage.Overall}}){{end}}
 - **Complexity**: {{if le .Report.Complexity.AverageFunction 10.0}}Manageable complexity levels{{else}}Consider refactoring high-complexity functions{{end}}
 - **Architecture**: {{len .Report.Packages}} packages analyzed with dependency tracking
 

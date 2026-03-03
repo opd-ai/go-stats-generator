@@ -41,6 +41,10 @@
             {{if or (gt .Report.Placement.MisplacedFunctions 0) (gt .Report.Placement.MisplacedMethods 0) (gt .Report.Placement.LowCohesionFiles 0)}}
             <button class="nav-tab" data-tab="placement">Placement</button>
             {{end}}
+            {{$totalAnnotations := add (add (add (add (add (add (len .Report.Documentation.TODOComments) (len .Report.Documentation.FIXMEComments)) (len .Report.Documentation.HACKComments)) (len .Report.Documentation.BUGComments)) (len .Report.Documentation.XXXComments)) (len .Report.Documentation.DEPRECATEDComments)) (len .Report.Documentation.NOTEComments)}}
+            {{if or (gt .Report.Documentation.Coverage.Overall 0.0) (gt $totalAnnotations 0)}}
+            <button class="nav-tab" data-tab="documentation">Documentation</button>
+            {{end}}
             {{if .Report.Patterns.ConcurrencyPatterns}}
             <button class="nav-tab" data-tab="concurrency">Concurrency</button>
             {{end}}
@@ -525,6 +529,140 @@
                     </tbody>
                 </table>
             </div>
+            {{end}}
+        </section>
+        {{end}}
+
+        <!-- Documentation Analysis Tab -->
+        {{$totalAnnotations := add (add (add (add (add (add (len .Report.Documentation.TODOComments) (len .Report.Documentation.FIXMEComments)) (len .Report.Documentation.HACKComments)) (len .Report.Documentation.BUGComments)) (len .Report.Documentation.XXXComments)) (len .Report.Documentation.DEPRECATEDComments)) (len .Report.Documentation.NOTEComments)}}
+        {{if or (gt .Report.Documentation.Coverage.Overall 0.0) (gt $totalAnnotations 0)}}
+        <section id="documentation" class="tab-content">
+            <h2>Documentation Analysis</h2>
+            
+            <!-- Coverage Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Documentation.Coverage.Overall}}%</h3>
+                    <p>Overall Coverage</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Documentation.Coverage.Packages}}%</h3>
+                    <p>Package Coverage</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Documentation.Coverage.Functions}}%</h3>
+                    <p>Function Coverage</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Documentation.Coverage.Types}}%</h3>
+                    <p>Type Coverage</p>
+                </div>
+                <div class="metric-card">
+                    <h3>{{formatFloat .Report.Documentation.Coverage.Methods}}%</h3>
+                    <p>Method Coverage</p>
+                </div>
+            </div>
+
+            <!-- Annotation Summary -->
+            {{if gt $totalAnnotations 0}}
+            <div class="table-container">
+                <h3>Code Annotations ({{$totalAnnotations}} total)</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Type</th>
+                            <th role="columnheader">Count</th>
+                            <th role="columnheader">Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr role="row">
+                            <td>TODO</td>
+                            <td>{{len .Report.Documentation.TODOComments}}</td>
+                            <td><span class="badge severity-medium">Medium</span></td>
+                        </tr>
+                        <tr role="row">
+                            <td>FIXME</td>
+                            <td>{{len .Report.Documentation.FIXMEComments}}</td>
+                            <td><span class="badge severity-critical">Critical</span></td>
+                        </tr>
+                        <tr role="row">
+                            <td>HACK</td>
+                            <td>{{len .Report.Documentation.HACKComments}}</td>
+                            <td><span class="badge severity-high">High</span></td>
+                        </tr>
+                        <tr role="row">
+                            <td>BUG</td>
+                            <td>{{len .Report.Documentation.BUGComments}}</td>
+                            <td><span class="badge severity-critical">Critical</span></td>
+                        </tr>
+                        <tr role="row">
+                            <td>XXX</td>
+                            <td>{{len .Report.Documentation.XXXComments}}</td>
+                            <td><span class="badge severity-medium">Medium</span></td>
+                        </tr>
+                        <tr role="row">
+                            <td>DEPRECATED</td>
+                            <td>{{len .Report.Documentation.DEPRECATEDComments}}</td>
+                            <td><span class="badge severity-medium">Medium</span></td>
+                        </tr>
+                        <tr role="row">
+                            <td>NOTE</td>
+                            <td>{{len .Report.Documentation.NOTEComments}}</td>
+                            <td><span class="badge severity-low">Low</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Critical Annotations Details -->
+            {{if gt (len .Report.Documentation.FIXMEComments) 0}}
+            <div class="table-container">
+                <h3>FIXME Items (Critical)</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">File</th>
+                            <th role="columnheader">Line</th>
+                            <th role="columnheader">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Documentation.FIXMEComments}}
+                        <tr role="row">
+                            <td><code>{{.File}}</code></td>
+                            <td>{{.Line}}</td>
+                            <td>{{.Description}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
+            {{if gt (len .Report.Documentation.BUGComments) 0}}
+            <div class="table-container">
+                <h3>BUG Items (Critical)</h3>
+                <table class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">File</th>
+                            <th role="columnheader">Line</th>
+                            <th role="columnheader">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Report.Documentation.BUGComments}}
+                        <tr role="row">
+                            <td><code>{{.File}}</code></td>
+                            <td>{{.Line}}</td>
+                            <td>{{.Description}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
             {{end}}
         </section>
         {{end}}

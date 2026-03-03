@@ -46,6 +46,13 @@ func (hr *HTMLReporterImpl) Generate(report *metrics.Report, output io.Writer) e
 		"formatPercent":  formatPercent,
 		"sub":            func(a, b int) int { return a - b },
 		"subtract":       func(a, b float64) float64 { return a - b },
+		"add": func(values ...int) int {
+			sum := 0
+			for _, v := range values {
+				sum += v
+			}
+			return sum
+		},
 	}).Parse(htmlReportTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to parse embedded report template: %w", err)

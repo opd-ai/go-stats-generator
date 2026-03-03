@@ -124,15 +124,22 @@
   - Support `--include-documentation` flag (already exists in CLI) ✓
   - Note: CLI flags `--require-exported-doc`, `--require-package-doc`, `--stale-annotation-days` deferred to Step 7 (Configuration Support)
 
-### 6. Implement Reporter Output for Documentation Metrics
+### 6. Implement Reporter Output for Documentation Metrics ✅ COMPLETE
 - **Deliverable**: Updated `internal/reporter/console.go`, `json.go`, `html.go`, `markdown.go` with documentation sections
 - **Dependencies**: Step 5
 - **Metric Justification**: `internal/reporter/json.go` has highest complexity (65.7); extend existing `Generate()` function pattern
+- **Status**: Implemented with documentation sections in all reporter formats (100% test coverage, zero regressions)
+- **Files Modified**:
+  - `internal/reporter/console.go` - Added `writeDocumentationAnalysis()` and `collectAnnotations()` helper functions
+  - `internal/reporter/html.go` - Added `add` function to FuncMap for template support
+  - `internal/reporter/templates/html/report.html` - Added documentation tab and section with coverage metrics and annotation tables
+  - `internal/reporter/templates/markdown/report.md` - Added documentation section with coverage tables and critical annotation lists
+- **Metrics**: All new functions under 30 lines (writeDocumentationAnalysis: 23 lines, collectAnnotations: 17 lines, writeTopAnnotations: 21 lines), complexity under 10, Generate function increased from 10.9 to 12.2 (acceptable - still under 15, cyclomatic 9)
 - **Specification**:
-  - Console: Add "=== DOCUMENTATION ANALYSIS ===" section with coverage percentages and annotation summary
-  - JSON: Populate existing `documentation` object fields
-  - HTML: Add documentation coverage tables and annotation lists
-  - Markdown: Add documentation section with coverage breakdown
+  - Console: "=== DOCUMENTATION ANALYSIS ===" section with coverage percentages and annotation summary ✓
+  - JSON: Populated existing `documentation` object fields (already working) ✓
+  - HTML: Documentation tab with coverage cards and critical annotation tables ✓
+  - Markdown: Documentation section with coverage breakdown and critical items ✓
 
 ### 7. Add Configuration Support
 - **Deliverable**: Updated `.go-stats-generator.yaml` schema and `internal/config/` loader

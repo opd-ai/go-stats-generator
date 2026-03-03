@@ -75,6 +75,12 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writePlacementAnalysis(output, report)
 	}
 
+	// Documentation analysis section
+	totalAnnotations := len(report.Documentation.TODOComments) + len(report.Documentation.FIXMEComments) + len(report.Documentation.HACKComments) + len(report.Documentation.BUGComments)
+	if cr.config.IncludeDetails && (report.Documentation.Coverage.Overall > 0 || totalAnnotations > 0) {
+		cr.writeDocumentationAnalysis(output, report)
+	}
+
 	// Footer
 	cr.writeFooter(output, report)
 
@@ -916,6 +922,100 @@ func (cr *ConsoleReporter) writeFileCohesionIssues(output io.Writer, issues []me
 			cr.truncate(issue.File, 40),
 			issue.CohesionScore,
 			splits,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeDocumentationAnalysis generates documentation analysis output
+func (cr *ConsoleReporter) writeDocumentationAnalysis(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== DOCUMENTATION ANALYSIS ===")
+
+	doc := report.Documentation
+
+	// Coverage summary
+	fmt.Fprintf(output, "Overall Coverage: %.1f%%\n", doc.Coverage.Overall)
+	fmt.Fprintf(output, "Package Coverage: %.1f%%\n", doc.Coverage.Packages)
+	fmt.Fprintf(output, "Function Coverage: %.1f%%\n", doc.Coverage.Functions)
+	fmt.Fprintf(output, "Type Coverage: %.1f%%\n", doc.Coverage.Types)
+	fmt.Fprintf(output, "Method Coverage: %.1f%%\n", doc.Coverage.Methods)
+	fmt.Fprintln(output)
+
+	// Annotation summary
+	totalAnnotations := len(doc.TODOComments) + len(doc.FIXMEComments) + len(doc.HACKComments) + len(doc.BUGComments) + len(doc.XXXComments) + len(doc.DEPRECATEDComments) + len(doc.NOTEComments)
+	if totalAnnotations > 0 {
+		fmt.Fprintln(output, "Annotation Summary:")
+		fmt.Fprintf(output, "  TODO: %d\n", len(doc.TODOComments))
+		fmt.Fprintf(output, "  FIXME: %d (critical)\n", len(doc.FIXMEComments))
+		fmt.Fprintf(output, "  HACK: %d\n", len(doc.HACKComments))
+		fmt.Fprintf(output, "  BUG: %d (critical)\n", len(doc.BUGComments))
+		fmt.Fprintf(output, "  XXX: %d\n", len(doc.XXXComments))
+		fmt.Fprintf(output, "  DEPRECATED: %d\n", len(doc.DEPRECATEDComments))
+		fmt.Fprintf(output, "  NOTE: %d\n", len(doc.NOTEComments))
+		fmt.Fprintf(output, "  Total: %d\n", totalAnnotations)
+		fmt.Fprintln(output)
+
+		// Show top annotations by severity
+		cr.writeTopAnnotations(output, doc)
+	}
+
+	fmt.Fprintln(output)
+}
+
+type annotationItem struct {
+	category string
+	file     string
+	line     int
+	desc     string
+	severity string
+}
+
+// collectAnnotations gathers all annotations from documentation metrics
+func collectAnnotations(doc metrics.DocumentationMetrics) []annotationItem {
+	var annotations []annotationItem
+
+	for _, c := range doc.FIXMEComments {
+		annotations = append(annotations, annotationItem{"FIXME", c.File, c.Line, c.Description, "critical"})
+	}
+	for _, c := range doc.BUGComments {
+		annotations = append(annotations, annotationItem{"BUG", c.File, c.Line, c.Description, "critical"})
+	}
+	for _, c := range doc.HACKComments {
+		annotations = append(annotations, annotationItem{"HACK", c.File, c.Line, c.Reason, "high"})
+	}
+	for _, c := range doc.TODOComments {
+		annotations = append(annotations, annotationItem{"TODO", c.File, c.Line, c.Description, "medium"})
+	}
+	for _, c := range doc.XXXComments {
+		annotations = append(annotations, annotationItem{"XXX", c.File, c.Line, c.Description, "medium"})
+	}
+
+	return annotations
+}
+
+// writeTopAnnotations displays top annotations by severity
+func (cr *ConsoleReporter) writeTopAnnotations(output io.Writer, doc metrics.DocumentationMetrics) {
+	annotations := collectAnnotations(doc)
+	if len(annotations) == 0 {
+		return
+	}
+
+	limit := 10
+	if limit > len(annotations) {
+		limit = len(annotations)
+	}
+
+	fmt.Fprintf(output, "Top %d Annotations by Severity:\n", limit)
+	fmt.Fprintf(output, "%-10s %-50s %-6s %s\n", "Category", "File", "Line", "Description")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		a := annotations[i]
+		fmt.Fprintf(output, "%-10s %-50s %-6d %s\n",
+			a.category,
+			cr.truncate(a.file, 50),
+			a.line,
+			cr.truncate(a.desc, 40),
 		)
 	}
 	fmt.Fprintln(output)
