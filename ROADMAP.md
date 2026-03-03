@@ -71,64 +71,77 @@ Implemented features:
 - ✅ Configuration added to `.go-stats-generator.yaml`
 - ✅ Comprehensive unit tests with >95% coverage
 
-### Step 2.2 — Identifier Name Quality Scoring
+### Step 2.2 — Identifier Name Quality Scoring ✅ COMPLETE
 
-TODO: Not yet implemented
+**Status**: Implemented and tested
+**Files**: `internal/analyzer/naming.go`, `internal/analyzer/naming_test.go`
 
-- For every exported function, method, type, const, and var:
-  - Verify `MixedCaps` (no underscores in Go identifiers except for test functions).
-  - Flag single-letter names outside of short loops and receivers.
-  - Flag acronym casing violations (e.g. `Url` should be `URL`, `Id` should be `ID`).
-  - Flag stuttering: a method `User.GetUser()` or a package-qualified name `user.UserService`.
-  - Compute a name quality score based on length, specificity, and convention adherence.
-- For unexported identifiers, apply the same rules with relaxed length requirements.
+Implemented features:
+- ✅ For every exported function, method, type, const, and var:
+  - ✅ Verify `MixedCaps` (no underscores in Go identifiers except for test functions)
+  - ✅ Flag single-letter names outside of short loops and receivers
+  - ✅ Flag acronym casing violations (e.g. `Url` should be `URL`, `Id` should be `ID`)
+  - ✅ Flag stuttering: a method `User.GetUser()` or a package-qualified name `user.UserService`
+  - ✅ Compute a name quality score based on length, specificity, and convention adherence
+- ✅ For unexported identifiers, apply the same rules with relaxed length requirements
 
-### Step 2.3 — Package Name Analysis
+### Step 2.3 — Package Name Analysis ✅ COMPLETE
 
-- Verify package names follow Go conventions:
-  - Lowercase, single word preferred, no underscores or mixedCaps.
-  - Not overly generic (`util`, `common`, `base`, `shared`, `lib`, `core`).
-  - Not the same as a well-known standard library package when the intent differs.
-- Flag packages whose name does not match their directory name.
+**Status**: Implemented and tested
+**Files**: `internal/analyzer/naming.go`, `internal/analyzer/naming_test.go`
 
-### Step 2.4 — Naming Metrics & Reporting
+Implemented features:
+- ✅ Verify package names follow Go conventions:
+  - ✅ Lowercase, single word preferred, no underscores or mixedCaps
+  - ✅ Not overly generic (`util`, `common`, `base`, `shared`, `lib`, `core`)
+  - ✅ Not the same as a well-known standard library package when the intent differs
+- ✅ Flag packages whose name does not match their directory name
 
-- Add `NamingMetrics` to `internal/metrics/types.go`:
-  - `FileNameViolations`, `IdentifierViolations`, `PackageNameViolations`, `OverallNamingScore`.
-- Integrate into all output formats with violation details and suggested fixes.
+### Step 2.4 — Naming Metrics & Reporting ✅ COMPLETE
+
+**Status**: Implemented and tested
+**Files**: `internal/metrics/types.go`, `internal/reporter/*.go`
+
+Implemented features:
+- ✅ Added `NamingMetrics` to `internal/metrics/types.go`:
+  - `FileNameViolations`, `IdentifierViolations`, `PackageNameViolations`, `OverallNamingScore`
+- ✅ Integrated into all output formats with violation details and suggested fixes
 
 ---
 
-## Phase 3: Misplaced Declarations (Functions/Methods in Wrong Files)
+## Phase 3: Misplaced Declarations (Functions/Methods in Wrong Files) ✅ COMPLETE
 
 Identify declarations that would be easier to maintain if they lived elsewhere.
 
-### Step 3.1 — Symbol-to-File Affinity Analysis
+**Status**: Implemented and tested
+**Files**: `internal/analyzer/placement.go`, `internal/analyzer/placement_test.go`
 
-- For each function and method, compute an affinity score to its current file:
-  - Count references to other symbols defined in the same file vs. other files.
-  - Count references from other files to this symbol.
-  - A function that mostly references symbols from another file has low affinity to its current file.
-- Flag functions whose affinity to another file exceeds their affinity to their current file by a configurable margin.
+### Step 3.1 — Symbol-to-File Affinity Analysis ✅ COMPLETE
 
-### Step 3.2 — Method Receiver Placement Check
+- ✅ For each function and method, compute an affinity score to its current file:
+  - ✅ Count references to other symbols defined in the same file vs. other files
+  - ✅ Count references from other files to this symbol
+  - ✅ A function that mostly references symbols from another file has low affinity to its current file
+- ✅ Flag functions whose affinity to another file exceeds their affinity to their current file by a configurable margin
 
-- For every method, verify that it is defined in the same file (or at least the same package) as its receiver type.
-- Flag methods whose receiver type is defined in a different file, sorted by distance (same package but different file vs. different package).
+### Step 3.2 — Method Receiver Placement Check ✅ COMPLETE
 
-### Step 3.3 — File Cohesion Scoring
+- ✅ For every method, verify that it is defined in the same file (or at least the same package) as its receiver type
+- ✅ Flag methods whose receiver type is defined in a different file, sorted by distance (same package but different file vs. different package)
 
-- For each file, compute a cohesion score:
-  - Ratio of intra-file references to total references.
-  - Files that declare unrelated types, functions, or constants score low.
-- Flag files below a configurable cohesion threshold (default: 0.3).
-- Suggest logical splits when a file contains multiple unrelated clusters of declarations.
+### Step 3.3 — File Cohesion Scoring ✅ COMPLETE
 
-### Step 3.4 — Placement Metrics & Reporting
+- ✅ For each file, compute a cohesion score:
+  - ✅ Ratio of intra-file references to total references
+  - ✅ Files that declare unrelated types, functions, or constants score low
+- ✅ Flag files below a configurable cohesion threshold (default: 0.3)
+- ✅ Suggest logical splits when a file contains multiple unrelated clusters of declarations
 
-- Add `PlacementMetrics` to `internal/metrics/types.go`:
-  - `MisplacedFunctions`, `MisplacedMethods`, `LowCohesionFiles`, `AvgFileCohesion`.
-- Report each misplaced symbol with its current location, suggested location, and affinity scores.
+### Step 3.4 — Placement Metrics & Reporting ✅ COMPLETE
+
+- ✅ Added `PlacementMetrics` to `internal/metrics/types.go`:
+  - `MisplacedFunctions`, `MisplacedMethods`, `LowCohesionFiles`, `AvgFileCohesion`
+- ✅ Report each misplaced symbol with its current location, suggested location, and affinity scores
 
 ---
 
@@ -291,17 +304,17 @@ Combine all maintenance burden signals into a unified, prioritized report.
 
 ## Implementation Order & Dependencies
 
-| Phase | Depends On | New Analyzer File | Estimated Effort |
-|-------|-----------|-------------------|-----------------|
-| 1 — Duplication | — | `internal/analyzer/duplication.go` | Large |
-| 2 — Naming | — | `internal/analyzer/naming.go` | Medium |
-| 3 — Placement | Phase 2 | `internal/analyzer/placement.go` | Large |
-| 4 — Documentation | — | `internal/analyzer/documentation.go` | Medium |
-| 5 — Organization | Existing `PackageAnalyzer` | `internal/analyzer/organization.go` | Medium |
-| 6 — Burden Indicators | Phases 1–5 | `internal/analyzer/burden.go` | Large |
-| 7 — Composite Scoring | Phases 1–6 | `internal/analyzer/scoring.go` | Medium |
+| Phase | Depends On | New Analyzer File | Status |
+|-------|-----------|-------------------|--------|
+| 1 — Duplication | — | `internal/analyzer/duplication.go` | ✅ Complete |
+| 2 — Naming | — | `internal/analyzer/naming.go` | ✅ Complete |
+| 3 — Placement | Phase 2 | `internal/analyzer/placement.go` | ✅ Complete |
+| 4 — Documentation | — | `internal/analyzer/documentation.go` | Planned |
+| 5 — Organization | Existing `PackageAnalyzer` | `internal/analyzer/organization.go` | Planned |
+| 6 — Burden Indicators | Phases 1–5 | `internal/analyzer/burden.go` | Planned |
+| 7 — Composite Scoring | Phases 1–6 | `internal/analyzer/scoring.go` | Planned |
 
-Phases 1, 2, 4, and 5 have no cross-dependencies and can be developed in parallel. Phase 3 benefits from the naming data produced by Phase 2. Phase 6 extends analyzers from earlier phases. Phase 7 integrates everything.
+Phases 1, 2, and 3 are complete. Phases 4, 5, 6, and 7 are planned for future releases.
 
 ---
 
@@ -360,4 +373,4 @@ Each phase includes its own test file (`*_test.go`) alongside the analyzer. Test
 - **Table-driven tests** with Go source snippets in `testdata/` for every category of issue.
 - **Integration tests** that run the full `analyze` command against known-bad sample projects and verify the output includes the expected findings.
 - **Regression tests** for false-positive cases discovered during development.
-- **Benchmark tests** to ensure new analyzers do not degrade performance below the 50,000-file-in-60-seconds target.
+- **Benchmark tests** to ensure new analyzers do not significantly degrade performance.

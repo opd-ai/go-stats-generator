@@ -1,10 +1,6 @@
 # Go Source Code Statistics Generator
 
-[![License: MIT](https://img.shields.io/badge/Li### Basic Analysis
-
-```bash
-go-stats-generator analyze [directory] [flags]
-```-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/opd-ai/go-stats-generator)](https://goreportcard.com/report/github.com/opd-ai/go-stats-generator)
 
 `go-stats-generator` is a high-performance command-line tool that analyzes Go source code repositories to generate comprehensive statistical reports about code structure, complexity, and patterns. The project focuses on computing obscure and detailed metrics that standard linters don't typically capture, providing actionable insights for code quality assessment and refactoring decisions.
@@ -27,15 +23,15 @@ go-stats-generator analyze [directory] [flags]
   - Configurable block size and similarity thresholds
   - Support for Type 1 (exact), Type 2 (renamed), and Type 3 (near) clone detection
   - Optional test file filtering for focused analysis
-- **Historical Metrics Storage**: SQLite backend for tracking metrics over time (JSON backend planned)
+- **Historical Metrics Storage**: SQLite and JSON backends for tracking metrics over time
 - **Complexity Differential Analysis**: Compare metrics snapshots with multi-dimensional comparisons
 - **Baseline Management**: Create and manage reference snapshots for comparisons
 - **Regression Detection**: Compare snapshots to identify metric increases and decreases
 - **Trend Analysis**: ⚠️ **BETA** - Basic trend commands available; advanced statistical analysis and forecasting planned for future release
 - **CI/CD Integration**: Exit codes and reporting for automated quality gates
 - **Concurrent Processing**: Worker pools for analyzing large codebases efficiently
-- **Multiple Output Formats**: Console, JSON, HTML with rich reporting
-- **Enterprise Scale**: Process 50,000+ files within 60 seconds, <1GB memory usage
+- **Multiple Output Formats**: Console, JSON, HTML, CSV, and Markdown with rich reporting
+- **Enterprise Scale**: Designed for large codebases with concurrent processing
 - **Configurable Analysis**: Flexible filtering, thresholds, and analysis options
 
 ## Installation
@@ -207,6 +203,11 @@ filters:
   exclude_patterns:
     - "vendor/**"
     - "*.pb.go"
+
+storage:
+  type: sqlite                      # Storage backend: "sqlite" or "json"
+  path: .go-stats-generator/metrics.db
+  compression: true
 ```
 
 ### Duplication Detection Configuration
@@ -303,20 +304,10 @@ github.com/opd-ai/go-stats-generator/
 
 ## Performance
 
-- **Large Codebases**: Tested on repositories with 50,000+ Go files
-- **Memory Efficient**: Processes files in batches, <1GB memory usage
+- **Large Codebases**: Designed for repositories with many Go files
+- **Memory Efficient**: Processes files using configurable worker pools
 - **Concurrent**: Configurable worker pools (default: number of CPU cores)
-- **Fast**: Completes analysis of most projects in seconds
-
-### Benchmarks
-
-*Note: These are estimated performance targets based on the tool's architecture. Actual performance may vary depending on code complexity, system resources, and analysis configuration.*
-
-| Repository | Files | LOC | Analysis Time (est.) | Memory Usage (est.) |
-|------------|-------|-----|---------------------|---------------------|
-| Standard Library | 400+ | 500K+ | <10s | <100MB |
-| Kubernetes | 10K+ | 2M+ | <60s | <800MB |
-| Docker | 2K+ | 300K+ | <15s | <200MB |
+- **Fast**: Completes analysis of most projects efficiently
 
 ## Development
 
@@ -378,7 +369,6 @@ The following features are under development and will be included in future rele
 - **Correlation analysis** between different metrics
 
 ### Storage Backend Expansion
-- **JSON storage backend** - File-based metrics storage as alternative to SQLite
 - **Memory storage** - In-memory storage for temporary analysis runs
 
 ### Advanced Maintenance Detection
