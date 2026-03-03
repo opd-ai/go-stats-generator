@@ -102,11 +102,11 @@ func SimpleFunction() {
 	// Current limitation: Only functions are analyzed
 	assert.Greater(t, len(report.Functions), 0, "Should detect functions")
 
-	// BUG: These should all be populated but are currently missing from the API
-	assert.Empty(t, report.Structs, "BUG: Structs analysis is missing from public API")
-	assert.Empty(t, report.Interfaces, "BUG: Interface analysis is missing from public API")
-	assert.Empty(t, report.Packages, "BUG: Package analysis is missing from public API")
-	assert.Empty(t, report.Patterns.ConcurrencyPatterns.Goroutines.Instances, "BUG: Concurrency analysis is missing from public API")
+	// FIXED: These should now be populated with comprehensive analysis
+	assert.NotEmpty(t, report.Structs, "Structs analysis should be provided by API")
+	assert.NotEmpty(t, report.Interfaces, "Interface analysis should be provided by API")
+	assert.NotEmpty(t, report.Packages, "Package analysis should be provided by API")
+	assert.NotEmpty(t, report.Patterns.ConcurrencyPatterns.Goroutines.Instances, "Concurrency analysis should be provided by API")
 }
 
 // Helper function to write string to file
