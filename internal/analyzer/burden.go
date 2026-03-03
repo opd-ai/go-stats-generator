@@ -163,19 +163,19 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
 	// Build symbol references across all files in package
 	refs := ba.buildReferenceMap(files)
-	
+
 	// Find unreferenced symbols
 	unreferenced := ba.findUnreferencedSymbols(files, refs, pkg)
-	
+
 	// Find unreachable code blocks
 	unreachable := ba.findUnreachableCode(files)
-	
+
 	// Calculate total dead lines
 	totalLines := 0
 	for _, block := range unreachable {
 		totalLines += block.Lines
 	}
-	
+
 	return &metrics.DeadCodeMetrics{
 		UnreferencedFunctions: unreferenced,
 		UnreachableCode:       unreachable,
@@ -186,7 +186,7 @@ func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics
 
 func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
 	refs := make(map[string]int)
-	
+
 	// Count function call references
 	for _, file := range files {
 		ast.Inspect(file, func(n ast.Node) bool {
@@ -200,13 +200,13 @@ func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
 			return true
 		})
 	}
-	
+
 	return refs
 }
 
 func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, refs map[string]int, pkg string) []metrics.UnreferencedSymbol {
 	var unreferenced []metrics.UnreferencedSymbol
-	
+
 	for _, file := range files {
 		ast.Inspect(file, func(n ast.Node) bool {
 			switch node := n.(type) {
@@ -228,16 +228,16 @@ func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, refs map[st
 			return true
 		})
 	}
-	
+
 	return unreferenced
 }
 
 func (ba *BurdenAnalyzer) findUnreachableCode(files []*ast.File) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
-	
+
 	for _, file := range files {
 		var currentFunc string
-		
+
 		ast.Inspect(file, func(n ast.Node) bool {
 			switch node := n.(type) {
 			case *ast.FuncDecl:
@@ -249,18 +249,17 @@ func (ba *BurdenAnalyzer) findUnreachableCode(files []*ast.File) []metrics.Unrea
 					unreachable = append(unreachable, blocks...)
 				}
 				return false
-				
 			}
 			return true
 		})
 	}
-	
+
 	return unreachable
 }
 
 func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
-	
+
 	for i, stmt := range block.List {
 		// Check if this statement is a terminating statement
 		if ba.isTerminating(stmt) {
@@ -268,7 +267,7 @@ func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn stri
 			if i+1 < len(block.List) {
 				startPos := ba.fset.Position(block.List[i+1].Pos())
 				endPos := ba.fset.Position(block.List[len(block.List)-1].End())
-				
+
 				unreachable = append(unreachable, metrics.UnreachableBlock{
 					File:      startPos.Filename,
 					StartLine: startPos.Line,
@@ -280,17 +279,17 @@ func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn stri
 				break
 			}
 		}
-		
+
 		// Recursively check nested blocks
 		unreachable = append(unreachable, ba.checkStmtForUnreachable(stmt, fn)...)
 	}
-	
+
 	return unreachable
 }
 
 func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
-	
+
 	switch s := stmt.(type) {
 	case *ast.IfStmt:
 		if s.Body != nil {
@@ -329,7 +328,7 @@ func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []me
 			}
 		}
 	}
-	
+
 	return unreachable
 }
 

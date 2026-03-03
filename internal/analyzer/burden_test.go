@@ -132,11 +132,11 @@ func example() int {
 
 func TestDetectDeadCode(t *testing.T) {
 	tests := []struct {
-		name                string
-		src                 string
-		wantUnreferenced    int
-		wantUnreachable     int
-		wantUnreferencedFn  string
+		name                  string
+		src                   string
+		wantUnreferenced      int
+		wantUnreachable       int
+		wantUnreferencedFn    string
 		wantUnreachableReason string
 	}{
 		{
@@ -147,7 +147,7 @@ func Exported() {
 }
 func helper() {}
 func unusedHelper() {}`,
-			wantUnreferenced: 1,
+			wantUnreferenced:   1,
 			wantUnreferencedFn: "unusedHelper",
 		},
 		{
@@ -164,7 +164,7 @@ func Example() {
 	x := 42
 	y := 100
 }`,
-			wantUnreachable: 1,
+			wantUnreachable:       1,
 			wantUnreachableReason: "return statement",
 		},
 		{
@@ -174,7 +174,7 @@ func Example() {
 	panic("error")
 	x := 42
 }`,
-			wantUnreachable: 1,
+			wantUnreachable:       1,
 			wantUnreachableReason: "panic call",
 		},
 		{
@@ -185,7 +185,7 @@ func Example() {
 	os.Exit(1)
 	x := 42
 }`,
-			wantUnreachable: 1,
+			wantUnreachable:       1,
 			wantUnreachableReason: "os.Exit call",
 		},
 		{
@@ -196,7 +196,7 @@ func Used() {
 }
 func helper() {}`,
 			wantUnreferenced: 0,
-			wantUnreachable: 0,
+			wantUnreachable:  0,
 		},
 		{
 			name: "unreachable in nested blocks",
