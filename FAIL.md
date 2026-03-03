@@ -37,7 +37,7 @@ go-stats-generator analyze . --skip-tests --format json --output baseline.json
 go-stats-generator analyze . --skip-tests --max-complexity 10 --max-function-length 30
 
 # Phase 2: Correlate failures with complexity, classify, and fix
-cat baseline.json | jq '.functions[] | select(.complexity > 12)'
+cat baseline.json | jq '.functions[] | select(.complexity.overall > 12)'
 
 # Phase 3: Post-fix validation
 go test -v -race ./...
@@ -72,7 +72,7 @@ You are an automated Go test failure analyst using `go-stats-generator` for comp
 
 3. **Correlate Failures with Complexity:**
    ```bash
-   cat baseline.json | jq '[.functions[] | select(.complexity > 12)] | sort_by(-.complexity)'
+   cat baseline.json | jq '[.functions[] | select(.complexity.overall > 12)] | sort_by(-.complexity.overall)'
    ```
    - Map each failing test to the implementation function(s) it exercises
    - Flag failures in functions exceeding complexity thresholds as **high-risk**
@@ -311,10 +311,10 @@ $ cat baseline.json | jq '.functions[] | select(.name == "processAnalysisResult"
   "name": "processAnalysisResult",
   "file": "internal/analyzer/result.go",
   "line": 45,
-  "lines": 47,
-  "complexity": 18.4,
-  "cyclomatic": 15,
-  "nesting_depth": 4
+  "lines": {"total": 55, "code": 47, "comments": 5, "blank": 3},
+  "complexity": {"overall": 18.4, "cyclomatic": 15, "cognitive": 10, "nesting_depth": 4},
+  "signature": {"parameter_count": 3, "return_count": 2, "has_variadic": false, "returns_error": true, "signature_complexity": 2.8},
+  "documentation": {"has_comment": true, "comment_length": 42, "has_example": false, "quality_score": 0.6}
 }
 
 $ # Failure 1: TestProcessAnalysisResult — high-complexity correlation

@@ -36,7 +36,7 @@ go-stats-generator analyze . --skip-tests --format json --output test-baseline.j
 go test -cover ./...
 
 # Phase 2: Prioritize test targets by complexity ranking
-cat test-baseline.json | jq '[.functions[] | select(.cyclomatic > 8)] | sort_by(-.cyclomatic)'
+cat test-baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 8)] | sort_by(-.complexity.cyclomatic)'
 
 # Phase 3: Post-test-generation validation
 go-stats-generator analyze . --format json --output post-tests.json
@@ -70,7 +70,7 @@ You are a test generation agent using `go-stats-generator` to rank untested file
 
 3. **Extract High-Complexity Untested Functions:**
   ```bash
-  cat test-baseline.json | jq '[.functions[] | select(.cyclomatic > 8)] | sort_by(-.cyclomatic) | .[] | {name, file, cyclomatic, lines, complexity}'
+  cat test-baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 8)] | sort_by(-.complexity.cyclomatic) | .[] | {name, file, cyclomatic: .complexity.cyclomatic, lines: .lines.code, complexity: .complexity.overall}'
   ```
   - Build a ranked list of untested functions sorted by descending cyclomatic complexity
   - Cross-reference against existing `_test.go` files to confirm which functions lack tests
@@ -89,7 +89,7 @@ You are a test generation agent using `go-stats-generator` to rank untested file
 
 2. **Plan Test Strategy Per Function:**
   ```bash
-  cat test-baseline.json | jq '.functions[] | select(.name == "targetFunction") | {name, file, cyclomatic, lines, params, returns}'
+  cat test-baseline.json | jq '.functions[] | select(.name == "targetFunction") | {name, file, cyclomatic: .complexity.cyclomatic, lines: .lines.code, params: .signature.parameter_count, returns: .signature.return_count}'
   ```
   - Functions with >2 input parameters → table-driven tests
   - Functions returning `error` → include error condition tests
@@ -215,7 +215,7 @@ Coverage Threshold = 80% line coverage OR all Critical/High functions tested
 ## EXAMPLE WORKFLOW:
 ```bash
 $ go-stats-generator analyze . --skip-tests --format json --output test-baseline.json
-$ cat test-baseline.json | jq '[.functions[] | select(.cyclomatic > 8)] | sort_by(-.cyclomatic) | .[:5][] | {name, file, cyclomatic, lines}'
+$ cat test-baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 8)] | sort_by(-.complexity.cyclomatic) | .[:5][] | {name, file, cyclomatic: .complexity.cyclomatic, lines: .lines.code}'
 {
   "name": "processComplexOrder",
   "file": "internal/order/process.go",

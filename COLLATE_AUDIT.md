@@ -39,8 +39,8 @@ find . -type f -iname '*audit*.md' | sort
 grep -rn '\- \[ \]' <file>
 
 # Phase 3: Correlate findings with complexity metrics
-cat audit-metrics.json | jq '.functions[] | select(.complexity > 9.0) | {name, file, complexity, lines, cyclomatic}'
-cat audit-metrics.json | jq '.packages[] | {name, coupling, cohesion}'
+cat audit-metrics.json | jq '.functions[] | select(.complexity.overall > 9.0) | {name, file, complexity_overall: .complexity.overall, cyclomatic: .complexity.cyclomatic, lines_code: .lines.code}'
+cat audit-metrics.json | jq '.packages[] | {name, coupling_score, cohesion_score}'
 
 # Phase 4: Produce metric-enriched AUDIT.md
 # Collate, deduplicate, rank by metric-backed severity, generate remediation plan
@@ -73,10 +73,10 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 2. **Extract Key Metric Summaries:**
   ```bash
   # Functions exceeding complexity thresholds
-  cat audit-metrics.json | jq '[.functions[] | select(.complexity > 9.0)] | sort_by(-.complexity) | .[:20] | .[] | {name, file, complexity, lines, cyclomatic}'
+  cat audit-metrics.json | jq '[.functions[] | select(.complexity.overall > 9.0)] | sort_by(-.complexity.overall) | .[:20] | .[] | {name, file, complexity_overall: .complexity.overall, lines_code: .lines.code, cyclomatic: .complexity.cyclomatic}'
 
   # Packages with high coupling or low cohesion
-  cat audit-metrics.json | jq '.packages[] | select(.coupling > 5 or .cohesion < 0.5) | {name, coupling, cohesion}'
+  cat audit-metrics.json | jq '.packages[] | select(.coupling_score > 5 or .cohesion_score < 0.5) | {name, coupling_score, cohesion_score}'
 
   # Documentation coverage gaps
   cat audit-metrics.json | jq '.documentation'
@@ -111,7 +111,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
   ```bash
   # Look up the function referenced by a finding
   cat audit-metrics.json | jq --arg file "path/to/file.go" --arg func "functionName" \
-    '.functions[] | select(.file == $file and .name == $func) | {name, file, complexity, lines, cyclomatic, nesting_depth}'
+    '.functions[] | select(.file == $file and .name == $func) | {name, file, complexity_overall: .complexity.overall, lines_code: .lines.code, cyclomatic: .complexity.cyclomatic, nesting_depth: .complexity.nesting_depth}'
   ```
 
 2. **Adjust Severity Using Metrics:**
@@ -283,17 +283,17 @@ $ grep -c '\- \[ \]' ./internal/analyzer/AUDIT.md
 
 $ # Phase 3: Correlate findings with metrics
 $ cat audit-metrics.json | jq --arg file "internal/analyzer/function.go" \
-    '[.functions[] | select(.file == $file and .complexity > 9.0)] | sort_by(-.complexity) | .[] | {name, complexity, lines, cyclomatic}'
+    '[.functions[] | select(.file == $file and .complexity.overall > 9.0)] | sort_by(-.complexity.overall) | .[] | {name, complexity_overall: .complexity.overall, lines_code: .lines.code, cyclomatic: .complexity.cyclomatic}'
 {
   "name": "analyzeFunction",
-  "complexity": 22.1,
-  "lines": 58,
+  "complexity_overall": 22.1,
+  "lines_code": 58,
   "cyclomatic": 16
 }
 {
   "name": "calculateMetrics",
-  "complexity": 15.7,
-  "lines": 43,
+  "complexity_overall": 15.7,
+  "lines_code": 43,
   "cyclomatic": 11
 }
 

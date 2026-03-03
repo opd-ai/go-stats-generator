@@ -69,7 +69,7 @@ You are an automated Go package auditor using `go-stats-generator` for enterpris
    cat pkg-audit.json | jq '.documentation'
 
    # Functions exceeding thresholds
-   cat pkg-audit.json | jq '[.functions[] | select(.complexity > 10 or .lines > 30)] | sort_by(-.complexity)'
+   cat pkg-audit.json | jq '[.functions[] | select(.complexity.cyclomatic > 10 or .lines.code > 30)] | sort_by(-.complexity.cyclomatic)'
 
    # Naming convention violations
    cat pkg-audit.json | jq '.naming'
@@ -294,12 +294,12 @@ $ go-stats-generator analyze ./internal/analyzer \
     --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 \
     --skip-tests --format json --output pkg-audit.json
 
-$ cat pkg-audit.json | jq '{doc: .documentation, funcs_over: [.functions[] | select(.complexity > 10) | {name, file, complexity, lines}], naming: .naming}'
+$ cat pkg-audit.json | jq '{doc: .documentation, funcs_over: [.functions[] | select(.complexity.cyclomatic > 10) | {name, file, complexity: .complexity.overall, cyclomatic: .complexity.cyclomatic, lines: .lines.code}], naming: .naming}'
 {
-  "doc": {"coverage": 0.625, "missing": ["ParseFile", "WalkAST"]},
+  "doc": {"coverage": {"overall": 0.625, "functions": 0.60, "types": 0.70}, "missing": ["ParseFile", "WalkAST"]},
   "funcs_over": [
-    {"name": "analyzeFunction", "file": "function.go", "complexity": 14, "lines": 42},
-    {"name": "processStruct", "file": "struct.go", "complexity": 11, "lines": 28}
+    {"name": "analyzeFunction", "file": "function.go", "complexity": 14, "cyclomatic": 12, "lines": 42},
+    {"name": "processStruct", "file": "struct.go", "complexity": 11, "cyclomatic": 9, "lines": 28}
   ],
   "naming": {"violations": 2, "issues": ["get_metrics", "analyzer.AnalyzerConfig"]}
 }

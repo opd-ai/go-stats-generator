@@ -35,7 +35,7 @@ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip
 
 # Phase 2: Per-iteration cycle (repeat for each iteration N)
 # 2a. Identify targets from current analysis
-cat iteration-0.json | jq '[.functions[] | select(.complexity > 10.0 or .lines > 30 or .cyclomatic > 10)]'
+cat iteration-0.json | jq '[.functions[] | select(.complexity.overall > 10.0 or .lines.code > 30 or .complexity.cyclomatic > 10)]'
 
 # 2b. Apply refactoring changes to highest-priority target(s)
 
@@ -64,7 +64,7 @@ You are an autonomous Go code auditor using `go-stats-generator` for iterative, 
 
 2. **Check Termination Before First Iteration:**
   ```bash
-  cat iteration-0.json | jq '[.functions[] | select(.complexity > 10.0 or .lines > 30 or .cyclomatic > 10)] | length'
+  cat iteration-0.json | jq '[.functions[] | select(.complexity.overall > 10.0 or .lines.code > 30 or .complexity.cyclomatic > 10)] | length'
   ```
   - If **0 violations**, output the no-targets message and halt immediately
   - Otherwise, proceed to the iteration loop
@@ -75,7 +75,7 @@ For each iteration N (1 through 5):
 
 1. **Select Iteration Target:**
   ```bash
-  cat iteration-$((N-1)).json | jq '[.functions[] | select(.complexity > 10.0 or .lines > 30 or .cyclomatic > 10)] | sort_by(-.complexity) | .[0]'
+  cat iteration-$((N-1)).json | jq '[.functions[] | select(.complexity.overall > 10.0 or .lines.code > 30 or .complexity.cyclomatic > 10)] | sort_by(-.complexity.overall) | .[0]'
   ```
   - Choose the **single highest-complexity function** that still exceeds thresholds
   - If complexity scores are tied, choose the **longest function** first
@@ -225,7 +225,7 @@ $ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --sk
    - Recommendations: Extract 2 logical blocks
 
 $ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-0.json
-$ cat iteration-0.json | jq '[.functions[] | select(.complexity > 10.0 or .lines > 30 or .cyclomatic > 10)] | length'
+$ cat iteration-0.json | jq '[.functions[] | select(.complexity.overall > 10.0 or .lines.code > 30 or .complexity.cyclomatic > 10)] | length'
 3
 
 $ # ITERATION 1: Target processComplexOrder (highest complexity)

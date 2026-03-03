@@ -46,8 +46,8 @@ You are an automated production readiness auditor using `go-stats-generator` for
 ### Phase 2: Multi-Dimensional Assessment
 1. **Function Complexity:**
   ```bash
-  cat readiness-report.json | jq '[.functions[] | select(.complexity > 10)] | length'
-  cat readiness-report.json | jq '[.functions[] | select(.lines > 30)] | sort_by(-.complexity)[:10]'
+  cat readiness-report.json | jq '[.functions[] | select(.complexity.cyclomatic > 10)] | length'
+  cat readiness-report.json | jq '[.functions[] | select(.lines.code > 30)] | sort_by(-.complexity.cyclomatic)[:10]'
   ```
   - Count functions exceeding complexity threshold (max 10)
   - Count functions exceeding length threshold (max 30 lines)
@@ -55,11 +55,11 @@ You are an automated production readiness auditor using `go-stats-generator` for
 
 2. **Package Health:**
   ```bash
-  cat readiness-report.json | jq '.packages[] | {name, coupling, cohesion, circular_deps}'
+  cat readiness-report.json | jq '.packages[] | {name, coupling_score, cohesion_score}'
   ```
-  - Evaluate coupling scores per package (lower is better)
-  - Evaluate cohesion scores per package (higher is better)
-  - Flag any circular dependencies (must be zero for production)
+  - Evaluate `coupling_score` per package (lower is better)
+  - Evaluate `cohesion_score` per package (higher is better)
+  - Using the circular dependency metrics in the report, ensure there are no package-level cycles (must be zero for production)
 
 3. **Documentation Coverage:**
   ```bash
@@ -109,11 +109,11 @@ Evaluate pass/fail for each dimension against production-readiness thresholds:
 ```bash
 # Automated gate evaluation
 echo "=== PRODUCTION READINESS GATES ==="
-COMPLEX=$(cat readiness-report.json | jq '[.functions[] | select(.complexity > 10)] | length')
-LONG=$(cat readiness-report.json | jq '[.functions[] | select(.lines > 30)] | length')
-DOC_COV=$(cat readiness-report.json | jq '.documentation.coverage')
+COMPLEX=$(cat readiness-report.json | jq '[.functions[] | select(.complexity.cyclomatic > 10)] | length')
+LONG=$(cat readiness-report.json | jq '[.functions[] | select(.lines.code > 30)] | length')
+DOC_COV=$(cat readiness-report.json | jq '.documentation.coverage.overall')
 DUP_RATIO=$(cat readiness-report.json | jq '.duplication.duplication_ratio')
-CIRCULAR=$(cat readiness-report.json | jq '[.packages[] | select(.circular_deps > 0)] | length')
+CIRCULAR=$(cat readiness-report.json | jq '[.packages[] | select(.circular_dependencies != null and (.circular_dependencies | length) > 0)] | length')
 
 echo "Complexity gate:    $([ "$COMPLEX" -eq 0 ] && echo 'PASS' || echo "FAIL ($COMPLEX violations)")"
 echo "Length gate:         $([ "$LONG" -eq 0 ] && echo 'PASS' || echo "FAIL ($LONG violations)")"
@@ -230,18 +230,18 @@ Threshold violations:
   Documentation < 0.7: flagged
 
 $ # Extract per-dimension metrics
-$ cat readiness-report.json | jq '[.functions[] | select(.complexity > 10)] | sort_by(-.complexity)[:5]'
+$ cat readiness-report.json | jq '[.functions[] | select(.complexity.cyclomatic > 10)] | sort_by(-.complexity.overall)[:5]'
 [
-  {"name": "processComplexOrder", "file": "order.go", "complexity": 18.4, "lines": 45},
-  {"name": "handleDataTransform", "file": "transform.go", "complexity": 15.2, "lines": 52},
-  {"name": "validateComplexInput", "file": "validator.go", "complexity": 12.8, "lines": 38},
-  {"name": "generateReport", "file": "reporter.go", "complexity": 11.3, "lines": 41}
+  {"name": "processComplexOrder", "file": "order.go", "complexity": {"overall": 18.4, "cyclomatic": 15, "nesting_depth": 4}, "lines": {"code": 45}},
+  {"name": "handleDataTransform", "file": "transform.go", "complexity": {"overall": 15.2, "cyclomatic": 12, "nesting_depth": 3}, "lines": {"code": 52}},
+  {"name": "validateComplexInput", "file": "validator.go", "complexity": {"overall": 12.8, "cyclomatic": 10, "nesting_depth": 3}, "lines": {"code": 38}},
+  {"name": "generateReport", "file": "reporter.go", "complexity": {"overall": 11.3, "cyclomatic": 9, "nesting_depth": 2}, "lines": {"code": 41}}
 ]
 
-$ cat readiness-report.json | jq '.packages[] | select(.circular_deps > 0)'
+$ cat readiness-report.json | jq '.packages[] | select(.circular_dependencies != null and (.circular_dependencies | length) > 0)'
 # (no output — zero circular dependencies)
 
-$ cat readiness-report.json | jq '.documentation.coverage'
+$ cat readiness-report.json | jq '.documentation.coverage.overall'
 0.72
 
 $ cat readiness-report.json | jq '.duplication | {duplication_ratio, clone_pairs, duplicated_lines}'

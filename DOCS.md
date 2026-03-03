@@ -22,7 +22,7 @@ go install github.com/opd-ai/go-stats-generator@latest
 ## Recommendations:
 ```bash
 # When long json outputs are encountered, use `jq`
-go-stats-generator analyze --output json | jq .documentation
+go-stats-generator analyze --format json | jq .documentation
 # Check if it is installed
 which jq
 # If it is not, install it

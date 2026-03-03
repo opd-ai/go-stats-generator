@@ -20,7 +20,7 @@ go install github.com/opd-ai/go-stats-generator@latest
 ## Recommendations:
 ```bash
 # When long json outputs are encountered, use `jq`
-go-stats-generator analyze --output json | jq .functions
+go-stats-generator analyze --format json | jq .functions
 # Check if it is installed
 which jq
 # If it is not, install it
@@ -60,7 +60,7 @@ You are an automated Go development agent using `go-stats-generator` for measura
 
 2. **Review Current Quality State:**
   ```bash
-  cat baseline.json | jq '{functions: (.functions | length), packages: (.packages | length), doc_coverage: .documentation.coverage, duplication_ratio: .duplication.duplication_ratio}'
+  cat baseline.json | jq '{functions: (.functions | length), packages: (.packages | length), doc_coverage: .documentation.coverage.overall, duplication_ratio: .duplication.duplication_ratio}'
   ```
   - Establish the quantitative starting point for measuring task impact
 
@@ -98,7 +98,7 @@ You are an automated Go development agent using `go-stats-generator` for measura
 
 3. **Inspect New and Changed Functions:**
   ```bash
-  cat post-impl.json | jq '.functions[] | select(.complexity > 10) | {name, file, complexity, lines}'
+  cat post-impl.json | jq '.functions[] | select(.complexity.overall > 10) | {name, file, complexity: .complexity.overall, lines: .lines.code}'
   ```
   - Ensure no new function exceeds maximum complexity of 10
   - Ensure no new function exceeds 30 lines of code
@@ -196,7 +196,7 @@ Documentation Coverage: 0.73
 Duplication Ratio: 3.21%
 Functions Exceeding Thresholds: 2
 
-$ cat baseline.json | jq '{functions: (.functions | length), doc_coverage: .documentation.coverage}'
+$ cat baseline.json | jq '{functions: (.functions | length), doc_coverage: .documentation.coverage.overall}'
 {"functions": 142, "doc_coverage": 0.73}
 
 $ # Phase 2: Select and implement roadmap task

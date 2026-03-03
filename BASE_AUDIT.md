@@ -36,7 +36,7 @@ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-
 go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --skip-tests
 
 # Phase 2: Extract high-risk areas for focused manual review
-cat audit-baseline.json | jq '.functions[] | select(.lines > 50 or .cyclomatic > 15)'
+cat audit-baseline.json | jq '.functions[] | select(.lines.code > 50 or .complexity.cyclomatic > 15)'
 cat audit-baseline.json | jq '.documentation'
 cat audit-baseline.json | jq '.packages[]'
 
@@ -63,13 +63,13 @@ You are an expert Go code auditor using `go-stats-generator` as your primary ana
 2. **Extract High-Risk Targets:**
   ```bash
   # Identify complexity hotspots most likely to contain bugs
-  cat audit-baseline.json | jq '[.functions[] | select(.lines > 50 or .cyclomatic > 15)] | sort_by(-.cyclomatic)'
+  cat audit-baseline.json | jq '[.functions[] | select(.lines.code > 50 or .complexity.cyclomatic > 15)] | sort_by(-.complexity.cyclomatic)'
   # Check documentation coverage gaps
   cat audit-baseline.json | jq '.documentation'
   # Review naming consistency issues
   cat audit-baseline.json | jq '.naming'
   # Examine package dependencies for architectural issues
-  cat audit-baseline.json | jq '.packages[] | {name, dependencies, cohesion, coupling}'
+  cat audit-baseline.json | jq '.packages[] | {name, dependencies, cohesion_score, coupling_score}'
   ```
 
 3. **Prioritize Audit Focus:**
@@ -250,7 +250,7 @@ High Coupling Packages: 2
 $ go-stats-generator analyze . --skip-tests --format json --output audit-baseline.json
 
 $ # Extract high-risk functions for focused review
-$ cat audit-baseline.json | jq '[.functions[] | select(.lines > 50 or .cyclomatic > 15)] | length'
+$ cat audit-baseline.json | jq '[.functions[] | select(.lines.code > 50 or .complexity.cyclomatic > 15)] | length'
 2
 
 $ # Check documentation gaps
@@ -262,9 +262,9 @@ $ cat audit-baseline.json | jq '.documentation'
 }
 
 $ # Review package dependencies
-$ cat audit-baseline.json | jq '.packages[] | {name, dependencies, cohesion, coupling}'
-{"name": "auth", "dependencies": ["config", "models"], "cohesion": 0.85, "coupling": 0.3}
-{"name": "payment", "dependencies": ["auth", "models", "config"], "cohesion": 0.72, "coupling": 0.45}
+$ cat audit-baseline.json | jq '.packages[] | {name, dependencies, cohesion_score, coupling_score}'
+{"name": "auth", "dependencies": ["config", "models"], "cohesion_score": 0.85, "coupling_score": 0.3}
+{"name": "payment", "dependencies": ["auth", "models", "config"], "cohesion_score": 0.72, "coupling_score": 0.45}
 
 $ # Now perform manual audit guided by these metrics...
 $ # Focus on authenticateUser (Critical Risk) and processTransaction (High Risk)

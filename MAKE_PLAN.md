@@ -44,7 +44,7 @@ You are an automated Go project planner using `go-stats-generator` for data-driv
 2. **Extract Key Planning Indicators:**
   ```bash
   # Complexity hotspots — which areas need most attention
-  cat metrics.json | jq '[.functions[] | select(.complexity > 9)] | sort_by(-.complexity) | .[:10] | .[] | {name, file, complexity, lines}'
+  cat metrics.json | jq '[.functions[] | select(.complexity.overall > 9)] | sort_by(-.complexity.overall) | .[:10] | .[] | {name, file, complexity: .complexity.overall, lines: .lines.code}'
 
   # Duplication burden — where consolidation would reduce scope
   cat metrics.json | jq '.duplication | {clone_pairs, duplicated_lines, duplication_ratio, largest_clone_size}'
@@ -53,7 +53,7 @@ You are an automated Go project planner using `go-stats-generator` for data-driv
   cat metrics.json | jq '.documentation'
 
   # Package coupling — which packages are most entangled
-  cat metrics.json | jq '[.packages[] | {name, coupling, cohesion, dependencies: (.dependencies | length)}] | sort_by(-.coupling)'
+  cat metrics.json | jq '[.packages[] | {name, coupling_score, cohesion_score, dependencies: (.dependencies | length)}] | sort_by(-.coupling_score)'
 
   # Concurrency patterns — complexity of concurrent code
   cat metrics.json | jq '.concurrency'
@@ -76,10 +76,10 @@ You are an automated Go project planner using `go-stats-generator` for data-driv
 3. **Correlate Metrics with Roadmap Items:**
   ```bash
   # Identify which roadmap areas overlap with complexity hotspots
-  cat metrics.json | jq '[.functions[] | select(.complexity > 9)] | group_by(.file) | .[] | {file: .[0].file, count: length, max_complexity: (map(.complexity) | max)}'
+  cat metrics.json | jq '[.functions[] | select(.complexity.overall > 9)] | group_by(.file) | .[] | {file: .[0].file, count: length, max_complexity: (map(.complexity.overall) | max)}'
 
   # Identify packages with highest technical debt indicators
-  cat metrics.json | jq '[.packages[] | select(.coupling > 0.7 or .cohesion < 0.3)] | .[] | {name, coupling, cohesion}'
+  cat metrics.json | jq '[.packages[] | select(.coupling_score > 0.7 or .cohesion_score < 0.3)] | .[] | {name, coupling_score, cohesion_score}'
   ```
   - Roadmap items touching high-complexity areas get **higher scope estimates**
   - Roadmap items touching high-duplication areas should include deduplication as a prerequisite step
@@ -115,7 +115,7 @@ You are an automated Go project planner using `go-stats-generator` for data-driv
 2. **Cross-Check Against Metrics:**
   ```bash
   # Confirm the selected phase addresses the highest-priority issues
-  cat metrics.json | jq '{high_complexity_count: [.functions[] | select(.complexity > 15)] | length, duplication_ratio: .duplication.duplication_ratio, doc_coverage: .documentation.coverage}'
+  cat metrics.json | jq '{high_complexity_count: [.functions[] | select(.complexity.overall > 15)] | length, duplication_ratio: .duplication.duplication_ratio, doc_coverage: .documentation.coverage.overall}'
   ```
   - The plan should address the most impactful issues revealed by the metrics
   - If metrics reveal critical issues outside the selected phase, note them in Known Gaps
@@ -229,7 +229,7 @@ Packages: 9
 $ go-stats-generator analyze . --skip-tests --format json --output metrics.json
 
 $ # Extract complexity hotspots for planning
-$ cat metrics.json | jq '[.functions[] | select(.complexity > 9)] | sort_by(-.complexity) | .[:5] | .[] | {name, file, complexity, lines}'
+$ cat metrics.json | jq '[.functions[] | select(.complexity.overall > 9)] | sort_by(-.complexity.overall) | .[:5] | .[] | {name, file, complexity: .complexity.overall, lines: .lines.code}'
 {"name": "analyzeFile", "file": "internal/analyzer/file.go", "complexity": 22.4, "lines": 58}
 {"name": "processResults", "file": "internal/reporter/console.go", "complexity": 16.1, "lines": 45}
 {"name": "detectPatterns", "file": "internal/patterns/detect.go", "complexity": 14.8, "lines": 42}
@@ -299,7 +299,7 @@ $ cat PLAN.md
 - None identified
 
 $ # Verify plan addresses highest-priority metrics
-$ cat metrics.json | jq '{high_complexity_count: [.functions[] | select(.complexity > 15)] | length, duplication_ratio: .duplication.duplication_ratio}'
+$ cat metrics.json | jq '{high_complexity_count: [.functions[] | select(.complexity.overall > 15)] | length, duplication_ratio: .duplication.duplication_ratio}'
 {"high_complexity_count": 2, "duplication_ratio": 0.0418}
 ```
 

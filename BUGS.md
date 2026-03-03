@@ -88,7 +88,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
 
 4. **Generate Risk Map:**
   ```bash
-  cat baseline.json | jq '[.functions[] | select(.cyclomatic > 10 or .nesting_depth > 3) | {name, file, cyclomatic, nesting_depth, line_count}]'
+  cat baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 10 or .complexity.nesting_depth > 3) | {name: .name, file: .file, cyclomatic: .complexity.cyclomatic, nesting_depth: .complexity.nesting_depth, line_count: .lines.code}]'
   ```
   - Produce a ranked list of bug-candidate functions with their risk indicators
   - Cross-reference with `.concurrency` data for race condition candidates
@@ -270,7 +270,7 @@ HIGH-RISK FUNCTIONS:
    - Concurrency: none
    - Bug risk: nil pointer, logic error
 
-$ cat baseline.json | jq '[.functions[] | select(.cyclomatic > 15) | {name, file, cyclomatic, nesting_depth}]'
+$ cat baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 15) | {name: .name, file: .file, cyclomatic: .complexity.cyclomatic, nesting_depth: .complexity.nesting_depth}]'
 [
   {"name": "processComplexOrder", "file": "order.go", "cyclomatic": 22, "nesting_depth": 5},
   {"name": "handleConcurrentUpdate", "file": "sync.go", "cyclomatic": 18, "nesting_depth": 4},

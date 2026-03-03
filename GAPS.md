@@ -79,13 +79,13 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 2. **Cross-Reference Each Documented Feature:**
    ```bash
    # Verify function-level features
-   cat gap-baseline.json | jq '.functions[] | {name, file, lines, complexity, documented}'
+   cat gap-baseline.json | jq '.functions[] | {name, file, lines_code: .lines.code, complexity_overall: .complexity.overall, documented: .documentation.has_comment}'
 
    # Verify struct-level features
    cat gap-baseline.json | jq '.structs[] | {name, file, members, methods, embedded_types}'
 
    # Verify package-level features
-   cat gap-baseline.json | jq '.packages[] | {name, dependencies, cohesion, coupling}'
+   cat gap-baseline.json | jq '.packages[] | {name, dependencies, cohesion_score, coupling_score}'
 
    # Verify interface-level features
    cat gap-baseline.json | jq '.interfaces[] | {name, implementations, embedding_depth}'
@@ -114,7 +114,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
    cat gap-baseline.json | jq '.functions[] | select(.name == "targetFunction")'
 
    # Extract documentation coverage for specific packages
-   cat gap-baseline.json | jq '.documentation | {coverage, undocumented_exports}'
+   cat gap-baseline.json | jq '.documentation | {coverage_overall: .coverage.overall, undocumented_exports}'
    ```
    - Exact README.md quote with line number
    - Corresponding `go-stats-generator` JSON output (or absence thereof)
@@ -254,7 +254,7 @@ $ cat gap-baseline.json | jq '.functions[] | select(.name | test("pattern|detect
 # No matching functions found — potential phantom feature
 
 $ # Cross-reference: README documents --min-doc-coverage default of 0.7
-$ go-stats-generator analyze . --skip-tests --format json | jq '.documentation.coverage'
+$ go-stats-generator analyze . --skip-tests --format json | jq '.documentation.coverage.overall'
 0.723
 
 $ # Verified: documentation coverage metric exists and reports 72.3%
