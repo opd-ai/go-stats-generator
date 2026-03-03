@@ -710,42 +710,120 @@ func displayNamingViolationsTrend(burdenTrends map[string]interface{}) {
 // outputForecastsConsole displays metric forecasts in human-readable console format.
 func outputForecastsConsole(forecasts map[string]interface{}) {
 	fmt.Println("=== METRIC FORECASTS ===")
+	fmt.Println()
+	printForecastHeader(forecasts)
+	printTrendStatistics(forecasts)
+	printForecastValues(forecasts)
+	fmt.Println()
+}
 
-	// Display placeholder notice prominently
-	if notice, ok := forecasts["placeholder_notice"].(string); ok {
-		fmt.Println()
-		fmt.Println(notice)
-		fmt.Println()
-	}
-
-	fmt.Printf("Method: %v\n", forecasts["method"])
-
+func printForecastHeader(forecasts map[string]interface{}) {
 	if metric := forecasts["metric"]; metric != nil && metric != "" {
 		fmt.Printf("Metric: %v\n", metric)
 	}
-
 	if entity := forecasts["entity"]; entity != nil && entity != "" {
 		fmt.Printf("Entity: %v\n", entity)
 	}
-
-	fmt.Printf("Confidence: %.1f%%\n", forecasts["confidence"])
+	fmt.Printf("Method: %v\n", forecasts["method"])
+	fmt.Printf("Data Points: %v\n", forecasts["data_points"])
 	fmt.Println()
+}
+
+func printTrendStatistics(forecasts map[string]interface{}) {
+	trendStats, ok := forecasts["trend_statistics"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	fmt.Println("Trend Line:")
+	fmt.Printf("  y = %.4f·x + %.4f\n", trendStats["slope"], trendStats["intercept"])
+	fmt.Printf("  R² = %.4f", trendStats["r_squared"])
+
+	if r2, ok := trendStats["r_squared"].(float64); ok {
+		printReliabilityIndicator(r2)
+	}
+	fmt.Println()
+	fmt.Println()
+}
+
+func printReliabilityIndicator(r2 float64) {
+	if r2 >= 0.8 {
+		fmt.Print(" (excellent fit) ✓")
+	} else if r2 >= 0.5 {
+		fmt.Print(" (moderate fit)")
+	} else {
+		fmt.Print(" (poor fit) ⚠")
+	}
+}
+
+func printForecastValues(forecasts map[string]interface{}) {
+	forecastsList, ok := forecasts["forecasts"].([]map[string]interface{})
+	if !ok {
+		return
+	}
+
+	fmt.Println("Forecasts:")
+	for _, fc := range forecastsList {
+		fmt.Printf("  %2d days (%v): %.2f  [%.2f - %.2f]\n",
+			fc["horizon_days"], fc["date"], fc["value"],
+			fc["lower_bound"], fc["upper_bound"])
+
+		if warning, ok := fc["warning"].(string); ok && warning != "" {
+			fmt.Printf("           ⚠  %s\n", warning)
+		}
+	}
 }
 
 // outputRegressionsConsole displays detected regressions in human-readable console format.
 func outputRegressionsConsole(regressions map[string]interface{}) {
 	fmt.Println("=== REGRESSION DETECTION ===")
+	fmt.Println()
+	printRegressionHeader(regressions)
+	printRegressionList(regressions)
+	fmt.Println()
+}
 
-	// Display placeholder notice prominently
-	if notice, ok := regressions["placeholder_notice"].(string); ok {
-		fmt.Println()
-		fmt.Println(notice)
-		fmt.Println()
-	}
-
+func printRegressionHeader(regressions map[string]interface{}) {
 	fmt.Printf("Threshold: %.1f%%\n", regressions["threshold"])
 	fmt.Printf("Historical snapshots: %v\n", regressions["historical_count"])
 	fmt.Printf("Recent snapshots: %v\n", regressions["recent_count"])
-	fmt.Printf("Severity: %v\n", regressions["severity"])
+	fmt.Printf("Overall Severity: %v\n", regressions["severity"])
 	fmt.Println()
+}
+
+func printRegressionList(regressions map[string]interface{}) {
+	regList, ok := regressions["regressions"].([]map[string]interface{})
+	if !ok {
+		return
+	}
+
+	if len(regList) == 0 {
+		fmt.Println("No significant regressions detected ✓")
+		return
+	}
+
+	fmt.Printf("Detected %d regression(s):\n\n", len(regList))
+	for i, reg := range regList {
+		printRegressionItem(i+1, reg)
+	}
+}
+
+func printRegressionItem(index int, reg map[string]interface{}) {
+	indicator := getRegressionIndicator(reg["classification"])
+	fmt.Printf("%d. [%s] %s %s\n", index, reg["severity"], indicator, reg["metric"])
+	fmt.Printf("   Current: %.2f  |  Expected: %.2f  |  Deviation: %.1f%%\n",
+		reg["current_value"], reg["expected_value"], reg["percent_deviation"])
+	fmt.Printf("   P-value: %.4f\n", reg["p_value"])
+	fmt.Println()
+}
+
+func getRegressionIndicator(classification interface{}) string {
+	switch classification {
+	case "regression":
+		return "▼"
+	case "improvement":
+		return "▲"
+	default:
+		return "→"
+	}
 }

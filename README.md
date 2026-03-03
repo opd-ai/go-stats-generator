@@ -99,11 +99,10 @@ go-stats-generator diff baseline-report.json current-report.json
 # List all baselines
 go-stats-generator baseline list
 
-# Note: Trend commands are in BETA with basic functionality
-# Advanced statistical analysis and forecasting coming in future release
-go-stats-generator trend analyze --days 30    # Basic trend overview
-go-stats-generator trend forecast             # Placeholder - full implementation planned
-go-stats-generator trend regressions --threshold 10.0  # Basic structure only
+# Trend analysis with statistical forecasting
+go-stats-generator trend analyze --days 30            # Analyze trends over 30 days
+go-stats-generator trend forecast --days 30           # Forecast using linear regression
+go-stats-generator trend regressions --threshold 10.0 # Detect statistical regressions
 ```
 
 ## Usage
@@ -174,6 +173,127 @@ When `--enforce-thresholds` is enabled, the tool exits with code 1 if any thresh
       --min-doc-coverage 0.7 \
       --enforce-thresholds
 ```
+
+### Trend Analysis
+
+The `trend` command provides statistical analysis of code metrics over time using historical baseline snapshots.
+
+#### Prerequisites
+
+Trend analysis requires historical data. Create baseline snapshots periodically:
+
+```bash
+# Create initial baseline
+go-stats-generator baseline create --name "sprint-1" --tags "release-1.0.0"
+
+# Update baselines regularly (e.g., after each sprint or release)
+go-stats-generator baseline create --name "sprint-2" --tags "release-1.1.0"
+```
+
+#### Analyze Trends
+
+View how metrics have changed over time:
+
+```bash
+# Analyze trends over the last 30 days
+go-stats-generator trend analyze --days 30
+
+# Analyze specific metric
+go-stats-generator trend analyze --days 30 --metric mbi_score
+
+# JSON output for programmatic analysis
+go-stats-generator trend analyze --days 30 --format json --output trend-report.json
+```
+
+Example output:
+```
+=== TREND ANALYSIS ===
+Period: Last 30 days (15 snapshots)
+
+MBI Score: 45.2 → 38.7 (▼ 14.4% improvement)
+Duplication: 8.5% → 6.2% (▼ 27.1% improvement)
+Documentation: 68.3% → 72.1% (▲ 5.6% improvement)
+Complexity Violations: 23 → 18 (▼ 21.7% improvement)
+```
+
+#### Forecast Future Metrics
+
+Generate statistical forecasts using linear regression:
+
+```bash
+# Forecast metrics for 7, 14, and 30 days ahead
+go-stats-generator trend forecast --days 30
+
+# Focus on specific metric
+go-stats-generator trend forecast --days 30 --metric duplication_ratio
+```
+
+Example output:
+```
+=== METRIC FORECASTS ===
+
+Metric: mbi_score
+Method: linear_regression
+Data Points: 15
+
+Trend Line:
+  y = -0.2134·x + 45.6721
+  R² = 0.8456 (excellent fit) ✓
+
+Forecasts:
+   7 days (2026-03-10): 44.18  [42.34 - 46.02]
+  14 days (2026-03-17): 42.69  [40.21 - 45.17]
+  30 days (2026-04-02): 39.26  [35.18 - 43.34]
+```
+
+The R² value indicates forecast reliability:
+- **≥0.8**: Excellent fit - high confidence in predictions
+- **0.5-0.8**: Moderate fit - reasonable predictions with wider confidence intervals
+- **<0.5**: Poor fit - unreliable forecast (warning displayed)
+
+#### Detect Regressions
+
+Identify significant deviations from historical trends:
+
+```bash
+# Detect regressions with 10% threshold
+go-stats-generator trend regressions --threshold 10.0 --days 30
+
+# Stricter detection (5% threshold)
+go-stats-generator trend regressions --threshold 5.0 --days 30
+```
+
+Example output:
+```
+=== REGRESSION DETECTION ===
+
+Threshold: 10.0%
+Historical snapshots: 12
+Recent snapshots: 3
+Overall Severity: medium
+
+Detected 2 regression(s):
+
+1. [medium] ▼ duplication_ratio
+   Current: 9.45  |  Expected: 7.82  |  Deviation: 20.8%
+   P-value: 0.0234
+
+2. [low] ▼ doc_coverage
+   Current: 69.2  |  Expected: 72.1  |  Deviation: 4.0%
+   P-value: 0.1456
+
+```
+
+Indicators:
+- **▼** Regression (metric worsened)
+- **▲** Improvement (metric improved)
+- **→** Stable (no significant change)
+
+Severity levels based on deviation:
+- **critical**: >25% deviation from expected
+- **high**: 15-25% deviation
+- **medium**: 10-15% deviation
+- **low**: <10% deviation
 
 ### Example Output
 
@@ -445,12 +565,12 @@ func main() {
 
 The following features are under development and will be included in future releases:
 
-### Statistical Trend Analysis (Roadmap)
-- **Linear regression** for trend lines across metric history
-- **ARIMA/exponential smoothing** for time series forecasting
-- **Statistical hypothesis testing** for regression detection
-- **Confidence interval calculations** for forecast reliability
-- **Correlation analysis** between different metrics
+### Statistical Trend Analysis
+- ✅ **Linear regression** for trend lines across metric history (implemented)
+- ✅ **Statistical hypothesis testing** for regression detection (implemented)
+- ✅ **Confidence interval calculations** for forecast reliability (implemented)
+- **ARIMA/exponential smoothing** for advanced time series forecasting (roadmap)
+- **Correlation analysis** between different metrics (roadmap)
 
 ### Advanced Maintenance Detection
 See [ROADMAP.md](ROADMAP.md) for detailed implementation plans for:
