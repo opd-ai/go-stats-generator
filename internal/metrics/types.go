@@ -20,6 +20,7 @@ type Report struct {
 	Naming        NamingMetrics        `json:"naming"`
 	Placement     PlacementMetrics     `json:"placement"`
 	Organization  OrganizationMetrics  `json:"organization"`
+	Burden        BurdenMetrics        `json:"burden"`
 }
 
 // ReportMetadata contains information about the analysis run
@@ -1004,4 +1005,85 @@ func DefaultChangeGranularity() ChangeGranularity {
 	granularity.Package.Documentation = true
 
 	return granularity
+}
+
+// BurdenMetrics contains maintenance burden indicators
+type BurdenMetrics struct {
+	MagicNumbers          []MagicNumber      `json:"magic_numbers"`
+	DeadCode              DeadCodeMetrics    `json:"dead_code"`
+	ComplexSignatures     []SignatureIssue   `json:"complex_signatures"`
+	DeeplyNestedFunctions []NestingIssue     `json:"deeply_nested_functions"`
+	FeatureEnvyMethods    []FeatureEnvyIssue `json:"feature_envy_methods"`
+}
+
+// MagicNumber represents a detected magic number or string
+type MagicNumber struct {
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+	Column   int    `json:"column"`
+	Value    string `json:"value"`
+	Type     string `json:"type"`
+	Context  string `json:"context"`
+	Function string `json:"function"`
+}
+
+// DeadCodeMetrics contains dead code detection results
+type DeadCodeMetrics struct {
+	UnreferencedFunctions []UnreferencedSymbol `json:"unreferenced_functions"`
+	UnreachableCode       []UnreachableBlock   `json:"unreachable_code"`
+	TotalDeadLines        int                  `json:"total_dead_lines"`
+	DeadCodePercent       float64              `json:"dead_code_percent"`
+}
+
+// UnreferencedSymbol represents an unreferenced unexported symbol
+type UnreferencedSymbol struct {
+	Name    string `json:"name"`
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Type    string `json:"type"`
+	Package string `json:"package"`
+}
+
+// UnreachableBlock represents unreachable code after control flow statements
+type UnreachableBlock struct {
+	File      string `json:"file"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
+	Function  string `json:"function"`
+	Reason    string `json:"reason"`
+	Lines     int    `json:"lines"`
+}
+
+// SignatureIssue represents a function with excessive parameters or returns
+type SignatureIssue struct {
+	Function       string   `json:"function"`
+	File           string   `json:"file"`
+	Line           int      `json:"line"`
+	ParameterCount int      `json:"parameter_count"`
+	ReturnCount    int      `json:"return_count"`
+	BoolParams     []string `json:"bool_params,omitempty"`
+	Severity       string   `json:"severity"`
+}
+
+// NestingIssue represents deep nesting in a function
+type NestingIssue struct {
+	Function   string `json:"function"`
+	File       string `json:"file"`
+	Line       int    `json:"line"`
+	MaxDepth   int    `json:"max_depth"`
+	Location   string `json:"location"`
+	Suggestion string `json:"suggestion"`
+}
+
+// FeatureEnvyIssue represents a method with excessive external references
+type FeatureEnvyIssue struct {
+	Method         string  `json:"method"`
+	File           string  `json:"file"`
+	Line           int     `json:"line"`
+	ReceiverType   string  `json:"receiver_type"`
+	SelfReferences int     `json:"self_references"`
+	ExternalType   string  `json:"external_type"`
+	ExternalRefs   int     `json:"external_references"`
+	Ratio          float64 `json:"ratio"`
+	SuggestedMove  string  `json:"suggested_move"`
 }
