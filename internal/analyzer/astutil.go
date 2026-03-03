@@ -6,7 +6,7 @@ import (
 )
 
 // CollectFunctions extracts all function declarations from an AST file.
-// It traverses the entire AST tree and returns a slice of FuncDecl pointers.
+// CollectFunctions traverses the entire AST tree and returns a slice of FuncDecl pointers.
 func CollectFunctions(file *ast.File) []*ast.FuncDecl {
 	var funcs []*ast.FuncDecl
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -19,7 +19,7 @@ func CollectFunctions(file *ast.File) []*ast.FuncDecl {
 }
 
 // CollectTypes extracts all type declarations from an AST file.
-// It inspects GenDecl nodes with TYPE token and returns all TypeSpec found.
+// CollectTypes inspects GenDecl nodes with TYPE token and returns all TypeSpec found.
 func CollectTypes(file *ast.File) []*ast.TypeSpec {
 	var types []*ast.TypeSpec
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -36,7 +36,7 @@ func CollectTypes(file *ast.File) []*ast.TypeSpec {
 }
 
 // ExtractReceiverType extracts the type name from a receiver expression.
-// It handles pointer receivers, generic types, and simple identifiers.
+// ExtractReceiverType handles pointer receivers, generic types, and simple identifiers.
 func ExtractReceiverType(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:
@@ -67,7 +67,7 @@ func GetMethodReceiverType(fn *ast.FuncDecl) string {
 }
 
 // CountNodes counts the number of AST nodes in a statement list.
-// It recursively inspects each statement and counts all non-nil nodes.
+// CountNodes recursively inspects each statement and counts all non-nil nodes.
 func CountNodes(stmts []ast.Stmt) int {
 	count := 0
 	for _, stmt := range stmts {

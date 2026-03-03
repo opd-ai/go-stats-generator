@@ -14,15 +14,15 @@ type ConcurrencyAnalyzer struct {
 }
 
 // NewConcurrencyAnalyzer creates a new concurrency analyzer for detecting
-// goroutine patterns, channels, and synchronization primitives in Go code.
+// NewConcurrencyAnalyzer identifies goroutine patterns, channels, and synchronization primitives in Go code.
 func NewConcurrencyAnalyzer(fset *token.FileSet) *ConcurrencyAnalyzer {
 	return &ConcurrencyAnalyzer{
 		fset: fset,
 	}
 }
 
-// AnalyzeConcurrency analyzes concurrency patterns in an AST file including
-// worker pools, pipelines, fan-out/fan-in, semaphores, and sync primitives.
+// AnalyzeConcurrency analyzes concurrency patterns in an AST file.
+// AnalyzeConcurrency identifies worker pools, pipelines, fan-out/fan-in, semaphores, and sync primitives.
 func (ca *ConcurrencyAnalyzer) AnalyzeConcurrency(file *ast.File, pkgName string) (metrics.ConcurrencyPatternMetrics, error) {
 	concurrency := metrics.ConcurrencyPatternMetrics{
 		WorkerPools: []metrics.PatternInstance{},

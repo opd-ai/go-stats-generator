@@ -25,7 +25,7 @@ var ValidSections = map[string]bool{
 }
 
 // FilterReportSections zeros out report sections that are not in the requested set.
-// If sections is empty, the report is returned unchanged.
+// FilterReportSections returns the report unchanged if sections is empty.
 func FilterReportSections(report *Report, sections []string) {
 	if len(sections) == 0 {
 		return

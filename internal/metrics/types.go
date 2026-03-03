@@ -247,7 +247,7 @@ type GoroutineMetrics struct {
 }
 
 // ChannelMetrics tracks channel usage patterns including buffered, unbuffered,
-// and directional channel counts along with detailed instance information.
+// ChannelMetrics includes directional channel counts along with detailed instance information.
 type ChannelMetrics struct {
 	TotalCount       int               `json:"total_count"`
 	BufferedCount    int               `json:"buffered_count"`
@@ -370,7 +370,7 @@ type DocumentationMetrics struct {
 }
 
 // DocumentationCoverage tracks GoDoc coverage percentages for packages,
-// functions, types, and methods, plus an overall weighted coverage score.
+// DocumentationCoverage includes functions, types, and methods, plus an overall weighted coverage score.
 type DocumentationCoverage struct {
 	Packages  float64 `json:"packages"`
 	Functions float64 `json:"functions"`
@@ -779,6 +779,7 @@ type Improvement struct {
 
 // Enum types for classification
 
+// ChangeDirection represents the direction of a metric change between snapshots.
 type ChangeDirection string
 
 const (
@@ -787,6 +788,7 @@ const (
 	ChangeDirectionNeutral  ChangeDirection = "neutral"
 )
 
+// ChangeMagnitude represents the relative size of a metric change.
 type ChangeMagnitude string
 
 const (
@@ -797,6 +799,7 @@ const (
 	ChangeMagnitudeCritical    ChangeMagnitude = "critical"
 )
 
+// ImpactLevel represents the potential impact severity of a change or issue.
 type ImpactLevel string
 
 const (
@@ -806,6 +809,7 @@ const (
 	ImpactLevelCritical ImpactLevel = "critical"
 )
 
+// SeverityLevel represents the severity classification for issues and warnings.
 type SeverityLevel string
 
 const (
@@ -815,6 +819,7 @@ const (
 	SeverityLevelCritical SeverityLevel = "critical"
 )
 
+// TrendDirection represents the overall direction of a metric trend over time.
 type TrendDirection string
 
 const (
@@ -824,6 +829,7 @@ const (
 	TrendVolatile  TrendDirection = "volatile"
 )
 
+// RegressionType categorizes the type of code quality regression detected.
 type RegressionType string
 
 const (
@@ -840,6 +846,7 @@ const (
 	NamingRegression        RegressionType = "naming_violations_increase"
 )
 
+// ImprovementType categorizes the type of code quality improvement detected.
 type ImprovementType string
 
 const (

@@ -11,8 +11,8 @@ import (
 )
 
 // PackageAnalyzer analyzes package-level metrics including dependencies,
-// cohesion, coupling, and circular dependency detection.
-// It provides architectural insights for large Go codebases.
+// PackageAnalyzer computes cohesion, coupling, and circular dependency detection.
+// PackageAnalyzer provides architectural insights for large Go codebases.
 type PackageAnalyzer struct {
 	fset             *token.FileSet
 	packageDeps      map[string][]string // package -> imported packages
@@ -23,7 +23,7 @@ type PackageAnalyzer struct {
 }
 
 // NewPackageAnalyzer creates a new package analyzer for tracking dependencies,
-// cohesion, coupling, and circular dependency detection across packages.
+// NewPackageAnalyzer supports cohesion, coupling, and circular dependency detection across packages.
 func NewPackageAnalyzer(fset *token.FileSet) *PackageAnalyzer {
 	return &PackageAnalyzer{
 		fset:             fset,
@@ -36,7 +36,7 @@ func NewPackageAnalyzer(fset *token.FileSet) *PackageAnalyzer {
 }
 
 // AnalyzePackage analyzes a single package file and collects dependency,
-// function count, and type count metrics for cohesion and coupling analysis.
+// AnalyzePackage gathers function count and type count metrics for cohesion and coupling analysis.
 func (pa *PackageAnalyzer) AnalyzePackage(file *ast.File, filePath string) error {
 	if file.Name == nil {
 		return fmt.Errorf("file has no package name: %s", filePath)
@@ -92,7 +92,7 @@ func (pa *PackageAnalyzer) AnalyzePackage(file *ast.File, filePath string) error
 }
 
 // GenerateReport generates comprehensive package metrics report including
-// cohesion, coupling, and dependency analysis for all analyzed packages.
+// GenerateReport computes cohesion, coupling, and dependency analysis for all analyzed packages.
 func (pa *PackageAnalyzer) GenerateReport() (*metrics.PackageReport, error) {
 	packages := make([]metrics.PackageMetrics, 0, len(pa.packageFiles))
 

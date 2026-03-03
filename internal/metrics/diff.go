@@ -770,8 +770,8 @@ func extractFunctionName(path string) string {
 	return ""
 }
 
-// DetectBurdenRegressions analyzes burden metrics and generates regression alerts
-// when MBI, duplication, or naming violations exceed configurable thresholds.
+// DetectBurdenRegressions analyzes burden metrics and generates regression alerts.
+// DetectBurdenRegressions fires when MBI, duplication, or naming violations exceed configurable thresholds.
 func DetectBurdenRegressions(baseline, current Report, config ThresholdConfig) []Regression {
 	var regressions []Regression
 

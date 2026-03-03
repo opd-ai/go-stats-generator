@@ -41,7 +41,7 @@ Performance:
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// It is called by main.main() and only needs to happen once to the rootCmd.
+// Execute is called by main.main() and only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 )
 
 // JSONReporter generates JSON formatted output for analysis reports and diffs.
-// It implements the Reporter interface and produces properly indented JSON.
+// JSONReporter implements the Reporter interface and produces properly indented JSON.
 type JSONReporter struct {
 	indent bool
 }

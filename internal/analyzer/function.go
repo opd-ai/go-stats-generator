@@ -15,7 +15,7 @@ type FunctionAnalyzer struct {
 }
 
 // NewFunctionAnalyzer creates a new function analyzer for computing metrics
-// on function declarations including complexity, size, and signature analysis.
+// NewFunctionAnalyzer analyzes function declarations including complexity, size, and signature analysis.
 func NewFunctionAnalyzer(fset *token.FileSet) *FunctionAnalyzer {
 	return &FunctionAnalyzer{
 		fset: fset,
@@ -28,7 +28,7 @@ func (fa *FunctionAnalyzer) AnalyzeFunctions(file *ast.File, pkgName string) ([]
 }
 
 // AnalyzeFunctionsWithPath analyzes all functions in an AST file with explicit
-// file path for accurate file location reporting in the metrics output.
+// AnalyzeFunctionsWithPath uses the file path for accurate file location reporting in the metrics output.
 func (fa *FunctionAnalyzer) AnalyzeFunctionsWithPath(file *ast.File, pkgName, filePath string) ([]metrics.FunctionMetrics, error) {
 	var functions []metrics.FunctionMetrics
 

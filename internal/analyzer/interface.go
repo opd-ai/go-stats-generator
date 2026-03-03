@@ -9,9 +9,10 @@ import (
 )
 
 // InterfaceAnalyzer analyzes interface declarations in Go source code
-// It analyzes method signatures, embedded interfaces, implementation tracking,
+// InterfaceAnalyzer provides comprehensive interface analysis capabilities.
+// InterfaceAnalyzer analyzes method signatures, embedded interfaces, implementation tracking,
 // and calculates complexity metrics to understand interface design patterns and usage.
-// Enhanced version supports cross-file analysis, generic types, and advanced metrics.
+// InterfaceAnalyzer supports cross-file analysis, generic types, and advanced metrics.
 type InterfaceAnalyzer struct {
 	fset *token.FileSet
 	// Cross-file implementation tracking
@@ -24,7 +25,7 @@ type InterfaceAnalyzer struct {
 }
 
 // NewInterfaceAnalyzer creates a new enhanced interface analyzer for detecting
-// implementations, embedding depth, and cross-file interface relationships.
+// NewInterfaceAnalyzer supports implementations, embedding depth, and cross-file interface relationships.
 func NewInterfaceAnalyzer(fset *token.FileSet) *InterfaceAnalyzer {
 	return &InterfaceAnalyzer{
 		fset:                 fset,

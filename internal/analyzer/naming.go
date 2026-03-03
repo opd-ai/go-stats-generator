@@ -33,7 +33,7 @@ type identifierContext struct {
 }
 
 // NewNamingAnalyzer creates a new naming analyzer for detecting file name,
-// identifier, and package name convention violations in Go code.
+// NewNamingAnalyzer identifies identifier and package name convention violations in Go code.
 func NewNamingAnalyzer() *NamingAnalyzer {
 	return &NamingAnalyzer{
 		genericFileNames: map[string]bool{

@@ -15,7 +15,7 @@ type OrganizationAnalyzer struct {
 }
 
 // NewOrganizationAnalyzer creates a new organization analyzer for evaluating
-// file sizes, package structure, and directory depth against thresholds.
+// NewOrganizationAnalyzer analyzes file sizes, package structure, and directory depth against thresholds.
 func NewOrganizationAnalyzer(fset *token.FileSet) *OrganizationAnalyzer {
 	return &OrganizationAnalyzer{
 		fset: fset,
@@ -34,7 +34,7 @@ type OrganizationConfig struct {
 }
 
 // DefaultOrganizationConfig returns default configuration values for organization
-// analysis thresholds including file lines, functions, and package limits.
+// DefaultOrganizationConfig sets analysis thresholds including file lines, functions, and package limits.
 func DefaultOrganizationConfig() OrganizationConfig {
 	return OrganizationConfig{
 		MaxFileLines:       500,
@@ -48,7 +48,7 @@ func DefaultOrganizationConfig() OrganizationConfig {
 }
 
 // AnalyzeFileSizes analyzes file sizes and complexity against configured limits.
-// Returns nil if the file is within acceptable thresholds.
+// AnalyzeFileSizes returns nil if the file is within acceptable thresholds.
 func (oa *OrganizationAnalyzer) AnalyzeFileSizes(file *ast.File, filePath string, config OrganizationConfig) (*metrics.OversizedFile, error) {
 	lines := oa.countFileLines(filePath)
 	funcCount := oa.countFunctions(file)
@@ -238,7 +238,7 @@ func (oa *OrganizationAnalyzer) getSuggestions(lines metrics.LineMetrics, funcCo
 }
 
 // PackageInfo holds aggregated package data for organization analysis.
-// It tracks the package name, associated files, exported symbol count,
+// PackageInfo tracks the package name, associated files, exported symbol count,
 // total functions, and cohesion score used in package size analysis.
 type PackageInfo struct {
 	Name            string
@@ -249,7 +249,7 @@ type PackageInfo struct {
 }
 
 // AnalyzePackageSizes analyzes package size metrics against configured limits.
-// Returns a list of packages exceeding thresholds or exhibiting mega-package signs.
+// AnalyzePackageSizes returns a list of packages exceeding thresholds or exhibiting mega-package signs.
 func (oa *OrganizationAnalyzer) AnalyzePackageSizes(pkgs map[string]*PackageInfo, config OrganizationConfig) []metrics.OversizedPackage {
 	var results []metrics.OversizedPackage
 
@@ -328,7 +328,7 @@ func (oa *OrganizationAnalyzer) getPackageSuggestions(pkg *PackageInfo, config O
 }
 
 // AnalyzeDirectoryDepth analyzes directory nesting depth against threshold.
-// Returns directories exceeding the maximum allowed depth with file counts.
+// AnalyzeDirectoryDepth returns directories exceeding the maximum allowed depth with file counts.
 func (oa *OrganizationAnalyzer) AnalyzeDirectoryDepth(paths []string, rootPath string, config OrganizationConfig) []metrics.DeepDirectory {
 	depthMap := make(map[string]*directoryStats)
 
@@ -422,7 +422,7 @@ type ImportGraphData struct {
 }
 
 // AnalyzeImportGraph analyzes import relationships and identifies problematic
-// patterns such as excessive imports, high fan-in/fan-out, and instability.
+// AnalyzeImportGraph detects patterns such as excessive imports, high fan-in/fan-out, and instability.
 func (oa *OrganizationAnalyzer) AnalyzeImportGraph(graphData *ImportGraphData, config OrganizationConfig) (*ImportGraphMetrics, error) {
 	if graphData == nil {
 		return nil, nil

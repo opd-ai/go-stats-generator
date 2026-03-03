@@ -13,7 +13,7 @@ type BurdenAnalyzer struct {
 }
 
 // NewBurdenAnalyzer creates a new maintenance burden analyzer for detecting
-// code smells like magic numbers, dead code, deep nesting, and feature envy.
+// NewBurdenAnalyzer identifies code smells like magic numbers, dead code, deep nesting, and feature envy.
 func NewBurdenAnalyzer(fset *token.FileSet) *BurdenAnalyzer {
 	return &BurdenAnalyzer{
 		fset: fset,
@@ -25,8 +25,8 @@ func (ba *BurdenAnalyzer) FileSet() *token.FileSet {
 	return ba.fset
 }
 
-// DetectMagicNumbers identifies numeric and string literals used as magic numbers
-// Excludes benign values: 0, 1, -1, and empty strings
+// DetectMagicNumbers identifies numeric and string literals used as magic numbers.
+// DetectMagicNumbers excludes benign values: 0, 1, -1, and empty strings.
 func (ba *BurdenAnalyzer) DetectMagicNumbers(file *ast.File, pkg string) []metrics.MagicNumber {
 	var magicNumbers []metrics.MagicNumber
 	var currentFunc string
@@ -167,8 +167,8 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 	return found
 }
 
-// DetectDeadCode identifies unreferenced unexported symbols and unreachable code
-// paths within the package, returning detailed metrics about dead code locations.
+// DetectDeadCode identifies unreferenced unexported symbols and unreachable code.
+// DetectDeadCode returns detailed metrics about dead code locations within the package.
 func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
 	// Build symbol references across all files in package
 	refs := ba.buildReferenceMap(files)
@@ -486,7 +486,7 @@ func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, 
 }
 
 // DetectDeepNesting identifies functions exceeding the nesting depth threshold.
-// It returns nil if the function does not exceed the maximum allowed nesting.
+// DetectDeepNesting returns nil if the function does not exceed the maximum allowed nesting.
 func (ba *BurdenAnalyzer) DetectDeepNesting(fn *ast.FuncDecl, maxNesting int) *metrics.NestingIssue {
 	if fn == nil || fn.Body == nil {
 		return nil
@@ -592,8 +592,8 @@ func (ba *BurdenAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int, m
 	}
 }
 
-// DetectFeatureEnvy identifies methods with excessive external type references
-// compared to references to their own receiver type, suggesting misplaced logic.
+// DetectFeatureEnvy identifies methods with excessive external type references.
+// DetectFeatureEnvy compares references to receiver type versus external types, suggesting misplaced logic.
 func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ratio float64) *metrics.FeatureEnvyIssue {
 	if fn == nil || fn.Body == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return nil

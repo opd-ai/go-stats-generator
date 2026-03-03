@@ -10,8 +10,8 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
-// MemoryStorage implements MetricsStorage using in-memory data structures
-// Ideal for temporary analysis runs, CI/CD pipelines, and testing
+// MemoryStorage implements MetricsStorage using in-memory data structures.
+// MemoryStorage is ideal for temporary analysis runs, CI/CD pipelines, and testing.
 type MemoryStorage struct {
 	mu        sync.RWMutex
 	snapshots map[string]*storedSnapshot

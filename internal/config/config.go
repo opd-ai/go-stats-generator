@@ -15,7 +15,7 @@ type Config struct {
 }
 
 // AnalysisConfig controls what gets analyzed and defines threshold limits
-// for warnings. It includes settings for functions, structs, interfaces,
+// AnalysisConfig includes settings for functions, structs, interfaces,
 // patterns, complexity, documentation, and generics analysis.
 type AnalysisConfig struct {
 	IncludeFunctions     bool `mapstructure:"include_functions" json:"include_functions"`
@@ -122,7 +122,7 @@ type BurdenConfig struct {
 }
 
 // OutputConfig controls output formatting options including format type,
-// destination file, console display settings, and report content filtering.
+// OutputConfig sets destination file, console display settings, and report content filtering.
 type OutputConfig struct {
 	Format      OutputFormat `mapstructure:"format" json:"format"`
 	Destination string       `mapstructure:"destination" json:"destination"`
@@ -193,7 +193,7 @@ type StorageConfig struct {
 }
 
 // DefaultConfig returns the default configuration with sensible production values
-// for analysis, output, performance, filtering, and storage settings.
+// DefaultConfig sets analysis, output, performance, filtering, and storage settings.
 func DefaultConfig() *Config {
 	return &Config{
 		Analysis: AnalysisConfig{

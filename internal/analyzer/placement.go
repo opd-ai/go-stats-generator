@@ -37,7 +37,7 @@ type methodInfo struct {
 }
 
 // NewPlacementAnalyzer creates a new placement analyzer with configurable
-// affinity margin and minimum cohesion thresholds for misplacement detection.
+// NewPlacementAnalyzer uses affinity margin and minimum cohesion thresholds for misplacement detection.
 func NewPlacementAnalyzer(affinityMargin, minCohesion float64) *PlacementAnalyzer {
 	return &PlacementAnalyzer{
 		symbolDefs:     make(map[string]string),
@@ -52,7 +52,7 @@ func NewPlacementAnalyzer(affinityMargin, minCohesion float64) *PlacementAnalyze
 }
 
 // Analyze performs comprehensive placement analysis including function affinity,
-// method placement, and file cohesion metrics for all provided AST files.
+// Analyze returns method placement and file cohesion metrics for all provided AST files.
 func (pa *PlacementAnalyzer) Analyze(files []*ast.File, fset *token.FileSet) metrics.PlacementMetrics {
 	pa.fset = fset
 	pa.buildSymbolIndex(files, fset)
@@ -209,7 +209,7 @@ func (pa *PlacementAnalyzer) recordSymbolRef(symbol, file string) {
 }
 
 // AnalyzeFunctionAffinity identifies functions that may be misplaced based on
-// reference patterns, suggesting files where a function would have higher affinity.
+// AnalyzeFunctionAffinity suggests files where a function would have higher affinity based on reference patterns.
 func (pa *PlacementAnalyzer) AnalyzeFunctionAffinity() []metrics.MisplacedFunctionIssue {
 	var issues []metrics.MisplacedFunctionIssue
 
@@ -314,7 +314,7 @@ func (pa *PlacementAnalyzer) AnalyzeMethodPlacement() []metrics.MisplacedMethodI
 }
 
 // AnalyzeFileCohesion identifies files with low internal cohesion based on
-// the ratio of internal symbol references versus external references.
+// AnalyzeFileCohesion measures the ratio of internal symbol references versus external references.
 func (pa *PlacementAnalyzer) AnalyzeFileCohesion() []metrics.FileCohesionIssue {
 	var issues []metrics.FileCohesionIssue
 

@@ -8,7 +8,7 @@ import (
 )
 
 // ActionType represents the type of refactoring action suggested.
-// Each action type corresponds to a specific code improvement strategy
+// ActionType corresponds to a specific code improvement strategy
 // that can be applied to reduce maintenance burden.
 type ActionType string
 
@@ -28,7 +28,7 @@ const (
 )
 
 // EffortLevel represents estimated implementation effort.
-// Effort classification helps prioritize suggestions based on
+// EffortLevel classification helps prioritize suggestions based on
 // available time and resources.
 type EffortLevel string
 
@@ -42,7 +42,7 @@ const (
 )
 
 // RefactoringSuggestion represents an actionable code improvement.
-// Each suggestion includes impact estimates, effort classification,
+// RefactoringSuggestion includes impact estimates, effort classification,
 // and prioritization metrics to help developers make informed decisions
 // about which technical debt to address first.
 type RefactoringSuggestion struct {
@@ -58,14 +58,14 @@ type RefactoringSuggestion struct {
 }
 
 // SuggestionGenerator creates prioritized refactoring suggestions.
-// It analyzes metrics reports and generates actionable recommendations
+// SuggestionGenerator analyzes metrics reports and generates actionable recommendations
 // sorted by impact-to-effort ratio to maximize return on investment.
 type SuggestionGenerator struct {
 	scorer *ScoringAnalyzer
 }
 
 // NewSuggestionGenerator creates a new suggestion generator.
-// The generator uses the provided scorer to estimate MBI impact
+// NewSuggestionGenerator uses the provided scorer to estimate MBI impact
 // for each suggestion.
 func NewSuggestionGenerator(scorer *ScoringAnalyzer) *SuggestionGenerator {
 	return &SuggestionGenerator{
@@ -74,11 +74,11 @@ func NewSuggestionGenerator(scorer *ScoringAnalyzer) *SuggestionGenerator {
 }
 
 // GenerateSuggestions creates prioritized refactoring suggestions from a report.
-// It analyzes all maintenance burden categories (duplication, complexity,
+// GenerateSuggestions analyzes all maintenance burden categories (duplication, complexity,
 // documentation, naming, placement, organization) and generates actionable
 // recommendations sorted by impact-to-effort ratio.
 //
-// The returned slice is ordered from highest to lowest ROI, making it easy
+// GenerateSuggestions returns a slice ordered from highest to lowest ROI, making it easy
 // to identify the most valuable improvements to implement first.
 func (sg *SuggestionGenerator) GenerateSuggestions(report *metrics.Report) []RefactoringSuggestion {
 	suggestions := make([]RefactoringSuggestion, 0)
