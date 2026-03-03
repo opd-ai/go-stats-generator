@@ -19,6 +19,7 @@ type Report struct {
 	Duplication   DuplicationMetrics   `json:"duplication"`
 	Naming        NamingMetrics        `json:"naming"`
 	Placement     PlacementMetrics     `json:"placement"`
+	Organization  OrganizationMetrics  `json:"organization"`
 }
 
 // ReportMetadata contains information about the analysis run
@@ -601,6 +602,70 @@ type PackageNameViolation struct {
 	Description   string `json:"description"`
 	SuggestedName string `json:"suggested_name"`
 	Severity      string `json:"severity"`
+}
+
+// Organization Analysis Types
+
+// OrganizationMetrics contains organizational structure and health analysis
+type OrganizationMetrics struct {
+	OversizedFiles      []OversizedFile      `json:"oversized_files"`
+	OversizedPackages   []OversizedPackage   `json:"oversized_packages"`
+	DeepDirectories     []DeepDirectory      `json:"deep_directories"`
+	HighFanInPackages   []FanInPackage       `json:"high_fan_in_packages"`
+	HighFanOutPackages  []FanOutPackage      `json:"high_fan_out_packages"`
+	AvgPackageStability float64              `json:"avg_package_instability"`
+}
+
+// OversizedFile represents a file that exceeds recommended size thresholds
+type OversizedFile struct {
+	File              string      `json:"file"`
+	Lines             LineMetrics `json:"lines"`
+	FunctionCount     int         `json:"function_count"`
+	TypeCount         int         `json:"type_count"`
+	MaintenanceBurden float64     `json:"maintenance_burden"`
+	Severity          string      `json:"severity"`
+	Suggestions       []string    `json:"suggestions"`
+}
+
+// OversizedPackage represents a package that may be too large
+type OversizedPackage struct {
+	Package         string   `json:"package"`
+	FileCount       int      `json:"file_count"`
+	ExportedSymbols int      `json:"exported_symbols"`
+	TotalFunctions  int      `json:"total_functions"`
+	CohesionScore   float64  `json:"cohesion_score"`
+	IsMegaPackage   bool     `json:"is_mega_package"`
+	Severity        string   `json:"severity"`
+	Suggestions     []string `json:"suggestions"`
+}
+
+// DeepDirectory represents a directory structure that may be too nested
+type DeepDirectory struct {
+	Path        string `json:"path"`
+	Depth       int    `json:"depth"`
+	FileCount   int    `json:"file_count"`
+	Severity    string `json:"severity"`
+	Suggestion  string `json:"suggestion"`
+}
+
+// FanInPackage represents a package with high incoming dependencies (hub)
+type FanInPackage struct {
+	Package     string   `json:"package"`
+	FanIn       int      `json:"fan_in"`
+	Dependents  []string `json:"dependents"`
+	IsBottleneck bool    `json:"is_bottleneck"`
+	RiskLevel   string   `json:"risk_level"`
+	Suggestion  string   `json:"suggestion"`
+}
+
+// FanOutPackage represents a package with high outgoing dependencies (authority)
+type FanOutPackage struct {
+	Package      string   `json:"package"`
+	FanOut       int      `json:"fan_out"`
+	Dependencies []string `json:"dependencies"`
+	Instability  float64  `json:"instability"`
+	CouplingRisk string   `json:"coupling_risk"`
+	Suggestion   string   `json:"suggestion"`
 }
 
 // Diff and Historical Analysis Types

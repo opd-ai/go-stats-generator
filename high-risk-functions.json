@@ -1,0 +1,677 @@
+[
+  {
+    "name": "Generate",
+    "package": "reporter",
+    "file": "internal/reporter/json.go",
+    "line": 61,
+    "is_exported": true,
+    "is_method": true,
+    "receiver_type": "*CSVReporter",
+    "lines": {
+      "total": 296,
+      "code": 250,
+      "comments": 12,
+      "blank": 34
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.3
+    },
+    "complexity": {
+      "cyclomatic": 49,
+      "cognitive": 49,
+      "nesting_depth": 4,
+      "overall": 65.7
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 72,
+      "has_example": false,
+      "quality_score": 0.288
+    }
+  },
+  {
+    "name": "VeryComplexFunction",
+    "package": "simple",
+    "file": "testdata/simple/calculator.go",
+    "line": 128,
+    "is_exported": true,
+    "is_method": false,
+    "lines": {
+      "total": 84,
+      "code": 75,
+      "comments": 2,
+      "blank": 7
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 2,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.6
+    },
+    "complexity": {
+      "cyclomatic": 24,
+      "cognitive": 24,
+      "nesting_depth": 7,
+      "overall": 34.7
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 70,
+      "has_example": false,
+      "quality_score": 0.27999999999999997
+    }
+  },
+  {
+    "name": "AnalyzeIdentifiers",
+    "package": "analyzer",
+    "file": "internal/analyzer/naming.go",
+    "line": 320,
+    "is_exported": true,
+    "is_method": true,
+    "receiver_type": "*NamingAnalyzer",
+    "lines": {
+      "total": 135,
+      "code": 109,
+      "comments": 7,
+      "blank": 19
+    },
+    "signature": {
+      "parameter_count": 3,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.8
+    },
+    "complexity": {
+      "cyclomatic": 23,
+      "cognitive": 23,
+      "nesting_depth": 6,
+      "overall": 32.9
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 70,
+      "has_example": false,
+      "quality_score": 0.27999999999999997
+    }
+  },
+  {
+    "name": "WriteDiff",
+    "package": "reporter",
+    "file": "internal/reporter/json.go",
+    "line": 361,
+    "is_exported": true,
+    "is_method": true,
+    "receiver_type": "*CSVReporter",
+    "lines": {
+      "total": 91,
+      "code": 74,
+      "comments": 4,
+      "blank": 13
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.3
+    },
+    "complexity": {
+      "cyclomatic": 18,
+      "cognitive": 18,
+      "nesting_depth": 3,
+      "overall": 24.9
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 81,
+      "has_example": false,
+      "quality_score": 0.32400000000000007
+    }
+  },
+  {
+    "name": "Cleanup",
+    "package": "storage",
+    "file": "internal/storage/json.go",
+    "line": 201,
+    "is_exported": true,
+    "is_method": true,
+    "receiver_type": "*JSONStorage",
+    "lines": {
+      "total": 65,
+      "code": 49,
+      "comments": 10,
+      "blank": 6
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.3
+    },
+    "complexity": {
+      "cyclomatic": 17,
+      "cognitive": 17,
+      "nesting_depth": 4,
+      "overall": 24.1
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 56,
+      "has_example": false,
+      "quality_score": 0.22400000000000003
+    }
+  },
+  {
+    "name": "loadAnalysisConfiguration",
+    "package": "cmd",
+    "file": "cmd/analyze.go",
+    "line": 275,
+    "is_exported": false,
+    "is_method": false,
+    "lines": {
+      "total": 47,
+      "code": 45,
+      "comments": 2,
+      "blank": 0
+    },
+    "signature": {
+      "parameter_count": 1,
+      "return_count": 0,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 0.5
+    },
+    "complexity": {
+      "cyclomatic": 16,
+      "cognitive": 16,
+      "nesting_depth": 1,
+      "overall": 21.3
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 74,
+      "has_example": false,
+      "quality_score": 0.296
+    }
+  },
+  {
+    "name": "deepCopyAndNormalize",
+    "package": "analyzer",
+    "file": "internal/analyzer/duplication.go",
+    "line": 245,
+    "is_exported": false,
+    "is_method": true,
+    "receiver_type": "*DuplicationAnalyzer",
+    "lines": {
+      "total": 131,
+      "code": 113,
+      "comments": 2,
+      "blank": 16
+    },
+    "signature": {
+      "parameter_count": 1,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 0.8
+    },
+    "complexity": {
+      "cyclomatic": 14,
+      "cognitive": 14,
+      "nesting_depth": 2,
+      "overall": 19.2
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 85,
+      "has_example": false,
+      "quality_score": 0.34
+    }
+  },
+  {
+    "name": "buildSymbolIndex",
+    "package": "analyzer",
+    "file": "internal/analyzer/placement.go",
+    "line": 82,
+    "is_exported": false,
+    "is_method": true,
+    "receiver_type": "*PlacementAnalyzer",
+    "lines": {
+      "total": 82,
+      "code": 60,
+      "comments": 13,
+      "blank": 9
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 0,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1
+    },
+    "complexity": {
+      "cyclomatic": 14,
+      "cognitive": 14,
+      "nesting_depth": 5,
+      "overall": 20.7
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 68,
+      "has_example": false,
+      "quality_score": 0.272
+    }
+  },
+  {
+    "name": "List",
+    "package": "storage",
+    "file": "internal/storage/json.go",
+    "line": 99,
+    "is_exported": true,
+    "is_method": true,
+    "receiver_type": "*JSONStorage",
+    "lines": {
+      "total": 82,
+      "code": 63,
+      "comments": 7,
+      "blank": 12
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 2,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.6
+    },
+    "complexity": {
+      "cyclomatic": 14,
+      "cognitive": 14,
+      "nesting_depth": 2,
+      "overall": 19.2
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 57,
+      "has_example": false,
+      "quality_score": 0.32799999999999996
+    }
+  },
+  {
+    "name": "Cleanup",
+    "package": "storage",
+    "file": "internal/storage/sqlite.go",
+    "line": 460,
+    "is_exported": true,
+    "is_method": true,
+    "receiver_type": "*SQLiteStorage",
+    "lines": {
+      "total": 67,
+      "code": 52,
+      "comments": 3,
+      "blank": 12
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.3
+    },
+    "complexity": {
+      "cyclomatic": 13,
+      "cognitive": 13,
+      "nesting_depth": 3,
+      "overall": 18.4
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 56,
+      "has_example": false,
+      "quality_score": 0.22400000000000003
+    }
+  },
+  {
+    "name": "walkForNestingDepth",
+    "package": "analyzer",
+    "file": "internal/analyzer/function.go",
+    "line": 494,
+    "is_exported": false,
+    "is_method": true,
+    "receiver_type": "*FunctionAnalyzer",
+    "lines": {
+      "total": 66,
+      "code": 56,
+      "comments": 2,
+      "blank": 8
+    },
+    "signature": {
+      "parameter_count": 3,
+      "return_count": 0,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.5
+    },
+    "complexity": {
+      "cyclomatic": 12,
+      "cognitive": 12,
+      "nesting_depth": 2,
+      "overall": 16.6
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 73,
+      "has_example": false,
+      "quality_score": 0.292
+    }
+  },
+  {
+    "name": "finalizeNamingMetrics",
+    "package": "cmd",
+    "file": "cmd/analyze.go",
+    "line": 857,
+    "is_exported": false,
+    "is_method": false,
+    "lines": {
+      "total": 87,
+      "code": 68,
+      "comments": 9,
+      "blank": 10
+    },
+    "signature": {
+      "parameter_count": 4,
+      "return_count": 0,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 2
+    },
+    "complexity": {
+      "cyclomatic": 10,
+      "cognitive": 10,
+      "nesting_depth": 3,
+      "overall": 14.5
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 81,
+      "has_example": false,
+      "quality_score": 0.32400000000000007
+    }
+  },
+  {
+    "name": "runTrendRegressions",
+    "package": "cmd",
+    "file": "cmd/trend.go",
+    "line": 225,
+    "is_exported": false,
+    "is_method": false,
+    "lines": {
+      "total": 69,
+      "code": 53,
+      "comments": 5,
+      "blank": 11
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.3
+    },
+    "complexity": {
+      "cyclomatic": 9,
+      "cognitive": 9,
+      "nesting_depth": 3,
+      "overall": 13.2
+    },
+    "documentation": {
+      "has_comment": false,
+      "comment_length": 0,
+      "has_example": false,
+      "quality_score": 0
+    }
+  },
+  {
+    "name": "runFileAnalysis",
+    "package": "cmd",
+    "file": "cmd/analyze.go",
+    "line": 329,
+    "is_exported": false,
+    "is_method": false,
+    "lines": {
+      "total": 82,
+      "code": 55,
+      "comments": 12,
+      "blank": 15
+    },
+    "signature": {
+      "parameter_count": 3,
+      "return_count": 2,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 2.1
+    },
+    "complexity": {
+      "cyclomatic": 9,
+      "cognitive": 9,
+      "nesting_depth": 2,
+      "overall": 12.7
+    },
+    "documentation": {
+      "has_comment": false,
+      "comment_length": 0,
+      "has_example": false,
+      "quality_score": 0
+    }
+  },
+  {
+    "name": "compareFunctionMetrics",
+    "package": "metrics",
+    "file": "internal/metrics/diff.go",
+    "line": 79,
+    "is_exported": false,
+    "is_method": false,
+    "lines": {
+      "total": 68,
+      "code": 56,
+      "comments": 5,
+      "blank": 7
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.3
+    },
+    "complexity": {
+      "cyclomatic": 9,
+      "cognitive": 9,
+      "nesting_depth": 4,
+      "overall": 13.7
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 65,
+      "has_example": false,
+      "quality_score": 0.26
+    }
+  },
+  {
+    "name": "Retrieve",
+    "package": "storage",
+    "file": "internal/storage/sqlite.go",
+    "line": 208,
+    "is_exported": true,
+    "is_method": true,
+    "receiver_type": "*SQLiteStorage",
+    "lines": {
+      "total": 74,
+      "code": 61,
+      "comments": 5,
+      "blank": 8
+    },
+    "signature": {
+      "parameter_count": 2,
+      "return_count": 2,
+      "has_variadic": false,
+      "returns_error": true,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 1.6
+    },
+    "complexity": {
+      "cyclomatic": 9,
+      "cognitive": 9,
+      "nesting_depth": 2,
+      "overall": 12.7
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 40,
+      "has_example": false,
+      "quality_score": 0.16000000000000003
+    }
+  },
+  {
+    "name": "DefaultConfig",
+    "package": "config",
+    "file": "internal/config/config.go",
+    "line": 142,
+    "is_exported": true,
+    "is_method": false,
+    "lines": {
+      "total": 72,
+      "code": 72,
+      "comments": 0,
+      "blank": 0
+    },
+    "signature": {
+      "parameter_count": 0,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 0.3
+    },
+    "complexity": {
+      "cyclomatic": 1,
+      "cognitive": 1,
+      "nesting_depth": 0,
+      "overall": 1.3
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 48,
+      "has_example": false,
+      "quality_score": 0.29200000000000004
+    }
+  },
+  {
+    "name": "NewNamingAnalyzer",
+    "package": "analyzer",
+    "file": "internal/analyzer/naming.go",
+    "line": 36,
+    "is_exported": true,
+    "is_method": false,
+    "lines": {
+      "total": 79,
+      "code": 79,
+      "comments": 0,
+      "blank": 0
+    },
+    "signature": {
+      "parameter_count": 0,
+      "return_count": 1,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 0.3
+    },
+    "complexity": {
+      "cyclomatic": 1,
+      "cognitive": 1,
+      "nesting_depth": 0,
+      "overall": 1.3
+    },
+    "documentation": {
+      "has_comment": true,
+      "comment_length": 48,
+      "has_example": false,
+      "quality_score": 0.192
+    }
+  },
+  {
+    "name": "init",
+    "package": "cmd",
+    "file": "cmd/analyze.go",
+    "line": 77,
+    "is_exported": false,
+    "is_method": false,
+    "lines": {
+      "total": 75,
+      "code": 61,
+      "comments": 7,
+      "blank": 7
+    },
+    "signature": {
+      "parameter_count": 0,
+      "return_count": 0,
+      "has_variadic": false,
+      "returns_error": false,
+      "interface_parameters": 0,
+      "generic_parameters": null,
+      "signature_complexity": 0
+    },
+    "complexity": {
+      "cyclomatic": 1,
+      "cognitive": 1,
+      "nesting_depth": 0,
+      "overall": 1.3
+    },
+    "documentation": {
+      "has_comment": false,
+      "comment_length": 0,
+      "has_example": false,
+      "quality_score": 0
+    }
+  }
+]
