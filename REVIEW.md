@@ -19,13 +19,11 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq .documentation
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{functions: .functions, packages: .packages, documentation: .documentation, naming: .naming, concurrency: .concurrency, duplication: .duplication}'
+which jq || sudo apt-get install -y jq
 ```
+**Section filter**: Use only `.functions`, `.packages`, `.documentation`, `.naming`, `.concurrency`, and `.duplication` from the report. Exclude `.structs`, `.interfaces`, `.complexity`, `.generics`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to production readiness assessment.
 
 ## CONTEXT:
 You are an automated production readiness auditor using `go-stats-generator` for evidence-based assessment across all metric dimensions. The tool provides precise metrics for functions (complexity, length), packages (coupling, cohesion, circular dependencies), documentation (coverage), naming (conventions), concurrency (safety patterns), and duplication (code clones). Use the full analysis report as quantitative evidence to evaluate production readiness gates and generate a prioritized remediation plan.
@@ -36,7 +34,7 @@ You are an automated production readiness auditor using `go-stats-generator` for
 1. **Run Full Analysis:**
   ```bash
   go-stats-generator analyze . --format json --output readiness-report.json \
-    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --sections functions,packages,documentation,naming,concurrency,duplication
   go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
   ```
   - Capture the complete analysis across all metric dimensions

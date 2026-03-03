@@ -21,27 +21,25 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq .packages
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{packages: .packages, structs: .structs, interfaces: .interfaces, functions: .functions}'
+which jq || sudo apt-get install -y jq
 ```
+**Section filter**: Use only `.packages`, `.structs`, `.interfaces`, and `.functions` from the report. Exclude `.patterns`, `.concurrency`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to codebase reorganization.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 0: Identify packages and select reorganization target
-go-stats-generator analyze . --skip-tests --format json --output full-baseline.json
+go-stats-generator analyze . --skip-tests --format json --output full-baseline.json --sections packages,structs,interfaces,functions
 cat full-baseline.json | jq '.packages[] | {name, path, cohesion_score, coupling_score, files, structs, interfaces}'
 
 # Phase 1: Establish per-package baseline before reorganization
-go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-baseline.json
+go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-baseline.json --sections packages,structs,interfaces,functions
 
 # Phases 2-4: Reorganize using struct/interface/package metrics as guide
 
 # Phase 5: Post-reorganization validation
-go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-reorganized.json
+go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-reorganized.json --sections packages,structs,interfaces,functions
 
 # Phase 6: Measure and document improvements
 go-stats-generator diff pkg-baseline.json pkg-reorganized.json

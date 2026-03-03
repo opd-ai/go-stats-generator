@@ -19,18 +19,16 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq .functions
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{functions: .functions, packages: .packages, documentation: .documentation}'
+which jq || sudo apt-get install -y jq
 ```
+**Section filter**: Use only `.functions`, `.packages`, and `.documentation` from the report. Exclude `.structs`, `.interfaces`, `.patterns`, `.concurrency`, `.complexity`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to audit collation and remediation prioritization.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Generate complexity baseline for metric-backed prioritization
-go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json
+go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json --sections functions,packages,documentation
 go-stats-generator analyze . --skip-tests
 
 # Phase 2: Discover and extract audit findings

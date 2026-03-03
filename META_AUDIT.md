@@ -19,13 +19,11 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq .documentation
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{functions: .functions, documentation: .documentation, naming: .naming, concurrency: .concurrency, duplication: .duplication, interfaces: .interfaces, structs: .structs, packages: .packages}'
+which jq || sudo apt-get install -y jq
 ```
+**Section filter**: Use only `.functions`, `.documentation`, `.naming`, `.concurrency`, `.duplication`, `.interfaces`, `.structs`, and `.packages` from the report. Exclude `.complexity`, `.generics`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to per-package implementation auditing.
 
 ## CONTEXT:
 You are an automated Go package auditor using `go-stats-generator` for enterprise-grade implementation analysis and historical audit tracking. The tool provides precise per-package metrics across complexity, documentation coverage, naming conventions, concurrency patterns, and duplication — replacing manual code review with quantitative assessment. Focus on a single unaudited sub-package per invocation, generating actionable findings backed by file-and-line citations from the tool's analysis output.
@@ -56,7 +54,7 @@ You are an automated Go package auditor using `go-stats-generator` for enterpris
    ```bash
    go-stats-generator analyze ./path/to/pkg \
      --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 \
-     --skip-tests --format json --output pkg-audit.json
+     --skip-tests --format json --output pkg-audit.json --sections functions,documentation,naming,concurrency,duplication,interfaces,structs,packages
 
    go-stats-generator analyze ./path/to/pkg \
      --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 \

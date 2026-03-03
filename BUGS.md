@@ -21,25 +21,23 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq .functions
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{functions: .functions, concurrency: .concurrency}'
+which jq || sudo apt-get install -y jq
 ```
+**Section filter**: Use only `.functions` and `.concurrency` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to bug-prone function detection.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify high-risk functions
-go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json
+go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json --sections functions,concurrency
 go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests
 
 # Phase 2: Inspect bug-prone areas
 # Using the results generated in phase 1, select high-complexity functions as bug candidates.
 
 # Phase 3: Post-fix validation
-go-stats-generator analyze . --format json --output fixed.json --max-complexity 10 --max-function-length 30 --skip-tests
+go-stats-generator analyze . --format json --output fixed.json --max-complexity 10 --max-function-length 30 --skip-tests --sections functions,concurrency
 
 # Phase 4: Regression check
 go-stats-generator diff baseline.json fixed.json
