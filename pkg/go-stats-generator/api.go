@@ -201,10 +201,31 @@ func finalizeReport(report *metrics.Report, collected *collectedMetrics, analyze
 		report.Duplication = dupReport
 	}
 
+	calculateComplexityMetrics(report, collected)
+
 	report.Overview = metrics.OverviewMetrics{
 		TotalFiles:      len(collected.files),
 		TotalFunctions:  len(collected.functions),
 		TotalStructs:    len(collected.structs),
 		TotalInterfaces: len(collected.interfaces),
+	}
+}
+
+// calculateComplexityMetrics computes average complexity for functions and structs
+func calculateComplexityMetrics(report *metrics.Report, collected *collectedMetrics) {
+	var totalFunctionComplexity float64
+	for _, fn := range collected.functions {
+		totalFunctionComplexity += fn.Complexity.Overall
+	}
+	if len(collected.functions) > 0 {
+		report.Complexity.AverageFunction = totalFunctionComplexity / float64(len(collected.functions))
+	}
+
+	var totalStructComplexity float64
+	for _, s := range collected.structs {
+		totalStructComplexity += s.Complexity.Overall
+	}
+	if len(collected.structs) > 0 {
+		report.Complexity.AverageStruct = totalStructComplexity / float64(len(collected.structs))
 	}
 }
