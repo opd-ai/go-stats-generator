@@ -18,10 +18,18 @@ make build
 go build -o go-stats-generator ./cmd/go-stats-generator
 ```
 
+## Recommendations:
+```bash
+# Extract only task-relevant sections from JSON; discard everything else
+./go-stats-generator analyze --format json | jq '{functions: .functions}'
+which jq || sudo apt-get install -y jq
+```
+**Section filter**: Use only `.functions` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.patterns`, `.concurrency`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to self-analysis function complexity refactoring.
+
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets in our own codebase
-./go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json
+./go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json --sections functions
 ./go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests
 
 # Phase 2: Deep dive into specific complex modules
@@ -30,7 +38,7 @@ go build -o go-stats-generator ./cmd/go-stats-generator
 ./go-stats-generator analyze ./cmd --max-complexity 8 --max-function-length 25
 
 # Phase 3: Post-refactoring validation
-./go-stats-generator analyze . --format json --output refactored.json --max-complexity 10 --max-function-length 30 --skip-tests
+./go-stats-generator analyze . --format json --output refactored.json --max-complexity 10 --max-function-length 30 --skip-tests --sections functions
 
 # Phase 4: Measure and document improvements
 ./go-stats-generator diff baseline.json refactored.json

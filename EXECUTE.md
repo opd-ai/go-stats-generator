@@ -23,25 +23,23 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq .functions
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{functions: .functions, duplication: .duplication, documentation: .documentation}'
+which jq || sudo apt-get install -y jq
 ```
+**Section filter**: Use only `.functions`, `.duplication`, and `.documentation` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.patterns`, `.concurrency`, `.complexity`, `.generics`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to backlog task execution.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline before any code changes
-go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --min-doc-coverage 0.7 --skip-tests --format json --output baseline.json
+go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --min-doc-coverage 0.7 --skip-tests --format json --output baseline.json --sections functions,duplication,documentation
 go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --min-doc-coverage 0.7 --skip-tests
 
 # Phase 2: Identify task, implement changes, run tests
 # (see INSTRUCTIONS below)
 
 # Phase 3: Post-implementation validation
-go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --min-doc-coverage 0.7 --skip-tests --format json --output post-change.json
+go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --min-doc-coverage 0.7 --skip-tests --format json --output post-change.json --sections functions,duplication,documentation
 
 # Phase 4: Measure and confirm zero regressions
 go-stats-generator diff baseline.json post-change.json

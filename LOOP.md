@@ -28,7 +28,7 @@ which jq || sudo apt-get install -y jq
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish initial baseline
-go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-0.json
+go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-0.json --sections functions
 go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests
 
 # Phase 2: Per-iteration cycle (repeat for each iteration N)
@@ -38,7 +38,7 @@ cat iteration-0.json | jq '[.functions[] | select(.complexity.overall > 10.0 or 
 # 2b. Apply refactoring changes to highest-priority target(s)
 
 # 2c. Post-refactoring validation
-go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-1.json
+go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-1.json --sections functions
 
 # 2d. Measure iteration improvement
 go-stats-generator diff iteration-0.json iteration-1.json

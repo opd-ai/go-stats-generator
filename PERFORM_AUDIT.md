@@ -12,12 +12,20 @@ Install and configure `go-stats-generator` for comprehensive complexity analysis
 go install github.com/opd-ai/go-stats-generator@latest
 ```
 
+## Recommendations:
+```bash
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{functions: .functions, documentation: .documentation, naming: .naming, concurrency: .concurrency, duplication: .duplication, interfaces: .interfaces, structs: .structs, packages: .packages}'
+which jq || sudo apt-get install -y jq
+```
+**Section filter**: Use only `.functions`, `.documentation`, `.naming`, `.concurrency`, `.duplication`, `.interfaces`, `.structs`, and `.packages` from the report. Exclude `.complexity`, `.generics`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to comprehensive functional auditing.
+
 ## INSTRUCTIONS:
 
 ### Phase 1: Statistical Baseline Generation
 1. **Generate Comprehensive Analysis Report**
     ```bash
-    go-stats-generator analyze . --format json --output full-report.json --include-patterns --include-complexity --include-dependencies
+    go-stats-generator analyze . --format json --output full-report.json --include-patterns --include-complexity --include-dependencies --sections functions,documentation,naming,concurrency,duplication,interfaces,structs,packages
     ```
     - Extract function complexity distribution and outliers (>30 lines, >10 cyclomatic complexity)
     - Analyze struct member categorization for architectural patterns

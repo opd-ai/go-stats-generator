@@ -30,14 +30,14 @@ which jq || sudo apt-get install -y jq
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets
-go-stats-generator analyze . --max-complexity 9 --max-function-length 40 --skip-tests --format json --output baseline.json
+go-stats-generator analyze . --max-complexity 9 --max-function-length 40 --skip-tests --format json --output baseline.json --sections functions
 go-stats-generator analyze . --max-complexity 9 --max-function-length 40 --skip-tests
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
 
 # Phase 3: Post-refactoring validation
-go-stats-generator analyze . --format json --output refactored.json --max-complexity 9 --max-function-length 40 --skip-tests
+go-stats-generator analyze . --format json --output refactored.json --max-complexity 9 --max-function-length 40 --skip-tests --sections functions
 
 # Phase 4: Measure and document improvements
 go-stats-generator diff baseline.json refactored.json
