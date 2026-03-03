@@ -45,6 +45,7 @@ func test() {
 		Interface:   analyzer.NewInterfaceAnalyzer(fset),
 		Package:     analyzer.NewPackageAnalyzer(fset),
 		Concurrency: analyzer.NewConcurrencyAnalyzer(fset),
+		Burden:      analyzer.NewBurdenAnalyzer(fset),
 	}
 
 	report := &metrics.Report{}
@@ -111,6 +112,7 @@ func test() {
 		Interface:   analyzer.NewInterfaceAnalyzer(fset),
 		Package:     analyzer.NewPackageAnalyzer(fset),
 		Concurrency: analyzer.NewConcurrencyAnalyzer(fset),
+		Burden:      analyzer.NewBurdenAnalyzer(fset),
 	}
 
 	report := &metrics.Report{}

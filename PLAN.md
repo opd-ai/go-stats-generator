@@ -1,363 +1,219 @@
-# Implementation Plan: Phase 6 — Additional Maintenance Burden Indicators
+# Implementation Plan: Phase 6 — Complete Maintenance Burden Indicators Integration
 
 ## Phase Overview
-- **Objective**: Implement remaining maintenance burden detection features including magic number detection, dead code detection, parameter complexity analysis, deep nesting detection, and shotgun surgery/feature envy indicators
+- **Objective**: Complete integration of maintenance burden detection features (Steps 6.2-6.6) into the analyze command and JSON output
 - **Source Document**: ROADMAP.md (Phase 6: Additional Maintenance Burden Indicators)
-- **Prerequisites**: Phases 1-5 complete (Duplication ✅, Naming ✅, Placement ✅, Documentation ✅, Organization ✅)
-- **Estimated Scope**: Large — 13 functions above complexity threshold (9.0), 37.04% duplication ratio, 64.32% documentation coverage
+- **Prerequisites**: Phases 1-5 complete; Step 6.1 (Magic Numbers) complete
+- **Estimated Scope**: Medium — 6 functions above complexity threshold in target area, 34.82% overall duplication, 65.75% doc coverage
 
 ## Metrics Summary
-- **Complexity Hotspots**: 13 functions above complexity 9.0 in production code; 8 functions above complexity 20.0
-- **Duplication Ratio**: 37.04% overall (135 clone pairs, 6182 duplicated lines) — CRITICAL
-- **Documentation Coverage**: 64.32% overall (functions: 66.4%, types: 55.4%, methods: 77.6%)
-- **Package Coupling**: `cmd` has highest coupling (3.5) with 7 dependencies; `go_stats_generator` has low cohesion (0.73)
+- **Complexity Hotspots**: 6 functions above threshold in `internal/analyzer/burden.go`
+  - `walkForNestingDepth` (19.2), `checkStmtForUnreachable` (18.9), `checkNodeContext` (13.2), `isTerminating` (12.9), `getTerminationReason` (12.9), `countParameters` (9.3)
+- **Duplication Ratio**: 34.82% overall (Critical — exceeds 10% threshold)
+- **Documentation Coverage**: 65.75% overall (Medium priority)
+- **Package Coupling**: `cmd` has coupling score 3.5 (7 dependencies), `internal/analyzer` has 0.5 (acceptable)
 
-## Critical Pre-Implementation: Technical Debt Reduction
+## Current Gap Analysis
 
-Before implementing Phase 6 features, the following technical debt items MUST be addressed to avoid compounding complexity:
+The `BurdenAnalyzer` in `internal/analyzer/burden.go` (703 lines) implements the following detection methods:
+- ✅ `DetectMagicNumbers()` — Integrated in `cmd/analyze.go`
+- ⚠️ `DetectDeadCode()` — Implemented but NOT integrated
+- ⚠️ `AnalyzeSignatureComplexity()` — Implemented but NOT integrated
+- ⚠️ `DetectDeepNesting()` — Implemented but NOT integrated
+- ⚠️ `DetectFeatureEnvy()` — Implemented but NOT integrated
 
-### ✅ Prerequisite 1: Refactor `internal/reporter/csv.go:Generate` (complexity 65.7) — COMPLETED
-- **Deliverable**: Refactored `Generate` function with complexity ≤ 15.0 via helper extraction ✅
-- **Dependencies**: None
-- **Metric Justification**: Highest complexity function in codebase (65.7) — impossible to safely extend without refactoring
-- **Approach**: Extract reporting sections into dedicated helpers: `writeOverviewSection()`, `writeFunctionSection()`, `writeStructSection()`, `writePackageSection()`, `writeDuplicationSection()`, etc.
-- **Result**: Generate complexity reduced from **65.7 → 9.6** (85% reduction), cyclomatic from **49 → 7**, lines from **250 → 21**
-- **Extracted Functions**: 9 helper methods created:
-  - `writeMetadataSection()` (complexity: 6.2)
-  - `writeOverviewSection()` (complexity: 7.5)
-  - `writeFunctionsSection()` (complexity: 10.1)
-  - `writeStructsSection()` (complexity: 10.1)
-  - `writePackagesSection()` (complexity: 10.1)
-  - `writeNamingSection()` (complexity: 12.7)
-  - `writeFileNameIssues()` (complexity: 10.1)
-  - `writeIdentifierIssues()` (complexity: 10.1)
-  - `writePackageNameIssues()` (complexity: 10.1)
-- **Tests**: All tests passing ✅
-- **Date Completed**: 2026-03-03
-
-### ✅ Prerequisite 2: Refactor `internal/analyzer/naming.go:AnalyzeIdentifiers` (complexity 32.9) — COMPLETED
-- **Deliverable**: Refactored `AnalyzeIdentifiers` function with complexity ≤ 12.0 ✅
-- **Dependencies**: None
-- **Metric Justification**: Second-highest complexity in production code (32.9), directly in analyzer package where Phase 6 adds burden.go
-- **Approach**: Extracted AST node processing into dedicated helper methods
-- **Result**: AnalyzeIdentifiers complexity reduced from **32.9 → 3.1** (90.6% reduction), cyclomatic from **23 → 2**, lines from **135 → 24**
-- **Extracted Functions**: 7 helper methods created:
-  - `analyzeFunctionDecl()` (complexity: 4.4) - handles function/method declarations
-  - `analyzeGenDecl()` (complexity: 4.9) - handles type/const/var declarations  
-  - `analyzeTypeSpec()` (complexity: 3.1) - analyzes type specifications
-  - `analyzeValueSpec()` (complexity: 6.2) - analyzes const/var specifications
-  - `checkIdentifier()` (complexity: 5.7) - performs standard identifier checks
-  - `checkIdentifierWithSingleLetter()` (complexity: 5.7) - includes single-letter check
-  - `trackLoopVariables()` (complexity: 8.0) - tracks valid loop variable names
-- **Tests**: All tests passing ✅
-- **Date Completed**: 2026-03-03
-
-### ✅ Prerequisite 3: Address Duplication in `internal/analyzer/` (21.5 complexity in duplication.go) — COMPLETED
-- **Deliverable**: Extract common AST traversal patterns shared between `duplication.go`, `naming.go`, and future `burden.go` ✅
-- **Dependencies**: Prerequisite 2
-- **Metric Justification**: 37.04% duplication ratio indicates shared patterns not yet extracted; prevents duplication in new burden.go
-- **Approach**: Create `internal/analyzer/astutil.go` with shared AST walking and node extraction helpers
-- **Result**: Created shared utility file with 6 common functions, reduced code duplication
-- **Extracted Functions**:
-  - `CollectFunctions()` (complexity: 3.1) - extracts all function declarations from AST
-  - `CollectTypes()` (complexity: 6.7) - extracts all type declarations from AST
-  - `ExtractReceiverType()` (complexity: 4.9) - extracts receiver type from expressions
-  - `IsMethod()` (complexity: 1.3) - checks if FuncDecl is a method
-  - `GetMethodReceiverType()` (complexity: 3.1) - returns receiver type for methods
-  - `CountNodes()` (complexity: 4.9) - counts AST nodes in statement list
-- **Removed Duplicated Functions**:
-  - `DuplicationAnalyzer.countNodes()` (complexity: 4.9) - replaced with shared `CountNodes()`
-  - `PlacementAnalyzer.extractReceiverType()` - replaced with shared `ExtractReceiverType()`
-  - `NamingAnalyzer.getReceiverTypeName()` (complexity: 6.2) - replaced with shared `ExtractReceiverType()`
-- **Quality Improvements**:
-  - 2 duplicate methods eliminated from analyzer package
-  - Duplication in internal/analyzer/duplication.go reduced from 524 → 512 lines (-2.3%)
-  - Duplication in internal/analyzer/naming.go reduced from 665 → 650 lines (-2.3%)
-  - Package cohesion improved from 6.26 → 5.75 (8.2% improvement)
-- **Tests**: All tests passing ✅ with new `astutil_test.go` providing 100% coverage
-- **Date Completed**: 2026-03-03
+**JSON output currently shows `"burden": null`** — only `MagicNumbers` is being populated.
 
 ## Implementation Steps
 
-### ✅ Step 1: Create `internal/analyzer/burden.go` Scaffold — COMPLETED
-- **Deliverable**: New file `internal/analyzer/burden.go` with `BurdenAnalyzer` struct and empty analysis method signatures ✅
-- **Dependencies**: Prerequisites 1-3
-- **Metric Justification**: ROADMAP.md Phase 6 requires new analyzer file; scaffold establishes structure
-- **Result**: Created burden.go with BurdenAnalyzer struct and 5 method signatures:
-  - `DetectMagicNumbers()` - placeholder for magic number detection
-  - `DetectDeadCode()` - placeholder for dead code detection
-  - `AnalyzeSignatureComplexity()` - placeholder for signature analysis
-  - `DetectDeepNesting()` - placeholder for nesting detection
-  - `DetectFeatureEnvy()` - placeholder for feature envy detection
-- **Metrics Impact**:
-  - Added 6 new functions (all complexity 1.3)
-  - Added 8 new types to internal/metrics/types.go (BurdenMetrics, MagicNumber, DeadCodeMetrics, etc.)
-  - Report struct extended with Burden field
-  - Package cohesion improved from 5.75 → 5.4 (6.0% improvement)
-- **Quality Validation**:
-  - Zero complexity regressions in existing code ✅
-  - All new functions under complexity 10 (all at 1.3) ✅
-  - All tests passing with race detection ✅
-  - Build successful ✅
-- **Tests**: Created burden_test.go with 6 placeholder tests achieving 100% coverage of scaffold
-- **Date Completed**: 2026-03-03
-
-### ✅ Step 2: Implement Magic Number Detection (Step 6.1) — COMPLETED
-- **Deliverable**: `DetectMagicNumbers()` method detecting numeric/string literals in function bodies excluding `0`, `1`, `-1`, `""` ✅
-- **Dependencies**: Step 1
-- **Metric Justification**: ROADMAP.md Step 6.1; first sub-feature in Phase 6
-- **Implementation Summary**:
-  - Implemented AST traversal to detect numeric and string literals
-  - Ignores benign values: 0, 1, -1, 0.0, 1.0, ""
-  - Skips const declarations (intentional constants)
-  - Tracks location (file, line, column) and context (assignment, return, function_call, etc.)
-  - Created 6 helper functions: checkBasicLit, isBenignNumber, createMagicNumber, extractContext, checkNodeContext, containsNode
-- **Complexity Metrics**:
-  - DetectMagicNumbers: cyclomatic 5, overall 7.5 (under 10 threshold ✓)
-  - extractContext: refactored from 18.4 → 4.4 via checkNodeContext helper
-  - All helper functions under complexity 10 ✓
-- **Test Coverage**: 6 test cases covering all requirements ✅
-- **Date Completed**: 2026-03-03
-
-### ✅ Step 3: Implement Dead Code Detection (Step 6.2) — COMPLETED
-- **Deliverable**: `DetectDeadCode()` method identifying unreferenced unexported symbols and unreachable code after `return`/`panic`/`os.Exit` ✅
-- **Dependencies**: Step 1
-- **Metric Justification**: ROADMAP.md Step 6.2; dead code inflates metrics and maintenance cost
-- **Implementation Summary**:
-  - Implemented reference counting via AST inspection to find unreferenced unexported functions
-  - Detects unreachable code blocks after terminating statements (return, panic, os.Exit)
-  - Recursively analyzes nested control flow blocks (if, for, switch, etc.)
-  - Tracks location and reason for unreachability
-  - Created 7 helper functions: buildReferenceMap, findUnreferencedSymbols, findUnreachableCode, checkBlockForUnreachable, checkStmtForUnreachable, isTerminating, getTerminationReason
-- **Complexity Metrics**:
-  - DetectDeadCode: cyclomatic 2, overall 3.1 (under 10 threshold ✓)
-  - checkStmtForUnreachable: cyclomatic 13, overall 18.9 (highest complexity, under 20 threshold ✓)
-  - All helper functions under complexity 20 ✓
-- **Test Coverage**: 7 comprehensive test cases covering all requirements ✅
-  - Detects unreferenced unexported functions
-  - Ignores exported functions
-  - Detects unreachable code after return statements
-  - Detects unreachable code after panic calls
-  - Detects unreachable code after os.Exit calls
-  - Validates no false positives on clean code
-  - Handles unreachable code in nested blocks (if, for, switch, etc.)
-- **Date Completed**: 2026-03-03
-
-### ✅ Step 4: Implement Parameter List & Return Value Complexity (Step 6.3) — COMPLETED
-- **Deliverable**: `AnalyzeSignatureComplexity()` method flagging functions exceeding parameter/return thresholds and bool parameters ✅
-- **Dependencies**: Step 1
-- **Metric Justification**: ROADMAP.md Step 6.3; extends existing `FunctionAnalyzer`
-- **Implementation Summary**:
-  - Implemented signature analysis to detect functions with excessive parameters or return values
-  - Detects bool parameters (flag arguments) that indicate functions doing multiple things
-  - Categorizes issues by severity: low (bool params only), medium (exceeds threshold), high (exceeds 2× threshold)
-  - Created 4 helper functions to keep complexity low: countParameters, countReturns, calculateSeverity
-- **Complexity Metrics**:
-  - AnalyzeSignatureComplexity: cyclomatic 3, overall 4.4 (under 10 threshold ✓)
-  - countParameters: cyclomatic 5, overall 7.5 (under 10 threshold ✓)
-  - countReturns: cyclomatic 3, overall 4.4 (under 10 threshold ✓)
-  - calculateSeverity: cyclomatic 3, overall 4.4 (under 10 threshold ✓)
-  - All helper functions under complexity 10 ✓
-- **Test Coverage**: 6 comprehensive test cases covering all requirements ✅
-  - Functions under thresholds (no issue reported)
-  - Functions with too many parameters (medium severity)
-  - Functions with too many returns (medium severity)
-  - Functions with bool parameters (low severity)
-  - Functions exceeding double threshold (high severity)
-  - Nil function handling (graceful degradation)
-- **Quality Validation**:
-  - Zero regressions in existing code ✅
-  - All new functions under complexity 10 ✅
-  - All tests passing with race detection ✅
-  - Build successful ✅
-- **Configuration**:
-  - `maintenance.burden.max_params` (default: 5)
-  - `maintenance.burden.max_returns` (default: 3)
-- **Date Completed**: 2026-03-03
-
-### ✅ Step 5: Implement Deep Nesting Detection (Step 6.4) — COMPLETED
-- **Deliverable**: `DetectDeepNesting()` method flagging functions exceeding nesting threshold with location reporting ✅
-- **Dependencies**: Step 1
-- **Metric Justification**: ROADMAP.md Step 6.4; nesting depth already tracked in `walkForNestingDepth` (complexity 16.6)
-- **Implementation Summary**:
-  - Implemented AST traversal to detect excessive nesting in control structures
-  - Tracks deepest nesting location with file:line for precise reporting
-  - Supports all Go control structures: if, for, range, switch, type switch, select
-  - Suggests early returns and guard clauses to reduce nesting
-  - Created helper function `walkForNestingDepth` to recursively calculate max depth
-- **Complexity Metrics**:
-  - DetectDeepNesting: cyclomatic 3, overall 4.4 (under 10 threshold ✓)
-  - walkForNestingDepth: cyclomatic 14, overall 19.2 (under 20 threshold ✓)
-  - All helper functions under complexity 20 ✓
-- **Test Coverage**: 7 comprehensive test cases covering all requirements ✅
-  - Functions with shallow nesting (no issue)
-  - Functions with deep nesting exceeding threshold
-  - Mixed control structures (if, for, switch)
-  - Range statement nesting
-  - Select statement nesting (concurrency patterns)
-  - Functions exactly at threshold (boundary testing)
-  - Nil function handling (graceful degradation)
-- **Quality Validation**:
-  - Zero regressions in existing code ✅
-  - All new functions under complexity 20 ✅
-  - All tests passing with race detection ✅
-  - Build successful ✅
-  - Test coverage: 100% for DetectDeepNesting, 83.3% for walkForNestingDepth, 86.5% overall ✅
-- **Configuration**:
-  - `maintenance.burden.max_nesting` (default: 4)
-- **Date Completed**: 2026-03-03
-
-### ✅ Step 6: Implement Feature Envy Detection (Step 6.5 partial) — COMPLETED
-- **Deliverable**: `DetectFeatureEnvy()` method identifying methods with external references exceeding self-references by configurable ratio ✅
-- **Dependencies**: Steps 1, 3 (needs symbol reference data)
-- **Metric Justification**: ROADMAP.md Step 6.5; feature envy indicates misplaced methods
-- **Implementation Summary**:
-  - Implemented method analysis to detect excessive external object references
-  - Compares self-references (receiver variable) to external variable references
-  - Identifies the most-referenced external type and calculates ratio
-  - Reports only when external references exceed threshold ratio (default 2.0×)
-  - Created 6 helper functions to maintain low complexity
-- **Complexity Metrics**:
-  - DetectFeatureEnvy: cyclomatic 5, overall 7.0 (under 10 threshold ✓)
-  - getReceiverVarName: cyclomatic 2, overall 3.1 (under 10 threshold ✓)
-  - extractReceiverType: cyclomatic 3, overall 4.4 (under 10 threshold ✓)
-  - countReferences: cyclomatic 4, overall 6.7 (under 10 threshold ✓)
-  - getVarName: cyclomatic 2, overall 3.1 (under 10 threshold ✓)
-  - findMostReferencedType: cyclomatic 3, overall 4.9 (under 10 threshold ✓)
-  - max: cyclomatic 2, overall 3.1 (under 10 threshold ✓)
-  - All helper functions under complexity 10 ✓
-- **Test Coverage**: 6 comprehensive test cases covering all requirements ✅
-  - Methods exceeding external reference threshold (detected)
-  - Methods with self-references dominating (no issue)
-  - Non-method functions (no issue - feature envy applies only to methods)
-  - Methods not meeting ratio threshold (no issue)
-  - Nil/empty function handling (graceful degradation)
-  - Pointer receiver methods (detected correctly)
-- **Quality Validation**:
-  - Zero regressions in existing code ✅
-  - All new functions under complexity 10 ✅
-  - All tests passing with race detection ✅
-  - Build successful ✅
-  - All new helper functions have GoDoc comments ✅
-  - Test coverage: 100% for all feature envy detection functions ✅
-- **Configuration**:
-  - `maintenance.burden.feature_envy_ratio` (default: 2.0)
-- **Date Completed**: 2026-03-03
-
-### Step 7: Implement Shotgun Surgery Detection (Step 6.5 partial) — DEFERRED
-- **Deliverable**: Specification document for git history integration
-- **Dependencies**: Git subprocess integration (complex)
-- **Metric Justification**: ROADMAP.md Step 6.5 notes "requires git history analysis" — defer to Phase 7
-- **Gap Reason**: Requires `git log --name-only` parsing and commit co-change analysis; significant scope beyond AST analysis
-
-### Step 8: Add `BurdenMetrics` to Metrics Types (Step 6.6)
-- **Deliverable**: New struct in `internal/metrics/types.go` with fields: `MagicNumbers`, `DeadCodeLines`, `DeadCodePercent`, `LongParamFunctions`, `DeeplyNestedFunctions`, `FeatureEnvyMethods`
-- **Dependencies**: Steps 2-6
-- **Metric Justification**: ROADMAP.md Step 6.6 defines required metrics struct
-
-### Step 9: Integrate BurdenMetrics into All Output Formats
-- **Deliverable**: "Maintenance Burden Summary" section added to console, JSON, HTML, CSV, Markdown reporters
-- **Dependencies**: Step 8
-- **Metric Justification**: ROADMAP.md Step 6.6 requires output integration
-- **Files to Modify**:
-  - `internal/reporter/console.go` (7 functions above threshold, max 13.5)
-  - `internal/reporter/csv.go` (2 functions above threshold, max 65.7 — must refactor first)
-  - `internal/reporter/html.go`
-  - `internal/reporter/json.go`
-  - `internal/reporter/markdown.go`
-
-### Step 10: Add Configuration Options to `.go-stats-generator.yaml`
-- **Deliverable**: Configuration keys under `maintenance.burden` section as specified in ROADMAP.md
-- **Dependencies**: Steps 2-6
-- **Metric Justification**: ROADMAP.md Configuration Summary specifies required config keys
-- **Configuration Keys**:
-  ```yaml
-  maintenance:
-    burden:
-      max_params: 5
-      max_returns: 3
-      max_nesting: 4
-      feature_envy_ratio: 2.0
+### 1. Integrate Dead Code Detection (Step 6.2)
+- **Deliverable**: `analyzeBurdenInFile()` in `cmd/analyze.go` calls `DetectDeadCode()` and populates `report.Burden.DeadCode`
+- **Dependencies**: None (analyzer already implemented)
+- **Metric Justification**: ROADMAP.md Step 6.2 incomplete; dead code contributes to 34.82% duplication burden
+- **Implementation**:
+  ```go
+  // In analyzeBurdenInFile(), add after magicNumbers detection:
+  deadCode := burdenAnalyzer.DetectDeadCode([]*ast.File{result.File}, result.FileInfo.Package)
+  if deadCode != nil {
+      report.Burden.DeadCode.UnreferencedFunctions = append(report.Burden.DeadCode.UnreferencedFunctions, deadCode.UnreferencedFunctions...)
+      report.Burden.DeadCode.UnreachableCode = append(report.Burden.DeadCode.UnreachableCode, deadCode.UnreachableCode...)
+      report.Burden.DeadCode.TotalDeadLines += deadCode.TotalDeadLines
+  }
   ```
 
-### Step 11: Wire Configuration into `analyze` Command
-- **Deliverable**: CLI flags `--max-params`, `--max-returns`, `--max-nesting`, `--feature-envy-ratio` added to analyze command
-- **Dependencies**: Step 10
-- **Metric Justification**: ROADMAP.md requires thresholds to be configurable via CLI
+### 2. Integrate Signature Complexity Analysis (Step 6.3)
+- **Deliverable**: `analyzeBurdenInFile()` calls `AnalyzeSignatureComplexity()` for each function and populates `report.Burden.ComplexSignatures`
+- **Dependencies**: None (analyzer already implemented)
+- **Metric Justification**: ROADMAP.md Step 6.3 incomplete; parameter/return complexity not visible in output
+- **Implementation**:
+  ```go
+  // After parsing functions, for each FuncDecl:
+  sigIssue := burdenAnalyzer.AnalyzeSignatureComplexity(fn, cfg.Analysis.Burden.MaxParams, cfg.Analysis.Burden.MaxReturns)
+  if sigIssue != nil {
+      report.Burden.ComplexSignatures = append(report.Burden.ComplexSignatures, *sigIssue)
+  }
+  ```
 
-### Step 12: Write Comprehensive Test Suite
-- **Deliverable**: `internal/analyzer/burden_test.go` with unit tests, table-driven tests, and testdata samples
-- **Dependencies**: Steps 2-6
-- **Metric Justification**: ROADMAP.md Testing Strategy requires tests for each detection rule
-- **Coverage Target**: ≥85% for all burden detection functions
+### 3. Integrate Deep Nesting Detection (Step 6.4)
+- **Deliverable**: `analyzeBurdenInFile()` calls `DetectDeepNesting()` for each function and populates `report.Burden.DeeplyNestedFunctions`
+- **Dependencies**: None (analyzer already implemented)
+- **Metric Justification**: ROADMAP.md Step 6.4 incomplete; `walkForNestingDepth` has complexity 19.2 — already implemented but unused
+- **Implementation**:
+  ```go
+  // After parsing functions, for each FuncDecl:
+  nestingIssue := burdenAnalyzer.DetectDeepNesting(fn, cfg.Analysis.Burden.MaxNesting)
+  if nestingIssue != nil {
+      report.Burden.DeeplyNestedFunctions = append(report.Burden.DeeplyNestedFunctions, *nestingIssue)
+  }
+  ```
+
+### 4. Integrate Feature Envy Detection (Step 6.5)
+- **Deliverable**: `analyzeBurdenInFile()` calls `DetectFeatureEnvy()` for each method and populates `report.Burden.FeatureEnvyMethods`
+- **Dependencies**: None (analyzer already implemented)
+- **Metric Justification**: ROADMAP.md Step 6.5 incomplete; feature envy detection implemented but not called
+- **Implementation**:
+  ```go
+  // For methods (FuncDecl with Recv):
+  envyIssue := burdenAnalyzer.DetectFeatureEnvy(fn, file, cfg.Analysis.Burden.FeatureEnvyRatio)
+  if envyIssue != nil {
+      report.Burden.FeatureEnvyMethods = append(report.Burden.FeatureEnvyMethods, *envyIssue)
+  }
+  ```
+
+### 5. Refactor `analyzeBurdenInFile()` for Function-Level Analysis
+- **Deliverable**: Modified `analyzeBurdenInFile()` that iterates over functions in the file to apply signature, nesting, and feature envy analysis
+- **Dependencies**: Steps 2, 3, 4
+- **Metric Justification**: Current implementation only processes file-level magic numbers; function-level analyzers require AST traversal
+- **Implementation**:
+  ```go
+  func analyzeBurdenInFile(burdenAnalyzer *analyzer.BurdenAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) error {
+      // Existing magic number detection
+      magicNumbers := burdenAnalyzer.DetectMagicNumbers(result.File, result.FileInfo.Package)
+      report.Burden.MagicNumbers = append(report.Burden.MagicNumbers, magicNumbers...)
+
+      // Dead code detection (file-level)
+      deadCode := burdenAnalyzer.DetectDeadCode([]*ast.File{result.File}, result.FileInfo.Package)
+      if deadCode != nil {
+          // merge results...
+      }
+
+      // Function-level analysis
+      ast.Inspect(result.File, func(n ast.Node) bool {
+          fn, ok := n.(*ast.FuncDecl)
+          if !ok || fn.Body == nil {
+              return true
+          }
+
+          // Signature complexity
+          if sigIssue := burdenAnalyzer.AnalyzeSignatureComplexity(fn, cfg.Analysis.Burden.MaxParams, cfg.Analysis.Burden.MaxReturns); sigIssue != nil {
+              report.Burden.ComplexSignatures = append(report.Burden.ComplexSignatures, *sigIssue)
+          }
+
+          // Deep nesting
+          if nestIssue := burdenAnalyzer.DetectDeepNesting(fn, cfg.Analysis.Burden.MaxNesting); nestIssue != nil {
+              report.Burden.DeeplyNestedFunctions = append(report.Burden.DeeplyNestedFunctions, *nestIssue)
+          }
+
+          // Feature envy (methods only)
+          if fn.Recv != nil {
+              if envyIssue := burdenAnalyzer.DetectFeatureEnvy(fn, result.File, cfg.Analysis.Burden.FeatureEnvyRatio); envyIssue != nil {
+                  report.Burden.FeatureEnvyMethods = append(report.Burden.FeatureEnvyMethods, *envyIssue)
+              }
+          }
+
+          return true
+      })
+
+      return nil
+  }
+  ```
+
+### 6. Add Burden Metrics Summary to Console Reporter
+- **Deliverable**: `internal/reporter/console.go` displays burden metrics in the analysis summary
+- **Dependencies**: Steps 1-5 (burden data must be populated first)
+- **Metric Justification**: Step 6.6 requires "Maintenance Burden Summary" section in all output formats
+- **Implementation**:
+  - Add `writeBurdenSummary()` function to console reporter
+  - Display counts: magic numbers, dead code lines, complex signatures, deeply nested functions, feature envy methods
+  - Integrate into `Generate()` output flow
+
+### 7. Calculate DeadCodePercent in Finalization
+- **Deliverable**: `finalizeReport()` calculates `report.Burden.DeadCode.DeadCodePercent` based on total lines
+- **Dependencies**: Step 1
+- **Metric Justification**: `DeadCodePercent` field exists but is always 0.0 (hardcoded in analyzer)
+- **Implementation**:
+  ```go
+  // In finalizeReport():
+  totalLines := report.Overview.TotalLines
+  if totalLines > 0 {
+      report.Burden.DeadCode.DeadCodePercent = float64(report.Burden.DeadCode.TotalDeadLines) / float64(totalLines) * 100
+  }
+  ```
+
+### 8. Add Burden Section to HTML and Markdown Reporters
+- **Deliverable**: `internal/reporter/html.go` and `internal/reporter/markdown.go` include burden metrics section
+- **Dependencies**: Steps 1-5
+- **Metric Justification**: ROADMAP.md Step 6.6 requires burden data in "all output formats"
+- **Implementation**:
+  - Add `renderBurdenSection()` to HTML reporter
+  - Add `writeBurdenSection()` to Markdown reporter
+  - Include tables for each burden category with issue details
+
+### 9. Write Unit Tests for Integration
+- **Deliverable**: `cmd/analyze_burden_test.go` with tests for burden integration
+- **Dependencies**: Steps 1-5
+- **Metric Justification**: Testing strategy requires integration tests for each phase
+- **Implementation**:
+  - Test that JSON output includes populated `.burden` object
+  - Test that all burden categories appear in output when issues exist
+  - Test threshold configurations affect detection counts
 
 ## Technical Specifications
 
-- **AST Traversal**: Use `go/ast.Inspect` with visitor pattern for consistent traversal across detection functions
-- **Symbol Resolution**: Leverage existing `buildSymbolIndex` from `placement.go` (complexity 20.7) — consider extracting to shared utility
-- **Configuration Loading**: Use existing Viper integration in `cmd/` package
-- **Output Integration**: Follow existing patterns in `internal/reporter/` for consistent formatting
-- **Test Data**: Add testdata samples under `testdata/burden/` directory with known-bad patterns
-- **Performance**: Burden analysis should add <10% overhead to total analysis time
+- **AST Traversal**: Function-level burden analysis requires `ast.Inspect()` to iterate over `*ast.FuncDecl` nodes in each file
+- **Configuration Integration**: All thresholds already defined in `config.Config.Analysis.Burden` struct:
+  - `MaxParams` (default: 5)
+  - `MaxReturns` (default: 3)
+  - `MaxNesting` (default: 4)
+  - `FeatureEnvyRatio` (default: 2.0)
+  - `IgnoreBenignMagic` (default: true)
+- **Thread Safety**: Burden analysis runs sequentially per file; no mutex required for `report.Burden` access
+- **Memory**: Burden issues are appended to slices; no significant memory impact expected
 
 ## Validation Criteria
 
-- [x] `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 20.0 in `internal/analyzer/burden.go` ✅
-- [x] `go-stats-generator analyze . --skip-tests` shows ≤5 functions above complexity 9.0 in all modified files ✅ (all at 1.3)
-- [x] `go-stats-generator diff baseline.json final.json` shows no complexity regressions >10% in unrelated areas ✅ (7 improvements, 0 regressions)
-- [x] All tests pass: `go test ./internal/analyzer/... -v` ✅
-- [x] All new exported symbols have GoDoc comments starting with symbol name ✅
-- [ ] Documentation coverage in `internal/analyzer/` ≥ 70%
-- [ ] Test coverage for burden.go ≥ 85%: `go test ./internal/analyzer/... -cover | grep burden`
-- [ ] Duplication ratio in `internal/analyzer/` decreases from current baseline after astutil.go extraction
-- [ ] Configuration keys documented in README.md under Configuration section
+- [ ] `go-stats-generator analyze . --format json | jq '.burden'` returns populated object (not `null`)
+- [ ] `go-stats-generator analyze . --format json | jq '.burden.dead_code.unreferenced_functions | length'` returns count > 0 when dead code exists
+- [ ] `go-stats-generator analyze . --format json | jq '.burden.complex_signatures | length'` returns count > 0 when functions exceed thresholds
+- [ ] `go-stats-generator analyze . --format json | jq '.burden.deeply_nested_functions | length'` returns count > 0 when nesting exceeds threshold
+- [ ] `go-stats-generator analyze . --format json | jq '.burden.feature_envy_methods | length'` returns count > 0 when feature envy detected
+- [ ] Console output includes "Maintenance Burden Summary" section
+- [ ] All existing tests pass: `go test ./... -race`
+- [ ] No regressions in complexity: `go-stats-generator analyze . --skip-tests` shows no new functions above complexity 20
 
 ## Known Gaps
 
-### Gap 1: Shotgun Surgery Detection Requires Git Integration
-- **Description**: ROADMAP.md Step 6.5 specifies shotgun surgery detection via `git log --name-only` parsing to find files that frequently co-change
-- **Impact**: Phase 6 will be incomplete without this feature; cannot fully implement Step 6.5
-- **Metrics Context**: This is outside AST analysis scope; all other Phase 6 features are AST-based
-- **Resolution**: Defer to Phase 7 (Composite Scoring) which already depends on git history for baseline integration; document partial completion
+1. **Shotgun Surgery Detection (Step 6.5 partial)**: Requires git history analysis (`git log --name-only`). The ROADMAP describes this feature but `BurdenAnalyzer` does not implement it. This is deferred — would require subprocess integration similar to the deferred annotation age tracking in Phase 4.
 
-### Gap 2: Annotation Age Tracking Incomplete (from Phase 4)
-- **Description**: Phase 4 Step 4.3 notes "Track annotation age via git history (deferred - subprocess integration complexity)"
-- **Impact**: Stale annotation detection cannot use age-based filtering; relies on manual review
-- **Metrics Context**: `documentation.stale_annotations` currently returns 0; feature is placeholder
-- **Resolution**: Consider implementing git integration in Phase 7 to address both shotgun surgery and annotation age
+2. **Cross-Package Dead Code**: Current `DetectDeadCode()` only analyzes within a single package (files passed to it). True dead code detection requires cross-package reference analysis, which is not implemented.
 
-### Gap 3: testdata/ Complexity Inflates Metrics
-- **Description**: `testdata/simple/calculator.go` (complexity 34.7) and `testdata/simple/user.go` (complexity 21.5) are intentionally complex for testing purposes
-- **Impact**: Codebase complexity metrics are artificially inflated; validation criteria should exclude testdata
-- **Metrics Context**: 2 of 8 functions above complexity 20.0 are in testdata/
-- **Resolution**: Validation criteria should use `--exclude testdata/` or filter metrics post-analysis
+3. **BurdenMetrics Aggregation**: The `BurdenMetrics` struct lacks summary fields like `TotalBurdenScore` or counts. Step 6.6 mentions a "composite burden score per file and per package" but this is not implemented in the struct definition.
 
----
+## Files to Modify
 
-## Appendix: Metrics Snapshot (2026-03-03)
+| File | Changes |
+|------|---------|
+| `cmd/analyze.go` | Expand `analyzeBurdenInFile()` to call all burden analyzers |
+| `internal/reporter/console.go` | Add burden summary section |
+| `internal/reporter/html.go` | Add burden section to HTML output |
+| `internal/reporter/markdown.go` | Add burden section to Markdown output |
+| `cmd/analyze_burden_test.go` (new) | Integration tests for burden analysis |
 
-```
-Summary:
-  Functions above complexity 9.0:  13
-  Functions above complexity 15.0: 13
-  Functions above complexity 20.0: 8
-  Duplication ratio:               37.04%
-  Documentation coverage:          64.32%
+## Estimated Effort
 
-Highest Complexity Functions (production code):
-  1. Generate (csv.go)             65.7
-  2. AnalyzeIdentifiers (naming.go) 32.9
-  3. WriteDiff (csv.go)            24.9
-  4. Cleanup (json.go)             24.1
-  5. extractNestedBlocks (duplication.go) 21.5
-  6. buildSymbolIndex (placement.go) 20.7
-  7. deepCopyAndNormalize (duplication.go) 19.2
-  8. List (json.go)                19.2
-
-Files with Most Complexity Hotspots:
-  cmd/analyze.go:                  9 functions above threshold
-  internal/analyzer/interface.go:  8 functions above threshold
-  internal/reporter/console.go:    7 functions above threshold
-  internal/analyzer/naming.go:     5 functions above threshold
-  internal/analyzer/concurrency.go: 5 functions above threshold
-```
+- **Total**: 2-3 days for a developer familiar with the codebase
+- **Step 5 (refactor analyzeBurdenInFile)**: ~2 hours — core integration work
+- **Step 6 (console reporter)**: ~1 hour
+- **Steps 7-8 (other reporters)**: ~2 hours
+- **Step 9 (tests)**: ~2 hours
+- **Testing and refinement**: ~4 hours

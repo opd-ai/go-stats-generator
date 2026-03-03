@@ -1,8 +1,28 @@
 # Implementation Gaps: Phase 6 — Additional Maintenance Burden Indicators
 
-Generated: 2026-03-03T05:37:00Z
+Generated: 2026-03-03T08:16:00Z
 Analysis Tool: go-stats-generator v1.0.0
 Source: ROADMAP.md Phase 6
+
+---
+
+## **NEW** Gap 0: Burden Analyzer Methods Not Integrated
+
+- **Description**: The `BurdenAnalyzer` in `internal/analyzer/burden.go` (703 lines) implements five detection methods, but only `DetectMagicNumbers()` is called from `cmd/analyze.go`. The remaining four methods (`DetectDeadCode`, `AnalyzeSignatureComplexity`, `DetectDeepNesting`, `DetectFeatureEnvy`) are implemented but never invoked.
+
+- **Impact**: JSON output shows `"burden": null` or only populates `magic_numbers`. Users cannot access dead code, signature complexity, nesting depth, or feature envy analysis despite the functionality existing.
+
+- **Metrics Context**:
+  ```json
+  {
+    "high_complexity_count": 12,
+    "duplication_ratio": 0.3482424515547544,
+    "doc_coverage": 65.74712643678161
+  }
+  ```
+  The `internal/analyzer/burden.go` has 6 functions above complexity threshold (19.2, 18.9, 13.2, 12.9, 12.9, 9.3) representing significant investment without utilization.
+
+- **Resolution**: PLAN.md Step 5 specifies expanding `analyzeBurdenInFile()` to call all burden analyzer methods. This is the primary work item for Phase 6 completion.
 
 ---
 
@@ -113,13 +133,15 @@ Source: ROADMAP.md Phase 6
 
 | Gap | Severity | Phase 6 Impact | Resolution |
 |-----|----------|----------------|------------|
+| **Burden Not Integrated** | **Critical** | **Blocks Phase 6** | **PLAN.md Step 5** |
 | Shotgun Surgery | Moderate | Partial Step 6.5 | Defer to Phase 7 |
 | Annotation Age | Minor | Documentation only | Defer to Phase 7 |
 | testdata/ Inflation | Minor | Validation accuracy | Use --exclude testdata/ |
 | High Duplication | High | New code quality | Extract astutil.go first |
 | csv.go Complexity | Critical | Reporter integration | Refactor first |
 
-**Total Gaps**: 5
-- **Critical** (blocks implementation): 1
+**Total Gaps**: 6
+- **Critical** (blocks implementation): 2
+- **High** (significant impact): 1
 - **Moderate** (partial feature): 1
-- **Minor** (workaround available): 3
+- **Minor** (workaround available): 2

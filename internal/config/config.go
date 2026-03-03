@@ -45,6 +45,9 @@ type AnalysisConfig struct {
 
 	// Organization analysis settings
 	Organization OrganizationConfig `mapstructure:"organization" json:"organization"`
+
+	// Burden analysis settings
+	Burden BurdenConfig `mapstructure:"burden" json:"burden"`
 }
 
 // DuplicationConfig controls code duplication detection
@@ -84,6 +87,15 @@ type OrganizationConfig struct {
 	MaxExportedSymbols int `mapstructure:"max_exported_symbols" json:"max_exported_symbols"`
 	MaxDirectoryDepth  int `mapstructure:"max_directory_depth" json:"max_directory_depth"`
 	MaxFileImports     int `mapstructure:"max_file_imports" json:"max_file_imports"`
+}
+
+// BurdenConfig controls maintenance burden detection
+type BurdenConfig struct {
+	MaxParams         int     `mapstructure:"max_params" json:"max_params"`
+	MaxReturns        int     `mapstructure:"max_returns" json:"max_returns"`
+	MaxNesting        int     `mapstructure:"max_nesting" json:"max_nesting"`
+	FeatureEnvyRatio  float64 `mapstructure:"feature_envy_ratio" json:"feature_envy_ratio"`
+	IgnoreBenignMagic bool    `mapstructure:"ignore_benign_magic" json:"ignore_benign_magic"`
 }
 
 // OutputConfig controls output formatting
@@ -196,6 +208,13 @@ func DefaultConfig() *Config {
 				MaxExportedSymbols: 50,
 				MaxDirectoryDepth:  5,
 				MaxFileImports:     15,
+			},
+			Burden: BurdenConfig{
+				MaxParams:         5,
+				MaxReturns:        3,
+				MaxNesting:        4,
+				FeatureEnvyRatio:  2.0,
+				IgnoreBenignMagic: true,
 			},
 		},
 		Output: OutputConfig{

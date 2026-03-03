@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -313,6 +314,7 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	loadDuplicationSettings(cfg)
 	loadPlacementSettings(cfg)
 	loadOrganizationSettings(cfg)
+	loadBurdenSettings(cfg)
 }
 
 // loadBasicAnalysisSettings reads basic analysis configuration from viper,
@@ -403,6 +405,25 @@ func loadOrganizationSettings(cfg *config.Config) {
 	}
 	if viper.IsSet("analysis.organization.max_file_imports") {
 		cfg.Analysis.Organization.MaxFileImports = viper.GetInt("analysis.organization.max_file_imports")
+	}
+}
+
+// loadBurdenSettings reads burden analysis configuration from viper
+func loadBurdenSettings(cfg *config.Config) {
+	if viper.IsSet("analysis.burden.max_params") {
+		cfg.Analysis.Burden.MaxParams = viper.GetInt("analysis.burden.max_params")
+	}
+	if viper.IsSet("analysis.burden.max_returns") {
+		cfg.Analysis.Burden.MaxReturns = viper.GetInt("analysis.burden.max_returns")
+	}
+	if viper.IsSet("analysis.burden.max_nesting") {
+		cfg.Analysis.Burden.MaxNesting = viper.GetInt("analysis.burden.max_nesting")
+	}
+	if viper.IsSet("analysis.burden.feature_envy_ratio") {
+		cfg.Analysis.Burden.FeatureEnvyRatio = viper.GetFloat64("analysis.burden.feature_envy_ratio")
+	}
+	if viper.IsSet("analysis.burden.ignore_benign_magic") {
+		cfg.Analysis.Burden.IgnoreBenignMagic = viper.GetBool("analysis.burden.ignore_benign_magic")
 	}
 }
 
@@ -581,6 +602,7 @@ type AnalyzerSet struct {
 	Placement     *analyzer.PlacementAnalyzer
 	Documentation *analyzer.DocumentationAnalyzer
 	Organization  *analyzer.OrganizationAnalyzer
+	Burden        *analyzer.BurdenAnalyzer
 	fileSet       *token.FileSet
 }
 
@@ -660,6 +682,7 @@ func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 		Placement:     analyzer.NewPlacementAnalyzer(cfg.Analysis.Placement.AffinityMargin, cfg.Analysis.Placement.MinCohesion),
 		Documentation: analyzer.NewDocumentationAnalyzer(fileSet, docConfig),
 		Organization:  analyzer.NewOrganizationAnalyzer(fileSet),
+		Burden:        analyzer.NewBurdenAnalyzer(fileSet),
 		fileSet:       fileSet,
 	}
 }
@@ -697,6 +720,9 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 					Atomic:     []metrics.SyncPrimitiveInstance{},
 				},
 			},
+		},
+		Burden: metrics.BurdenMetrics{
+			MagicNumbers: []metrics.MagicNumber{},
 		},
 	}
 }
@@ -753,6 +779,7 @@ func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collecte
 	collectStructuralMetrics(result, analyzers, collectedMetrics, cfg)
 	analyzePackageStructure(result, analyzers, cfg)
 	analyzeConcurrencyPatterns(result, analyzers, report, cfg)
+	analyzeBurdenIndicators(result, analyzers, report, cfg)
 }
 
 // collectStructuralMetrics analyzes functions, structs, and interfaces in a file
@@ -782,6 +809,14 @@ func analyzePackageStructure(result scanner.Result, analyzers *AnalyzerSet, cfg 
 func analyzeConcurrencyPatterns(result scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) {
 	if err := analyzeConcurrencyInFile(analyzers.Concurrency, result, report, cfg); err != nil && cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze concurrency in %s: %v\n",
+			result.FileInfo.Path, err)
+	}
+}
+
+// analyzeBurdenIndicators analyzes maintenance burden indicators in a file
+func analyzeBurdenIndicators(result scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) {
+	if err := analyzeBurdenInFile(analyzers.Burden, result, report, cfg); err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze burden in %s: %v\n",
 			result.FileInfo.Path, err)
 	}
 }
@@ -861,6 +896,13 @@ func aggregateConcurrencyMetrics(report *metrics.Report, concurrencyMetrics *met
 	report.Patterns.ConcurrencyPatterns.Semaphores = append(report.Patterns.ConcurrencyPatterns.Semaphores, concurrencyMetrics.Semaphores...)
 }
 
+// analyzeBurdenInFile analyzes maintenance burden indicators in a single file
+func analyzeBurdenInFile(burdenAnalyzer *analyzer.BurdenAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) error {
+	magicNumbers := burdenAnalyzer.DetectMagicNumbers(result.File, result.FileInfo.Package)
+	report.Burden.MagicNumbers = append(report.Burden.MagicNumbers, magicNumbers...)
+	return nil
+}
+
 // finalizeReport populates the report with collected metrics and generates final package report
 func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, packageAnalyzer *analyzer.PackageAnalyzer, cfg *config.Config) {
 	// Generate package report
@@ -883,6 +925,9 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 
 	// Calculate overview metrics
 	calculateOverviewMetrics(report, collectedMetrics, packageReport)
+
+	// Finalize complexity metrics aggregation
+	finalizeComplexityMetrics(report)
 
 	// Finalize concurrency metrics summary statistics
 	finalizeConcurrencyMetrics(report)
@@ -1265,8 +1310,14 @@ func buildImportGraphData(collectedMetrics *CollectedMetrics) *analyzer.ImportGr
 
 // calculateOverviewMetrics calculates and sets the overview metrics in the report
 func calculateOverviewMetrics(report *metrics.Report, collectedMetrics *CollectedMetrics, packageReport *metrics.PackageReport) {
+	// Calculate total lines of code from all functions
+	totalLOC := 0
+	for _, fn := range collectedMetrics.Functions {
+		totalLOC += fn.Lines.Code
+	}
+
 	report.Overview = metrics.OverviewMetrics{
-		TotalLinesOfCode: collectedMetrics.TotalLines,
+		TotalLinesOfCode: totalLOC,
 		TotalFunctions:   len(collectedMetrics.Functions),
 		TotalStructs:     len(collectedMetrics.Structs),
 		TotalInterfaces:  len(collectedMetrics.Interfaces),
@@ -1303,6 +1354,114 @@ func finalizeConcurrencyMetrics(report *metrics.Report) {
 		}
 		if instance.IsDirectional {
 			report.Patterns.ConcurrencyPatterns.Channels.DirectionalCount++
+		}
+	}
+}
+
+// complexityEntry holds temporary complexity data for sorting and analysis
+type complexityEntry struct {
+	name       string
+	complexity float64
+	itemType   string
+	file       string
+	line       int
+}
+
+// finalizeComplexityMetrics calculates aggregated complexity statistics
+func finalizeComplexityMetrics(report *metrics.Report) {
+	calculateAverageComplexities(report)
+	buildHighestComplexityList(report)
+	buildComplexityDistribution(report)
+}
+
+// calculateAverageComplexities computes average complexity for functions and structs
+func calculateAverageComplexities(report *metrics.Report) {
+	var totalFunctionComplexity float64
+	for _, fn := range report.Functions {
+		totalFunctionComplexity += fn.Complexity.Overall
+	}
+	if len(report.Functions) > 0 {
+		report.Complexity.AverageFunction = totalFunctionComplexity / float64(len(report.Functions))
+	}
+
+	var totalStructComplexity float64
+	for _, s := range report.Structs {
+		totalStructComplexity += s.Complexity.Overall
+	}
+	if len(report.Structs) > 0 {
+		report.Complexity.AverageStruct = totalStructComplexity / float64(len(report.Structs))
+	}
+}
+
+// buildHighestComplexityList creates a sorted list of top 20 most complex items
+func buildHighestComplexityList(report *metrics.Report) {
+	allItems := collectComplexityEntries(report)
+
+	sort.Slice(allItems, func(i, j int) bool {
+		return allItems[i].complexity > allItems[j].complexity
+	})
+
+	topCount := 20
+	if len(allItems) < topCount {
+		topCount = len(allItems)
+	}
+
+	report.Complexity.HighestComplexity = make([]metrics.ComplexityItem, topCount)
+	for i := 0; i < topCount; i++ {
+		report.Complexity.HighestComplexity[i] = metrics.ComplexityItem{
+			Name:       allItems[i].name,
+			Type:       allItems[i].itemType,
+			File:       allItems[i].file,
+			Line:       allItems[i].line,
+			Complexity: allItems[i].complexity,
+		}
+	}
+}
+
+// collectComplexityEntries gathers complexity data from functions and structs
+func collectComplexityEntries(report *metrics.Report) []complexityEntry {
+	var entries []complexityEntry
+
+	for _, fn := range report.Functions {
+		entries = append(entries, complexityEntry{
+			name:       fn.Name,
+			complexity: fn.Complexity.Overall,
+			itemType:   "function",
+			file:       fn.File,
+			line:       fn.Line,
+		})
+	}
+
+	for _, s := range report.Structs {
+		entries = append(entries, complexityEntry{
+			name:       s.Name,
+			complexity: s.Complexity.Overall,
+			itemType:   "struct",
+			file:       s.File,
+			line:       s.Line,
+		})
+	}
+
+	return entries
+}
+
+// buildComplexityDistribution creates histogram of complexity ranges
+func buildComplexityDistribution(report *metrics.Report) {
+	allItems := collectComplexityEntries(report)
+
+	report.Complexity.Distribution = make(map[string]int)
+	for _, item := range allItems {
+		switch {
+		case item.complexity <= 5:
+			report.Complexity.Distribution["0-5"]++
+		case item.complexity <= 10:
+			report.Complexity.Distribution["6-10"]++
+		case item.complexity <= 15:
+			report.Complexity.Distribution["11-15"]++
+		case item.complexity <= 20:
+			report.Complexity.Distribution["16-20"]++
+		default:
+			report.Complexity.Distribution["20+"]++
 		}
 	}
 }
