@@ -7,6 +7,8 @@
 
 ## Features
 
+### Production-Ready Features
+
 - **Precise Line Counting**: Advanced function/method line analysis that accurately categorizes code, comments, and blank lines
   - Excludes braces, comments, and blank lines from function length calculations
   - Handles complex scenarios: inline comments, multi-line block comments, mixed lines
@@ -27,12 +29,20 @@
 - **Complexity Differential Analysis**: Compare metrics snapshots with multi-dimensional comparisons
 - **Baseline Management**: Create and manage reference snapshots for comparisons
 - **Regression Detection**: Compare snapshots to identify metric increases and decreases
-- **Trend Analysis**: ⚠️ **BETA** - Basic trend commands available; advanced statistical analysis and forecasting planned for future release
 - **CI/CD Integration**: Exit codes and reporting for automated quality gates
 - **Concurrent Processing**: Worker pools for analyzing large codebases efficiently
 - **Multiple Output Formats**: Console, JSON, HTML, CSV, and Markdown with rich reporting
 - **Enterprise Scale**: Designed for large codebases with concurrent processing
 - **Configurable Analysis**: Flexible filtering, thresholds, and analysis options
+
+### Beta/Experimental Features
+
+> ⚠️ **Note:** Features in this section provide basic functionality but are under active development. Advanced capabilities and statistical analysis are planned for future releases. For production use, rely on the production-ready features above.
+
+- **Trend Analysis** _(BETA)_: Basic trend commands available for time-series analysis
+  - Current: Basic snapshot aggregation and simple metric comparison
+  - Planned: Advanced statistical analysis (linear regression, ARIMA forecasting, hypothesis testing)
+  - Recommendation: For production regression detection, use the `diff` command to compare specific baseline snapshots
 
 ## Installation
 
