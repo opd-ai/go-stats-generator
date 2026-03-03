@@ -34,13 +34,20 @@ func loadOutputConfiguration(cfg *config.Config) {
 	if cfg.Output.Verbose {
 		cfg.Output.ShowProgress = true
 	}
-	// Merge --sections and --only into cfg.Output.Sections
-	if viper.IsSet("output.sections") {
-		cfg.Output.Sections = append(cfg.Output.Sections, viper.GetStringSlice("output.sections")...)
+	// Merge --sections and --only into cfg.Output.Sections (deduplicated)
+	seen := make(map[string]bool)
+	var merged []string
+	for _, src := range []string{"output.sections", "output.only"} {
+		if viper.IsSet(src) {
+			for _, s := range viper.GetStringSlice(src) {
+				if !seen[s] {
+					seen[s] = true
+					merged = append(merged, s)
+				}
+			}
+		}
 	}
-	if viper.IsSet("output.only") {
-		cfg.Output.Sections = append(cfg.Output.Sections, viper.GetStringSlice("output.only")...)
-	}
+	cfg.Output.Sections = merged
 }
 
 // loadPerformanceConfiguration loads performance-related settings from viper
