@@ -61,7 +61,7 @@ You are an automated Go documentation auditor using `go-stats-generator` for ent
 
 2. **Extract Documentation and Naming Metrics:**
   ```bash
-  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
+  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json --sections documentation,naming
   cat baseline.json | jq '.documentation'
   cat baseline.json | jq '.naming'
   ```
@@ -131,7 +131,7 @@ You are an automated Go documentation auditor using `go-stats-generator` for ent
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
   ```bash
-  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json
+  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json --sections documentation,naming
   go-stats-generator diff baseline.json corrected.json
   ```
   - Verify documentation coverage increased to ≥80%
@@ -257,7 +257,7 @@ internal/metrics/types.go        MetricSet         godoc references removed fiel
 ...
 
 $ # Extract baseline JSON for diff comparison
-$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
+$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json --sections documentation,naming
 $ cat baseline.json | jq '.documentation | {doc_coverage, undocumented_count, stale_count}'
 {
   "doc_coverage": 0.625,
@@ -273,7 +273,7 @@ $ cat baseline.json | jq '.naming | {violations_count, symbols: [.violations[] |
 
 $ # Correct each documentation gap in priority order...
 
-$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json
+$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json --sections documentation,naming
 $ go-stats-generator diff baseline.json corrected.json
 === IMPROVEMENT SUMMARY ===
 SYMBOLS DOCUMENTED: 15

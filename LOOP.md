@@ -54,7 +54,7 @@ You are an autonomous Go code auditor using `go-stats-generator` for iterative, 
 ### Phase 1: Initial Baseline
 1. **Establish Iteration-0 Baseline:**
   ```bash
-  go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-0.json
+  go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-0.json --sections functions
   go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests
   ```
   - Record all functions exceeding any threshold (see THRESHOLDS below)
@@ -90,7 +90,7 @@ For each iteration N (1 through 5):
 
 3. **Validate Iteration Results:**
   ```bash
-  go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-$N.json
+  go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-$N.json --sections functions
   go-stats-generator diff iteration-$((N-1)).json iteration-$N.json
   ```
 
@@ -222,14 +222,14 @@ $ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --sk
    - Nesting: 3
    - Recommendations: Extract 2 logical blocks
 
-$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-0.json
+$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-0.json --sections functions
 $ cat iteration-0.json | jq '[.functions[] | select(.complexity.overall > 10.0 or .lines.code > 30 or .complexity.cyclomatic > 10)] | length'
 3
 
 $ # ITERATION 1: Target processComplexOrder (highest complexity)
 $ # ... refactor processComplexOrder → extract 4 helper functions ...
 
-$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-1.json
+$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-1.json --sections functions
 $ go-stats-generator diff iteration-0.json iteration-1.json
 === IMPROVEMENT SUMMARY ===
 FUNCTIONS REFACTORED: 1
@@ -254,7 +254,7 @@ $ # CONTINUE: target improved, 0 regressions, 2 violations remain, iteration 1 <
 $ # ITERATION 2: Target handleDataTransform (next highest)
 $ # ... refactor handleDataTransform → extract 3 helper functions ...
 
-$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-2.json
+$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-2.json --sections functions
 $ go-stats-generator diff iteration-1.json iteration-2.json
 === IMPROVEMENT SUMMARY ===
 FUNCTIONS REFACTORED: 1
@@ -278,7 +278,7 @@ $ # CONTINUE: target improved, 0 regressions, 1 violation remains, iteration 2 <
 $ # ITERATION 3: Target validateComplexInput (last violation)
 $ # ... refactor validateComplexInput → extract 2 helper functions ...
 
-$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-3.json
+$ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output iteration-3.json --sections functions
 $ go-stats-generator diff iteration-2.json iteration-3.json
 === IMPROVEMENT SUMMARY ===
 FUNCTIONS REFACTORED: 1

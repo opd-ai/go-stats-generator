@@ -25,7 +25,7 @@ which jq || sudo apt-get install -y jq
 ### Phase 1: Statistical Baseline Generation
 1. **Generate Comprehensive Analysis Report**
     ```bash
-    go-stats-generator analyze . --format json --output full-report.json --include-patterns --include-complexity --sections functions,documentation,naming,concurrency,duplication,interfaces,structs,packages
+    go-stats-generator analyze . --format json --output full-report.json --sections functions,documentation,naming,concurrency,duplication,interfaces,structs,packages
     ```
     - Extract function complexity distribution and outliers (>30 lines, >10 cyclomatic complexity)
     - Analyze struct member categorization for architectural patterns

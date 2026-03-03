@@ -57,7 +57,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
 ### Phase 1: Data-Driven Risk Identification
 1. **Run Baseline Analysis:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output baseline.json
+  go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,concurrency
   go-stats-generator analyze . --skip-tests
   ```
   - Record all functions exceeding bug-risk thresholds (see BUG RISK THRESHOLDS below)
@@ -123,7 +123,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
 ### Phase 3: Differential Validation
 1. **Measure Regression Risk:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output fixed.json
+  go-stats-generator analyze . --skip-tests --format json --output fixed.json --sections functions,concurrency
   go-stats-generator diff baseline.json fixed.json
   ```
   - Verify no function's complexity increased after fixes
@@ -289,7 +289,7 @@ $ cat baseline.json | jq '.concurrency'
 
 $ # Fix each bug-prone function in priority order...
 
-$ go-stats-generator analyze . --skip-tests --format json --output fixed.json
+$ go-stats-generator analyze . --skip-tests --format json --output fixed.json --sections functions,concurrency
 $ go-stats-generator diff baseline.json fixed.json
 === REGRESSION CHECK ===
 FUNCTIONS MODIFIED: 6

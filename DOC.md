@@ -63,7 +63,7 @@ Accuracy is the paramount concern. You must never introduce false information or
 
 2. **Extract Documentation Metrics:**
   ```bash
-  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
+  go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json --sections documentation,naming
   cat baseline.json | jq '.documentation'
   cat baseline.json | jq '.naming | {exported_without_doc: [.symbols[] | select(.exported == true and .has_doc == false) | .name]}'
   ```
@@ -107,16 +107,16 @@ Accuracy is the paramount concern. You must never introduce false information or
 2. **Verify Each Reference Against Codebase:**
   ```bash
   # Verify file paths exist
-  cat baseline.json | jq '.packages[] | .files[]'
+  find . -name '*.go' -not -path './.git/*' -not -name '*_test.go' | sort
 
   # Verify function signatures match documentation
-  cat baseline.json | jq '.functions[] | {name, file, params: .parameter_count, returns: .return_count}'
+  grep -rn '^func ' --include='*.go' --exclude='*_test.go'
 
   # Verify struct definitions
-  cat baseline.json | jq '.structs[] | {name, file, methods: .method_count}'
+  grep -rn '^type .* struct' --include='*.go' --exclude='*_test.go'
 
   # Verify interface definitions
-  cat baseline.json | jq '.interfaces[] | {name, file, methods: .method_count}'
+  grep -rn '^type .* interface' --include='*.go' --exclude='*_test.go'
   ```
 
 3. **Determine Correction Type and Apply:**
@@ -151,7 +151,7 @@ Accuracy is the paramount concern. You must never introduce false information or
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output corrected.json
+  go-stats-generator analyze . --skip-tests --format json --output corrected.json --sections documentation,naming
   go-stats-generator diff baseline.json corrected.json
   ```
   - Verify documentation coverage increased toward 0.8 threshold
@@ -279,7 +279,7 @@ Exported Symbols Missing Godoc:
   ... (11 more)
 
 $ # Extract baseline JSON for diff comparison
-$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
+$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json --sections documentation,naming
 $ cat baseline.json | jq '.documentation | {coverage, missing_docs, packages_below_threshold}'
 {
   "coverage": 0.625,
@@ -300,7 +300,7 @@ $ cat baseline.json | jq '.naming | {exported_without_doc: [.symbols[] | select(
 
 $ # Audit and correct markdown files, add missing godoc...
 
-$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json
+$ go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json --sections documentation,naming
 $ go-stats-generator diff baseline.json corrected.json
 === IMPROVEMENT SUMMARY ===
 DOCUMENTATION IMPROVEMENTS:

@@ -290,7 +290,7 @@ Naming Issues:
 
 $ go-stats-generator analyze ./internal/analyzer \
     --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 \
-    --skip-tests --format json --output pkg-audit.json
+    --skip-tests --format json --output pkg-audit.json --sections functions,documentation,naming,concurrency,duplication,interfaces,structs,packages
 
 $ cat pkg-audit.json | jq '{doc: .documentation, funcs_over: [.functions[] | select(.complexity.cyclomatic > 10) | {name, file, complexity: .complexity.overall, cyclomatic: .complexity.cyclomatic, lines: .lines.code}], naming: .naming}'
 {

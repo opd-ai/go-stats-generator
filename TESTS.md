@@ -52,7 +52,7 @@ You are a test generation agent using `go-stats-generator` to rank untested file
 ### Phase 1: Baseline Analysis
 1. **Run Complexity Baseline:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output test-baseline.json
+  go-stats-generator analyze . --skip-tests --format json --output test-baseline.json --sections functions
   ```
   - Record per-function complexity metrics from `.functions[]`
   - Note cyclomatic complexity, line count, and nesting depth for each function
@@ -113,7 +113,7 @@ You are a test generation agent using `go-stats-generator` to rank untested file
 
 3. **Run Post-Test Analysis:**
   ```bash
-  go-stats-generator analyze . --format json --output post-tests.json
+  go-stats-generator analyze . --format json --output post-tests.json --sections functions
   go-stats-generator diff test-baseline.json post-tests.json
   ```
   - Verify no complexity regressions in production code
@@ -212,7 +212,7 @@ Coverage Threshold = 80% line coverage OR all Critical/High functions tested
 
 ## EXAMPLE WORKFLOW:
 ```bash
-$ go-stats-generator analyze . --skip-tests --format json --output test-baseline.json
+$ go-stats-generator analyze . --skip-tests --format json --output test-baseline.json --sections functions
 $ cat test-baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 8)] | sort_by(-.complexity.cyclomatic) | .[:5][] | {name, file, cyclomatic: .complexity.cyclomatic, lines: .lines.code}'
 {
   "name": "processComplexOrder",
@@ -268,7 +268,7 @@ $ go test ./... -v
 --- PASS: TestValidateComplexInput_BoundaryValues_Validated
 ... (all tests pass)
 
-$ go-stats-generator analyze . --format json --output post-tests.json
+$ go-stats-generator analyze . --format json --output post-tests.json --sections functions
 $ go-stats-generator diff test-baseline.json post-tests.json
 === IMPROVEMENT SUMMARY ===
 FUNCTIONS TESTED: 5

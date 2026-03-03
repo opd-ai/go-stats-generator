@@ -136,7 +136,7 @@ echo "Circular deps gate: $([ "$CIRCULAR" -eq 0 ] && echo 'PASS' || echo "FAIL (
   ```bash
   # After remediation, re-run to verify gates
   go-stats-generator analyze . --format json --output post-remediation.json \
-    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --sections functions,packages,documentation,naming,concurrency,duplication
   go-stats-generator diff readiness-report.json post-remediation.json
   ```
 
@@ -186,7 +186,7 @@ Structure your response as ROADMAP.md with the following template:
 ## VALIDATION
 Verify remediation with:
 go-stats-generator analyze . --format json --output post-remediation.json \
-  --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+  --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --sections functions,packages,documentation,naming,concurrency,duplication
 go-stats-generator diff readiness-report.json post-remediation.json
 ```
 
@@ -213,7 +213,7 @@ If all gates pass: "Production ready: go-stats-generator baseline analysis found
 ## EXAMPLE WORKFLOW:
 ```bash
 $ go-stats-generator analyze . --format json --output readiness-report.json \
-    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --sections functions,packages,documentation,naming,concurrency,duplication
 $ go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
 
 === PRODUCTION READINESS ANALYSIS ===
@@ -273,7 +273,7 @@ Overall Readiness: 4/7 gates passing — NOT READY
 $ # Generate ROADMAP.md with prioritized remediation...
 $ # After remediation, re-validate:
 $ go-stats-generator analyze . --format json --output post-remediation.json \
-    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7
+    --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --sections functions,packages,documentation,naming,concurrency,duplication
 $ go-stats-generator diff readiness-report.json post-remediation.json
 === IMPROVEMENT SUMMARY ===
 Complexity gate:    FAIL → PASS (4 → 0 violations)

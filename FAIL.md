@@ -61,7 +61,7 @@ You are an automated Go test failure analyst using `go-stats-generator` for comp
 
 2. **Establish Complexity Baseline:**
    ```bash
-   go-stats-generator analyze . --skip-tests --format json --output baseline.json
+   go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,concurrency
    go-stats-generator analyze . --skip-tests
    ```
    - Record function-level complexity metrics for all functions under test
@@ -170,7 +170,7 @@ START → Is the test logic sound and following Go conventions?
 
 3. **Post-Fix Complexity Check:**
    ```bash
-   go-stats-generator analyze . --skip-tests --format json --output postfix.json
+   go-stats-generator analyze . --skip-tests --format json --output postfix.json --sections functions,concurrency
    ```
 
 ### Phase 4: Differential Validation
@@ -303,7 +303,7 @@ $ go-stats-generator analyze . --skip-tests
    - Cyclomatic: 6
    - Nesting: 2
 
-$ go-stats-generator analyze . --skip-tests --format json --output baseline.json
+$ go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,concurrency
 $ cat baseline.json | jq '.functions[] | select(.name == "processAnalysisResult")'
 {
   "name": "processAnalysisResult",
@@ -332,7 +332,7 @@ ok      github.com/opd-ai/go-stats-generator/internal/analyzer    0.031s
 ok      github.com/opd-ai/go-stats-generator/cmd                  0.019s
 PASS
 
-$ go-stats-generator analyze . --skip-tests --format json --output postfix.json
+$ go-stats-generator analyze . --skip-tests --format json --output postfix.json --sections functions,concurrency
 $ go-stats-generator diff baseline.json postfix.json
 === DIFFERENTIAL ANALYSIS ===
 FAILURES RESOLVED: 2

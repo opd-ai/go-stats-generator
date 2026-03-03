@@ -60,7 +60,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 
 2. **Extract Duplication Summary:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output baseline.json
+  go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections duplication
   cat baseline.json | jq '.duplication'
   ```
   - Capture the overall duplication metrics:
@@ -166,7 +166,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output deduplicated.json
+  go-stats-generator analyze . --skip-tests --format json --output deduplicated.json --sections duplication
   go-stats-generator diff baseline.json deduplicated.json
   ```
   - Verify overall duplication ratio decreased significantly
@@ -294,7 +294,7 @@ exact              12        2 internal/scanner/worker.go:30-41 (+1 more)
 near               10        3 internal/metrics/types.go:85-94 (+2 more)
 
 $ # Extract baseline JSON for diff comparison
-$ go-stats-generator analyze . --skip-tests --format json --output baseline.json
+$ go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections duplication
 $ cat baseline.json | jq '.duplication | {clone_pairs, duplicated_lines, duplication_ratio, largest_clone_size}'
 {
   "clone_pairs": 12,
@@ -311,7 +311,7 @@ $ cat baseline.json | jq '.duplication.clones[:3][] | {type, line_count, instanc
 
 $ # Consolidate each clone group in priority order...
 
-$ go-stats-generator analyze . --skip-tests --format json --output deduplicated.json
+$ go-stats-generator analyze . --skip-tests --format json --output deduplicated.json --sections duplication
 $ go-stats-generator diff baseline.json deduplicated.json
 === IMPROVEMENT SUMMARY ===
 CLONE GROUPS CONSOLIDATED: 5
