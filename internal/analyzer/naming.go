@@ -281,39 +281,11 @@ func (na *NamingAnalyzer) toSnakeCase(s string) string {
 
 // ComputeFileNamingScore calculates an overall file naming quality score
 func (na *NamingAnalyzer) ComputeFileNamingScore(violations []metrics.FileNameViolation, totalFiles int) float64 {
-	if totalFiles == 0 {
-		return 1.0
+	severities := make([]string, len(violations))
+	for i, v := range violations {
+		severities[i] = v.Severity
 	}
-
-	// Weight violations by severity
-	severityWeights := map[string]float64{
-		"low":    0.1,
-		"medium": 0.3,
-		"high":   0.5,
-	}
-
-	totalPenalty := 0.0
-	for _, v := range violations {
-		weight, ok := severityWeights[v.Severity]
-		if !ok {
-			weight = 0.2 // default
-		}
-		totalPenalty += weight
-	}
-
-	// Normalize penalty (max penalty = 1.0 per file)
-	normalizedPenalty := totalPenalty / float64(totalFiles)
-
-	// Score is 1.0 - penalty, clamped to [0, 1]
-	score := 1.0 - normalizedPenalty
-	if score < 0 {
-		score = 0
-	}
-	if score > 1 {
-		score = 1
-	}
-
-	return score
+	return computeQualityScore(severities, totalFiles)
 }
 
 // AnalyzeIdentifiers walks the AST to analyze all identifiers in a file
@@ -622,7 +594,18 @@ func (na *NamingAnalyzer) checkIdentifierStuttering(name string, ctx *identifier
 
 // ComputeIdentifierQualityScore calculates an overall identifier naming quality score
 func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.IdentifierViolation, totalIdentifiers int) float64 {
-	if totalIdentifiers == 0 {
+	severities := make([]string, len(violations))
+	for i, v := range violations {
+		severities[i] = v.Severity
+	}
+	return computeQualityScore(severities, totalIdentifiers)
+}
+
+// Helper functions
+
+// computeQualityScore calculates a quality score from severity-weighted violations
+func computeQualityScore(severities []string, total int) float64 {
+	if total == 0 {
 		return 1.0
 	}
 
@@ -634,17 +617,18 @@ func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.Ide
 	}
 
 	totalPenalty := 0.0
-	for _, v := range violations {
-		weight, ok := severityWeights[v.Severity]
+	for _, severity := range severities {
+		weight, ok := severityWeights[severity]
 		if !ok {
-			weight = 0.2
+			weight = 0.2 // default
 		}
 		totalPenalty += weight
 	}
 
 	// Normalize penalty
-	normalizedPenalty := totalPenalty / float64(totalIdentifiers)
+	normalizedPenalty := totalPenalty / float64(total)
 
+	// Score is 1.0 - penalty, clamped to [0, 1]
 	score := 1.0 - normalizedPenalty
 	if score < 0 {
 		score = 0
@@ -655,8 +639,6 @@ func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.Ide
 
 	return score
 }
-
-// Helper functions
 
 func (na *NamingAnalyzer) toMixedCaps(s string) string {
 	parts := strings.Split(s, "_")
@@ -831,36 +813,9 @@ func (na *NamingAnalyzer) checkDirectoryMismatch(pkgName, dirName, filePath stri
 
 // ComputePackageNamingScore calculates an overall package naming quality score
 func (na *NamingAnalyzer) ComputePackageNamingScore(violations []metrics.PackageNameViolation, totalPackages int) float64 {
-	if totalPackages == 0 {
-		return 1.0
+	severities := make([]string, len(violations))
+	for i, v := range violations {
+		severities[i] = v.Severity
 	}
-
-	// Weight violations by severity
-	severityWeights := map[string]float64{
-		"low":    0.1,
-		"medium": 0.3,
-		"high":   0.5,
-	}
-
-	totalPenalty := 0.0
-	for _, v := range violations {
-		weight, ok := severityWeights[v.Severity]
-		if !ok {
-			weight = 0.2
-		}
-		totalPenalty += weight
-	}
-
-	// Normalize penalty
-	normalizedPenalty := totalPenalty / float64(totalPackages)
-
-	score := 1.0 - normalizedPenalty
-	if score < 0 {
-		score = 0
-	}
-	if score > 1 {
-		score = 1
-	}
-
-	return score
+	return computeQualityScore(severities, totalPackages)
 }

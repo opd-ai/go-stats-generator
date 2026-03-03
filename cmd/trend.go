@@ -98,16 +98,8 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	return runTrendAnalyze(cmd, args)
 }
 
-// runTrendAnalyze retrieves historical snapshots from storage within the specified
-// time window and outputs trend statistics (avg complexity, duplication, doc coverage)
-// in console or JSON format. Currently provides basic aggregation; advanced statistical
-// analysis (regression, forecasting) is planned for future releases.
-func runTrendAnalyze(cmd *cobra.Command, args []string) error {
-	if verbose {
-		fmt.Printf("Analyzing trends for the last %d days\n", trendDays)
-	}
-
-	// Initialize storage
+// initStorageWithSnapshots initializes storage backend and retrieves historical snapshots
+func initStorageWithSnapshots(days int) (storage.MetricsStorage, []storage.SnapshotInfo, error) {
 	cfg := config.DefaultConfig()
 	sqliteConfig := storage.SQLiteConfig{
 		Path:              cfg.Storage.Path,
@@ -118,13 +110,11 @@ func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 
 	storageBackend, err := storage.NewSQLiteStorage(sqliteConfig)
 	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
+		return nil, nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
-	defer storageBackend.Close()
 
-	// Get historical snapshots
 	ctx := context.Background()
-	cutoffTime := time.Now().AddDate(0, 0, -trendDays)
+	cutoffTime := time.Now().AddDate(0, 0, -days)
 	filter := storage.SnapshotFilter{
 		After: &cutoffTime,
 		Limit: 100,
@@ -132,8 +122,27 @@ func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 
 	snapshots, err := storageBackend.List(ctx, filter)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve snapshots: %w", err)
+		storageBackend.Close()
+		return nil, nil, fmt.Errorf("failed to retrieve snapshots: %w", err)
 	}
+
+	return storageBackend, snapshots, nil
+}
+
+// runTrendAnalyze retrieves historical snapshots from storage within the specified
+// time window and outputs trend statistics (avg complexity, duplication, doc coverage)
+// in console or JSON format. Currently provides basic aggregation; advanced statistical
+// analysis (regression, forecasting) is planned for future releases.
+func runTrendAnalyze(cmd *cobra.Command, args []string) error {
+	if verbose {
+		fmt.Printf("Analyzing trends for the last %d days\n", trendDays)
+	}
+
+	storageBackend, snapshots, err := initStorageWithSnapshots(trendDays)
+	if err != nil {
+		return err
+	}
+	defer storageBackend.Close()
 
 	if len(snapshots) < 2 {
 		return fmt.Errorf("insufficient snapshots for trend analysis (need at least 2, found %d)", len(snapshots))
@@ -172,33 +181,11 @@ func runTrendForecast(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Generating forecasts based on %d days of data\n", trendDays)
 	}
 
-	// Initialize storage
-	cfg := config.DefaultConfig()
-	sqliteConfig := storage.SQLiteConfig{
-		Path:              cfg.Storage.Path,
-		EnableWAL:         true,
-		MaxConnections:    10,
-		EnableCompression: cfg.Storage.Compression,
-	}
-
-	storageBackend, err := storage.NewSQLiteStorage(sqliteConfig)
+	storageBackend, snapshots, err := initStorageWithSnapshots(trendDays)
 	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
+		return err
 	}
 	defer storageBackend.Close()
-
-	// Get historical snapshots
-	ctx := context.Background()
-	cutoffTime := time.Now().AddDate(0, 0, -trendDays)
-	filter := storage.SnapshotFilter{
-		After: &cutoffTime,
-		Limit: 100,
-	}
-
-	snapshots, err := storageBackend.List(ctx, filter)
-	if err != nil {
-		return fmt.Errorf("failed to retrieve snapshots: %w", err)
-	}
 
 	if len(snapshots) < 3 {
 		return fmt.Errorf("insufficient snapshots for forecasting (need at least 3, found %d)", len(snapshots))
