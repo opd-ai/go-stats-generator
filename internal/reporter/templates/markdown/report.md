@@ -148,6 +148,45 @@
 {{end}}
 {{end}}
 
+{{$totalPlacementViolations := add (add .Report.Placement.MisplacedFunctions .Report.Placement.MisplacedMethods) .Report.Placement.LowCohesionFiles}}
+{{if gt $totalPlacementViolations 0}}
+## 📍 Placement Analysis
+
+| Metric | Value |
+|--------|-------|
+| **Misplaced Functions** | {{.Report.Placement.MisplacedFunctions}} |
+| **Misplaced Methods** | {{.Report.Placement.MisplacedMethods}} |
+| **Low Cohesion Files** | {{.Report.Placement.LowCohesionFiles}} |
+| **Average File Cohesion** | {{formatFloat .Report.Placement.AvgFileCohesion}} |
+
+{{if gt (len .Report.Placement.FunctionIssues) 0}}
+### Misplaced Functions
+
+| Function | Current File | Suggested File | Current Affinity | Suggested Affinity | Affinity Gain | Severity |
+|----------|--------------|----------------|------------------|--------------------|--------------|----------|
+{{range .Report.Placement.FunctionIssues}}| {{escapeMarkdown .Name}} | {{escapeMarkdown .CurrentFile}} | {{escapeMarkdown .SuggestedFile}} | {{formatFloat .CurrentAffinity}} | {{formatFloat .SuggestedAffinity}} | +{{formatFloat (subtract .SuggestedAffinity .CurrentAffinity)}} | {{.Severity}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Placement.MethodIssues) 0}}
+### Misplaced Methods
+
+| Method | Receiver Type | Current File | Receiver File | Distance | Severity |
+|--------|---------------|--------------|---------------|----------|----------|
+{{range .Report.Placement.MethodIssues}}| {{escapeMarkdown .MethodName}} | {{escapeMarkdown .ReceiverType}} | {{escapeMarkdown .CurrentFile}} | {{escapeMarkdown .ReceiverFile}} | {{.Distance}} | {{.Severity}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Placement.CohesionIssues) 0}}
+### Low Cohesion Files
+
+| File | Cohesion Score | Intra-File Refs | Total Refs | Suggested Splits | Severity |
+|------|----------------|-----------------|------------|------------------|----------|
+{{range .Report.Placement.CohesionIssues}}| {{escapeMarkdown .File}} | {{formatFloat .CohesionScore}} | {{.IntraFileRefs}} | {{.TotalRefs}} | {{range $i, $split := .SuggestedSplits}}{{if $i}}, {{end}}{{escapeMarkdown $split}}{{end}} | {{.Severity}} |
+{{end}}
+{{end}}
+{{end}}
+
 ## 📈 Analysis Summary
 
 This report provides comprehensive metrics for the Go codebase analysis. Key insights:

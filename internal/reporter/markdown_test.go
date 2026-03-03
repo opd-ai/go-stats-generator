@@ -210,3 +210,139 @@ func TestMarkdownReporter_SimpleGenerate(t *testing.T) {
 	t.Logf("Generated report length: %d characters", len(output))
 	t.Logf("First 200 characters: %s", output[:min(200, len(output))])
 }
+
+func TestMarkdownReporter_WithPlacement(t *testing.T) {
+	reporter := NewMarkdownReporter()
+
+	// Create test report with placement metrics
+	testReport := &metrics.Report{
+		Metadata: metrics.ReportMetadata{
+			Repository:     "github.com/test/repo",
+			GeneratedAt:    time.Date(2025, 7, 25, 10, 30, 0, 0, time.UTC),
+			AnalysisTime:   time.Millisecond * 150,
+			FilesProcessed: 10,
+			ToolVersion:    "v1.2.0",
+			GoVersion:      "go1.21.0",
+		},
+		Overview: metrics.OverviewMetrics{
+			TotalLinesOfCode: 500,
+			TotalFunctions:   20,
+			TotalMethods:     10,
+			TotalStructs:     5,
+			TotalInterfaces:  2,
+			TotalPackages:    3,
+			TotalFiles:       10,
+		},
+		Complexity: metrics.ComplexityMetrics{
+			AverageFunction: 5.0,
+		},
+		Documentation: metrics.DocumentationMetrics{
+			Coverage: metrics.DocumentationCoverage{
+				Overall: 0.8,
+			},
+		},
+		Placement: metrics.PlacementMetrics{
+			MisplacedFunctions: 2,
+			MisplacedMethods:   1,
+			LowCohesionFiles:   1,
+			AvgFileCohesion:    0.65,
+			FunctionIssues: []metrics.MisplacedFunctionIssue{
+				{
+					Name:              "HelperFunc",
+					CurrentFile:       "util.go",
+					SuggestedFile:     "helpers.go",
+					CurrentAffinity:   0.25,
+					SuggestedAffinity: 0.85,
+					ReferencedSymbols: []string{"Helper1", "Helper2"},
+					Severity:          "high",
+				},
+				{
+					Name:              "ProcessData",
+					CurrentFile:       "main.go",
+					SuggestedFile:     "processor.go",
+					CurrentAffinity:   0.30,
+					SuggestedAffinity: 0.75,
+					ReferencedSymbols: []string{"DataStruct", "ProcessConfig"},
+					Severity:          "medium",
+				},
+			},
+			MethodIssues: []metrics.MisplacedMethodIssue{
+				{
+					MethodName:   "String",
+					ReceiverType: "User",
+					CurrentFile:  "helpers.go",
+					ReceiverFile: "user.go",
+					Distance:     "same_package",
+					Severity:     "medium",
+				},
+			},
+			CohesionIssues: []metrics.FileCohesionIssue{
+				{
+					File:            "mixed.go",
+					CohesionScore:   0.25,
+					IntraFileRefs:   5,
+					TotalRefs:       20,
+					SuggestedSplits: []string{"user_ops.go", "config_ops.go"},
+					Severity:        "high",
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	err := reporter.Generate(testReport, &buf)
+	if err != nil {
+		t.Fatalf("Generate() failed: %v", err)
+	}
+
+	output := buf.String()
+
+	// Test placement section is present
+	expectedSections := []string{
+		"## 📍 Placement Analysis",
+		"### Misplaced Functions",
+		"### Misplaced Methods",
+		"### Low Cohesion Files",
+	}
+
+	for _, section := range expectedSections {
+		if !strings.Contains(output, section) {
+			t.Errorf("Expected section '%s' not found in output", section)
+		}
+	}
+
+	// Test specific placement data is present
+	expectedData := []string{
+		"HelperFunc",
+		"util.go",
+		"helpers.go",
+		"ProcessData",
+		"main.go",
+		"processor.go",
+		"String",
+		"User",
+		"user.go",
+		"mixed.go",
+		"0.25", // cohesion score
+		"user\\_ops.go", // Escaped by markdown
+		"config\\_ops.go", // Escaped by markdown
+	}
+
+	for _, data := range expectedData {
+		if !strings.Contains(output, data) {
+			t.Errorf("Expected data '%s' not found in output", data)
+		}
+	}
+
+	// Test summary metrics
+	if !strings.Contains(output, "**Misplaced Functions** | 2") {
+		t.Error("Misplaced functions count not found in summary")
+	}
+	if !strings.Contains(output, "**Misplaced Methods** | 1") {
+		t.Error("Misplaced methods count not found in summary")
+	}
+	if !strings.Contains(output, "**Low Cohesion Files** | 1") {
+		t.Error("Low cohesion files count not found in summary")
+	}
+}
+

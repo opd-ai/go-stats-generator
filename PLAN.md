@@ -246,11 +246,32 @@ Output sections:
 - Misplaced Methods table (method, receiver, current file, receiver file, distance)
 - Low Cohesion Files table (file, cohesion score, intra/total refs, suggested splits)
 
-### 13. Add Markdown Reporter Output
+### 13. Add Markdown Reporter Output ✅ COMPLETE
 - **Deliverable**: Update `internal/reporter/templates/markdown/report.md` with Placement section
 - **Dependencies**: Steps 1, 9
+- **Completed**: 2026-03-02
 
-Add markdown table sections following existing naming section patterns.
+Implementation:
+- Added conditional placement section that displays when violations exist (MisplacedFunctions + MisplacedMethods + LowCohesionFiles > 0)
+- Created placement summary table showing:
+  - Misplaced Functions count
+  - Misplaced Methods count
+  - Low Cohesion Files count
+  - Average File Cohesion score
+- Added three detailed markdown tables:
+  - Misplaced Functions: shows function name, current/suggested files, affinity scores (current, suggested, gain), and severity
+  - Misplaced Methods: shows method name, receiver type, current/receiver files, distance, and severity
+  - Low Cohesion Files: shows file, cohesion score, intra-file refs, total refs, suggested splits (comma-separated), and severity
+- Added `subtract` helper function to markdown.go template function map for calculating affinity gain
+- Created comprehensive unit test in markdown_test.go (TestMarkdownReporter_WithPlacement)
+- All existing tests continue to pass
+- Verified end-to-end: `./go-stats-generator analyze . --format=markdown` produces placement section when violations exist
+
+Output sections:
+- Placement summary (counts, avg cohesion)
+- Misplaced Functions table (name, current file, suggested file, affinity scores with gain calculation)
+- Misplaced Methods table (method, receiver, current file, receiver file, distance)
+- Low Cohesion Files table (file, cohesion score, intra/total refs, suggested splits)
 
 ### 14. Create Unit Tests ✅ COMPLETE
 - **Deliverable**: Create `internal/analyzer/placement_test.go` with comprehensive test coverage
@@ -306,7 +327,7 @@ Ensure placement analysis doesn't degrade performance below 50,000-file-in-60-se
 - [x] JSON reporter includes placement metrics
 - [x] Console reporter displays placement analysis when violations exist
 - [x] HTML reporter includes Placement tab when violations exist
-- [ ] Markdown reporter includes Placement section when violations exist
+- [x] Markdown reporter includes Placement section when violations exist
 - [x] Unit tests achieve >85% code coverage for `internal/analyzer/placement.go`
 - [ ] Integration tests pass for all test fixtures
 - [ ] Benchmark tests confirm no performance regression (50K files in 60s target maintained)
