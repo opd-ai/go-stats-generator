@@ -65,13 +65,17 @@
 
 ### Step 2: Extend Baseline & Diff Commands for Burden Metrics (7.3)
 
-2.1. **Add burden metrics to baseline storage schema**
+2.1. **Add burden metrics to baseline storage schema** ✅ COMPLETED
    - **Deliverable**: Updated `internal/storage/*.go` with burden metrics columns/fields
-   - **Dependencies**: None
-   - **Metric Justification**: Current baseline/diff only covers basic metrics, not MBI scores
-   - **Technical Details**:
-     - Add `mbi_score`, `duplication_ratio`, `doc_coverage` fields to baseline snapshots
-     - Maintain backward compatibility with existing baselines
+   - **Status**: COMPLETE - Schema migration and extraction implemented (2026-03-03)
+   - **Files Modified**:
+     - internal/storage/sqlite.go (added 5 columns, migration function, extraction function)
+   - **Implementation Details**:
+     - Added `mbi_score_avg`, `duplication_ratio`, `doc_coverage`, `complexity_violations`, `naming_violations` columns
+     - Implemented `extractBurdenMetrics()` function to calculate summary metrics from Report
+     - Added `migrateSchema()` for backward compatibility with existing databases
+     - All storage tests passing
+   - **Validation**: Verified burden metrics correctly extracted and stored in SQLite
 
 2.2. **Implement burden-specific regression detection**
    - **Deliverable**: `detectBurdenRegressions()` in `internal/metrics/diff.go`

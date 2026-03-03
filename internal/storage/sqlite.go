@@ -102,11 +102,21 @@ func (s *SQLiteStorage) initSchema() error {
 		description TEXT,
 		size_bytes INTEGER NOT NULL,
 		data_compressed BLOB NOT NULL,
+		mbi_score_avg REAL,
+		duplication_ratio REAL,
+		doc_coverage REAL,
+		complexity_violations INTEGER,
+		naming_violations INTEGER,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
 	if _, err := s.db.ExecContext(ctx, createSnapshotsTable); err != nil {
 		return fmt.Errorf("failed to create snapshots table: %w", err)
+	}
+
+	// Migrate existing schema if burden columns don't exist
+	if err := s.migrateSchema(ctx); err != nil {
+		return fmt.Errorf("failed to migrate schema: %w", err)
 	}
 
 	// Create tags table for key-value metadata
@@ -141,6 +151,69 @@ func (s *SQLiteStorage) initSchema() error {
 	return nil
 }
 
+// migrateSchema adds burden metric columns to existing databases
+func (s *SQLiteStorage) migrateSchema(ctx context.Context) error {
+	// Check if snapshots table exists
+	var tableExists int
+	err := s.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='snapshots'").Scan(&tableExists)
+	if err != nil || tableExists == 0 {
+		// Table doesn't exist yet, no migration needed
+		return nil
+	}
+
+	columns := []string{
+		"ALTER TABLE snapshots ADD COLUMN mbi_score_avg REAL",
+		"ALTER TABLE snapshots ADD COLUMN duplication_ratio REAL",
+		"ALTER TABLE snapshots ADD COLUMN doc_coverage REAL",
+		"ALTER TABLE snapshots ADD COLUMN complexity_violations INTEGER",
+		"ALTER TABLE snapshots ADD COLUMN naming_violations INTEGER",
+	}
+
+	for _, columnSQL := range columns {
+		if _, err := s.db.ExecContext(ctx, columnSQL); err != nil {
+			// Ignore "duplicate column" errors (already migrated)
+			if !strings.Contains(err.Error(), "duplicate column") {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// extractBurdenMetrics calculates summary metrics from a Report for storage
+func extractBurdenMetrics(report metrics.Report) (mbiAvg, dupRatio, docCov float64, complexViolations, namingViolations int) {
+	// Calculate average MBI score across all files
+	if len(report.Scores.FileScores) > 0 {
+		var totalMBI float64
+		for _, fs := range report.Scores.FileScores {
+			totalMBI += fs.Score
+		}
+		mbiAvg = totalMBI / float64(len(report.Scores.FileScores))
+	}
+
+	// Extract duplication ratio
+	dupRatio = report.Duplication.DuplicationRatio
+
+	// Extract documentation coverage
+	docCov = report.Documentation.Coverage.Overall
+
+	// Count complexity violations (functions with overall complexity > 10)
+	for _, fn := range report.Functions {
+		if fn.Complexity.Overall > 10.0 {
+			complexViolations++
+		}
+	}
+
+	// Count naming violations
+	namingViolations = report.Naming.FileNameViolations +
+		report.Naming.IdentifierViolations +
+		report.Naming.PackageNameViolations
+
+	return mbiAvg, dupRatio, docCov, complexViolations, namingViolations
+}
+
 // Store saves a metrics snapshot with metadata
 func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnapshot, metadata metrics.SnapshotMetadata) error {
 	// Serialize the snapshot data
@@ -160,6 +233,9 @@ func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 		compressedData = data
 	}
 
+	// Extract burden metrics for denormalized storage
+	mbiAvg, dupRatio, docCov, complexViolations, namingViolations := extractBurdenMetrics(snapshot.Report)
+
 	// Start transaction
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -167,12 +243,14 @@ func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 	}
 	defer tx.Rollback()
 
-	// Insert snapshot
+	// Insert snapshot with burden metrics
 	insertSnapshot := `
 	INSERT INTO snapshots (
 		id, timestamp, git_commit, git_branch, git_tag, version, 
-		author, description, size_bytes, data_compressed
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		author, description, size_bytes, data_compressed,
+		mbi_score_avg, duplication_ratio, doc_coverage, 
+		complexity_violations, naming_violations
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	_, err = tx.ExecContext(ctx, insertSnapshot,
 		snapshot.ID,
@@ -185,6 +263,11 @@ func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 		metadata.Description,
 		len(compressedData),
 		compressedData,
+		mbiAvg,
+		dupRatio,
+		docCov,
+		complexViolations,
+		namingViolations,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert snapshot: %w", err)
