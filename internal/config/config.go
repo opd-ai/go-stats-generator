@@ -26,6 +26,9 @@ type AnalysisConfig struct {
 	IncludeDocumentation bool `mapstructure:"include_documentation" json:"include_documentation"`
 	IncludeGenerics      bool `mapstructure:"include_generics" json:"include_generics"`
 
+	// Test coverage integration
+	CoverageProfile string `mapstructure:"coverage_profile" json:"coverage_profile"`
+
 	// Thresholds for warnings
 	MaxFunctionLength        int     `mapstructure:"max_function_length" json:"max_function_length"`
 	MaxCyclomaticComplexity  int     `mapstructure:"max_cyclomatic_complexity" json:"max_cyclomatic_complexity"`

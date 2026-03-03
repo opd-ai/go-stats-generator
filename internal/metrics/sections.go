@@ -21,6 +21,8 @@ var ValidSections = map[string]bool{
 	"organization":  true,
 	"burden":        true,
 	"scores":        true,
+	"test_coverage": true,
+	"test_quality":  true,
 	"suggestions":   true,
 }
 
@@ -90,6 +92,12 @@ func FilterReportSections(report *Report, sections []string) {
 	}
 	if !keep["scores"] {
 		report.Scores = ScoringMetrics{}
+	}
+	if !keep["test_coverage"] {
+		report.TestCoverage = TestCoverageMetrics{}
+	}
+	if !keep["test_quality"] {
+		report.TestQuality = TestQualityMetrics{}
 	}
 	if !keep["suggestions"] {
 		report.Suggestions = nil

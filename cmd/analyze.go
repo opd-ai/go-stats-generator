@@ -118,6 +118,8 @@ func init() {
 		"include documentation analysis")
 	analyzeCmd.Flags().Bool("include-generics", true,
 		"include generic usage analysis")
+	analyzeCmd.Flags().String("coverage-profile", "",
+		"path to Go coverage profile for test coverage correlation")
 
 	// Threshold flags
 	analyzeCmd.Flags().Int("max-function-length", 30,
@@ -186,6 +188,7 @@ func init() {
 	viper.BindPFlag("analysis.include_complexity", analyzeCmd.Flags().Lookup("include-complexity"))
 	viper.BindPFlag("analysis.include_documentation", analyzeCmd.Flags().Lookup("include-documentation"))
 	viper.BindPFlag("analysis.include_generics", analyzeCmd.Flags().Lookup("include-generics"))
+	viper.BindPFlag("analysis.coverage_profile", analyzeCmd.Flags().Lookup("coverage-profile"))
 	viper.BindPFlag("analysis.max_function_length", analyzeCmd.Flags().Lookup("max-function-length"))
 	viper.BindPFlag("analysis.max_cyclomatic_complexity", analyzeCmd.Flags().Lookup("max-complexity"))
 	viper.BindPFlag("analysis.min_documentation_coverage", analyzeCmd.Flags().Lookup("min-doc-coverage"))

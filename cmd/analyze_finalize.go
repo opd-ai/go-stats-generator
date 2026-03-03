@@ -52,6 +52,9 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 
 	// Calculate MBI scores for all files and packages
 	finalizeScoringMetrics(report, cfg)
+
+	// Analyze test coverage correlation if coverage profile provided
+	finalizeTestCoverageMetrics(report, cfg)
 }
 
 // finalizeScoringMetrics calculates maintenance burden index for files and packages
@@ -663,4 +666,58 @@ func aggregateGenericsMetrics(report *metrics.Report, collected *CollectedMetric
 	}
 
 	report.Generics = merged
+}
+
+// finalizeTestCoverageMetrics analyzes test coverage if provided
+func finalizeTestCoverageMetrics(report *metrics.Report, cfg *config.Config) {
+	coveragePath := cfg.Analysis.CoverageProfile
+	if coveragePath == "" {
+		return
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Loading coverage profile from: %s\n", coveragePath)
+	}
+
+	// Resolve coverage profile path
+	if !filepath.IsAbs(coveragePath) {
+		wd, _ := os.Getwd()
+		coveragePath = filepath.Join(wd, coveragePath)
+	}
+
+	// Load coverage data
+	covAnalyzer := analyzer.NewTestCoverageAnalyzer()
+	if err := covAnalyzer.LoadCoverageProfile(coveragePath); err != nil {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Warning: failed to load coverage profile: %v\n", err)
+		}
+		return
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Analyzing test coverage correlation for %d functions...\n", len(report.Functions))
+	}
+
+	// Analyze coverage correlation
+	report.TestCoverage = covAnalyzer.AnalyzeCorrelation(report.Functions)
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Coverage analysis: %.2f%% function coverage, %d high-risk functions, %d coverage gaps\n",
+			report.TestCoverage.FunctionCoverageRate*100,
+			len(report.TestCoverage.HighRiskFunctions),
+			len(report.TestCoverage.CoverageGaps))
+	}
+
+	// Analyze test quality - use current working directory
+	repoPath, _ := os.Getwd()
+	testQuality, err := analyzer.AnalyzeTestQuality(repoPath)
+	if err == nil {
+		report.TestQuality = testQuality
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Test quality analysis: %d tests in %d files\n",
+				testQuality.TotalTests, len(testQuality.TestFiles))
+		}
+	} else if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze test quality: %v\n", err)
+	}
 }

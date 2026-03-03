@@ -23,6 +23,8 @@ type Report struct {
 	Organization         OrganizationMetrics  `json:"organization"`
 	Burden               BurdenMetrics        `json:"burden"`
 	Scores               ScoringMetrics       `json:"scores"`
+	TestCoverage         TestCoverageMetrics  `json:"test_coverage,omitempty"`
+	TestQuality          TestQualityMetrics   `json:"test_quality,omitempty"`
 	Suggestions          []SuggestionInfo     `json:"suggestions,omitempty"`
 }
 
@@ -1169,4 +1171,48 @@ type PerformanceAntipattern struct {
 	File        string `json:"file"`
 	Line        int    `json:"line"`
 	Suggestion  string `json:"suggestion"`
+}
+
+// TestCoverageMetrics represents test coverage correlation analysis
+type TestCoverageMetrics struct {
+	FunctionCoverageRate   float64            `json:"function_coverage_rate"`
+	ComplexityCoverageRate float64            `json:"complexity_coverage_rate"`
+	HighRiskFunctions      []HighRiskFunction `json:"high_risk_functions"`
+	CoverageGaps           []CoverageGap      `json:"coverage_gaps"`
+}
+
+// HighRiskFunction represents a function with high complexity and low coverage
+type HighRiskFunction struct {
+	Name       string  `json:"name"`
+	File       string  `json:"file"`
+	Line       int     `json:"line"`
+	Complexity int     `json:"complexity"`
+	Coverage   float64 `json:"coverage"`
+	RiskScore  float64 `json:"risk_score"`
+}
+
+// CoverageGap represents a coverage gap in the codebase
+type CoverageGap struct {
+	Name        string  `json:"name"`
+	File        string  `json:"file"`
+	Line        int     `json:"line"`
+	Complexity  int     `json:"complexity"`
+	Coverage    float64 `json:"coverage"`
+	GapSeverity string  `json:"gap_severity"`
+}
+
+// TestQualityMetrics represents test suite quality assessment
+type TestQualityMetrics struct {
+	TotalTests           int            `json:"total_tests"`
+	AvgAssertionsPerTest float64        `json:"avg_assertions_per_test"`
+	TestFiles            []TestFileInfo `json:"test_files"`
+}
+
+// TestFileInfo represents test file statistics
+type TestFileInfo struct {
+	File           string  `json:"file"`
+	TestCount      int     `json:"test_count"`
+	SubtestCount   int     `json:"subtest_count"`
+	AssertionCount int     `json:"assertion_count"`
+	AssertionRatio float64 `json:"assertion_ratio"`
 }
