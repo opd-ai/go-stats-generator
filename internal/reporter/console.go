@@ -81,6 +81,12 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writeDocumentationAnalysis(output, report)
 	}
 
+	// Organization analysis section
+	totalOrgIssues := len(report.Organization.OversizedFiles) + len(report.Organization.OversizedPackages) + len(report.Organization.DeepDirectories) + len(report.Organization.HighFanInPackages) + len(report.Organization.HighFanOutPackages)
+	if cr.config.IncludeDetails && totalOrgIssues > 0 {
+		cr.writeOrganizationAnalysis(output, report)
+	}
+
 	// Footer
 	cr.writeFooter(output, report)
 

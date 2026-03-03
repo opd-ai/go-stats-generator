@@ -474,6 +474,7 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	finalizeNamingMetrics(report, analyzers, collectedMetrics, cfg)
 	finalizePlacementMetrics(report, analyzers, collectedMetrics, cfg)
 	finalizeDocumentationMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizeOrganizationMetrics(report, analyzers, collectedMetrics, cfg, projectRoot)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	if cfg.Output.Verbose {
@@ -548,6 +549,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	finalizeNamingMetrics(report, analyzers, metrics, cfg)
 	finalizePlacementMetrics(report, analyzers, metrics, cfg)
 	finalizeDocumentationMetrics(report, analyzers, metrics, cfg)
+	finalizeOrganizationMetrics(report, analyzers, metrics, cfg, targetDir)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	return report, nil
@@ -564,6 +566,7 @@ type AnalyzerSet struct {
 	Naming        *analyzer.NamingAnalyzer
 	Placement     *analyzer.PlacementAnalyzer
 	Documentation *analyzer.DocumentationAnalyzer
+	Organization  *analyzer.OrganizationAnalyzer
 	fileSet       *token.FileSet
 }
 
@@ -642,6 +645,7 @@ func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 		Naming:        analyzer.NewNamingAnalyzer(),
 		Placement:     analyzer.NewPlacementAnalyzer(cfg.Analysis.Placement.AffinityMargin, cfg.Analysis.Placement.MinCohesion),
 		Documentation: analyzer.NewDocumentationAnalyzer(fileSet, docConfig),
+		Organization:  analyzer.NewOrganizationAnalyzer(fileSet),
 		fileSet:       fileSet,
 	}
 }
@@ -1097,6 +1101,63 @@ func finalizeDocumentationMetrics(report *metrics.Report, analyzers *AnalyzerSet
 	}
 }
 
+// finalizeOrganizationMetrics performs organization analysis on all collected files and packages
+func finalizeOrganizationMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config, targetPath string) {
+	if len(collectedMetrics.Files) == 0 {
+		report.Organization = metrics.OrganizationMetrics{}
+		return
+	}
+
+	orgConfig := getOrganizationConfig(cfg)
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Running organization analysis on %d files...\n", len(collectedMetrics.Files))
+	}
+
+	var oversizedFiles []metrics.OversizedFile
+	for filePath, astFile := range collectedMetrics.Files {
+		result, err := analyzers.Organization.AnalyzeFileSizes(astFile, filePath, orgConfig)
+		if err == nil && result != nil {
+			oversizedFiles = append(oversizedFiles, *result)
+		}
+	}
+
+	pkgInfo := buildPackageInfo(collectedMetrics, report)
+	oversizedPackages := analyzers.Organization.AnalyzePackageSizes(pkgInfo, orgConfig)
+
+	var filePaths []string
+	for filePath := range collectedMetrics.Files {
+		filePaths = append(filePaths, filePath)
+	}
+	deepDirs := analyzers.Organization.AnalyzeDirectoryDepth(filePaths, targetPath, orgConfig)
+
+	graphData := buildImportGraphData(collectedMetrics)
+	importMetrics, _ := analyzers.Organization.AnalyzeImportGraph(graphData, orgConfig)
+
+	var highFanIn []metrics.FanInPackage
+	var highFanOut []metrics.FanOutPackage
+	avgStability := 0.0
+	if importMetrics != nil {
+		highFanIn = importMetrics.HighFanInPackages
+		highFanOut = importMetrics.HighFanOutPackages
+		avgStability = importMetrics.AvgInstability
+	}
+
+	report.Organization = metrics.OrganizationMetrics{
+		OversizedFiles:      oversizedFiles,
+		OversizedPackages:   oversizedPackages,
+		DeepDirectories:     deepDirs,
+		HighFanInPackages:   highFanIn,
+		HighFanOutPackages:  highFanOut,
+		AvgPackageStability: avgStability,
+	}
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Found %d oversized files, %d oversized packages, %d deep directories\n",
+			len(oversizedFiles), len(oversizedPackages), len(deepDirs))
+	}
+}
+
 // prepareDocumentationInput converts files map to slice and groups by package
 func prepareDocumentationInput(filesMap map[string]*ast.File) ([]*ast.File, map[string]*ast.Package) {
 	var files []*ast.File
@@ -1117,6 +1178,75 @@ func prepareDocumentationInput(filesMap map[string]*ast.File) ([]*ast.File, map[
 	}
 
 	return files, pkgs
+}
+
+func getOrganizationConfig(cfg *config.Config) analyzer.OrganizationConfig {
+	return analyzer.OrganizationConfig{
+		MaxFileLines:       cfg.Analysis.Organization.MaxFileLines,
+		MaxFileFunctions:   cfg.Analysis.Organization.MaxFileFunctions,
+		MaxFileTypes:       cfg.Analysis.Organization.MaxFileTypes,
+		MaxPackageFiles:    cfg.Analysis.Organization.MaxPackageFiles,
+		MaxExportedSymbols: cfg.Analysis.Organization.MaxExportedSymbols,
+		MaxDirectoryDepth:  cfg.Analysis.Organization.MaxDirectoryDepth,
+		MaxFileImports:     cfg.Analysis.Organization.MaxFileImports,
+	}
+}
+
+func buildPackageInfo(collectedMetrics *CollectedMetrics, report *metrics.Report) map[string]*analyzer.PackageInfo {
+	pkgInfo := make(map[string]*analyzer.PackageInfo)
+
+	for filePath, astFile := range collectedMetrics.Files {
+		if astFile.Name == nil {
+			continue
+		}
+		pkgName := astFile.Name.Name
+		if _, exists := pkgInfo[pkgName]; !exists {
+			pkgInfo[pkgName] = &analyzer.PackageInfo{
+				Name:  pkgName,
+				Files: []string{},
+			}
+		}
+		pkgInfo[pkgName].Files = append(pkgInfo[pkgName].Files, filePath)
+	}
+
+	for _, pkg := range report.Packages {
+		if info, exists := pkgInfo[pkg.Name]; exists {
+			info.ExportedSymbols = countExportedSymbols(pkg)
+			info.TotalFunctions = pkg.Functions
+			info.CohesionScore = pkg.CohesionScore
+		}
+	}
+
+	return pkgInfo
+}
+
+func countExportedSymbols(pkg metrics.PackageMetrics) int {
+	return pkg.Functions + pkg.Structs + pkg.Interfaces
+}
+
+func buildImportGraphData(collectedMetrics *CollectedMetrics) *analyzer.ImportGraphData {
+	graphData := &analyzer.ImportGraphData{
+		FileImports:    make(map[string]int),
+		PackageFanIn:   make(map[string][]string),
+		PackageFanOut:  make(map[string][]string),
+		FilePackageMap: make(map[string]string),
+	}
+
+	for filePath, astFile := range collectedMetrics.Files {
+		if astFile.Name != nil {
+			graphData.FilePackageMap[filePath] = astFile.Name.Name
+		}
+
+		importCount := 0
+		for _, imp := range astFile.Imports {
+			if imp.Path != nil {
+				importCount++
+			}
+		}
+		graphData.FileImports[filePath] = importCount
+	}
+
+	return graphData
 }
 
 // calculateOverviewMetrics calculates and sets the overview metrics in the report
