@@ -198,7 +198,7 @@ func (pa *PackageAnalyzer) calculateComplexity(pkgName string) float64 {
 
 // detectCircularDependencies finds cycles in the package dependency graph
 func (pa *PackageAnalyzer) detectCircularDependencies() []metrics.CircularDependency {
-	var cycles []metrics.CircularDependency
+	cycles := make([]metrics.CircularDependency, 0)
 	visited := make(map[string]bool)
 
 	// DFS-based cycle detection

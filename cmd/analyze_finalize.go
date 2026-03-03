@@ -22,8 +22,9 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 			fmt.Fprintf(os.Stderr, "Warning: failed to generate package report: %v\n", err)
 		}
 		packageReport = &metrics.PackageReport{
-			Packages:      []metrics.PackageMetrics{},
-			TotalPackages: 0,
+			Packages:             []metrics.PackageMetrics{},
+			CircularDependencies: []metrics.CircularDependency{},
+			TotalPackages:        0,
 		}
 	}
 
@@ -32,6 +33,7 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 	report.Structs = collectedMetrics.Structs
 	report.Interfaces = collectedMetrics.Interfaces
 	report.Packages = packageReport.Packages
+	report.CircularDependencies = packageReport.CircularDependencies
 
 	// Calculate overview metrics
 	calculateOverviewMetrics(report, collectedMetrics, packageReport)

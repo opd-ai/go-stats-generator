@@ -59,6 +59,7 @@ func FilterReportSections(report *Report, sections []string) {
 	}
 	if !keep["packages"] {
 		report.Packages = nil
+		report.CircularDependencies = nil
 	}
 	if !keep["patterns"] {
 		report.Patterns = PatternMetrics{}

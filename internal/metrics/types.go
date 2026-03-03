@@ -6,23 +6,24 @@ import (
 
 // Report represents the complete analysis report for a repository
 type Report struct {
-	Metadata      ReportMetadata       `json:"metadata"`
-	Overview      OverviewMetrics      `json:"overview"`
-	Functions     []FunctionMetrics    `json:"functions"`
-	Structs       []StructMetrics      `json:"structs"`
-	Interfaces    []InterfaceMetrics   `json:"interfaces"`
-	Packages      []PackageMetrics     `json:"packages"`
-	Patterns      PatternMetrics       `json:"patterns"`
-	Complexity    ComplexityMetrics    `json:"complexity"`
-	Documentation DocumentationMetrics `json:"documentation"`
-	Generics      GenericMetrics       `json:"generics"`
-	Duplication   DuplicationMetrics   `json:"duplication"`
-	Naming        NamingMetrics        `json:"naming"`
-	Placement     PlacementMetrics     `json:"placement"`
-	Organization  OrganizationMetrics  `json:"organization"`
-	Burden        BurdenMetrics        `json:"burden"`
-	Scores        ScoringMetrics       `json:"scores"`
-	Suggestions   []SuggestionInfo     `json:"suggestions,omitempty"`
+	Metadata             ReportMetadata       `json:"metadata"`
+	Overview             OverviewMetrics      `json:"overview"`
+	Functions            []FunctionMetrics    `json:"functions"`
+	Structs              []StructMetrics      `json:"structs"`
+	Interfaces           []InterfaceMetrics   `json:"interfaces"`
+	Packages             []PackageMetrics     `json:"packages"`
+	CircularDependencies []CircularDependency `json:"circular_dependencies"`
+	Patterns             PatternMetrics       `json:"patterns"`
+	Complexity           ComplexityMetrics    `json:"complexity"`
+	Documentation        DocumentationMetrics `json:"documentation"`
+	Generics             GenericMetrics       `json:"generics"`
+	Duplication          DuplicationMetrics   `json:"duplication"`
+	Naming               NamingMetrics        `json:"naming"`
+	Placement            PlacementMetrics     `json:"placement"`
+	Organization         OrganizationMetrics  `json:"organization"`
+	Burden               BurdenMetrics        `json:"burden"`
+	Scores               ScoringMetrics       `json:"scores"`
+	Suggestions          []SuggestionInfo     `json:"suggestions,omitempty"`
 }
 
 // ReportMetadata contains information about the analysis run

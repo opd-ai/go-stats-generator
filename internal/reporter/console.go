@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/opd-ai/go-stats-generator/internal/config"
@@ -56,6 +57,11 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 	// Package analysis section
 	if cr.config.IncludeDetails && len(report.Packages) > 0 {
 		cr.writePackageAnalysis(output, report)
+	}
+
+	// Circular dependencies section (always show, even if none found, for transparency)
+	if cr.config.IncludeDetails && len(report.Packages) > 0 {
+		cr.writeCircularDependencies(output, report)
 	}
 
 	// Duplication analysis section
@@ -659,6 +665,45 @@ func (cr *ConsoleReporter) writePackageDependencies(output io.Writer, packages [
 		}
 	}
 	fmt.Fprintln(output)
+}
+
+// writeCircularDependencies displays circular dependency detection results
+func (cr *ConsoleReporter) writeCircularDependencies(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== CIRCULAR DEPENDENCIES ===")
+
+	if len(report.CircularDependencies) == 0 {
+		fmt.Fprintln(output, "No circular dependencies detected.")
+		fmt.Fprintln(output)
+		return
+	}
+
+	fmt.Fprintf(output, "Found %d circular dependency chain(s):\n\n", len(report.CircularDependencies))
+
+	for i, cycle := range report.CircularDependencies {
+		severity := cycle.Severity
+		if severity == "" {
+			severity = "unknown"
+		}
+
+		fmt.Fprintf(output, "%d. [%s SEVERITY] ", i+1, toUpperCase(severity))
+
+		for j, pkg := range cycle.Packages {
+			if j > 0 {
+				fmt.Fprint(output, " → ")
+			}
+			fmt.Fprint(output, pkg)
+		}
+
+		if len(cycle.Packages) > 0 {
+			fmt.Fprintf(output, " → %s\n", cycle.Packages[0])
+		}
+		fmt.Fprintln(output)
+	}
+}
+
+// toUpperCase converts a string to uppercase
+func toUpperCase(s string) string {
+	return strings.ToUpper(s)
 }
 
 // writeDuplicationAnalysis generates duplication analysis output
