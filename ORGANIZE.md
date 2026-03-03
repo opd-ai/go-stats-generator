@@ -47,7 +47,7 @@ go-stats-generator diff pkg-baseline.json pkg-reorganized.json --format html --o
 ```
 
 ## CONTEXT:
-You are an automated Go codebase reorganizer using `go-stats-generator` for enterprise-grade structural analysis and reorganization validation. The tool provides precise package cohesion/coupling metrics, struct/interface inventories, and documentation coverage data that drive every reorganization decision. You move code between files — never modifying logic — to maximize on-disk navigability. Focus on packages with the lowest cohesion scores and highest coupling scores identified by the tool's package analysis engine, working one package at a time until each is complete with an AUDIT.md.
+You are an automated Go codebase reorganizer using `go-stats-generator` for enterprise-grade structural analysis and reorganization validation. The tool provides precise package cohesion/coupling metrics and struct/interface inventories that drive every reorganization decision. You move code between files — never modifying logic — to maximize on-disk navigability. Focus on packages with the lowest cohesion scores and highest coupling scores identified by the tool's package analysis engine, working one package at a time until each is complete with an AUDIT.md.
 
 ## INSTRUCTIONS:
 
@@ -56,7 +56,7 @@ This phase uses `go-stats-generator` package metrics to select the most impactfu
 
 1. **Run Full Codebase Analysis:**
    ```bash
-   go-stats-generator analyze . --skip-tests --format json --output full-baseline.json
+   go-stats-generator analyze . --skip-tests --format json --output full-baseline.json --sections packages,structs,interfaces,functions
    go-stats-generator analyze . --skip-tests
    ```
 
@@ -94,7 +94,7 @@ This phase uses `go-stats-generator` package metrics to select the most impactfu
 
 1. **Establish Per-Package Baseline:**
    ```bash
-   go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-baseline.json
+   go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-baseline.json --sections packages,structs,interfaces,functions
    go test ./[selected_package]/... > test-baseline.txt 2>&1
    ```
 
@@ -219,12 +219,12 @@ Use `go-stats-generator` analysis results to populate AUDIT.md with precise, dat
 
 1. **Run Post-Reorganization Analysis:**
    ```bash
-   go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-reorganized.json
+   go-stats-generator analyze ./[selected_package] --skip-tests --format json --output pkg-reorganized.json --sections packages,structs,interfaces,functions
    ```
 
 2. **Extract Documentation Gaps:**
    ```bash
-   cat pkg-reorganized.json | jq '.documentation'
+   go-stats-generator analyze ./[selected_package] --skip-tests --min-doc-coverage 0.7
    ```
 
 3. **Extract Interface Implementation Data:**
@@ -481,7 +481,7 @@ internal/reporter      0.41      0.55     5       3          2
 internal/config        0.65      0.30     3       2          1
 internal/metrics       0.72      0.25     4       3          1
 
-$ go-stats-generator analyze . --skip-tests --format json --output full-baseline.json
+$ go-stats-generator analyze . --skip-tests --format json --output full-baseline.json --sections packages,structs,interfaces,functions
 $ cat full-baseline.json | jq '[.packages[] | {name, path, cohesion_score, coupling_score, files: (.files | length), structs, interfaces}] | sort_by(.cohesion_score)'
 [
   {"name": "analyzer", "path": "internal/analyzer", "cohesion_score": 0.28, "coupling_score": 0.72, "files": 8, "structs": 6, "interfaces": 4},
@@ -497,7 +497,7 @@ FILES: 8 .go files | STRUCTS: 6 | INTERFACES: 4
 UNAUDITED_REMAINING: 3 packages without AUDIT.md
 
 $ # Phase 1: Per-package baseline
-$ go-stats-generator analyze ./internal/analyzer --skip-tests --format json --output pkg-baseline.json
+$ go-stats-generator analyze ./internal/analyzer --skip-tests --format json --output pkg-baseline.json --sections packages,structs,interfaces,functions
 $ cat pkg-baseline.json | jq '[.structs[] | {name, file}]'
 [
   {"name": "FunctionAnalyzer", "file": "analyzer.go"},
@@ -577,7 +577,7 @@ TESTS: PASS - 47 tests, 47 passed
 BUILD: SUCCESS
 
 $ # Phase 5: Post-reorganization analysis and audit
-$ go-stats-generator analyze ./internal/analyzer --skip-tests --format json --output pkg-reorganized.json
+$ go-stats-generator analyze ./internal/analyzer --skip-tests --format json --output pkg-reorganized.json --sections packages,structs,interfaces,functions
 
 AUDIT: analyzer
 GAPS_FOUND: 5

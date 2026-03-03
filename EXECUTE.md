@@ -54,7 +54,7 @@ You are an autonomous Go developer using `go-stats-generator` as the primary qua
 ### Phase 1: Baseline Capture
 1. **Establish Pre-Change Metrics:**
   ```bash
-  go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output baseline.json
+  go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output baseline.json --sections functions,duplication,documentation
   go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests
   ```
   - Record current violation counts (functions over length, over complexity, under doc coverage)
@@ -115,7 +115,7 @@ You are an autonomous Go developer using `go-stats-generator` as the primary qua
 ### Phase 4: Differential Validation
 1. **Capture Post-Change Metrics:**
   ```bash
-  go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output post-change.json
+  go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output post-change.json --sections functions,duplication,documentation
   ```
 
 2. **Measure Regressions:**
@@ -236,7 +236,7 @@ Functions over complexity 10: 2
 Duplication ratio: 3.21%
 Documentation coverage: 78.4%
 
-$ go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output baseline.json
+$ go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output baseline.json --sections functions,duplication,documentation
 
 $ # Phase 2: Select task from AUDIT.md (highest priority)
 $ head -20 AUDIT.md
@@ -253,7 +253,7 @@ $ go test ./internal/scanner/... -race
 ok  	github.com/example/project/internal/scanner	0.342s
 
 $ # Phase 4: Validate zero regressions
-$ go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output post-change.json
+$ go-stats-generator analyze . --max-function-length 30 --max-complexity 10 --skip-tests --format json --output post-change.json --sections functions,duplication,documentation
 $ go-stats-generator diff baseline.json post-change.json
 === DIFFERENTIAL ANALYSIS ===
 CHANGED FUNCTIONS: 1

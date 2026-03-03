@@ -53,7 +53,7 @@ You are performing self-analysis on the `go-stats-generator` codebase to improve
 ### Phase 1: Self-Analysis Target Identification
 1. **Run Comprehensive Baseline Analysis:**
   ```bash
-  ./go-stats-generator analyze . --format json --output self-baseline.json
+  ./go-stats-generator analyze . --format json --output self-baseline.json --sections functions
   ./go-stats-generator analyze .
   ```
   - Focus on core modules: `internal/analyzer`, `internal/metrics`, `internal/storage`
@@ -111,7 +111,7 @@ You are performing self-analysis on the `go-stats-generator` codebase to improve
 2. **Bug Regression Testing:**
   ```bash
   go test ./... -v
-  ./go-stats-generator analyze . --format json --output validation.json
+  ./go-stats-generator analyze . --format json --output validation.json --sections functions
   # Compare against known good baseline to ensure accuracy preserved
   ```
 

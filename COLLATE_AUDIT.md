@@ -62,7 +62,7 @@ You are an automated Go code auditor using `go-stats-generator` for enterprise-g
 ### Phase 1: Complexity Baseline Generation
 1. **Run Full Analysis:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json
+  go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json --sections functions,packages,documentation
   ```
   - Capture function complexity, line counts, cyclomatic scores, and nesting depths
   - Capture package coupling, cohesion, and dependency metrics
@@ -255,7 +255,7 @@ Refactoring Threshold = Overall Complexity > 9.0 OR Lines > 40 OR Cyclomatic > 9
 ## EXAMPLE WORKFLOW:
 ```bash
 $ # Phase 1: Generate complexity baseline
-$ go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json
+$ go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json --sections functions,packages,documentation
 $ go-stats-generator analyze . --skip-tests
 === FUNCTION ANALYSIS ===
 Functions analyzed: 142

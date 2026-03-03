@@ -22,10 +22,10 @@ go install github.com/opd-ai/go-stats-generator@latest
 ## Recommendations:
 ```bash
 # Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, concurrency: .concurrency}'
+go-stats-generator analyze --format json | jq '{functions: .functions, concurrency: .patterns.concurrency_patterns}'
 which jq || sudo apt-get install -y jq
 ```
-**Section filter**: Use only `.functions` and `.concurrency` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to bug-prone function detection.
+**Section filter**: Use only `.functions` and `.patterns.concurrency_patterns` from the report (`--sections concurrency` includes the `patterns` section). Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to bug-prone function detection.
 
 ### Required Analysis Workflow:
 ```bash
@@ -57,7 +57,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
 ### Phase 1: Data-Driven Risk Identification
 1. **Run Baseline Analysis:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output baseline.json
+  go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,concurrency
   go-stats-generator analyze . --skip-tests
   ```
   - Record all functions exceeding bug-risk thresholds (see BUG RISK THRESHOLDS below)
@@ -66,7 +66,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
 
 2. **Extract Concurrency Risk Profile:**
   ```bash
-  cat baseline.json | jq '.concurrency'
+  cat baseline.json | jq '.patterns.concurrency_patterns'
   ```
   - Capture goroutine spawn sites, channel operations, sync primitive usage
   - Flag functions with concurrent access patterns lacking synchronization
@@ -89,7 +89,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
   cat baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 10 or .complexity.nesting_depth > 3) | {name: .name, file: .file, cyclomatic: .complexity.cyclomatic, nesting_depth: .complexity.nesting_depth, line_count: .lines.code}]'
   ```
   - Produce a ranked list of bug-candidate functions with their risk indicators
-  - Cross-reference with `.concurrency` data for race condition candidates
+  - Cross-reference with `.patterns.concurrency_patterns` data for race condition candidates
 
 ### Phase 2: Targeted Bug Detection and Fixing
 1. **Scan High-Risk Functions:**
@@ -98,7 +98,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
   - **Resource leaks:** Opened files/connections without deferred close; goroutines without exit paths
   - **Error swallowing:** Errors assigned to `_` or checked but not propagated
   - **Off-by-one errors:** Loop bounds, slice indexing, range calculations
-  - **Race conditions:** Shared state accessed without synchronization (cross-reference `.concurrency`)
+  - **Race conditions:** Shared state accessed without synchronization (cross-reference `.patterns.concurrency_patterns`)
   - **Deadlocks:** Lock ordering violations, missing unlocks in error paths
 
 2. **Apply Deterministic Fixes:**
@@ -123,7 +123,7 @@ You are an automated Go bug hunter using `go-stats-generator` as the primary ana
 ### Phase 3: Differential Validation
 1. **Measure Regression Risk:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output fixed.json
+  go-stats-generator analyze . --skip-tests --format json --output fixed.json --sections functions,concurrency
   go-stats-generator diff baseline.json fixed.json
   ```
   - Verify no function's complexity increased after fixes
@@ -214,7 +214,7 @@ Bug Risk Classification (go-stats-generator metrics):
 Concurrency Risk Indicators:
   Goroutine spawns without context cancellation
   Channel operations without timeout or select default
-  Shared state access without sync primitives in .concurrency output
+  Shared state access without sync primitives in .patterns.concurrency_patterns output
   Lock/unlock pairs spanning multiple control flow branches
 
 Post-Fix Quality Gates:
@@ -275,7 +275,7 @@ $ cat baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 15) | 
   {"name": "parseUntrustedInput", "file": "parser.go", "cyclomatic": 16, "nesting_depth": 4}
 ]
 
-$ cat baseline.json | jq '.concurrency'
+$ cat baseline.json | jq '.patterns.concurrency_patterns'
 {
   "goroutine_spawns": 8,
   "channel_operations": 12,
@@ -289,7 +289,7 @@ $ cat baseline.json | jq '.concurrency'
 
 $ # Fix each bug-prone function in priority order...
 
-$ go-stats-generator analyze . --skip-tests --format json --output fixed.json
+$ go-stats-generator analyze . --skip-tests --format json --output fixed.json --sections functions,concurrency
 $ go-stats-generator diff baseline.json fixed.json
 === REGRESSION CHECK ===
 FUNCTIONS MODIFIED: 6

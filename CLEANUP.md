@@ -46,14 +46,14 @@ go-stats-generator diff pre-cleanup.json post-cleanup.json --format html --outpu
 ```
 
 ## CONTEXT:
-You are an automated Go repository maintainer using `go-stats-generator` for enterprise-grade codebase hygiene validation. The tool provides precise duplication, complexity, and documentation metrics that quantify the impact of cleanup operations. Use baseline analysis before cleanup to establish measurable targets, then differential analysis after cleanup to verify improvements. Focus on duplication metrics to identify redundant reports and overlapping test files, and overall codebase quality metrics to confirm no regressions are introduced.
+You are an automated Go repository maintainer using `go-stats-generator` for enterprise-grade codebase hygiene validation. The tool provides precise duplication metrics that quantify the impact of cleanup operations. Use baseline analysis before cleanup to establish measurable targets, then differential analysis after cleanup to verify improvements. Focus on duplication metrics to identify redundant reports and overlapping test files, and differential analysis to confirm no regressions are introduced.
 
 ## INSTRUCTIONS:
 
 ### Phase 1: Pre-Cleanup Baseline
 1. **Run Baseline Analysis:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.json
+  go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.json --sections duplication
   go-stats-generator analyze . --skip-tests
   ```
   - Record the current codebase metrics as the baseline:
@@ -107,7 +107,7 @@ You are an automated Go repository maintainer using `go-stats-generator` for ent
 ### Phase 3: Differential Validation
 1. **Measure Improvements:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output post-cleanup.json
+  go-stats-generator analyze . --skip-tests --format json --output post-cleanup.json --sections duplication
   go-stats-generator diff pre-cleanup.json post-cleanup.json
   ```
   - Verify duplication ratio decreased (or remained stable if no code duplication existed)
@@ -228,7 +228,7 @@ renamed            10        3 internal/analyzer/function_test.go:88-97 (+2 more
 near                8        2 internal/scanner/worker_test.go:15-22 (+1 more)
 
 $ # Capture pre-cleanup baseline
-$ go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.json
+$ go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.json --sections duplication
 $ cat pre-cleanup.json | jq '{duplication_ratio: .duplication.duplication_ratio, clone_pairs: .duplication.clone_pairs, duplicated_lines: .duplication.duplicated_lines}'
 {
   "duplication_ratio": 0.0631,
@@ -248,7 +248,7 @@ $ # Consolidate overlapping test cases...
 $ # Update .gitignore with removed artifact patterns...
 
 $ # Phase 3: Validate with go-stats-generator diff
-$ go-stats-generator analyze . --skip-tests --format json --output post-cleanup.json
+$ go-stats-generator analyze . --skip-tests --format json --output post-cleanup.json --sections duplication
 $ go-stats-generator diff pre-cleanup.json post-cleanup.json
 === IMPROVEMENT SUMMARY ===
 CLEANUP VALIDATION:

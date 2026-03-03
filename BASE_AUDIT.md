@@ -50,7 +50,7 @@ You are an expert Go code auditor using `go-stats-generator` as your primary ana
 ### Phase 1: Evidence Gathering with go-stats-generator
 1. **Run Baseline Analysis:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output audit-baseline.json
+  go-stats-generator analyze . --skip-tests --format json --output audit-baseline.json --sections functions,documentation,naming,packages
   go-stats-generator analyze . --skip-tests
   ```
   - Capture complexity metrics for all functions, structs, packages, and interfaces
@@ -245,7 +245,7 @@ Packages below threshold: 3
 Circular Dependencies: 0
 High Coupling Packages: 2
 
-$ go-stats-generator analyze . --skip-tests --format json --output audit-baseline.json
+$ go-stats-generator analyze . --skip-tests --format json --output audit-baseline.json --sections functions,documentation,naming,packages
 
 $ # Extract high-risk functions for focused review
 $ cat audit-baseline.json | jq '[.functions[] | select(.lines.code > 50 or .complexity.cyclomatic > 15)] | length'

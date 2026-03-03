@@ -42,14 +42,14 @@ go-stats-generator diff baseline.json post-impl.json
 ```
 
 ## CONTEXT:
-You are an automated Go development agent using `go-stats-generator` for measurable completion validation of roadmap tasks. The tool provides precise metrics across functions, structs, packages, interfaces, concurrency, duplication, naming, and documentation quality. Every implementation must be bookended by baseline capture and differential analysis to prove the change improved or maintained codebase health. Focus on selecting the single highest-impact incomplete task and delivering a production-ready implementation verified by quantitative analysis.
+You are an automated Go development agent using `go-stats-generator` for measurable completion validation of roadmap tasks. The tool provides precise metrics across function complexity, code duplication, and documentation coverage. Every implementation must be bookended by baseline capture and differential analysis to prove the change improved or maintained codebase health. Focus on selecting the single highest-impact incomplete task and delivering a production-ready implementation verified by quantitative analysis.
 
 ## INSTRUCTIONS:
 
 ### Phase 1: Baseline Capture
 1. **Capture Pre-Implementation Metrics:**
   ```bash
-  go-stats-generator analyze . --format json --output baseline.json --skip-tests
+  go-stats-generator analyze . --format json --output baseline.json --skip-tests --sections functions,duplication,documentation
   go-stats-generator analyze . --skip-tests
   ```
   - Record current codebase metrics: function complexities, documentation coverage, duplication ratio
@@ -58,7 +58,7 @@ You are an automated Go development agent using `go-stats-generator` for measura
 
 2. **Review Current Quality State:**
   ```bash
-  cat baseline.json | jq '{functions: (.functions | length), packages: (.packages | length), doc_coverage: .documentation.coverage.overall, duplication_ratio: .duplication.duplication_ratio}'
+  cat baseline.json | jq '{functions: (.functions | length), doc_coverage: .documentation.coverage.overall, duplication_ratio: .duplication.duplication_ratio}'
   ```
   - Establish the quantitative starting point for measuring task impact
 
@@ -83,7 +83,7 @@ You are an automated Go development agent using `go-stats-generator` for measura
 ### Phase 3: Post-Implementation Validation
 1. **Capture Post-Implementation Metrics:**
   ```bash
-  go-stats-generator analyze . --format json --output post-impl.json --skip-tests
+  go-stats-generator analyze . --format json --output post-impl.json --skip-tests --sections functions,duplication,documentation
   ```
 
 2. **Run Differential Analysis:**
@@ -185,7 +185,7 @@ Task Complete Threshold = All tests pass AND complexity regressions = 0 AND doc 
 ## EXAMPLE WORKFLOW:
 ```bash
 $ # Phase 1: Capture baseline
-$ go-stats-generator analyze . --format json --output baseline.json --skip-tests
+$ go-stats-generator analyze . --format json --output baseline.json --skip-tests --sections functions,duplication,documentation
 $ go-stats-generator analyze . --skip-tests
 === ANALYSIS SUMMARY ===
 Total Functions: 142
@@ -194,8 +194,8 @@ Documentation Coverage: 0.73
 Duplication Ratio: 3.21%
 Functions Exceeding Thresholds: 2
 
-$ cat baseline.json | jq '{functions: (.functions | length), doc_coverage: .documentation.coverage.overall}'
-{"functions": 142, "doc_coverage": 0.73}
+$ cat baseline.json | jq '{functions: (.functions | length), doc_coverage: .documentation.coverage.overall, duplication_ratio: .duplication.duplication_ratio}'
+{"functions": 142, "doc_coverage": 0.73, "duplication_ratio": 0.0321}
 
 $ # Phase 2: Select and implement roadmap task
 $ # (Read ROADMAP.md, select highest-priority TODO item)
@@ -204,7 +204,7 @@ $ # Implementation: created internal/reporter/csv.go, csv_test.go
 $ # Updated ROADMAP.md to mark task complete
 
 $ # Phase 3: Post-implementation validation
-$ go-stats-generator analyze . --format json --output post-impl.json --skip-tests
+$ go-stats-generator analyze . --format json --output post-impl.json --skip-tests --sections functions,duplication,documentation
 $ go-stats-generator diff baseline.json post-impl.json
 === IMPROVEMENT SUMMARY ===
 FUNCTIONS ADDED: 4
