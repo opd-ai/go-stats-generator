@@ -202,11 +202,16 @@ Phase 2 core analysis engine is now complete! Moving to Phase 3 advanced metrics
   - Added 4 new functions (all ≤30 lines, complexity ≤10): NewGenericAnalyzer, AnalyzeGenerics, processNode, aggregateGenerics
   - Zero regressions: Function complexity -0.2%, doc coverage +0.18%, duplication stable
 
-- [ ] **Performance Anti-pattern Detection**: Common Go performance issues
-  - Memory allocation patterns and potential leaks
-  - Inefficient string concatenation and slice operations
-  - Goroutine leak detection and resource management issues
-  - Database connection and file handle management
+- [x] **Performance Anti-pattern Detection**: ✅ **COMPLETED** - Common Go performance issues
+  - Memory allocation patterns and potential leaks ✅
+  - Inefficient string concatenation and slice operations ✅
+  - Goroutine leak detection and resource management issues ✅
+  - Database connection and file handle management ✅
+  - Implementation: internal/analyzer/antipattern.go (12 functions, all ≤30 lines, complexity ≤10)
+  - Test coverage: 9 comprehensive unit tests (antipattern_test.go) covering all detection types
+  - Metrics added: PerformanceAntipattern type in internal/metrics/types.go
+  - Zero regressions: Functions over 30 lines stable (65), complexity stable (10), duplication -0.81%
+  - Documentation coverage improved: 72.28% → 72.52% (+0.24%)
 
 - [ ] **Test Coverage Correlation**: Code quality vs testing analysis
   - Correlation between code metrics and test coverage

@@ -1160,3 +1160,13 @@ type SuggestionInfo struct {
 	Category      string  `json:"category"`
 	AffectedLines int     `json:"affected_lines"`
 }
+
+// PerformanceAntipattern represents a detected performance anti-pattern
+type PerformanceAntipattern struct {
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	Severity    string `json:"severity"`
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	Suggestion  string `json:"suggestion"`
+}
