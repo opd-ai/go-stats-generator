@@ -53,6 +53,14 @@ bench:
 	@echo "Running benchmarks..."
 	go test -bench=. -benchmem ./...
 
+# Run performance validation benchmarks
+.PHONY: benchmark-performance
+benchmark-performance:
+	@echo "Running performance validation benchmarks..."
+	@mkdir -p docs/benchmarks
+	go test -bench=BenchmarkFullAnalysis -benchmem -benchtime=5x -timeout 30m ./cmd/ | tee docs/benchmarks/$(shell date +%Y%m%d-%H%M%S).txt
+	@echo "Results saved to docs/benchmarks/"
+
 # Lint the code
 .PHONY: lint
 lint:
@@ -146,8 +154,9 @@ help:
 	@echo "  build-all      Build for multiple platforms"
 	@echo "  install        Install the application"
 	@echo "  test           Run tests"
-	@echo "  test-coverage  Run tests with coverage report"
-	@echo "  bench          Run benchmarks"
+	@echo "  test-coverage      Run tests with coverage report"
+	@echo "  bench              Run benchmarks"
+	@echo "  benchmark-performance  Run performance validation benchmarks"
 	@echo "  lint           Run linter"
 	@echo "  fmt            Format code"
 	@echo "  tidy           Tidy dependencies"
