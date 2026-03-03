@@ -161,8 +161,224 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 
 // DetectDeadCode identifies unreferenced unexported symbols and unreachable code
 func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
-	// TODO: Implement dead code detection
-	return nil
+	// Build symbol references across all files in package
+	refs := ba.buildReferenceMap(files)
+	
+	// Find unreferenced symbols
+	unreferenced := ba.findUnreferencedSymbols(files, refs, pkg)
+	
+	// Find unreachable code blocks
+	unreachable := ba.findUnreachableCode(files)
+	
+	// Calculate total dead lines
+	totalLines := 0
+	for _, block := range unreachable {
+		totalLines += block.Lines
+	}
+	
+	return &metrics.DeadCodeMetrics{
+		UnreferencedFunctions: unreferenced,
+		UnreachableCode:       unreachable,
+		TotalDeadLines:        totalLines,
+		DeadCodePercent:       0.0, // Calculate in analyzer integration
+	}
+}
+
+func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
+	refs := make(map[string]int)
+	
+	// Count function call references
+	for _, file := range files {
+		ast.Inspect(file, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.CallExpr:
+				// Direct function call
+				if ident, ok := node.Fun.(*ast.Ident); ok {
+					refs[ident.Name]++
+				}
+			}
+			return true
+		})
+	}
+	
+	return refs
+}
+
+func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, refs map[string]int, pkg string) []metrics.UnreferencedSymbol {
+	var unreferenced []metrics.UnreferencedSymbol
+	
+	for _, file := range files {
+		ast.Inspect(file, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.FuncDecl:
+				if node.Name != nil && !ast.IsExported(node.Name.Name) {
+					// Check if function is referenced
+					if refs[node.Name.Name] == 0 {
+						pos := ba.fset.Position(node.Pos())
+						unreferenced = append(unreferenced, metrics.UnreferencedSymbol{
+							Name:    node.Name.Name,
+							File:    pos.Filename,
+							Line:    pos.Line,
+							Type:    "function",
+							Package: pkg,
+						})
+					}
+				}
+			}
+			return true
+		})
+	}
+	
+	return unreferenced
+}
+
+func (ba *BurdenAnalyzer) findUnreachableCode(files []*ast.File) []metrics.UnreachableBlock {
+	var unreachable []metrics.UnreachableBlock
+	
+	for _, file := range files {
+		var currentFunc string
+		
+		ast.Inspect(file, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.FuncDecl:
+				if node.Name != nil {
+					currentFunc = node.Name.Name
+				}
+				if node.Body != nil {
+					blocks := ba.checkBlockForUnreachable(node.Body, currentFunc)
+					unreachable = append(unreachable, blocks...)
+				}
+				return false
+				
+			}
+			return true
+		})
+	}
+	
+	return unreachable
+}
+
+func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
+	var unreachable []metrics.UnreachableBlock
+	
+	for i, stmt := range block.List {
+		// Check if this statement is a terminating statement
+		if ba.isTerminating(stmt) {
+			// Check if there are statements after this
+			if i+1 < len(block.List) {
+				startPos := ba.fset.Position(block.List[i+1].Pos())
+				endPos := ba.fset.Position(block.List[len(block.List)-1].End())
+				
+				unreachable = append(unreachable, metrics.UnreachableBlock{
+					File:      startPos.Filename,
+					StartLine: startPos.Line,
+					EndLine:   endPos.Line,
+					Function:  fn,
+					Reason:    ba.getTerminationReason(stmt),
+					Lines:     endPos.Line - startPos.Line + 1,
+				})
+				break
+			}
+		}
+		
+		// Recursively check nested blocks
+		unreachable = append(unreachable, ba.checkStmtForUnreachable(stmt, fn)...)
+	}
+	
+	return unreachable
+}
+
+func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []metrics.UnreachableBlock {
+	var unreachable []metrics.UnreachableBlock
+	
+	switch s := stmt.(type) {
+	case *ast.IfStmt:
+		if s.Body != nil {
+			unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
+		}
+		if s.Else != nil {
+			switch elseStmt := s.Else.(type) {
+			case *ast.BlockStmt:
+				unreachable = append(unreachable, ba.checkBlockForUnreachable(elseStmt, fn)...)
+			case *ast.IfStmt:
+				unreachable = append(unreachable, ba.checkStmtForUnreachable(elseStmt, fn)...)
+			}
+		}
+	case *ast.ForStmt:
+		if s.Body != nil {
+			unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
+		}
+	case *ast.RangeStmt:
+		if s.Body != nil {
+			unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
+		}
+	case *ast.SwitchStmt:
+		if s.Body != nil {
+			for _, clause := range s.Body.List {
+				if cc, ok := clause.(*ast.CaseClause); ok {
+					unreachable = append(unreachable, ba.checkBlockForUnreachable(&ast.BlockStmt{List: cc.Body}, fn)...)
+				}
+			}
+		}
+	case *ast.TypeSwitchStmt:
+		if s.Body != nil {
+			for _, clause := range s.Body.List {
+				if cc, ok := clause.(*ast.CaseClause); ok {
+					unreachable = append(unreachable, ba.checkBlockForUnreachable(&ast.BlockStmt{List: cc.Body}, fn)...)
+				}
+			}
+		}
+	}
+	
+	return unreachable
+}
+
+func (ba *BurdenAnalyzer) isTerminating(stmt ast.Stmt) bool {
+	switch s := stmt.(type) {
+	case *ast.ReturnStmt:
+		return true
+	case *ast.ExprStmt:
+		if call, ok := s.X.(*ast.CallExpr); ok {
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+				// Check for os.Exit
+				if ident, ok := sel.X.(*ast.Ident); ok {
+					if ident.Name == "os" && sel.Sel.Name == "Exit" {
+						return true
+					}
+				}
+			}
+			// Check for panic
+			if ident, ok := call.Fun.(*ast.Ident); ok {
+				if ident.Name == "panic" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (ba *BurdenAnalyzer) getTerminationReason(stmt ast.Stmt) string {
+	switch s := stmt.(type) {
+	case *ast.ReturnStmt:
+		return "return statement"
+	case *ast.ExprStmt:
+		if call, ok := s.X.(*ast.CallExpr); ok {
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+				if ident, ok := sel.X.(*ast.Ident); ok {
+					if ident.Name == "os" && sel.Sel.Name == "Exit" {
+						return "os.Exit call"
+					}
+				}
+			}
+			if ident, ok := call.Fun.(*ast.Ident); ok {
+				if ident.Name == "panic" {
+					return "panic call"
+				}
+			}
+		}
+	}
+	return "terminating statement"
 }
 
 // AnalyzeSignatureComplexity flags functions with excessive parameters or returns

@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"testing"
@@ -129,13 +130,132 @@ func example() int {
 	}
 }
 
-func TestDetectDeadCode_Placeholder(t *testing.T) {
-	fset := token.NewFileSet()
-	analyzer := NewBurdenAnalyzer(fset)
+func TestDetectDeadCode(t *testing.T) {
+	tests := []struct {
+		name                string
+		src                 string
+		wantUnreferenced    int
+		wantUnreachable     int
+		wantUnreferencedFn  string
+		wantUnreachableReason string
+	}{
+		{
+			name: "detects unreferenced unexported function",
+			src: `package test
+func Exported() {
+	helper()
+}
+func helper() {}
+func unusedHelper() {}`,
+			wantUnreferenced: 1,
+			wantUnreferencedFn: "unusedHelper",
+		},
+		{
+			name: "ignores exported functions",
+			src: `package test
+func ExportedUnused() {}`,
+			wantUnreferenced: 0,
+		},
+		{
+			name: "detects unreachable after return",
+			src: `package test
+func Example() {
+	return
+	x := 42
+	y := 100
+}`,
+			wantUnreachable: 1,
+			wantUnreachableReason: "return statement",
+		},
+		{
+			name: "detects unreachable after panic",
+			src: `package test
+func Example() {
+	panic("error")
+	x := 42
+}`,
+			wantUnreachable: 1,
+			wantUnreachableReason: "panic call",
+		},
+		{
+			name: "detects unreachable after os.Exit",
+			src: `package test
+import "os"
+func Example() {
+	os.Exit(1)
+	x := 42
+}`,
+			wantUnreachable: 1,
+			wantUnreachableReason: "os.Exit call",
+		},
+		{
+			name: "no dead code",
+			src: `package test
+func Used() {
+	helper()
+}
+func helper() {}`,
+			wantUnreferenced: 0,
+			wantUnreachable: 0,
+		},
+		{
+			name: "unreachable in nested blocks",
+			src: `package test
+func Example() {
+	if true {
+		return
+		x := 42
+	}
+}`,
+			wantUnreachable: 1,
+		},
+	}
 
-	result := analyzer.DetectDeadCode(nil, "test")
-	if result != nil {
-		t.Error("Expected nil result from placeholder implementation")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			analyzer := NewBurdenAnalyzer(fset)
+
+			file, err := parser.ParseFile(fset, "test.go", tt.src, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			result := analyzer.DetectDeadCode([]*ast.File{file}, "test")
+			if result == nil {
+				t.Fatal("DetectDeadCode returned nil")
+			}
+
+			if len(result.UnreferencedFunctions) != tt.wantUnreferenced {
+				t.Errorf("got %d unreferenced functions, want %d",
+					len(result.UnreferencedFunctions), tt.wantUnreferenced)
+			}
+
+			if tt.wantUnreferencedFn != "" && len(result.UnreferencedFunctions) > 0 {
+				if result.UnreferencedFunctions[0].Name != tt.wantUnreferencedFn {
+					t.Errorf("unreferenced function = %s, want %s",
+						result.UnreferencedFunctions[0].Name, tt.wantUnreferencedFn)
+				}
+				if result.UnreferencedFunctions[0].Type != "function" {
+					t.Errorf("expected type='function', got '%s'", result.UnreferencedFunctions[0].Type)
+				}
+			}
+
+			if len(result.UnreachableCode) != tt.wantUnreachable {
+				t.Errorf("got %d unreachable blocks, want %d",
+					len(result.UnreachableCode), tt.wantUnreachable)
+			}
+
+			if tt.wantUnreachableReason != "" && len(result.UnreachableCode) > 0 {
+				if result.UnreachableCode[0].Reason != tt.wantUnreachableReason {
+					t.Errorf("unreachable reason = %s, want %s",
+						result.UnreachableCode[0].Reason, tt.wantUnreachableReason)
+				}
+				if result.UnreachableCode[0].Lines == 0 {
+					t.Error("expected non-zero line count for unreachable block")
+				}
+			}
+		})
 	}
 }
 
