@@ -1,335 +1,125 @@
-# TASK DESCRIPTION:
-Perform a data-driven implementation gap analysis to identify **all discrepancies between documented features in README.md and actual implementation** in the codebase. Use `go-stats-generator` baseline analysis (with --skip-tests) to extract comprehensive metrics, cross-reference every documented capability against the JSON output, and produce a structured gap report. This is a report-generation task — no code modifications are made.
+# Implementation Gaps: Phase 6 — Additional Maintenance Burden Indicators
 
-When results are ambiguous, such as a feature partially present in metrics or a documented capability that maps to multiple code paths, always flag the gap and include evidence from both the README and the `go-stats-generator` output.
-
-## CONSTRAINT:
-
-Use only `go-stats-generator` and standard command-line tools (jq, grep, diff) for your analysis. You are absolutely forbidden from modifying source code or using any other code analysis tools. This is a read-only audit producing a gap report.
-
-## PREREQUISITES:
-**Minimum Required Version:** `go-stats-generator` v1.0.0 or higher
-Install and configure `go-stats-generator` for comprehensive feature coverage analysis:
-
-### Installation:
-```bash
-# First, check if go-stats-generator is already installed
-which go-stats-generator
-# If not, install it with `go install`
-go install github.com/opd-ai/go-stats-generator@latest
-```
-
-## Recommendations:
-```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq .documentation
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
-```
-
-### Required Analysis Workflow:
-```bash
-# Phase 1: Generate comprehensive metrics baseline
-go-stats-generator analyze . --skip-tests --format json --output gap-baseline.json
-go-stats-generator analyze . --skip-tests --min-doc-coverage 0.7 --verbose
-
-# Phase 2: Extract feature inventory from metrics
-cat gap-baseline.json | jq '{functions: .functions | length, structs: .structs | length, packages: .packages | length, interfaces: .interfaces | length, concurrency: .concurrency, duplication: .duplication, naming: .naming, documentation: .documentation}'
-
-# Phase 3: Cross-reference README claims against metrics
-# Compare each documented feature against corresponding JSON fields
-
-# Phase 4: Produce structured AUDIT.md gap report
-```
-
-## CONTEXT:
-You are an automated Go code auditor using `go-stats-generator` for enterprise-grade documentation-vs-implementation gap detection. The application has undergone multiple previous audits and is approaching production readiness. Most obvious issues have been resolved. Your analysis must focus on precise, subtle implementation gaps that previous audits may have missed, using the tool's comprehensive JSON output as the ground truth for what the codebase actually contains. Focus on discrepancies between what README.md promises and what `go-stats-generator` metrics confirm.
-
-## INSTRUCTIONS:
-
-### Phase 1: Documentation Inventory
-1. **Parse README.md for Documented Features:**
-   - Extract every behavioral specification, feature claim, and capability promise
-   - Note specific promises about edge cases, error handling, and performance
-   - Identify implicit guarantees in API descriptions
-   - Document any version-specific features mentioned
-   - Catalog each claim with its README line number for traceability
-
-2. **Categorize Documented Claims:**
-   Classify each README claim by the `go-stats-generator` output section it maps to:
-   - **Function-level claims** → `.functions[]` (line counts, complexity, signatures)
-   - **Struct-level claims** → `.structs[]` (member categorization, methods, tags)
-   - **Package-level claims** → `.packages[]` (dependencies, cohesion, coupling)
-   - **Interface-level claims** → `.interfaces[]` (implementations, embedding depth)
-   - **Concurrency claims** → `.concurrency` (goroutines, channels, sync primitives)
-   - **Duplication claims** → `.duplication` (clone pairs, duplication ratio)
-   - **Naming claims** → `.naming` (convention adherence)
-   - **Documentation claims** → `.documentation` (doc coverage, quality)
-
-### Phase 2: Metrics-Driven Verification
-1. **Run Comprehensive Analysis:**
-   ```bash
-   go-stats-generator analyze . --skip-tests --format json --output gap-baseline.json
-   ```
-   - Capture the full metrics for every analysis dimension
-   - This is the ground truth for what the codebase actually implements
-
-2. **Cross-Reference Each Documented Feature:**
-   ```bash
-   # Verify function-level features
-   cat gap-baseline.json | jq '.functions[] | {name, file, lines_code: .lines.code, complexity_overall: .complexity.overall, documented: .documentation.has_comment}'
-
-   # Verify struct-level features
-   cat gap-baseline.json | jq '.structs[] | {name, file, members, methods, embedded_types}'
-
-   # Verify package-level features
-   cat gap-baseline.json | jq '.packages[] | {name, dependencies, cohesion_score, coupling_score}'
-
-   # Verify interface-level features
-   cat gap-baseline.json | jq '.interfaces[] | {name, implementations, embedding_depth}'
-
-   # Verify concurrency features
-   cat gap-baseline.json | jq '.concurrency'
-
-   # Verify documentation coverage
-   cat gap-baseline.json | jq '.documentation'
-   ```
-   - For each documented claim, confirm a matching pattern exists in the metrics output
-   - Flag any claim where the corresponding metric is absent, zero, or contradictory
-
-3. **Detect Gap Categories:**
-   - **Partial Implementations**: Features present in metrics but incomplete (e.g., function exists but lacks documented edge case handling)
-   - **Phantom Features**: Documented in README but no matching code pattern in metrics output
-   - **Behavioral Nuances**: Metric values contradict documented behavior (e.g., README claims complexity < 10 but metrics show > 15)
-   - **Silent Failures**: Operations referenced in README but not reflected in error-handling or concurrency metrics
-   - **Documentation Drift**: Code metrics show evolved behavior not reflected in README
-   - **Integration Gaps**: Individual components present in metrics but documented cross-component behavior has no matching pattern
-
-### Phase 3: Evidence Collection
-1. **For Each Identified Gap, Collect:**
-   ```bash
-   # Extract specific function metrics as evidence
-   cat gap-baseline.json | jq '.functions[] | select(.name == "targetFunction")'
-
-   # Extract documentation coverage for specific packages
-   cat gap-baseline.json | jq '.documentation | {coverage_overall: .coverage.overall, undocumented_exports}'
-   ```
-   - Exact README.md quote with line number
-   - Corresponding `go-stats-generator` JSON output (or absence thereof)
-   - Specific file and line location from metrics
-   - Clear explanation of the discrepancy
-
-2. **Prioritize Findings:**
-   From the cross-reference analysis, classify each gap:
-   - **Critical**: Documented feature entirely absent from metrics (phantom feature)
-   - **Moderate**: Feature present but metrics contradict documented behavior
-   - **Minor**: Feature present but edge cases or nuances missing from implementation
-
-### Phase 4: Gap Report Generation
-1. **Produce AUDIT.md** with structured findings (see OUTPUT FORMAT below)
-2. **Validate Report Quality:**
-   - Every finding references specific README.md text
-   - Every finding includes `go-stats-generator` JSON evidence
-   - All gaps are reproducible by re-running the analysis commands
-   - No false positives from outdated analysis
-   - Findings are actionable, not theoretical
-
-## OUTPUT FORMAT:
-
-Create AUDIT.md with the following structure:
-
-### 1. Executive Summary
-```
-go-stats-generator gap analysis results:
-  README Claims Audited: [n]
-  Total Gaps Found: [n]
-  - Critical (phantom features): [count]
-  - Moderate (behavioral contradictions): [count]
-  - Minor (missing edge cases): [count]
-
-Analysis Command:
-  go-stats-generator analyze . --skip-tests --format json --output gap-baseline.json
-```
-
-### 2. Detailed Findings
-
-```markdown
-### Gap #[N]: [Precise Description]
-**Severity:** [Critical/Moderate/Minor]
-
-**Documentation Reference:**
-> "[Exact quote from README.md]" (README.md:L[line])
-
-**Expected Behavior:** [What README specifies]
-
-**go-stats-generator Evidence:**
-```json
-// Relevant JSON output from gap-baseline.json showing absence or contradiction
-```
-
-**Actual Implementation:** [What metrics confirm]
-
-**Gap Details:** [Precise explanation of discrepancy]
-
-**File Location:** `[file.go:lines]` (from .functions[]/.structs[] output)
-
-**Production Impact:** [Specific consequences]
-
-**Recommended Action:** [What should change — in docs or code]
-```
-
-### 3. Coverage Matrix
-```
-Feature Category        README Claims  Verified  Gaps  Coverage
---------------------------------------------------------------
-Functions               [n]            [n]       [n]   [x]%
-Structs                 [n]            [n]       [n]   [x]%
-Packages                [n]            [n]       [n]   [x]%
-Interfaces              [n]            [n]       [n]   [x]%
-Concurrency             [n]            [n]       [n]   [x]%
-Duplication             [n]            [n]       [n]   [x]%
-Naming                  [n]            [n]       [n]   [x]%
-Documentation           [n]            [n]       [n]   [x]%
---------------------------------------------------------------
-TOTAL                   [n]            [n]       [n]   [x]%
-```
-
-## GAP DETECTION THRESHOLDS:
-```
-Feature Presence:
-  Any documented feature with zero matching code pattern = Critical gap
-  Documented default value differs from actual default   = Moderate gap
-  Documented edge case with no test or handler           = Minor gap
-
-Documentation Coverage:
-  Min Doc Coverage < 0.7 (--min-doc-coverage default)    = Flag for review
-  Exported function without GoDoc                        = Documentation gap
-  README feature list entry with no corresponding export = Phantom feature
-
-Metric Contradictions:
-  README claims complexity < X but metrics show > X      = Behavioral gap
-  README claims N analysis dimensions but JSON lacks one = Missing implementation
-  Documented flag/option not present in CLI help         = Interface gap
-
-Report Quality:
-  Each finding must reference README text                = Required
-  Each finding must include go-stats-generator evidence  = Required
-  False positive rate must be 0%                         = Required
-```
-<!-- Last verified: 2025-07-25 against analyzer output fields and CLI flag defaults -->
-
-Gap Threshold = Any documented feature with no matching metric OR doc coverage < 70% OR metric contradicts README claim
-- If no gaps: "Gap analysis complete: go-stats-generator baseline analysis confirms all documented features match implementation. No discrepancies detected."
-
-## EXAMPLE WORKFLOW:
-```bash
-$ go-stats-generator analyze . --skip-tests --min-doc-coverage 0.7
-=== ANALYSIS SUMMARY ===
-Functions Analyzed: 142
-Structs Analyzed: 38
-Packages Analyzed: 12
-Interfaces Analyzed: 15
-Documentation Coverage: 72.3%
-Concurrency Patterns: 8 goroutines, 5 channels, 3 sync primitives
-
-$ go-stats-generator analyze . --skip-tests --format json --output gap-baseline.json
-$ cat gap-baseline.json | jq '{functions: .functions | length, structs: .structs | length, interfaces: .interfaces | length, concurrency: .concurrency | keys}'
-{
-  "functions": 142,
-  "structs": 38,
-  "interfaces": 15,
-  "concurrency": ["goroutines", "channels", "sync_primitives", "worker_pools"]
-}
-
-$ # Cross-reference: README claims "pipeline pattern detection"
-$ cat gap-baseline.json | jq '.concurrency.pipelines'
-null
-
-$ # Gap found: README documents pipeline detection but metrics show no pipeline data
-
-$ # Cross-reference: README claims "design pattern detection"
-$ cat gap-baseline.json | jq '.functions[] | select(.name | test("pattern|detect"; "i"))'
-# No matching functions found — potential phantom feature
-
-$ # Cross-reference: README documents --min-doc-coverage default of 0.7
-$ go-stats-generator analyze . --skip-tests --format json | jq '.documentation.coverage.overall'
-0.723
-
-$ # Verified: documentation coverage metric exists and reports 72.3%
-
-$ # Compile findings into AUDIT.md
-$ cat AUDIT.md
-# Implementation Gap Analysis
-Generated: 2025-07-25T14:30:00Z
+Generated: 2026-03-03T05:37:00Z
 Analysis Tool: go-stats-generator v1.0.0
+Source: ROADMAP.md Phase 6
 
-## Executive Summary
-README Claims Audited: 47
-Total Gaps Found: 5
-- Critical (phantom features): 2
-- Moderate (behavioral contradictions): 2
-- Minor (missing edge cases): 1
+---
 
-## Detailed Findings
+## Gap 1: Shotgun Surgery Detection Requires Git Integration
 
-### Gap #1: Pipeline Pattern Detection Not Implemented
-**Severity:** Critical
+- **Description**: ROADMAP.md Step 6.5 specifies shotgun surgery detection via `git log --name-only` parsing to identify files that frequently co-change (>60% of same commits). This requires subprocess execution and git history analysis that is outside the current AST-based analysis scope.
 
-**Documentation Reference:**
-> "Concurrency Analysis: Goroutine patterns, channel analysis, sync primitives,
->  worker pools, pipelines" (README.md:L28)
+- **Impact**: Phase 6 cannot be fully completed without this feature. Step 6.5 will be partially implemented (feature envy only). The `BurdenMetrics.ShotgunSurgeryClusters` field will remain empty until git integration is added.
 
-**Expected Behavior:** Analysis output includes pipeline pattern detection
+- **Metrics Context**: 
+  ```
+  Current analysis scope: AST-based (go/ast, go/parser, go/token)
+  Required for shotgun surgery: git subprocess (git log --name-only)
+  Complexity: Requires parsing commit metadata and co-change frequency analysis
+  ```
 
-**go-stats-generator Evidence:**
-  $ cat gap-baseline.json | jq '.concurrency.pipelines'
-  null
+- **Resolution**: Defer shotgun surgery detection to Phase 7 (Composite Scoring & Actionable Output), which already includes "Baseline Integration & Trend Tracking" (Step 7.3) that requires git history access. Implementing git integration once for both features reduces duplication.
 
-**Actual Implementation:** Concurrency analysis covers goroutines, channels,
-sync primitives, and worker pools but omits pipeline detection entirely.
+---
 
-**File Location:** internal/analyzer/concurrency.go
+## Gap 2: Annotation Age Tracking Incomplete (from Phase 4)
 
-**Production Impact:** Moderate — users relying on pipeline analysis get no data
+- **Description**: ROADMAP.md Phase 4 Step 4.3 notes "Track annotation age via git history (deferred - subprocess integration complexity)". The `documentation.stale_annotations` field currently returns 0 regardless of actual annotation age.
 
-**Recommended Action:** Implement pipeline detection or remove from README
+- **Impact**: The `go-stats-generator` output shows annotations (TODO, FIXME, HACK, BUG, XXX, DEPRECATED, NOTE) but cannot determine which are stale based on commit timestamps. Users must manually review annotation age.
 
-### Gap #2: Design Pattern Detection Absent
-**Severity:** Critical
+- **Metrics Context**:
+  ```json
+  {
+    "stale_annotations": 0,
+    "annotations_by_category": {
+      "BUG": 1, "DEPRECATED": 1, "FIXME": 1, 
+      "HACK": 1, "NOTE": 1, "TODO": 1, "XXX": 1
+    }
+  }
+  ```
+  The `stale_annotation_days` configuration (default: 180) has no effect without git integration.
 
-**Documentation Reference:**
-> "advanced metrics like design pattern detection" (README.md:L14)
+- **Resolution**: Address alongside Gap 1 in Phase 7. Git integration for shotgun surgery can also enable annotation age tracking via `git blame` or `git log -p`.
 
-**Expected Behavior:** Analysis detects and reports design patterns
+---
 
-**go-stats-generator Evidence:**
-  $ cat gap-baseline.json | jq '.functions[] | select(.name | test("pattern"; "i"))'
-  # No results
+## Gap 3: testdata/ Complexity Inflates Codebase Metrics
 
-**Actual Implementation:** No function, struct, or output field implements
-design pattern detection.
+- **Description**: Test data files in `testdata/` directory contain intentionally complex code for testing purposes. These inflate overall codebase complexity metrics and may cause confusion when validating Phase 6 implementation.
 
-**File Location:** N/A — no matching implementation found
+- **Impact**: 
+  - `testdata/simple/calculator.go:VeryComplexFunction` has complexity 34.7 (2nd highest in codebase)
+  - `testdata/simple/user.go:ComplexFunction` has complexity 21.5
+  - 2 of 8 functions above complexity 20.0 are in testdata/
+  - Validation criteria comparing "functions above complexity threshold" will include testdata
 
-**Production Impact:** High — advertised feature entirely missing
+- **Metrics Context**:
+  ```json
+  {"name": "VeryComplexFunction", "file": "testdata/simple/calculator.go", "complexity": 34.7}
+  {"name": "ComplexFunction", "file": "testdata/simple/user.go", "complexity": 21.5}
+  ```
 
-**Recommended Action:** Implement design pattern detection or remove from README
+- **Resolution**: 
+  1. Use `--exclude testdata/` when running validation analysis
+  2. Update PLAN.md validation criteria to explicitly exclude testdata
+  3. Consider adding `--exclude-testdata` convenience flag in future release
 
-## Coverage Matrix
-Feature Category        README Claims  Verified  Gaps  Coverage
---------------------------------------------------------------
-Functions               12             12        0     100%
-Structs                 8              7         1     87%
-Packages                6              6         0     100%
-Interfaces              5              5         0     100%
-Concurrency             7              5         2     71%
-Duplication             4              4         0     100%
-Naming                  3              3         0     100%
-Documentation           2              2         0     100%
---------------------------------------------------------------
-TOTAL                   47             44        3     93%
-```
+---
 
-This data-driven approach ensures gap detection is based on quantitative `go-stats-generator` metrics rather than subjective code reading, with every finding traceable to both a README claim and a concrete presence or absence in the analysis output.
+## Gap 4: High Duplication Ratio May Complicate New Development
+
+- **Description**: Current duplication ratio is 37.04% (135 clone pairs, 6182 duplicated lines), significantly exceeding the "Large" scope threshold of 8%. This indicates substantial shared patterns that should be extracted before adding new analyzer code.
+
+- **Impact**: Adding `internal/analyzer/burden.go` without first extracting shared patterns will likely increase duplication further. The top clone pairs are in `internal/analyzer/` and `cmd/` packages:
+  ```
+  - internal/analyzer/interface.go:555-589 (35 lines, renamed clone)
+  - cmd/trend.go:102-136 (35 lines, renamed clone)
+  - internal/analyzer/naming.go:284-316 (33 lines, 3 instances)
+  ```
+
+- **Metrics Context**:
+  ```json
+  {
+    "clone_pairs": 135,
+    "duplicated_lines": 6182,
+    "duplication_ratio": 0.3704,
+    "largest_clone_size": 35
+  }
+  ```
+
+- **Resolution**: PLAN.md includes "Prerequisite 3: Address Duplication" to extract common AST traversal patterns into `internal/analyzer/astutil.go` before implementing Phase 6 features. This should reduce duplication ratio to <15% before new development begins.
+
+---
+
+## Gap 5: `internal/reporter/csv.go:Generate` Blocks Safe Extension
+
+- **Description**: The `Generate` function in csv.go has complexity 65.7 (highest in codebase), with 296 lines and 49 cyclomatic paths. Adding burden metrics reporting to this function would further increase complexity and make the reporter unmaintainable.
+
+- **Impact**: Phase 6 Step 9 requires integrating BurdenMetrics into all output formats including CSV. The current `Generate` function cannot be safely extended.
+
+- **Metrics Context**:
+  ```json
+  {"name": "Generate", "file": "internal/reporter/csv.go", "complexity": 65.7, "lines": 296}
+  ```
+  This single function accounts for the highest complexity hotspot and must be refactored as a prerequisite.
+
+- **Resolution**: PLAN.md includes "Prerequisite 1: Refactor csv.go:Generate" to extract reporting sections into dedicated helpers (target complexity ≤15.0). Refactoring must complete before adding BurdenMetrics output.
+
+---
+
+## Summary
+
+| Gap | Severity | Phase 6 Impact | Resolution |
+|-----|----------|----------------|------------|
+| Shotgun Surgery | Moderate | Partial Step 6.5 | Defer to Phase 7 |
+| Annotation Age | Minor | Documentation only | Defer to Phase 7 |
+| testdata/ Inflation | Minor | Validation accuracy | Use --exclude testdata/ |
+| High Duplication | High | New code quality | Extract astutil.go first |
+| csv.go Complexity | Critical | Reporter integration | Refactor first |
+
+**Total Gaps**: 5
+- **Critical** (blocks implementation): 1
+- **Moderate** (partial feature): 1
+- **Minor** (workaround available): 3
