@@ -22,23 +22,25 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{duplication: .duplication}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json --output baseline.json && cat baseline.json | jq .duplication
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.duplication` from the report. Exclude `.functions`, `.structs`, `.interfaces`, `.packages`, `.patterns`, `.concurrency`, `.complexity`, `.documentation`, `.generics`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to repository cleanup.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish pre-cleanup baseline
-go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.json --sections duplication
+go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.json
 go-stats-generator analyze . --skip-tests
 
 # Phase 2: Execute cleanup steps (remove binaries, reports; consolidate tests; update .gitignore)
 # Perform all cleanup actions described in the INSTRUCTIONS section below.
 
 # Phase 3: Post-cleanup validation
-go-stats-generator analyze . --skip-tests --format json --output post-cleanup.json --sections duplication
+go-stats-generator analyze . --skip-tests --format json --output post-cleanup.json
 
 # Phase 4: Measure and document improvements
 go-stats-generator diff pre-cleanup.json post-cleanup.json

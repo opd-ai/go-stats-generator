@@ -21,16 +21,18 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{documentation: .documentation, naming: .naming}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json | jq .documentation
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.documentation` and `.naming` from the report. Exclude `.functions`, `.structs`, `.interfaces`, `.packages`, `.patterns`, `.concurrency`, `.complexity`, `.generics`, `.duplication`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to documentation auditing and godoc corrections.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify documentation gaps
-go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json --sections documentation,naming
+go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output baseline.json
 go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests
 
 # Phase 2: Inspect documentation and naming metrics
@@ -38,7 +40,7 @@ cat baseline.json | jq '.documentation'
 cat baseline.json | jq '.naming'
 
 # Phase 3: Post-correction validation
-go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json --sections documentation,naming
+go-stats-generator analyze . --min-doc-coverage 0.8 --skip-tests --format json --output corrected.json
 
 # Phase 4: Measure and document improvements
 go-stats-generator diff baseline.json corrected.json

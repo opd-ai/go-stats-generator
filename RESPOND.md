@@ -19,22 +19,24 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, duplication: .duplication, documentation: .documentation}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json | jq .functions
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.functions`, `.duplication`, and `.documentation` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.patterns`, `.concurrency`, `.complexity`, `.generics`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to roadmap task execution.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline before any changes
-go-stats-generator analyze . --format json --output baseline.json --skip-tests --sections functions,duplication,documentation
+go-stats-generator analyze . --format json --output baseline.json --skip-tests
 
 # Phase 2: Select and implement roadmap task
 # Using ROADMAP.md, select the highest-priority incomplete task and implement it.
 
 # Phase 3: Post-implementation validation
-go-stats-generator analyze . --format json --output post-impl.json --skip-tests --sections functions,duplication,documentation
+go-stats-generator analyze . --format json --output post-impl.json --skip-tests
 go-stats-generator diff baseline.json post-impl.json
 
 # Phase 4: Quality verification

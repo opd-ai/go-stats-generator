@@ -21,17 +21,19 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, concurrency: .concurrency}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json | jq .functions
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.functions` and `.concurrency` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to test failure analysis.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Execute tests and establish complexity baseline
 go test -v -race -cover ./... 2>&1 | tee test-results.txt
-go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,concurrency
+go-stats-generator analyze . --skip-tests --format json --output baseline.json
 go-stats-generator analyze . --skip-tests --max-complexity 10 --max-function-length 30
 
 # Phase 2: Correlate failures with complexity, classify, and fix
@@ -39,7 +41,7 @@ cat baseline.json | jq '.functions[] | select(.complexity.overall > 12)'
 
 # Phase 3: Post-fix validation
 go test -v -race ./...
-go-stats-generator analyze . --skip-tests --format json --output postfix.json --sections functions,concurrency
+go-stats-generator analyze . --skip-tests --format json --output postfix.json
 
 # Phase 4: Verify fix did not introduce regressions
 go-stats-generator diff baseline.json postfix.json

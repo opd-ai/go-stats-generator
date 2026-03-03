@@ -81,23 +81,25 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --output json | jq .example
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.functions` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.patterns`, `.concurrency`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to iterative function complexity refactoring.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify targets
-go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json --sections functions
+go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests --format json --output baseline.json
 go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --skip-tests
 
 # Phase 2: Generate refactoring recommendations  
 Using the results generated in phase 1, select a high-complexity function suitable for refactoring.
 
 # Phase 3: Post-refactoring validation
-go-stats-generator analyze . --format json --output refactored.json --max-complexity 10 --max-function-length 30 --skip-tests --sections functions
+go-stats-generator analyze . --format json --output refactored.json --max-complexity 10 --max-function-length 30 --skip-tests
 
 # Phase 4: Measure and document improvements
 go-stats-generator diff baseline.json refactored.json

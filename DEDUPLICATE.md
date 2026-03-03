@@ -21,23 +21,25 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{duplication: .duplication}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --output json | jq .duplication
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.duplication` from the report. Exclude `.functions`, `.structs`, `.interfaces`, `.packages`, `.patterns`, `.concurrency`, `.complexity`, `.documentation`, `.generics`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to code clone elimination.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify duplication targets
-go-stats-generator analyze . --min-block-lines 6 --similarity-threshold 0.80 --skip-tests --format json --output baseline.json --sections duplication
+go-stats-generator analyze . --min-block-lines 6 --similarity-threshold 0.80 --skip-tests --format json --output baseline.json
 go-stats-generator analyze . --min-block-lines 6 --similarity-threshold 0.80 --skip-tests
 
 # Phase 2: Generate deduplication plan
 # Using the results generated in phase 1, select significant clone groups for consolidation.
 
 # Phase 3: Post-deduplication validation
-go-stats-generator analyze . --format json --output deduplicated.json --min-block-lines 6 --similarity-threshold 0.80 --skip-tests --sections duplication
+go-stats-generator analyze . --format json --output deduplicated.json --min-block-lines 6 --similarity-threshold 0.80 --skip-tests
 
 # Phase 4: Measure and document improvements
 go-stats-generator diff baseline.json deduplicated.json

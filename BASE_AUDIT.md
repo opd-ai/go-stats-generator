@@ -21,16 +21,18 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, documentation: .documentation, naming: .naming, packages: .packages}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json | jq .functions
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.functions`, `.documentation`, `.naming`, and `.packages` from the report. Exclude `.structs`, `.interfaces`, `.patterns`, `.concurrency`, `.complexity`, `.generics`, `.duplication`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to functional audit evidence gathering.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Gather quantitative evidence with go-stats-generator
-go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --skip-tests --format json --output audit-baseline.json --sections functions,documentation,naming,packages
+go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --skip-tests --format json --output audit-baseline.json
 go-stats-generator analyze . --max-complexity 10 --max-function-length 30 --min-doc-coverage 0.7 --skip-tests
 
 # Phase 2: Extract high-risk areas for focused manual review

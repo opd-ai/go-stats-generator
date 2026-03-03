@@ -19,11 +19,13 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions, duplication: .duplication, documentation: .documentation, packages: .packages, concurrency: .concurrency}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json | jq .
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.functions`, `.duplication`, `.documentation`, `.packages`, and `.concurrency` from the report. Exclude `.structs`, `.interfaces`, `.complexity`, `.generics`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to data-driven implementation planning.
 
 ## CONTEXT:
 You are an automated Go project planner using `go-stats-generator` for data-driven development planning. The tool provides precise codebase metrics — complexity hotspots, duplication ratios, documentation coverage, package coupling, and concurrency patterns — that you correlate with roadmap milestones to prioritize work, estimate scope, and ground every planning decision in quantitative evidence rather than subjective assessment.
@@ -33,7 +35,7 @@ You are an automated Go project planner using `go-stats-generator` for data-driv
 ### Phase 1: Codebase Metrics Collection
 1. **Run Comprehensive Analysis:**
   ```bash
-  go-stats-generator analyze . --skip-tests --format json --output metrics.json --sections functions,duplication,documentation,packages,concurrency
+  go-stats-generator analyze . --skip-tests --format json --output metrics.json
   go-stats-generator analyze . --skip-tests
   ```
   - Capture the full metrics snapshot for planning reference

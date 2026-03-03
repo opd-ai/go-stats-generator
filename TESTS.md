@@ -21,23 +21,25 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# Extract only task-relevant sections from JSON; discard everything else
-go-stats-generator analyze --format json | jq '{functions: .functions}'
-which jq || sudo apt-get install -y jq
+# When long json outputs are encountered, use `jq`
+go-stats-generator analyze --format json | jq '.functions[]'
+# Check if it is installed
+which jq
+# If it is not, install it
+sudo apt-get install jq
 ```
-**Section filter**: Use only `.functions` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.concurrency`, `.duplication`, `.naming`, `.documentation`, `.placement`, `.organization`, `.burden`, `.scores`, `.generics`, `.patterns`, `.suggestions` — they are not relevant to test coverage prioritization by complexity.
 
 ### Required Analysis Workflow:
 ```bash
 # Phase 1: Establish baseline and identify untested high-complexity targets
-go-stats-generator analyze . --skip-tests --format json --output test-baseline.json --sections functions
+go-stats-generator analyze . --skip-tests --format json --output test-baseline.json
 go test -cover ./...
 
 # Phase 2: Prioritize test targets by complexity ranking
 cat test-baseline.json | jq '[.functions[] | select(.complexity.cyclomatic > 8)] | sort_by(-.complexity.cyclomatic)'
 
 # Phase 3: Post-test-generation validation
-go-stats-generator analyze . --format json --output post-tests.json --sections functions
+go-stats-generator analyze . --format json --output post-tests.json
 go-stats-generator diff test-baseline.json post-tests.json
 
 # Phase 4: Coverage verification
