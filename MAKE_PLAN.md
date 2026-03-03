@@ -224,7 +224,7 @@ Packages: 9
   High Coupling (>0.7): 2
   Low Cohesion (<0.3): 1
 
-$ go-stats-generator analyze . --skip-tests --format json --output metrics.json
+$ go-stats-generator analyze . --skip-tests --format json --output metrics.json --sections functions,duplication,documentation,packages,concurrency
 
 $ # Extract complexity hotspots for planning
 $ cat metrics.json | jq '[.functions[] | select(.complexity.overall > 9)] | sort_by(-.complexity.overall) | .[:5] | .[] | {name, file, complexity: .complexity.overall, lines: .lines.code}'
