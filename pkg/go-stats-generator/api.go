@@ -120,6 +120,7 @@ type analyzerSet struct {
 	iface       *analyzer.InterfaceAnalyzer
 	pkg         *analyzer.PackageAnalyzer
 	concurrency *analyzer.ConcurrencyAnalyzer
+	pattern     *analyzer.PatternAnalyzer
 	duplication *analyzer.DuplicationAnalyzer
 }
 
@@ -131,6 +132,7 @@ func createAnalyzers(fset *token.FileSet, cfg *config.Config) *analyzerSet {
 		iface:       analyzer.NewInterfaceAnalyzer(fset),
 		pkg:         analyzer.NewPackageAnalyzer(fset),
 		concurrency: analyzer.NewConcurrencyAnalyzer(fset),
+		pattern:     analyzer.NewPatternAnalyzer(fset),
 		duplication: analyzer.NewDuplicationAnalyzer(fset),
 	}
 }
@@ -145,6 +147,13 @@ func createReport(rootPath string, fileCount int) *metrics.Report {
 			ToolVersion:    "1.0.0",
 		},
 		Patterns: metrics.PatternMetrics{
+			DesignPatterns: metrics.DesignPatternMetrics{
+				Singleton: []metrics.PatternInstance{},
+				Factory:   []metrics.PatternInstance{},
+				Builder:   []metrics.PatternInstance{},
+				Observer:  []metrics.PatternInstance{},
+				Strategy:  []metrics.PatternInstance{},
+			},
 			ConcurrencyPatterns: metrics.ConcurrencyPatternMetrics{},
 		},
 	}
@@ -168,6 +177,7 @@ func processFile(result scanner.Result, analyzers *analyzerSet, collected *colle
 
 	analyzers.pkg.AnalyzePackage(result.File, result.FileInfo.Path)
 	analyzeConcurrency(result, analyzers.concurrency, report)
+	analyzePatterns(result, analyzers.pattern, report)
 }
 
 // analyzeConcurrency analyzes concurrency patterns and aggregates to report
@@ -183,6 +193,30 @@ func analyzeConcurrency(result scanner.Result, concurrencyAnalyzer *analyzer.Con
 	report.Patterns.ConcurrencyPatterns.Channels.Instances = append(
 		report.Patterns.ConcurrencyPatterns.Channels.Instances,
 		concurrency.Channels.Instances...)
+}
+
+// analyzePatterns analyzes design patterns and aggregates to report
+func analyzePatterns(result scanner.Result, patternAnalyzer *analyzer.PatternAnalyzer, report *metrics.Report) {
+	patterns, err := patternAnalyzer.AnalyzePatterns(result.File, result.FileInfo.Package, result.FileInfo.RelPath)
+	if err != nil {
+		return
+	}
+
+	report.Patterns.DesignPatterns.Singleton = append(
+		report.Patterns.DesignPatterns.Singleton,
+		patterns.Singleton...)
+	report.Patterns.DesignPatterns.Factory = append(
+		report.Patterns.DesignPatterns.Factory,
+		patterns.Factory...)
+	report.Patterns.DesignPatterns.Builder = append(
+		report.Patterns.DesignPatterns.Builder,
+		patterns.Builder...)
+	report.Patterns.DesignPatterns.Observer = append(
+		report.Patterns.DesignPatterns.Observer,
+		patterns.Observer...)
+	report.Patterns.DesignPatterns.Strategy = append(
+		report.Patterns.DesignPatterns.Strategy,
+		patterns.Strategy...)
 }
 
 // finalizeReport aggregates all collected metrics into the report
