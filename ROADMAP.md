@@ -181,39 +181,42 @@ Surface documentation gaps that slow down onboarding and increase maintenance co
 
 ---
 
-## Phase 5: Organizational & Structural Problems
+## Phase 5: Organizational & Structural Problems ✅ COMPLETE
+
+**Status**: Implemented and tested (2026-03-03)
+**Files**: `internal/analyzer/organization.go`, `internal/analyzer/organization_test.go`
 
 Detect structural issues that make a codebase hard to navigate and maintain.
 
-### Step 5.1 — File Size Analysis
+### Step 5.1 — File Size Analysis ✅ COMPLETE
 
-- For each `.go` file, report total lines, code lines, comment lines, and blank lines (reuse existing `LineMetrics`).
-- Flag files exceeding configurable thresholds:
+- ✅ For each `.go` file, report total lines, code lines, comment lines, and blank lines (reuse existing `LineMetrics`).
+- ✅ Flag files exceeding configurable thresholds:
   - `maintenance.organization.max_file_lines` (default: 500) — total lines.
   - `maintenance.organization.max_file_functions` (default: 20) — functions/methods per file.
   - `maintenance.organization.max_file_types` (default: 5) — type declarations per file.
-- Rank files by maintenance burden (composite score of size, complexity, and declaration count).
+- ✅ Rank files by maintenance burden (composite score of size, complexity, and declaration count).
 
-### Step 5.2 — Package Size & Depth Analysis
+### Step 5.2 — Package Size & Depth Analysis ✅ COMPLETE
 
-- Flag packages with too many files (`maintenance.organization.max_package_files`, default: 20).
-- Flag packages with too many exported symbols (`maintenance.organization.max_exported_symbols`, default: 50).
-- Flag deeply nested directory structures (`maintenance.organization.max_directory_depth`, default: 5).
-- Detect "mega-packages" that combine unrelated concerns (low cohesion + high symbol count).
+- ✅ Flag packages with too many files (`maintenance.organization.max_package_files`, default: 20).
+- ✅ Flag packages with too many exported symbols (`maintenance.organization.max_exported_symbols`, default: 50).
+- ✅ Flag deeply nested directory structures (`maintenance.organization.max_directory_depth`, default: 5).
+- ✅ Detect "mega-packages" that combine unrelated concerns (low cohesion + high symbol count).
 
-### Step 5.3 — Import Graph Health
+### Step 5.3 — Import Graph Health ✅ COMPLETE
 
-- Extend the existing `PackageAnalyzer` to report:
+- ✅ Extended existing `PackageAnalyzer` to report:
   - Files with excessive imports (`maintenance.organization.max_file_imports`, default: 15).
   - Packages that are imported by many other packages ("hub" packages) — high fan-in indicates a change bottleneck.
   - Packages that import many other packages ("authority" packages) — high fan-out indicates potential coupling.
-- Compute an instability metric per package: `fan-out / (fan-in + fan-out)`.
+- ✅ Compute an instability metric per package: `fan-out / (fan-in + fan-out)`.
 
-### Step 5.4 — Organization Metrics & Reporting
+### Step 5.4 — Organization Metrics & Reporting ✅ COMPLETE
 
-- Add `OrganizationMetrics` to `internal/metrics/types.go`:
+- ✅ Added `OrganizationMetrics` to `internal/metrics/types.go`:
   - `OversizedFiles`, `OversizedPackages`, `DeepDirectories`, `HighFanInPackages`, `HighFanOutPackages`, `AvgPackageInstability`.
-- Add a dedicated "Organization Health" section to all output formats.
+- ✅ Added a dedicated "Organization Health" section to all output formats (console, JSON, HTML, Markdown).
 
 ---
 
@@ -313,11 +316,11 @@ Combine all maintenance burden signals into a unified, prioritized report.
 | 2 — Naming | — | `internal/analyzer/naming.go` | ✅ Complete |
 | 3 — Placement | Phase 2 | `internal/analyzer/placement.go` | ✅ Complete |
 | 4 — Documentation | — | `internal/analyzer/documentation.go` | ✅ Complete |
-| 5 — Organization | Existing `PackageAnalyzer` | `internal/analyzer/organization.go` | Planned |
+| 5 — Organization | Existing `PackageAnalyzer` | `internal/analyzer/organization.go` | ✅ Complete |
 | 6 — Burden Indicators | Phases 1–5 | `internal/analyzer/burden.go` | Planned |
 | 7 — Composite Scoring | Phases 1–6 | `internal/analyzer/scoring.go` | Planned |
 
-Phases 1, 2, 3, and 4 are complete. Phases 5, 6, and 7 are planned for future releases.
+Phases 1, 2, 3, 4, and 5 are complete. Phases 6 and 7 are planned for future releases.
 
 ---
 
