@@ -416,13 +416,27 @@ func (r *CSVReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) 
 	writer := csv.NewWriter(output)
 	defer writer.Flush()
 
-	// Write header
 	if err := writer.Write([]string{"# METRICS COMPARISON REPORT"}); err != nil {
 		return fmt.Errorf("failed to write diff header: %w", err)
 	}
 
-	// Write summary
-	if err := writer.Write([]string{""}); err != nil { // Empty row
+	if err := r.writeDiffSummary(writer, diff); err != nil {
+		return err
+	}
+
+	if err := r.writeDiffRegressions(writer, diff); err != nil {
+		return err
+	}
+
+	if err := r.writeDiffImprovements(writer, diff); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *CSVReporter) writeDiffSummary(writer *csv.Writer, diff *metrics.ComplexityDiff) error {
+	if err := writer.Write([]string{""}); err != nil {
 		return err
 	}
 	if err := writer.Write([]string{"# SUMMARY"}); err != nil {
@@ -443,63 +457,73 @@ func (r *CSVReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) 
 		}
 	}
 
-	// Write regressions if any
-	if len(diff.Regressions) > 0 {
-		if err := writer.Write([]string{""}); err != nil { // Empty row
-			return err
-		}
-		if err := writer.Write([]string{"# REGRESSIONS"}); err != nil {
-			return fmt.Errorf("failed to write regressions header: %w", err)
+	return nil
+}
+
+func (r *CSVReporter) writeDiffRegressions(writer *csv.Writer, diff *metrics.ComplexityDiff) error {
+	if len(diff.Regressions) == 0 {
+		return nil
+	}
+
+	if err := writer.Write([]string{""}); err != nil {
+		return err
+	}
+	if err := writer.Write([]string{"# REGRESSIONS"}); err != nil {
+		return fmt.Errorf("failed to write regressions header: %w", err)
+	}
+
+	regressionHeaders := []string{"Location", "Function", "Old Value", "New Value", "Change", "Severity"}
+	if err := writer.Write(regressionHeaders); err != nil {
+		return fmt.Errorf("failed to write regression headers: %w", err)
+	}
+
+	for _, reg := range diff.Regressions {
+		row := []string{
+			reg.Location,
+			reg.Function,
+			formatValue(reg.OldValue),
+			formatValue(reg.NewValue),
+			formatFloat(reg.Delta.Absolute),
+			string(reg.Severity),
 		}
 
-		regressionHeaders := []string{"Location", "Function", "Old Value", "New Value", "Change", "Severity"}
-		if err := writer.Write(regressionHeaders); err != nil {
-			return fmt.Errorf("failed to write regression headers: %w", err)
-		}
-
-		for _, reg := range diff.Regressions {
-			row := []string{
-				reg.Location,
-				reg.Function,
-				formatValue(reg.OldValue),
-				formatValue(reg.NewValue),
-				formatFloat(reg.Delta.Absolute),
-				string(reg.Severity),
-			}
-
-			if err := writer.Write(row); err != nil {
-				return fmt.Errorf("failed to write regression row: %w", err)
-			}
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("failed to write regression row: %w", err)
 		}
 	}
 
-	// Write improvements if any
-	if len(diff.Improvements) > 0 {
-		if err := writer.Write([]string{""}); err != nil { // Empty row
-			return err
-		}
-		if err := writer.Write([]string{"# IMPROVEMENTS"}); err != nil {
-			return fmt.Errorf("failed to write improvements header: %w", err)
+	return nil
+}
+
+func (r *CSVReporter) writeDiffImprovements(writer *csv.Writer, diff *metrics.ComplexityDiff) error {
+	if len(diff.Improvements) == 0 {
+		return nil
+	}
+
+	if err := writer.Write([]string{""}); err != nil {
+		return err
+	}
+	if err := writer.Write([]string{"# IMPROVEMENTS"}); err != nil {
+		return fmt.Errorf("failed to write improvements header: %w", err)
+	}
+
+	improvementHeaders := []string{"Location", "Function", "Old Value", "New Value", "Change", "Impact"}
+	if err := writer.Write(improvementHeaders); err != nil {
+		return fmt.Errorf("failed to write improvement headers: %w", err)
+	}
+
+	for _, imp := range diff.Improvements {
+		row := []string{
+			imp.Location,
+			imp.Function,
+			formatValue(imp.OldValue),
+			formatValue(imp.NewValue),
+			formatFloat(imp.Delta.Absolute),
+			string(imp.Impact),
 		}
 
-		improvementHeaders := []string{"Location", "Function", "Old Value", "New Value", "Change", "Impact"}
-		if err := writer.Write(improvementHeaders); err != nil {
-			return fmt.Errorf("failed to write improvement headers: %w", err)
-		}
-
-		for _, imp := range diff.Improvements {
-			row := []string{
-				imp.Location,
-				imp.Function,
-				formatValue(imp.OldValue),
-				formatValue(imp.NewValue),
-				formatFloat(imp.Delta.Absolute),
-				string(imp.Impact),
-			}
-
-			if err := writer.Write(row); err != nil {
-				return fmt.Errorf("failed to write improvement row: %w", err)
-			}
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("failed to write improvement row: %w", err)
 		}
 	}
 
