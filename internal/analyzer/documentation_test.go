@@ -492,3 +492,217 @@ func Func2() {}`,
 		})
 	}
 }
+
+func TestAnalyzeAnnotations(t *testing.T) {
+	tests := []struct {
+		name                  string
+		source                string
+		expectedTODO          int
+		expectedFIXME         int
+		expectedHACK          int
+		expectedBUG           int
+		expectedXXX           int
+		expectedDEPR          int
+		expectedNOTE          int
+		expectedCategoryCount int
+	}{
+		{
+			name: "TODO annotation",
+			source: `package test
+// TODO: implement this function
+func Example() {}`,
+			expectedTODO:          1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "FIXME annotation",
+			source: `package test
+// FIXME: fix the bug here
+func Example() {}`,
+			expectedFIXME:         1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "HACK annotation",
+			source: `package test
+// HACK: temporary workaround
+func Example() {}`,
+			expectedHACK:          1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "BUG annotation",
+			source: `package test
+// BUG: this causes issues
+func Example() {}`,
+			expectedBUG:           1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "XXX annotation",
+			source: `package test
+// XXX: review this code
+func Example() {}`,
+			expectedXXX:           1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "DEPRECATED annotation",
+			source: `package test
+// DEPRECATED: use NewExample instead
+func Example() {}`,
+			expectedDEPR:          1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "NOTE annotation",
+			source: `package test
+// NOTE: this is important
+func Example() {}`,
+			expectedNOTE:          1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "multiple annotations",
+			source: `package test
+// TODO: implement this
+func Example1() {}
+
+// FIXME: fix bug
+func Example2() {}
+
+// HACK: workaround
+func Example3() {}`,
+			expectedTODO:          1,
+			expectedFIXME:         1,
+			expectedHACK:          1,
+			expectedCategoryCount: 3,
+		},
+		{
+			name: "case insensitive",
+			source: `package test
+// todo: lowercase
+func Example1() {}
+
+// ToDo: mixed case
+func Example2() {}`,
+			expectedTODO:          2,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "annotations with colon",
+			source: `package test
+// TODO: with colon
+func Example() {}`,
+			expectedTODO:          1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "annotations without colon",
+			source: `package test
+// TODO without colon
+func Example() {}`,
+			expectedTODO:          1,
+			expectedCategoryCount: 1,
+		},
+		{
+			name: "no annotations",
+			source: `package test
+// This is a regular comment
+func Example() {}`,
+			expectedCategoryCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			analyzer := NewDocumentationAnalyzer(fset, nil)
+
+			file, err := parser.ParseFile(fset, "test.go", tt.source, parser.ParseComments)
+			require.NoError(t, err)
+
+			result := analyzer.Analyze([]*ast.File{file}, nil)
+			require.NotNil(t, result)
+
+			assert.Len(t, result.TODOComments, tt.expectedTODO, "TODO count mismatch")
+			assert.Len(t, result.FIXMEComments, tt.expectedFIXME, "FIXME count mismatch")
+			assert.Len(t, result.HACKComments, tt.expectedHACK, "HACK count mismatch")
+			assert.Len(t, result.BUGComments, tt.expectedBUG, "BUG count mismatch")
+			assert.Len(t, result.XXXComments, tt.expectedXXX, "XXX count mismatch")
+			assert.Len(t, result.DEPRECATEDComments, tt.expectedDEPR, "DEPRECATED count mismatch")
+			assert.Len(t, result.NOTEComments, tt.expectedNOTE, "NOTE count mismatch")
+			assert.Len(t, result.AnnotationsByCategory, tt.expectedCategoryCount, "Category count mismatch")
+		})
+	}
+}
+
+func TestAnnotationDetails(t *testing.T) {
+	source := `package test
+
+// TODO: implement feature X
+func Example1() {}
+
+// FIXME: critical bug in logic
+func Example2() {}
+
+// HACK: temporary fix for issue #123
+func Example3() {}`
+
+	fset := token.NewFileSet()
+	analyzer := NewDocumentationAnalyzer(fset, nil)
+
+	file, err := parser.ParseFile(fset, "test.go", source, parser.ParseComments)
+	require.NoError(t, err)
+
+	result := analyzer.Analyze([]*ast.File{file}, nil)
+	require.NotNil(t, result)
+
+	// Verify TODO details
+	require.Len(t, result.TODOComments, 1)
+	assert.Equal(t, "implement feature X", result.TODOComments[0].Description)
+	assert.Equal(t, "test.go", result.TODOComments[0].File)
+	assert.Greater(t, result.TODOComments[0].Line, 0)
+
+	// Verify FIXME details
+	require.Len(t, result.FIXMEComments, 1)
+	assert.Equal(t, "critical bug in logic", result.FIXMEComments[0].Description)
+	assert.Equal(t, "critical", result.FIXMEComments[0].Severity)
+	assert.Greater(t, result.FIXMEComments[0].Line, 0)
+
+	// Verify HACK details
+	require.Len(t, result.HACKComments, 1)
+	assert.Equal(t, "temporary fix for issue #123", result.HACKComments[0].Description)
+	assert.Greater(t, result.HACKComments[0].Line, 0)
+
+	// Verify category counts
+	assert.Equal(t, 1, result.AnnotationsByCategory["TODO"])
+	assert.Equal(t, 1, result.AnnotationsByCategory["FIXME"])
+	assert.Equal(t, 1, result.AnnotationsByCategory["HACK"])
+}
+
+func TestSeverityClassification(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewDocumentationAnalyzer(fset, nil)
+
+	tests := []struct {
+		category string
+		expected string
+	}{
+		{"FIXME", "critical"},
+		{"BUG", "critical"},
+		{"HACK", "high"},
+		{"TODO", "medium"},
+		{"XXX", "medium"},
+		{"DEPRECATED", "low"},
+		{"NOTE", "low"},
+		{"UNKNOWN", "low"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.category, func(t *testing.T) {
+			severity := analyzer.getSeverity(tt.category)
+			assert.Equal(t, tt.expected, severity)
+		})
+	}
+}

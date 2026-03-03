@@ -55,11 +55,16 @@ func NewDocumentationAnalyzer(fset *token.FileSet, cfg *DocumentationConfig) *Do
 // Analyze performs comprehensive documentation analysis
 func (d *DocumentationAnalyzer) Analyze(files []*ast.File, pkgs map[string]*ast.Package) *metrics.DocumentationMetrics {
 	m := &metrics.DocumentationMetrics{
-		Coverage:      metrics.DocumentationCoverage{},
-		Quality:       metrics.DocumentationQuality{},
-		TODOComments:  []metrics.TODOComment{},
-		FIXMEComments: []metrics.FIXMEComment{},
-		HACKComments:  []metrics.HACKComment{},
+		Coverage:              metrics.DocumentationCoverage{},
+		Quality:               metrics.DocumentationQuality{},
+		TODOComments:          []metrics.TODOComment{},
+		FIXMEComments:         []metrics.FIXMEComment{},
+		HACKComments:          []metrics.HACKComment{},
+		BUGComments:           []metrics.BUGComment{},
+		XXXComments:           []metrics.XXXComment{},
+		DEPRECATEDComments:    []metrics.DEPRECATEDComment{},
+		NOTEComments:          []metrics.NOTEComment{},
+		AnnotationsByCategory: make(map[string]int),
 	}
 
 	// Analyze exported symbols for documentation coverage
@@ -67,6 +72,9 @@ func (d *DocumentationAnalyzer) Analyze(files []*ast.File, pkgs map[string]*ast.
 
 	// Analyze package-level documentation
 	d.analyzePackageDocs(files, pkgs, m)
+
+	// Analyze annotations (TODO, FIXME, HACK, etc.)
+	d.analyzeAnnotations(files, m)
 
 	return m
 }
@@ -219,4 +227,67 @@ func (d *DocumentationAnalyzer) hasPackageDoc(file *ast.File) bool {
 		return true
 	}
 	return false
+}
+
+// analyzeAnnotations scans all comments for annotations
+func (d *DocumentationAnalyzer) analyzeAnnotations(files []*ast.File, m *metrics.DocumentationMetrics) {
+	for _, file := range files {
+		filePath := d.fset.Position(file.Pos()).Filename
+		d.scanFileComments(file, filePath, m)
+	}
+}
+
+// scanFileComments processes all comment groups in a file
+func (d *DocumentationAnalyzer) scanFileComments(file *ast.File, filePath string, m *metrics.DocumentationMetrics) {
+	for _, cg := range file.Comments {
+		for _, comment := range cg.List {
+			d.processComment(comment, filePath, m)
+		}
+	}
+}
+
+// processComment extracts and categorizes an annotation
+func (d *DocumentationAnalyzer) processComment(comment *ast.Comment, filePath string, m *metrics.DocumentationMetrics) {
+	category, description := d.extractAnnotation(comment.Text)
+	if category == "" {
+		return
+	}
+
+	line := d.fset.Position(comment.Pos()).Line
+	m.AnnotationsByCategory[category]++
+	d.addAnnotationToMetrics(category, filePath, line, description, m)
+}
+
+// addAnnotationToMetrics appends the annotation to appropriate metrics list
+func (d *DocumentationAnalyzer) addAnnotationToMetrics(category, filePath string, line int, description string, m *metrics.DocumentationMetrics) {
+	switch category {
+	case "TODO":
+		m.TODOComments = append(m.TODOComments, metrics.TODOComment{
+			File: filePath, Line: line, Description: description,
+		})
+	case "FIXME":
+		m.FIXMEComments = append(m.FIXMEComments, metrics.FIXMEComment{
+			File: filePath, Line: line, Description: description, Severity: d.getSeverity(category),
+		})
+	case "HACK":
+		m.HACKComments = append(m.HACKComments, metrics.HACKComment{
+			File: filePath, Line: line, Description: description, Reason: description,
+		})
+	case "BUG":
+		m.BUGComments = append(m.BUGComments, metrics.BUGComment{
+			File: filePath, Line: line, Description: description, Severity: d.getSeverity(category),
+		})
+	case "XXX":
+		m.XXXComments = append(m.XXXComments, metrics.XXXComment{
+			File: filePath, Line: line, Description: description,
+		})
+	case "DEPRECATED":
+		m.DEPRECATEDComments = append(m.DEPRECATEDComments, metrics.DEPRECATEDComment{
+			File: filePath, Line: line, Description: description,
+		})
+	case "NOTE":
+		m.NOTEComments = append(m.NOTEComments, metrics.NOTEComment{
+			File: filePath, Line: line, Description: description,
+		})
+	}
 }

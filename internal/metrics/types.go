@@ -351,11 +351,17 @@ type ComplexityItem struct {
 
 // DocumentationMetrics contains documentation quality analysis
 type DocumentationMetrics struct {
-	Coverage      DocumentationCoverage `json:"coverage"`
-	Quality       DocumentationQuality  `json:"quality"`
-	TODOComments  []TODOComment         `json:"todo_comments"`
-	FIXMEComments []FIXMEComment        `json:"fixme_comments"`
-	HACKComments  []HACKComment         `json:"hack_comments"`
+	Coverage              DocumentationCoverage `json:"coverage"`
+	Quality               DocumentationQuality  `json:"quality"`
+	TODOComments          []TODOComment         `json:"todo_comments"`
+	FIXMEComments         []FIXMEComment        `json:"fixme_comments"`
+	HACKComments          []HACKComment         `json:"hack_comments"`
+	BUGComments           []BUGComment          `json:"bug_comments"`
+	XXXComments           []XXXComment          `json:"xxx_comments"`
+	DEPRECATEDComments    []DEPRECATEDComment   `json:"deprecated_comments"`
+	NOTEComments          []NOTEComment         `json:"note_comments"`
+	StaleAnnotations      int                   `json:"stale_annotations"`
+	AnnotationsByCategory map[string]int        `json:"annotations_by_category"`
 }
 
 // DocumentationCoverage tracks GoDoc coverage
@@ -400,6 +406,40 @@ type HACKComment struct {
 	Author      string `json:"author,omitempty"`
 	Description string `json:"description"`
 	Reason      string `json:"reason"`
+}
+
+// BUGComment represents a BUG comment
+type BUGComment struct {
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	Author      string `json:"author,omitempty"`
+	Description string `json:"description"`
+	Severity    string `json:"severity"`
+}
+
+// XXXComment represents a XXX comment
+type XXXComment struct {
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	Author      string `json:"author,omitempty"`
+	Description string `json:"description"`
+}
+
+// DEPRECATEDComment represents a DEPRECATED comment
+type DEPRECATEDComment struct {
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	Author      string `json:"author,omitempty"`
+	Description string `json:"description"`
+	Alternative string `json:"alternative,omitempty"`
+}
+
+// NOTEComment represents a NOTE comment
+type NOTEComment struct {
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	Author      string `json:"author,omitempty"`
+	Description string `json:"description"`
 }
 
 // GenericMetrics contains Go 1.18+ generics analysis
