@@ -48,6 +48,25 @@ type AnalysisConfig struct {
 
 	// Burden analysis settings
 	Burden BurdenConfig `mapstructure:"burden" json:"burden"`
+
+	// Scoring weights for MBI calculation
+	Scoring ScoringConfig `mapstructure:"scoring" json:"scoring"`
+}
+
+// ScoringConfig controls maintenance burden index calculation
+type ScoringConfig struct {
+	Weights        ScoringWeights `mapstructure:"weights" json:"weights"`
+	MaxBurdenScore float64        `mapstructure:"max_burden_score" json:"max_burden_score"`
+}
+
+// ScoringWeights defines weights for each maintenance category
+type ScoringWeights struct {
+	Duplication   float64 `mapstructure:"duplication" json:"duplication"`
+	Naming        float64 `mapstructure:"naming" json:"naming"`
+	Placement     float64 `mapstructure:"placement" json:"placement"`
+	Documentation float64 `mapstructure:"documentation" json:"documentation"`
+	Organization  float64 `mapstructure:"organization" json:"organization"`
+	Burden        float64 `mapstructure:"burden" json:"burden"`
 }
 
 // DuplicationConfig controls code duplication detection
@@ -215,6 +234,17 @@ func DefaultConfig() *Config {
 				MaxNesting:        4,
 				FeatureEnvyRatio:  2.0,
 				IgnoreBenignMagic: true,
+			},
+			Scoring: ScoringConfig{
+				Weights: ScoringWeights{
+					Duplication:   0.20,
+					Naming:        0.10,
+					Placement:     0.15,
+					Documentation: 0.15,
+					Organization:  0.15,
+					Burden:        0.25,
+				},
+				MaxBurdenScore: 70.0,
 			},
 		},
 		Output: OutputConfig{

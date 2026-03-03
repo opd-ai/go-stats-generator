@@ -731,6 +731,10 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 				UnreachableCode:       []metrics.UnreachableBlock{},
 			},
 		},
+		Scores: metrics.ScoringMetrics{
+			FileScores:    []metrics.FileScore{},
+			PackageScores: []metrics.PackageScore{},
+		},
 	}
 }
 
@@ -995,6 +999,15 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 
 	// Finalize burden metrics (dead code percentage)
 	finalizeBurdenMetrics(report)
+
+	// Calculate MBI scores for all files and packages
+	finalizeScoringMetrics(report, cfg)
+}
+
+// finalizeScoringMetrics calculates maintenance burden index for files and packages
+func finalizeScoringMetrics(report *metrics.Report, cfg *config.Config) {
+	scoringAnalyzer := analyzer.NewScoringAnalyzer(cfg.Analysis.Scoring.Weights)
+	report.Scores = *scoringAnalyzer.CalculateAllScores(report)
 }
 
 // finalizeDuplicationMetrics performs duplication analysis on all collected files

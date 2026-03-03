@@ -21,6 +21,7 @@ type Report struct {
 	Placement     PlacementMetrics     `json:"placement"`
 	Organization  OrganizationMetrics  `json:"organization"`
 	Burden        BurdenMetrics        `json:"burden"`
+	Scores        ScoringMetrics       `json:"scores"`
 }
 
 // ReportMetadata contains information about the analysis run
@@ -1086,4 +1087,36 @@ type FeatureEnvyIssue struct {
 	ExternalRefs   int     `json:"external_references"`
 	Ratio          float64 `json:"ratio"`
 	SuggestedMove  string  `json:"suggested_move"`
+}
+
+// ScoringMetrics holds maintenance burden index scores
+type ScoringMetrics struct {
+	FileScores    []FileScore    `json:"file_scores"`
+	PackageScores []PackageScore `json:"package_scores"`
+}
+
+// FileScore represents the MBI for a single file
+type FileScore struct {
+	File      string         `json:"file"`
+	Score     float64        `json:"score"`
+	Risk      string         `json:"risk"`
+	Breakdown ScoreBreakdown `json:"breakdown"`
+}
+
+// PackageScore represents the MBI for a package
+type PackageScore struct {
+	Package   string         `json:"package"`
+	Score     float64        `json:"score"`
+	Risk      string         `json:"risk"`
+	Breakdown ScoreBreakdown `json:"breakdown"`
+}
+
+// ScoreBreakdown shows contribution of each category
+type ScoreBreakdown struct {
+	Duplication   float64 `json:"duplication"`
+	Naming        float64 `json:"naming"`
+	Placement     float64 `json:"placement"`
+	Documentation float64 `json:"documentation"`
+	Organization  float64 `json:"organization"`
+	Burden        float64 `json:"burden"`
 }
