@@ -462,8 +462,105 @@ func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, 
 
 // DetectDeepNesting identifies functions exceeding nesting depth threshold
 func (ba *BurdenAnalyzer) DetectDeepNesting(fn *ast.FuncDecl, maxNesting int) *metrics.NestingIssue {
-	// TODO: Implement deep nesting detection
-	return nil
+	if fn == nil || fn.Body == nil {
+		return nil
+	}
+
+	maxDepth := 0
+	var deepestLoc token.Pos
+	ba.walkForNestingDepth(fn.Body, 0, &maxDepth, &deepestLoc)
+
+	if maxDepth <= maxNesting {
+		return nil
+	}
+
+	pos := ba.fset.Position(fn.Pos())
+	locPos := ba.fset.Position(deepestLoc)
+
+	return &metrics.NestingIssue{
+		Function:   fn.Name.Name,
+		File:       pos.Filename,
+		Line:       pos.Line,
+		MaxDepth:   maxDepth,
+		Location:   locPos.String(),
+		Suggestion: "Consider extracting nested logic into separate functions or using early returns/guard clauses",
+	}
+}
+
+func (ba *BurdenAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	if node == nil {
+		return
+	}
+
+	switch n := node.(type) {
+	case *ast.IfStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+			*deepestLoc = n.Pos()
+		}
+		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+		if n.Else != nil {
+			ba.walkForNestingDepth(n.Else, newDepth, maxDepth, deepestLoc)
+		}
+
+	case *ast.ForStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+			*deepestLoc = n.Pos()
+		}
+		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+
+	case *ast.RangeStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+			*deepestLoc = n.Pos()
+		}
+		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+
+	case *ast.SwitchStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+			*deepestLoc = n.Pos()
+		}
+		for _, stmt := range n.Body.List {
+			ba.walkForNestingDepth(stmt, newDepth, maxDepth, deepestLoc)
+		}
+
+	case *ast.TypeSwitchStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+			*deepestLoc = n.Pos()
+		}
+		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+
+	case *ast.SelectStmt:
+		newDepth := currentDepth + 1
+		if newDepth > *maxDepth {
+			*maxDepth = newDepth
+			*deepestLoc = n.Pos()
+		}
+		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+
+	case *ast.CaseClause:
+		for _, stmt := range n.Body {
+			ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
+		}
+
+	case *ast.CommClause:
+		for _, stmt := range n.Body {
+			ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
+		}
+
+	case *ast.BlockStmt:
+		for _, stmt := range n.List {
+			ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
+		}
+	}
 }
 
 // DetectFeatureEnvy identifies methods with excessive external references

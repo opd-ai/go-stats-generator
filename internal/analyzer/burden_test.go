@@ -404,13 +404,192 @@ func Extreme(a, b, c, d, e, f, g, h, i, j, k int) int {
 	}
 }
 
-func TestDetectDeepNesting_Placeholder(t *testing.T) {
-	fset := token.NewFileSet()
-	analyzer := NewBurdenAnalyzer(fset)
+func TestDetectDeepNesting(t *testing.T) {
+	tests := []struct {
+		name       string
+		src        string
+		maxNesting int
+		wantIssue  bool
+		wantDepth  int
+	}{
+		{
+			name: "shallow nesting - no issue",
+			src: `package test
+func ShallowNesting() {
+	if true {
+		x := 1
+		if x > 0 {
+			y := 2
+		}
+	}
+}`,
+			maxNesting: 4,
+			wantIssue:  false,
+		},
+		{
+			name: "deep nesting - exceeds threshold",
+			src: `package test
+func DeepNesting() {
+	if true {
+		if true {
+			if true {
+				if true {
+					if true {
+						x := 1
+					}
+				}
+			}
+		}
+	}
+}`,
+			maxNesting: 4,
+			wantIssue:  true,
+			wantDepth:  5,
+		},
+		{
+			name: "mixed control structures",
+			src: `package test
+func MixedNesting() {
+	for i := 0; i < 10; i++ {
+		if i > 5 {
+			switch i {
+				case 6:
+					for j := 0; j < i; j++ {
+						if j > 3 {
+							x := 1
+						}
+					}
+			}
+		}
+	}
+}`,
+			maxNesting: 4,
+			wantIssue:  true,
+			wantDepth:  5,
+		},
+		{
+			name: "range statements",
+			src: `package test
+func RangeNesting() {
+	for _, v := range []int{1, 2, 3} {
+		if v > 0 {
+			for _, w := range []int{4, 5} {
+				if w > 4 {
+					if v == w {
+						x := 1
+					}
+				}
+			}
+		}
+	}
+}`,
+			maxNesting: 4,
+			wantIssue:  true,
+			wantDepth:  5,
+		},
+		{
+			name: "select statement nesting",
+			src: `package test
+func SelectNesting() {
+	ch := make(chan int)
+	for {
+		select {
+		case v := <-ch:
+			if v > 0 {
+				for i := 0; i < v; i++ {
+					if i > 5 {
+						x := 1
+					}
+				}
+			}
+		}
+	}
+}`,
+			maxNesting: 4,
+			wantIssue:  true,
+			wantDepth:  5,
+		},
+		{
+			name: "exactly at threshold",
+			src: `package test
+func AtThreshold() {
+	if true {
+		if true {
+			if true {
+				if true {
+					x := 1
+				}
+			}
+		}
+	}
+}`,
+			maxNesting: 4,
+			wantIssue:  false,
+		},
+		{
+			name: "nil function",
+			src: `package test
+// empty`,
+			maxNesting: 4,
+			wantIssue:  false,
+		},
+	}
 
-	result := analyzer.DetectDeepNesting(nil, 4)
-	if result != nil {
-		t.Error("Expected nil result from placeholder implementation")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			analyzer := NewBurdenAnalyzer(fset)
+
+			file, err := parser.ParseFile(fset, "test.go", tt.src, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var fn *ast.FuncDecl
+			ast.Inspect(file, func(n ast.Node) bool {
+				if f, ok := n.(*ast.FuncDecl); ok {
+					fn = f
+					return false
+				}
+				return true
+			})
+
+			result := analyzer.DetectDeepNesting(fn, tt.maxNesting)
+
+			if tt.wantIssue {
+				if result == nil {
+					t.Fatal("expected nesting issue but got nil")
+				}
+
+				if result.MaxDepth != tt.wantDepth {
+					t.Errorf("max depth = %d, want %d", result.MaxDepth, tt.wantDepth)
+				}
+
+				if result.Function == "" {
+					t.Error("expected non-empty function name")
+				}
+
+				if result.File == "" {
+					t.Error("expected non-empty file name")
+				}
+
+				if result.Line == 0 {
+					t.Error("expected non-zero line number")
+				}
+
+				if result.Location == "" {
+					t.Error("expected non-empty location")
+				}
+
+				if result.Suggestion == "" {
+					t.Error("expected non-empty suggestion")
+				}
+			} else {
+				if result != nil {
+					t.Errorf("expected no issue but got: %+v", result)
+				}
+			}
+		})
 	}
 }
 
