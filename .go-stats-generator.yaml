@@ -29,6 +29,14 @@ analysis:
     require_package_doc: true  # Require doc.go or package comment for each package
     stale_annotation_days: 180  # Threshold for stale TODO/FIXME annotations (days)
     min_comment_words: 5  # Minimum words required after symbol name in GoDoc
+  organization:
+    max_file_lines: 500  # Maximum lines per file before flagging
+    max_file_functions: 20  # Maximum functions/methods per file
+    max_file_types: 5  # Maximum type declarations per file
+    max_package_files: 20  # Maximum files per package
+    max_exported_symbols: 50  # Maximum exported symbols per package
+    max_directory_depth: 5  # Maximum directory nesting depth
+    max_file_imports: 15  # Maximum import statements per file
 
 output:
   format: console  # console, json, html

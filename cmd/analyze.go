@@ -131,6 +131,22 @@ func init() {
 	analyzeCmd.Flags().Bool("ignore-test-duplication", false,
 		"exclude test files from duplication analysis")
 
+	// Organization analysis flags
+	analyzeCmd.Flags().Int("max-file-lines", 500,
+		"maximum lines per file before flagging")
+	analyzeCmd.Flags().Int("max-file-functions", 20,
+		"maximum functions/methods per file")
+	analyzeCmd.Flags().Int("max-file-types", 5,
+		"maximum type declarations per file")
+	analyzeCmd.Flags().Int("max-package-files", 20,
+		"maximum files per package")
+	analyzeCmd.Flags().Int("max-exported-symbols", 50,
+		"maximum exported symbols per package")
+	analyzeCmd.Flags().Int("max-directory-depth", 5,
+		"maximum directory nesting depth")
+	analyzeCmd.Flags().Int("max-file-imports", 15,
+		"maximum import statements per file")
+
 	// Bind flags to viper
 	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
 	viper.BindPFlag("output.destination", analyzeCmd.Flags().Lookup("output"))
@@ -153,6 +169,13 @@ func init() {
 	viper.BindPFlag("analysis.duplication.min_block_lines", analyzeCmd.Flags().Lookup("min-block-lines"))
 	viper.BindPFlag("analysis.duplication.similarity_threshold", analyzeCmd.Flags().Lookup("similarity-threshold"))
 	viper.BindPFlag("analysis.duplication.ignore_test_files", analyzeCmd.Flags().Lookup("ignore-test-duplication"))
+	viper.BindPFlag("analysis.organization.max_file_lines", analyzeCmd.Flags().Lookup("max-file-lines"))
+	viper.BindPFlag("analysis.organization.max_file_functions", analyzeCmd.Flags().Lookup("max-file-functions"))
+	viper.BindPFlag("analysis.organization.max_file_types", analyzeCmd.Flags().Lookup("max-file-types"))
+	viper.BindPFlag("analysis.organization.max_package_files", analyzeCmd.Flags().Lookup("max-package-files"))
+	viper.BindPFlag("analysis.organization.max_exported_symbols", analyzeCmd.Flags().Lookup("max-exported-symbols"))
+	viper.BindPFlag("analysis.organization.max_directory_depth", analyzeCmd.Flags().Lookup("max-directory-depth"))
+	viper.BindPFlag("analysis.organization.max_file_imports", analyzeCmd.Flags().Lookup("max-file-imports"))
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
@@ -281,6 +304,14 @@ func loadFilterConfiguration(cfg *config.Config) {
 
 // loadAnalysisConfiguration loads analysis-related configuration from viper
 func loadAnalysisConfiguration(cfg *config.Config) {
+	loadBasicAnalysisSettings(cfg)
+	loadThresholdSettings(cfg)
+	loadDuplicationSettings(cfg)
+	loadPlacementSettings(cfg)
+	loadOrganizationSettings(cfg)
+}
+
+func loadBasicAnalysisSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.include_functions") {
 		cfg.Analysis.IncludeFunctions = viper.GetBool("analysis.include_functions")
 	}
@@ -302,6 +333,9 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	if viper.IsSet("analysis.include_generics") {
 		cfg.Analysis.IncludeGenerics = viper.GetBool("analysis.include_generics")
 	}
+}
+
+func loadThresholdSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.max_function_length") {
 		cfg.Analysis.MaxFunctionLength = viper.GetInt("analysis.max_function_length")
 	}
@@ -314,7 +348,9 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	if viper.IsSet("analysis.enforce_thresholds") {
 		cfg.Analysis.EnforceThresholds = viper.GetBool("analysis.enforce_thresholds")
 	}
-	// Duplication settings
+}
+
+func loadDuplicationSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.duplication.min_block_lines") {
 		cfg.Analysis.Duplication.MinBlockLines = viper.GetInt("analysis.duplication.min_block_lines")
 	}
@@ -324,12 +360,38 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	if viper.IsSet("analysis.duplication.ignore_test_files") {
 		cfg.Analysis.Duplication.IgnoreTestFiles = viper.GetBool("analysis.duplication.ignore_test_files")
 	}
-	// Placement settings
+}
+
+func loadPlacementSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.placement.affinity_margin") {
 		cfg.Analysis.Placement.AffinityMargin = viper.GetFloat64("analysis.placement.affinity_margin")
 	}
 	if viper.IsSet("analysis.placement.min_cohesion") {
 		cfg.Analysis.Placement.MinCohesion = viper.GetFloat64("analysis.placement.min_cohesion")
+	}
+}
+
+func loadOrganizationSettings(cfg *config.Config) {
+	if viper.IsSet("analysis.organization.max_file_lines") {
+		cfg.Analysis.Organization.MaxFileLines = viper.GetInt("analysis.organization.max_file_lines")
+	}
+	if viper.IsSet("analysis.organization.max_file_functions") {
+		cfg.Analysis.Organization.MaxFileFunctions = viper.GetInt("analysis.organization.max_file_functions")
+	}
+	if viper.IsSet("analysis.organization.max_file_types") {
+		cfg.Analysis.Organization.MaxFileTypes = viper.GetInt("analysis.organization.max_file_types")
+	}
+	if viper.IsSet("analysis.organization.max_package_files") {
+		cfg.Analysis.Organization.MaxPackageFiles = viper.GetInt("analysis.organization.max_package_files")
+	}
+	if viper.IsSet("analysis.organization.max_exported_symbols") {
+		cfg.Analysis.Organization.MaxExportedSymbols = viper.GetInt("analysis.organization.max_exported_symbols")
+	}
+	if viper.IsSet("analysis.organization.max_directory_depth") {
+		cfg.Analysis.Organization.MaxDirectoryDepth = viper.GetInt("analysis.organization.max_directory_depth")
+	}
+	if viper.IsSet("analysis.organization.max_file_imports") {
+		cfg.Analysis.Organization.MaxFileImports = viper.GetInt("analysis.organization.max_file_imports")
 	}
 }
 

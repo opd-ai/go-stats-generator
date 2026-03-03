@@ -42,6 +42,9 @@ type AnalysisConfig struct {
 
 	// Documentation analysis settings
 	Documentation DocumentationConfig `mapstructure:"documentation" json:"documentation"`
+
+	// Organization analysis settings
+	Organization OrganizationConfig `mapstructure:"organization" json:"organization"`
 }
 
 // DuplicationConfig controls code duplication detection
@@ -70,6 +73,17 @@ type DocumentationConfig struct {
 	RequirePackageDoc   bool `mapstructure:"require_package_doc" json:"require_package_doc"`
 	StaleAnnotationDays int  `mapstructure:"stale_annotation_days" json:"stale_annotation_days"`
 	MinCommentWords     int  `mapstructure:"min_comment_words" json:"min_comment_words"`
+}
+
+// OrganizationConfig controls organization and structural analysis
+type OrganizationConfig struct {
+	MaxFileLines       int `mapstructure:"max_file_lines" json:"max_file_lines"`
+	MaxFileFunctions   int `mapstructure:"max_file_functions" json:"max_file_functions"`
+	MaxFileTypes       int `mapstructure:"max_file_types" json:"max_file_types"`
+	MaxPackageFiles    int `mapstructure:"max_package_files" json:"max_package_files"`
+	MaxExportedSymbols int `mapstructure:"max_exported_symbols" json:"max_exported_symbols"`
+	MaxDirectoryDepth  int `mapstructure:"max_directory_depth" json:"max_directory_depth"`
+	MaxFileImports     int `mapstructure:"max_file_imports" json:"max_file_imports"`
 }
 
 // OutputConfig controls output formatting
@@ -173,6 +187,15 @@ func DefaultConfig() *Config {
 				RequirePackageDoc:   true,
 				StaleAnnotationDays: 180,
 				MinCommentWords:     5,
+			},
+			Organization: OrganizationConfig{
+				MaxFileLines:       500,
+				MaxFileFunctions:   20,
+				MaxFileTypes:       5,
+				MaxPackageFiles:    20,
+				MaxExportedSymbols: 50,
+				MaxDirectoryDepth:  5,
+				MaxFileImports:     15,
 			},
 		},
 		Output: OutputConfig{
