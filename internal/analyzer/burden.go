@@ -57,6 +57,7 @@ func (ba *BurdenAnalyzer) DetectMagicNumbers(file *ast.File, pkg string) []metri
 	return magicNumbers
 }
 
+// checkBasicLit examines a basic literal for magic number patterns
 func (ba *BurdenAnalyzer) checkBasicLit(lit *ast.BasicLit, file *ast.File, fn string) *metrics.MagicNumber {
 	// Check numeric literals
 	if lit.Kind == token.INT || lit.Kind == token.FLOAT {
@@ -78,6 +79,7 @@ func (ba *BurdenAnalyzer) checkBasicLit(lit *ast.BasicLit, file *ast.File, fn st
 	return nil
 }
 
+// isBenignNumber checks if a numeric value is a common constant that should not be flagged
 func (ba *BurdenAnalyzer) isBenignNumber(value string) bool {
 	// Common benign values that shouldn't be flagged
 	benign := map[string]bool{
@@ -90,6 +92,7 @@ func (ba *BurdenAnalyzer) isBenignNumber(value string) bool {
 	return benign[value]
 }
 
+// createMagicNumber constructs a MagicNumber metric from a literal and its context
 func (ba *BurdenAnalyzer) createMagicNumber(lit *ast.BasicLit, file *ast.File, fn, typ string) *metrics.MagicNumber {
 	pos := ba.fset.Position(lit.Pos())
 	return &metrics.MagicNumber{
@@ -103,6 +106,7 @@ func (ba *BurdenAnalyzer) createMagicNumber(lit *ast.BasicLit, file *ast.File, f
 	}
 }
 
+// extractContext finds the statement context for a literal by inspecting the AST
 func (ba *BurdenAnalyzer) extractContext(lit *ast.BasicLit, file *ast.File) string {
 	// Find the statement containing this literal
 	var context string
@@ -149,6 +153,7 @@ func (ba *BurdenAnalyzer) checkNodeContext(n ast.Node, lit *ast.BasicLit) string
 	return ""
 }
 
+// containsNode checks if a parent AST node contains a target child node
 func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 	found := false
 	ast.Inspect(parent, func(n ast.Node) bool {
@@ -186,6 +191,7 @@ func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics
 	}
 }
 
+// buildReferenceMap counts function call references across all files in a package
 func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
 	refs := make(map[string]int)
 
@@ -206,6 +212,7 @@ func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
 	return refs
 }
 
+// findUnreferencedSymbols identifies unexported functions that are never called
 func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, refs map[string]int, pkg string) []metrics.UnreferencedSymbol {
 	var unreferenced []metrics.UnreferencedSymbol
 
@@ -234,6 +241,7 @@ func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, refs map[st
 	return unreferenced
 }
 
+// findUnreachableCode identifies code blocks that can never be executed
 func (ba *BurdenAnalyzer) findUnreachableCode(files []*ast.File) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
 
@@ -259,6 +267,7 @@ func (ba *BurdenAnalyzer) findUnreachableCode(files []*ast.File) []metrics.Unrea
 	return unreachable
 }
 
+// checkBlockForUnreachable scans a code block for statements after terminating statements
 func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
 
@@ -445,6 +454,7 @@ func (ba *BurdenAnalyzer) countParameters(fnType *ast.FuncType) (int, []string) 
 	return paramCount, boolParams
 }
 
+// countReturns calculates the number of return values in a function signature
 func (ba *BurdenAnalyzer) countReturns(fnType *ast.FuncType) int {
 	if fnType.Results == nil {
 		return 0
@@ -462,6 +472,7 @@ func (ba *BurdenAnalyzer) countReturns(fnType *ast.FuncType) int {
 	return returnCount
 }
 
+// calculateSeverity determines severity level based on parameter and return count thresholds
 func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, maxReturns int) string {
 	if paramCount > maxParams*2 || returnCount > maxReturns*2 {
 		return "high"
@@ -695,6 +706,7 @@ func (ba *BurdenAnalyzer) findMostReferencedType(refs map[string]int) (string, i
 	return maxType, maxCount
 }
 
+// max returns the larger of two integers
 func max(a, b int) int {
 	if a > b {
 		return a

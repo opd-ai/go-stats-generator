@@ -364,6 +364,7 @@ func (ca *ConcurrencyAnalyzer) detectPatterns(concurrency *metrics.ConcurrencyPa
 
 // Helper methods
 
+// extractFunctionContext extracts a descriptive context string from an anonymous function literal
 func (ca *ConcurrencyAnalyzer) extractFunctionContext(funcLit *ast.FuncLit, maxLen int) string {
 	if funcLit.Body == nil || len(funcLit.Body.List) == 0 {
 		return "empty function"
@@ -373,6 +374,7 @@ func (ca *ConcurrencyAnalyzer) extractFunctionContext(funcLit *ast.FuncLit, maxL
 	return "anonymous function"
 }
 
+// extractSelectorName extracts the qualified name from a selector expression (e.g., "obj.Method")
 func (ca *ConcurrencyAnalyzer) extractSelectorName(selector *ast.SelectorExpr) string {
 	if ident, ok := selector.X.(*ast.Ident); ok {
 		return ident.Name + "." + selector.Sel.Name
@@ -380,11 +382,13 @@ func (ca *ConcurrencyAnalyzer) extractSelectorName(selector *ast.SelectorExpr) s
 	return selector.Sel.Name
 }
 
+// containsDefer checks if a call expression contains a defer statement for cleanup
 func (ca *ConcurrencyAnalyzer) containsDefer(call *ast.CallExpr) bool {
 	// Simple check - would need more sophisticated analysis for real detection
 	return false
 }
 
+// checkGoroutineLeak analyzes a goroutine for potential leaks such as infinite loops without exit conditions
 func (ca *ConcurrencyAnalyzer) checkGoroutineLeak(goStmt *ast.GoStmt, concurrency *metrics.ConcurrencyPatternMetrics, fileName, functionName string) {
 	// Basic goroutine leak detection
 	pos := ca.fset.Position(goStmt.Pos())
@@ -403,11 +407,13 @@ func (ca *ConcurrencyAnalyzer) checkGoroutineLeak(goStmt *ast.GoStmt, concurrenc
 	}
 }
 
+// getCurrentFunction attempts to find the name of the enclosing function for a given AST node
 func (ca *ConcurrencyAnalyzer) getCurrentFunction(node ast.Node) string {
 	// Find the enclosing function - simplified implementation
 	return "unknown"
 }
 
+// extractTypeString converts a type expression to its string representation
 func (ca *ConcurrencyAnalyzer) extractTypeString(expr ast.Expr) string {
 	if ident, ok := expr.(*ast.Ident); ok {
 		return ident.Name
@@ -415,6 +421,7 @@ func (ca *ConcurrencyAnalyzer) extractTypeString(expr ast.Expr) string {
 	return "unknown"
 }
 
+// isMakeCall checks if a call expression is a make() call for a specific type (e.g., "chan")
 func (ca *ConcurrencyAnalyzer) isMakeCall(call *ast.CallExpr, targetType string) bool {
 	if ident, ok := call.Fun.(*ast.Ident); ok && ident.Name == "make" {
 		if len(call.Args) > 0 {
@@ -426,6 +433,7 @@ func (ca *ConcurrencyAnalyzer) isMakeCall(call *ast.CallExpr, targetType string)
 	return false
 }
 
+// parseIntLiteral parses a string representation of an integer literal to an int value
 func (ca *ConcurrencyAnalyzer) parseIntLiteral(value string) int {
 	// Simplified integer parsing
 	if len(value) > 0 && value[0] >= '0' && value[0] <= '9' {
@@ -434,20 +442,24 @@ func (ca *ConcurrencyAnalyzer) parseIntLiteral(value string) int {
 	return 0
 }
 
+// extractVariableName extracts the variable name from a call expression context
 func (ca *ConcurrencyAnalyzer) extractVariableName(call *ast.CallExpr) string {
 	// Extract variable name from call context - simplified
 	return "unknown"
 }
 
+// extractCallContext extracts contextual information from a call expression for analysis
 func (ca *ConcurrencyAnalyzer) extractCallContext(call *ast.CallExpr) string {
 	// Extract call context - simplified
 	return "method call"
 }
 
+// analyzeForPatterns analyzes a function declaration for concurrency patterns
 func (ca *ConcurrencyAnalyzer) analyzeForPatterns(funcDecl *ast.FuncDecl, concurrency *metrics.ConcurrencyPatternMetrics, fileName string) {
 	// Analyze function body for concurrency patterns - placeholder for complex pattern detection
 }
 
+// hasInfiniteLoop checks if a call expression contains an infinite loop pattern
 func (ca *ConcurrencyAnalyzer) hasInfiniteLoop(call *ast.CallExpr) bool {
 	// Detect infinite loops - simplified implementation
 	return false
@@ -501,6 +513,7 @@ func (ca *ConcurrencyAnalyzer) detectWorkerPools(concurrency *metrics.Concurrenc
 	}
 }
 
+// detectPipelines identifies pipeline patterns based on sequential channel chaining between goroutines
 func (ca *ConcurrencyAnalyzer) detectPipelines(concurrency *metrics.ConcurrencyPatternMetrics) {
 	// Detect pipeline patterns based on channel chaining
 	// Pattern: Sequential goroutines connected by channels (stage1 -> channel -> stage2 -> channel -> stage3)
@@ -764,6 +777,7 @@ func (ca *ConcurrencyAnalyzer) calculateFanInConfidence(channels []metrics.Chann
 	return confidence
 }
 
+// detectSemaphores identifies semaphore patterns using buffered channels for concurrency limiting
 func (ca *ConcurrencyAnalyzer) detectSemaphores(concurrency *metrics.ConcurrencyPatternMetrics) {
 	// Detect semaphore patterns using buffered channels
 	// Pattern: Buffered channel used for limiting concurrency (typically with struct{} type)

@@ -104,6 +104,7 @@ func normalizeToScore(score float64) float64 {
 	return score
 }
 
+// countFileClones returns the number of clone pairs involving the specified file
 func countFileClones(file string, clones []metrics.ClonePair) int {
 	count := 0
 	for _, clone := range clones {
@@ -117,6 +118,7 @@ func countFileClones(file string, clones []metrics.ClonePair) int {
 	return count
 }
 
+// countFileNamingViolations returns the total naming violations for a file
 func countFileNamingViolations(file string, naming metrics.NamingMetrics) int {
 	count := 0
 	for _, v := range naming.IdentifierIssues {
@@ -132,6 +134,7 @@ func countFileNamingViolations(file string, naming metrics.NamingMetrics) int {
 	return count
 }
 
+// countFileMisplacements returns the number of misplaced functions and methods in a file
 func countFileMisplacements(file string, placement metrics.PlacementMetrics) int {
 	count := 0
 	for _, m := range placement.FunctionIssues {
@@ -147,6 +150,7 @@ func countFileMisplacements(file string, placement metrics.PlacementMetrics) int
 	return count
 }
 
+// getFileCoverage calculates documentation coverage ratio for a file (0.0-1.0)
 func getFileCoverage(file string, report *metrics.Report) float64 {
 	fileFuncs := 0
 	documentedFuncs := 0
@@ -164,6 +168,7 @@ func getFileCoverage(file string, report *metrics.Report) float64 {
 	return float64(documentedFuncs) / float64(fileFuncs)
 }
 
+// isOversized checks if a file exceeds organization size thresholds
 func isOversized(file string, org metrics.OrganizationMetrics) bool {
 	for _, f := range org.OversizedFiles {
 		if f.File == file {
@@ -173,6 +178,7 @@ func isOversized(file string, org metrics.OrganizationMetrics) bool {
 	return false
 }
 
+// getFileCohesion returns the cohesion score for a file, defaulting to 1.0 if not found
 func getFileCohesion(file string, placement metrics.PlacementMetrics) float64 {
 	for _, f := range placement.CohesionIssues {
 		if f.File == file {
@@ -182,6 +188,7 @@ func getFileCohesion(file string, placement metrics.PlacementMetrics) float64 {
 	return 1.0
 }
 
+// countFileMagicNumbers returns the number of magic number occurrences in a file
 func countFileMagicNumbers(file string, magics []metrics.MagicNumber) int {
 	count := 0
 	for _, m := range magics {
@@ -192,6 +199,7 @@ func countFileMagicNumbers(file string, magics []metrics.MagicNumber) int {
 	return count
 }
 
+// countFileDeadCode returns the number of dead code issues in a file
 func countFileDeadCode(file string, deadCode metrics.DeadCodeMetrics) int {
 	count := 0
 	for _, f := range deadCode.UnreferencedFunctions {
@@ -207,6 +215,7 @@ func countFileDeadCode(file string, deadCode metrics.DeadCodeMetrics) int {
 	return count
 }
 
+// countFileComplexSigs returns the number of complex function signatures in a file
 func countFileComplexSigs(file string, sigs []metrics.SignatureIssue) int {
 	count := 0
 	for _, s := range sigs {
@@ -217,6 +226,7 @@ func countFileComplexSigs(file string, sigs []metrics.SignatureIssue) int {
 	return count
 }
 
+// countFileDeepNesting returns the number of deeply nested functions in a file
 func countFileDeepNesting(file string, nesting []metrics.NestingIssue) int {
 	count := 0
 	for _, n := range nesting {
@@ -227,6 +237,7 @@ func countFileDeepNesting(file string, nesting []metrics.NestingIssue) int {
 	return count
 }
 
+// countFileFeatureEnvy returns the number of feature envy methods in a file
 func countFileFeatureEnvy(file string, envy []metrics.FeatureEnvyIssue) int {
 	count := 0
 	for _, e := range envy {
@@ -237,6 +248,7 @@ func countFileFeatureEnvy(file string, envy []metrics.FeatureEnvyIssue) int {
 	return count
 }
 
+// min returns the smaller of two float64 values
 func min(a, b float64) float64 {
 	if a < b {
 		return a
@@ -270,6 +282,7 @@ func (sa *ScoringAnalyzer) CalculateAllScores(report *metrics.Report) *metrics.S
 	}
 }
 
+// calculateFileScores computes MBI scores for all files in the report
 func (sa *ScoringAnalyzer) calculateFileScores(report *metrics.Report) []metrics.FileScore {
 	fileScores := make([]metrics.FileScore, 0)
 	seenFiles := make(map[string]bool)
@@ -290,6 +303,7 @@ func (sa *ScoringAnalyzer) calculateFileScores(report *metrics.Report) []metrics
 	return fileScores
 }
 
+// calculatePackageScores computes MBI scores for all packages in the report
 func (sa *ScoringAnalyzer) calculatePackageScores(report *metrics.Report) []metrics.PackageScore {
 	packageScores := make([]metrics.PackageScore, 0)
 	seenPackages := make(map[string]bool)
@@ -310,6 +324,7 @@ func (sa *ScoringAnalyzer) calculatePackageScores(report *metrics.Report) []metr
 	return packageScores
 }
 
+// getFileBreakdown calculates weighted score contributions for a file
 func (sa *ScoringAnalyzer) getFileBreakdown(file string, report *metrics.Report) metrics.ScoreBreakdown {
 	return metrics.ScoreBreakdown{
 		Duplication:   sa.calculateDuplicationScore(file, report) * sa.weights.Duplication,
@@ -321,6 +336,7 @@ func (sa *ScoringAnalyzer) getFileBreakdown(file string, report *metrics.Report)
 	}
 }
 
+// getPackageBreakdown calculates averaged score breakdown for all files in a package
 func (sa *ScoringAnalyzer) getPackageBreakdown(pkg string, report *metrics.Report) metrics.ScoreBreakdown {
 	pkgFiles := getPackageFiles(pkg, report)
 	if len(pkgFiles) == 0 {
@@ -349,6 +365,7 @@ func (sa *ScoringAnalyzer) getPackageBreakdown(pkg string, report *metrics.Repor
 	}
 }
 
+// getRiskLevel maps a numeric score to a risk level category
 func getRiskLevel(score float64) string {
 	if score >= 70 {
 		return "critical"
@@ -362,6 +379,7 @@ func getRiskLevel(score float64) string {
 	return "minimal"
 }
 
+// getPackageFiles returns the unique list of files belonging to a package
 func getPackageFiles(pkg string, report *metrics.Report) []string {
 	files := make([]string, 0)
 	seenFiles := make(map[string]bool)

@@ -277,6 +277,7 @@ func (da *DuplicationAnalyzer) deepCopyAndNormalize(node ast.Node) ast.Node {
 	}
 }
 
+// normalizeBlockStmt normalizes a block statement by recursively normalizing all statements within
 func (da *DuplicationAnalyzer) normalizeBlockStmt(n *ast.BlockStmt) ast.Node {
 	stmts := make([]ast.Stmt, len(n.List))
 	for i, stmt := range n.List {
@@ -285,10 +286,12 @@ func (da *DuplicationAnalyzer) normalizeBlockStmt(n *ast.BlockStmt) ast.Node {
 	return &ast.BlockStmt{List: stmts}
 }
 
+// normalizeExprStmt normalizes an expression statement by normalizing its expression
 func (da *DuplicationAnalyzer) normalizeExprStmt(n *ast.ExprStmt) ast.Node {
 	return &ast.ExprStmt{X: da.normalizeNode(n.X).(ast.Expr)}
 }
 
+// normalizeAssignStmt normalizes an assignment statement by normalizing both LHS and RHS expressions
 func (da *DuplicationAnalyzer) normalizeAssignStmt(n *ast.AssignStmt) ast.Node {
 	lhs := make([]ast.Expr, len(n.Lhs))
 	for i, expr := range n.Lhs {
@@ -301,6 +304,7 @@ func (da *DuplicationAnalyzer) normalizeAssignStmt(n *ast.AssignStmt) ast.Node {
 	return &ast.AssignStmt{Lhs: lhs, Tok: n.Tok, Rhs: rhs}
 }
 
+// normalizeIfStmt normalizes an if statement by normalizing its condition, body, and else branches
 func (da *DuplicationAnalyzer) normalizeIfStmt(n *ast.IfStmt) ast.Node {
 	var init ast.Stmt
 	if n.Init != nil {
@@ -318,6 +322,7 @@ func (da *DuplicationAnalyzer) normalizeIfStmt(n *ast.IfStmt) ast.Node {
 	}
 }
 
+// normalizeForStmt normalizes a for loop statement by normalizing init, condition, post, and body
 func (da *DuplicationAnalyzer) normalizeForStmt(n *ast.ForStmt) ast.Node {
 	var init, post ast.Stmt
 	var cond ast.Expr
@@ -338,6 +343,7 @@ func (da *DuplicationAnalyzer) normalizeForStmt(n *ast.ForStmt) ast.Node {
 	}
 }
 
+// normalizeRangeStmt normalizes a range statement by normalizing key, value, and range expression
 func (da *DuplicationAnalyzer) normalizeRangeStmt(n *ast.RangeStmt) ast.Node {
 	var key, value ast.Expr
 	if n.Key != nil {
@@ -355,6 +361,7 @@ func (da *DuplicationAnalyzer) normalizeRangeStmt(n *ast.RangeStmt) ast.Node {
 	}
 }
 
+// normalizeReturnStmt normalizes a return statement by normalizing all return value expressions
 func (da *DuplicationAnalyzer) normalizeReturnStmt(n *ast.ReturnStmt) ast.Node {
 	results := make([]ast.Expr, len(n.Results))
 	for i, expr := range n.Results {
@@ -363,6 +370,7 @@ func (da *DuplicationAnalyzer) normalizeReturnStmt(n *ast.ReturnStmt) ast.Node {
 	return &ast.ReturnStmt{Results: results}
 }
 
+// normalizeCallExpr normalizes a call expression by normalizing function and argument expressions
 func (da *DuplicationAnalyzer) normalizeCallExpr(n *ast.CallExpr) ast.Node {
 	args := make([]ast.Expr, len(n.Args))
 	for i, arg := range n.Args {
@@ -375,6 +383,7 @@ func (da *DuplicationAnalyzer) normalizeCallExpr(n *ast.CallExpr) ast.Node {
 	}
 }
 
+// normalizeBinaryExpr normalizes a binary expression by normalizing operands while preserving operator
 func (da *DuplicationAnalyzer) normalizeBinaryExpr(n *ast.BinaryExpr) ast.Node {
 	return &ast.BinaryExpr{
 		X:  da.normalizeNode(n.X).(ast.Expr),
@@ -383,6 +392,7 @@ func (da *DuplicationAnalyzer) normalizeBinaryExpr(n *ast.BinaryExpr) ast.Node {
 	}
 }
 
+// normalizeUnaryExpr normalizes a unary expression by normalizing operand while preserving operator
 func (da *DuplicationAnalyzer) normalizeUnaryExpr(n *ast.UnaryExpr) ast.Node {
 	return &ast.UnaryExpr{
 		Op: n.Op,
@@ -390,6 +400,7 @@ func (da *DuplicationAnalyzer) normalizeUnaryExpr(n *ast.UnaryExpr) ast.Node {
 	}
 }
 
+// normalizeSelectorExpr normalizes a selector expression by replacing field names with placeholders
 func (da *DuplicationAnalyzer) normalizeSelectorExpr(n *ast.SelectorExpr) ast.Node {
 	return &ast.SelectorExpr{
 		X:   da.normalizeNode(n.X).(ast.Expr),
@@ -397,6 +408,7 @@ func (da *DuplicationAnalyzer) normalizeSelectorExpr(n *ast.SelectorExpr) ast.No
 	}
 }
 
+// normalizeIndexExpr normalizes an index expression by normalizing both array and index expressions
 func (da *DuplicationAnalyzer) normalizeIndexExpr(n *ast.IndexExpr) ast.Node {
 	return &ast.IndexExpr{
 		X:     da.normalizeNode(n.X).(ast.Expr),
