@@ -224,13 +224,22 @@ Detect structural issues that make a codebase hard to navigate and maintain.
 
 Catch common patterns that increase the cost of understanding and changing code.
 
-### Step 6.1 — Magic Number & String Detection
+### Step 6.1 — Magic Number & String Detection ✅ COMPLETE
 
-- Walk function bodies to find numeric and string literals (`*ast.BasicLit`) and, where configured, predeclared boolean/pointer constants (`true`, `false`, `nil` as `*ast.Ident`) used directly in expressions (not in const declarations or struct initialization).
-- Ignore common benign numeric/string literals: `0`, `1`, `-1`, `""`.
-- Optionally ignore benign predeclared constants: `true`, `false`, `nil` (handled as `*ast.Ident` rather than literals in the Go AST).
-- Flag magic values with their location, value, and usage context.
-- Suggest extraction to named constants.
+**Status**: Implemented and tested (2026-03-03)
+**Files**: `internal/analyzer/burden.go` (already existed), `cmd/analyze.go`, `internal/config/config.go`
+
+Implemented features:
+- ✅ Walk function bodies to find numeric and string literals (`*ast.BasicLit`) used directly in expressions
+- ✅ Ignore common benign numeric/string literals: `0`, `1`, `-1`, `""`
+- ✅ Exclude const declarations and struct initialization
+- ✅ Flag magic values with location, value, usage context, and function name
+- ✅ Integrated into analyze command with burden metrics aggregation
+- ✅ Configuration added to `.go-stats-generator.yaml` via BurdenConfig
+- ✅ JSON output includes `.burden.magic_numbers` array
+- ✅ All tests passing with race detector
+
+Note: Import strings are currently detected as magic strings - future refinement may filter these out as they are intentional.
 
 ### Step 6.2 — Dead Code Detection
 
