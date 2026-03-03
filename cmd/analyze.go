@@ -115,6 +115,10 @@ func init() {
 		"maximum cyclomatic complexity warning threshold")
 	analyzeCmd.Flags().Float64("min-doc-coverage", 0.7,
 		"minimum documentation coverage warning threshold")
+	analyzeCmd.Flags().Float64("max-duplication-ratio", 0.10,
+		"maximum code duplication ratio allowed (0.0-1.0, default 0.10 = 10%)")
+	analyzeCmd.Flags().Int("max-undocumented-exports", 10,
+		"maximum number of undocumented exported symbols allowed")
 	analyzeCmd.Flags().Bool("enforce-thresholds", false,
 		"exit with non-zero code if quality thresholds are violated (for CI/CD integration)")
 
@@ -172,6 +176,8 @@ func init() {
 	viper.BindPFlag("analysis.max_function_length", analyzeCmd.Flags().Lookup("max-function-length"))
 	viper.BindPFlag("analysis.max_cyclomatic_complexity", analyzeCmd.Flags().Lookup("max-complexity"))
 	viper.BindPFlag("analysis.min_documentation_coverage", analyzeCmd.Flags().Lookup("min-doc-coverage"))
+	viper.BindPFlag("analysis.max_duplication_ratio", analyzeCmd.Flags().Lookup("max-duplication-ratio"))
+	viper.BindPFlag("analysis.max_undocumented_exports", analyzeCmd.Flags().Lookup("max-undocumented-exports"))
 	viper.BindPFlag("analysis.enforce_thresholds", analyzeCmd.Flags().Lookup("enforce-thresholds"))
 	viper.BindPFlag("analysis.duplication.min_block_lines", analyzeCmd.Flags().Lookup("min-block-lines"))
 	viper.BindPFlag("analysis.duplication.similarity_threshold", analyzeCmd.Flags().Lookup("similarity-threshold"))
@@ -282,43 +288,10 @@ func checkQualityGates(report *metrics.Report, cfg *config.Config) error {
 
 	var violations []string
 
-	// Check documentation coverage threshold (coverage is stored as percentage, threshold as fraction)
-	thresholdPercent := cfg.Analysis.MinDocumentationCoverage * 100
-	if report.Documentation.Coverage.Overall < thresholdPercent {
-		violations = append(violations, fmt.Sprintf(
-			"Documentation coverage (%.2f%%) is below threshold (%.2f%%)",
-			report.Documentation.Coverage.Overall,
-			thresholdPercent,
-		))
-	}
-
-	// Check MBI score thresholds for files and packages
-	maxBurdenScore := cfg.Analysis.Scoring.MaxBurdenScore
-	if maxBurdenScore > 0 {
-		for _, fileScore := range report.Scores.FileScores {
-			if fileScore.Score > maxBurdenScore {
-				violations = append(violations, fmt.Sprintf(
-					"File %s has MBI score %.2f (exceeds threshold %.2f, risk level: %s)",
-					fileScore.File,
-					fileScore.Score,
-					maxBurdenScore,
-					fileScore.Risk,
-				))
-			}
-		}
-
-		for _, pkgScore := range report.Scores.PackageScores {
-			if pkgScore.Score > maxBurdenScore {
-				violations = append(violations, fmt.Sprintf(
-					"Package %s has MBI score %.2f (exceeds threshold %.2f, risk level: %s)",
-					pkgScore.Package,
-					pkgScore.Score,
-					maxBurdenScore,
-					pkgScore.Risk,
-				))
-			}
-		}
-	}
+	checkDocumentationCoverage(report, cfg, &violations)
+	checkMBIScores(report, cfg, &violations)
+	checkDuplicationThreshold(report, cfg, &violations)
+	checkUndocumentedExportsThreshold(report, cfg, &violations)
 
 	// If violations exist, print them and return error
 	if len(violations) > 0 {
@@ -331,4 +304,101 @@ func checkQualityGates(report *metrics.Report, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+// countUndocumentedExports counts exported symbols without documentation
+func countUndocumentedExports(report *metrics.Report) int {
+	count := 0
+
+	// Count undocumented exported functions
+	for _, fn := range report.Functions {
+		if fn.IsExported && !fn.Documentation.HasComment {
+			count++
+		}
+	}
+
+	// Count undocumented exported structs
+	for _, st := range report.Structs {
+		if st.IsExported && !st.Documentation.HasComment {
+			count++
+		}
+	}
+
+	// Count undocumented exported interfaces
+	for _, iface := range report.Interfaces {
+		if iface.IsExported && !iface.Documentation.HasComment {
+			count++
+		}
+	}
+
+	return count
+}
+
+// checkDocumentationCoverage validates documentation coverage threshold
+func checkDocumentationCoverage(report *metrics.Report, cfg *config.Config, violations *[]string) {
+	thresholdPercent := cfg.Analysis.MinDocumentationCoverage * 100
+	if report.Documentation.Coverage.Overall < thresholdPercent {
+		*violations = append(*violations, fmt.Sprintf(
+			"Documentation coverage (%.2f%%) is below threshold (%.2f%%)",
+			report.Documentation.Coverage.Overall,
+			thresholdPercent,
+		))
+	}
+}
+
+// checkMBIScores validates MBI score thresholds for files and packages
+func checkMBIScores(report *metrics.Report, cfg *config.Config, violations *[]string) {
+	maxBurdenScore := cfg.Analysis.Scoring.MaxBurdenScore
+	if maxBurdenScore <= 0 {
+		return
+	}
+
+	for _, fileScore := range report.Scores.FileScores {
+		if fileScore.Score > maxBurdenScore {
+			*violations = append(*violations, fmt.Sprintf(
+				"File %s has MBI score %.2f (exceeds threshold %.2f, risk level: %s)",
+				fileScore.File,
+				fileScore.Score,
+				maxBurdenScore,
+				fileScore.Risk,
+			))
+		}
+	}
+
+	for _, pkgScore := range report.Scores.PackageScores {
+		if pkgScore.Score > maxBurdenScore {
+			*violations = append(*violations, fmt.Sprintf(
+				"Package %s has MBI score %.2f (exceeds threshold %.2f, risk level: %s)",
+				pkgScore.Package,
+				pkgScore.Score,
+				maxBurdenScore,
+				pkgScore.Risk,
+			))
+		}
+	}
+}
+
+// checkDuplicationThreshold validates code duplication ratio
+func checkDuplicationThreshold(report *metrics.Report, cfg *config.Config, violations *[]string) {
+	if cfg.Analysis.MaxDuplicationRatio > 0 && report.Duplication.DuplicationRatio > cfg.Analysis.MaxDuplicationRatio {
+		*violations = append(*violations, fmt.Sprintf(
+			"Code duplication ratio (%.2f%%) exceeds threshold (%.2f%%)",
+			report.Duplication.DuplicationRatio*100,
+			cfg.Analysis.MaxDuplicationRatio*100,
+		))
+	}
+}
+
+// checkUndocumentedExportsThreshold validates documentation coverage for exported symbols
+func checkUndocumentedExportsThreshold(report *metrics.Report, cfg *config.Config, violations *[]string) {
+	if cfg.Analysis.MaxUndocumentedExports > 0 {
+		undocumentedCount := countUndocumentedExports(report)
+		if undocumentedCount > cfg.Analysis.MaxUndocumentedExports {
+			*violations = append(*violations, fmt.Sprintf(
+				"Undocumented exported symbols (%d) exceeds threshold (%d)",
+				undocumentedCount,
+				cfg.Analysis.MaxUndocumentedExports,
+			))
+		}
+	}
 }
