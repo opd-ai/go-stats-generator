@@ -43,6 +43,11 @@ func CompareSnapshots(baseline, current MetricsSnapshot, config ThresholdConfig)
 
 	// Categorize changes into regressions and improvements
 	regressions, improvements := categorizeChanges(changes, config)
+
+	// Detect burden-specific regressions
+	burdenRegressions := DetectBurdenRegressions(baseline.Report, current.Report, config)
+	regressions = append(regressions, burdenRegressions...)
+
 	diff.Regressions = regressions
 	diff.Improvements = improvements
 
@@ -754,4 +759,192 @@ func extractFunctionName(path string) string {
 		return parts[len(parts)-1]
 	}
 	return ""
+}
+
+// DetectBurdenRegressions analyzes burden metrics and generates regression alerts
+// when MBI, duplication, or naming violations exceed configurable thresholds.
+func DetectBurdenRegressions(baseline, current Report, config ThresholdConfig) []Regression {
+	var regressions []Regression
+
+	// Detect file-level MBI regressions
+	regressions = append(regressions, detectFileMBIRegressions(baseline, current, config)...)
+
+	// Detect package-level MBI regressions
+	regressions = append(regressions, detectPackageMBIRegressions(baseline, current, config)...)
+
+	// Detect duplication regressions
+	if reg := detectDuplicationRegression(baseline, current, config); reg != nil {
+		regressions = append(regressions, *reg)
+	}
+
+	// Detect naming regressions
+	if reg := detectNamingRegression(baseline, current, config); reg != nil {
+		regressions = append(regressions, *reg)
+	}
+
+	// Sort regressions by priority
+	sort.Slice(regressions, func(i, j int) bool {
+		return regressions[i].Priority > regressions[j].Priority
+	})
+
+	return regressions
+}
+
+// detectFileMBIRegressions checks for file-level MBI score increases
+func detectFileMBIRegressions(baseline, current Report, config ThresholdConfig) []Regression {
+	var regressions []Regression
+
+	baselineScores := make(map[string]float64)
+	for _, fs := range baseline.Scores.FileScores {
+		baselineScores[fs.File] = fs.Score
+	}
+
+	for _, currFS := range current.Scores.FileScores {
+		baseScore := baselineScores[currFS.File]
+		delta := calculateDelta(baseScore, currFS.Score, config.Global.SignificanceLevel)
+
+		if delta.Direction == ChangeDirectionIncrease && delta.Absolute >= config.BurdenMetrics.FileMBIThreshold {
+			regressions = append(regressions, createFileMBIRegression(currFS, baseScore, delta, config))
+		}
+	}
+
+	return regressions
+}
+
+// createFileMBIRegression creates a regression entry for file MBI increases
+func createFileMBIRegression(fileScore FileScore, baseScore float64, delta Delta, config ThresholdConfig) Regression {
+	severity := SeverityLevelWarning
+	impact := ImpactLevelMedium
+	priority := 5
+
+	if delta.Absolute >= config.BurdenMetrics.FileMBIThreshold*2 {
+		severity = SeverityLevelError
+		impact = ImpactLevelHigh
+		priority = 7
+	}
+	if delta.Absolute >= config.BurdenMetrics.FileMBIThreshold*3 {
+		severity = SeverityLevelCritical
+		impact = ImpactLevelCritical
+		priority = 9
+	}
+
+	return Regression{
+		Type:        BurdenRegression,
+		Location:    fileScore.File,
+		File:        fileScore.File,
+		Description: fmt.Sprintf("File MBI score increased by %.1f points", delta.Absolute),
+		OldValue:    baseScore,
+		NewValue:    fileScore.Score,
+		Delta:       delta,
+		Impact:      impact,
+		Severity:    severity,
+		Threshold:   config.BurdenMetrics.FileMBIThreshold,
+		Suggestion:  "Review file for complexity, duplication, and documentation issues",
+		Priority:    priority,
+	}
+}
+
+// detectPackageMBIRegressions checks for package-level MBI score increases
+func detectPackageMBIRegressions(baseline, current Report, config ThresholdConfig) []Regression {
+	var regressions []Regression
+
+	baselineScores := make(map[string]float64)
+	for _, ps := range baseline.Scores.PackageScores {
+		baselineScores[ps.Package] = ps.Score
+	}
+
+	for _, currPS := range current.Scores.PackageScores {
+		baseScore := baselineScores[currPS.Package]
+		delta := calculateDelta(baseScore, currPS.Score, config.Global.SignificanceLevel)
+
+		if delta.Direction == ChangeDirectionIncrease && delta.Absolute >= config.BurdenMetrics.PackageMBIThreshold {
+			regressions = append(regressions, createPackageMBIRegression(currPS, baseScore, delta, config))
+		}
+	}
+
+	return regressions
+}
+
+// createPackageMBIRegression creates a regression entry for package MBI increases
+func createPackageMBIRegression(pkgScore PackageScore, baseScore float64, delta Delta, config ThresholdConfig) Regression {
+	severity := SeverityLevelWarning
+	impact := ImpactLevelMedium
+	priority := 4
+
+	if delta.Absolute >= config.BurdenMetrics.PackageMBIThreshold*2 {
+		severity = SeverityLevelError
+		impact = ImpactLevelHigh
+		priority = 6
+	}
+
+	return Regression{
+		Type:        BurdenRegression,
+		Location:    pkgScore.Package,
+		Description: fmt.Sprintf("Package MBI score increased by %.1f points", delta.Absolute),
+		OldValue:    baseScore,
+		NewValue:    pkgScore.Score,
+		Delta:       delta,
+		Impact:      impact,
+		Severity:    severity,
+		Threshold:   config.BurdenMetrics.PackageMBIThreshold,
+		Suggestion:  "Review package for architectural and quality issues",
+		Priority:    priority,
+	}
+}
+
+// detectDuplicationRegression checks for duplication ratio increases
+func detectDuplicationRegression(baseline, current Report, config ThresholdConfig) *Regression {
+	if current.Duplication.DuplicationRatio <= config.BurdenMetrics.MaxDuplicationRatio {
+		return nil
+	}
+
+	delta := calculateDelta(baseline.Duplication.DuplicationRatio, current.Duplication.DuplicationRatio, config.Global.SignificanceLevel)
+
+	if delta.Direction != ChangeDirectionIncrease || !delta.Significant {
+		return nil
+	}
+
+	return &Regression{
+		Type:        DuplicationRegression,
+		Location:    "global",
+		Description: fmt.Sprintf("Duplication ratio increased to %.1f%% (threshold: %.1f%%)", current.Duplication.DuplicationRatio*100, config.BurdenMetrics.MaxDuplicationRatio*100),
+		OldValue:    baseline.Duplication.DuplicationRatio,
+		NewValue:    current.Duplication.DuplicationRatio,
+		Delta:       delta,
+		Impact:      ImpactLevelHigh,
+		Severity:    SeverityLevelError,
+		Threshold:   config.BurdenMetrics.MaxDuplicationRatio,
+		Suggestion:  "Deduplicate code using helper functions or interfaces",
+		Priority:    7,
+	}
+}
+
+// detectNamingRegression checks for naming violations increases
+func detectNamingRegression(baseline, current Report, config ThresholdConfig) *Regression {
+	baselineTotal := baseline.Naming.FileNameViolations + baseline.Naming.IdentifierViolations + baseline.Naming.PackageNameViolations
+	currentTotal := current.Naming.FileNameViolations + current.Naming.IdentifierViolations + current.Naming.PackageNameViolations
+
+	if currentTotal <= baselineTotal || currentTotal <= config.BurdenMetrics.MaxNamingViolations {
+		return nil
+	}
+
+	delta := calculateDelta(float64(baselineTotal), float64(currentTotal), config.Global.SignificanceLevel)
+
+	if delta.Direction != ChangeDirectionIncrease || !delta.Significant {
+		return nil
+	}
+
+	return &Regression{
+		Type:        NamingRegression,
+		Location:    "global",
+		Description: fmt.Sprintf("Naming violations increased by %d (new total: %d, threshold: %d)", currentTotal-baselineTotal, currentTotal, config.BurdenMetrics.MaxNamingViolations),
+		OldValue:    baselineTotal,
+		NewValue:    currentTotal,
+		Delta:       delta,
+		Impact:      ImpactLevelMedium,
+		Severity:    SeverityLevelWarning,
+		Threshold:   float64(config.BurdenMetrics.MaxNamingViolations),
+		Suggestion:  "Follow Go naming conventions for files, identifiers, and packages",
+		Priority:    5,
+	}
 }

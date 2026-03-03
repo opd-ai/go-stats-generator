@@ -832,6 +832,9 @@ const (
 	PatternRegression       RegressionType = "anti_pattern_introduction"
 	DocumentationRegression RegressionType = "documentation_decrease"
 	PerformanceRegression   RegressionType = "performance_decrease"
+	BurdenRegression        RegressionType = "burden_increase"
+	DuplicationRegression   RegressionType = "duplication_increase"
+	NamingRegression        RegressionType = "naming_violations_increase"
 )
 
 type ImprovementType string
@@ -873,6 +876,13 @@ type ThresholdConfig struct {
 		MaxDecrease float64 `yaml:"max_decrease_percent" json:"max_decrease_percent"`
 	} `yaml:"documentation" json:"documentation"`
 
+	BurdenMetrics struct {
+		FileMBIThreshold    float64 `yaml:"file_mbi_threshold" json:"file_mbi_threshold"`
+		PackageMBIThreshold float64 `yaml:"package_mbi_threshold" json:"package_mbi_threshold"`
+		MaxDuplicationRatio float64 `yaml:"max_duplication_ratio" json:"max_duplication_ratio"`
+		MaxNamingViolations int     `yaml:"max_naming_violations" json:"max_naming_violations"`
+	} `yaml:"burden_metrics" json:"burden_metrics"`
+
 	Global struct {
 		MaxRegressions    int     `yaml:"max_regressions" json:"max_regressions"`
 		FailOnError       bool    `yaml:"fail_on_error" json:"fail_on_error"`
@@ -904,6 +914,12 @@ func DefaultThresholdConfig() ThresholdConfig {
 	// Documentation thresholds
 	config.Documentation.MinCoverage = 70.0
 	config.Documentation.MaxDecrease = 15.0
+
+	// Burden metrics thresholds
+	config.BurdenMetrics.FileMBIThreshold = 10.0
+	config.BurdenMetrics.PackageMBIThreshold = 5.0
+	config.BurdenMetrics.MaxDuplicationRatio = 0.10
+	config.BurdenMetrics.MaxNamingViolations = 10
 
 	// Global settings
 	config.Global.MaxRegressions = 5
