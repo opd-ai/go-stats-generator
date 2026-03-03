@@ -398,7 +398,7 @@ func (s *SQLiteStorage) List(ctx context.Context, filter SnapshotFilter) ([]Snap
 
 // buildListQuery constructs the SQL query and parameters based on filter criteria
 func (s *SQLiteStorage) buildListQuery(filter SnapshotFilter) (string, []interface{}) {
-	query := "SELECT id, timestamp, git_commit, git_branch, git_tag, version, author, description, size_bytes FROM snapshots WHERE 1=1"
+	query := "SELECT id, timestamp, git_commit, git_branch, git_tag, version, author, description, size_bytes, mbi_score_avg, duplication_ratio, doc_coverage, complexity_violations, naming_violations FROM snapshots WHERE 1=1"
 	var args []interface{}
 
 	query, args = s.addTimeFilters(query, args, filter)
@@ -471,6 +471,8 @@ func (s *SQLiteStorage) addOrderingAndLimits(query string, args *[]interface{}, 
 func (s *SQLiteStorage) scanSnapshotInfo(rows *sql.Rows) (SnapshotInfo, error) {
 	var info SnapshotInfo
 	var gitCommit, gitBranch, gitTag, version, author, description sql.NullString
+	var mbiScoreAvg, duplicationRatio, docCoverage sql.NullFloat64
+	var complexityViolations, namingViolations sql.NullInt64
 
 	err := rows.Scan(
 		&info.ID,
@@ -482,20 +484,52 @@ func (s *SQLiteStorage) scanSnapshotInfo(rows *sql.Rows) (SnapshotInfo, error) {
 		&author,
 		&description,
 		&info.Size,
+		&mbiScoreAvg,
+		&duplicationRatio,
+		&docCoverage,
+		&complexityViolations,
+		&namingViolations,
 	)
 	if err != nil {
 		return info, fmt.Errorf("failed to scan snapshot: %w", err)
 	}
 
-	// Handle nullable fields
+	populateNullableStrings(&info, gitCommit, gitBranch, gitTag, version, author, description)
+	populateBurdenMetrics(&info, mbiScoreAvg, duplicationRatio, docCoverage, complexityViolations, namingViolations)
+
+	return info, nil
+}
+
+func populateNullableStrings(info *SnapshotInfo, gitCommit, gitBranch, gitTag, version, author, description sql.NullString) {
 	info.GitCommit = gitCommit.String
 	info.GitBranch = gitBranch.String
 	info.GitTag = gitTag.String
 	info.Version = version.String
 	info.Author = author.String
 	info.Description = description.String
+}
 
-	return info, nil
+func populateBurdenMetrics(info *SnapshotInfo, mbiScoreAvg, duplicationRatio, docCoverage sql.NullFloat64, complexityViolations, namingViolations sql.NullInt64) {
+	if mbiScoreAvg.Valid {
+		val := mbiScoreAvg.Float64
+		info.MBIScoreAvg = &val
+	}
+	if duplicationRatio.Valid {
+		val := duplicationRatio.Float64
+		info.DuplicationRatio = &val
+	}
+	if docCoverage.Valid {
+		val := docCoverage.Float64
+		info.DocCoverage = &val
+	}
+	if complexityViolations.Valid {
+		val := int(complexityViolations.Int64)
+		info.ComplexityViolations = &val
+	}
+	if namingViolations.Valid {
+		val := int(namingViolations.Int64)
+		info.NamingViolations = &val
+	}
 }
 
 // attachSnapshotTags retrieves and attaches tags for a specific snapshot

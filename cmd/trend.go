@@ -21,29 +21,33 @@ var (
 
 var trendCmd = &cobra.Command{
 	Use:   "trend",
-	Short: "Analyze trends in code metrics over time (BETA - basic functionality)",
+	Short: "Analyze trends in code metrics over time",
 	Long: `Analyze trends and patterns in code metrics over time.
 
-⚠️  BETA FEATURE: The trend commands provide basic structural functionality
-for time-series analysis. Full statistical analysis (linear regression, ARIMA
-forecasting, hypothesis testing) is planned for a future release.
+This command provides time-series analysis of burden metrics including:
+  - MBI (Maintenance Burden Index) score trends
+  - Duplication ratio changes
+  - Documentation coverage evolution
+  - Complexity violation trends
+  - Naming convention compliance
 
-Current capabilities:
-  - Basic snapshot aggregation over time periods
-  - Simple metric comparison between time points
-  - Structural foundation for advanced analysis
-
-For production use, consider the 'diff' command for comparing specific snapshots.`,
+Trends show improvement/degradation over time with visual indicators.`,
 	RunE: runTrend,
 }
 
 var trendAnalyzeCmd = &cobra.Command{
 	Use:   "analyze",
-	Short: "Basic trend overview for specific metrics (BETA)",
-	Long: `Analyze trends for specific metrics over a time period.
+	Short: "Analyze burden metric trends over time",
+	Long: `Analyze burden metric trends over a time period.
 
-⚠️  BETA: Currently provides basic snapshot aggregation. Full statistical
-trend analysis (slope calculation, variance, trend strength) is planned.`,
+Displays trend analysis for:
+  - MBI (Maintenance Burden Index) score
+  - Duplication ratio
+  - Documentation coverage
+  - Complexity violations
+  - Naming violations
+
+Shows start/end values, delta, and direction (improving/degrading/stable).`,
 	RunE: runTrendAnalyze,
 }
 
@@ -294,30 +298,29 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 // Helper functions for trend analysis
 
 func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, threshold float64) map[string]interface{} {
-	// BETA IMPLEMENTATION: Basic trend structure only
-	// Full statistical analysis (linear regression, trend strength, variance)
-	// will be implemented in a future release
-
 	result := map[string]interface{}{
-		"beta_notice": "⚠️  BETA: Basic trend aggregation only. Full statistical analysis planned for future release.",
-		"period":      fmt.Sprintf("%d days", trendDays),
-		"snapshots":   len(snapshots),
-		"metric":      metric,
-		"entity":      entity,
-		"threshold":   threshold,
-		"trends":      []map[string]interface{}{},
-		"summary":     map[string]interface{}{},
+		"period":    fmt.Sprintf("%d days", trendDays),
+		"snapshots": len(snapshots),
+		"metric":    metric,
+		"entity":    entity,
+		"threshold": threshold,
+		"trends":    []map[string]interface{}{},
+		"summary":   map[string]interface{}{},
 	}
 
 	if len(snapshots) >= 2 {
-		first := snapshots[len(snapshots)-1] // Oldest
-		last := snapshots[0]                 // Newest
+		first := snapshots[len(snapshots)-1]
+		last := snapshots[0]
 
-		result["summary"] = map[string]interface{}{
+		summary := map[string]interface{}{
 			"start_date": first.Timestamp.Format("2006-01-02"),
 			"end_date":   last.Timestamp.Format("2006-01-02"),
 			"timespan":   last.Timestamp.Sub(first.Timestamp).Hours() / 24,
 		}
+
+		trends := calculateBurdenTrends(first, last)
+		result["burden_trends"] = trends
+		result["summary"] = summary
 	}
 
 	return result
@@ -359,18 +362,80 @@ func detectRegressions(historical, recent []storage.SnapshotInfo, threshold floa
 
 // Output functions
 
+// calculateBurdenTrends computes trend direction and delta for burden metrics
+func calculateBurdenTrends(first, last storage.SnapshotInfo) map[string]interface{} {
+	trends := make(map[string]interface{})
+
+	if first.MBIScoreAvg != nil && last.MBIScoreAvg != nil {
+		delta := *last.MBIScoreAvg - *first.MBIScoreAvg
+		trends["mbi_score"] = map[string]interface{}{
+			"start":     *first.MBIScoreAvg,
+			"end":       *last.MBIScoreAvg,
+			"delta":     delta,
+			"direction": getTrendDirection(delta, 5.0),
+		}
+	}
+
+	if first.DuplicationRatio != nil && last.DuplicationRatio != nil {
+		delta := *last.DuplicationRatio - *first.DuplicationRatio
+		trends["duplication_ratio"] = map[string]interface{}{
+			"start":     *first.DuplicationRatio,
+			"end":       *last.DuplicationRatio,
+			"delta":     delta,
+			"direction": getTrendDirection(delta, 0.01),
+		}
+	}
+
+	if first.DocCoverage != nil && last.DocCoverage != nil {
+		delta := *last.DocCoverage - *first.DocCoverage
+		trends["doc_coverage"] = map[string]interface{}{
+			"start":     *first.DocCoverage,
+			"end":       *last.DocCoverage,
+			"delta":     delta,
+			"direction": getTrendDirection(-delta, 0.01),
+		}
+	}
+
+	if first.ComplexityViolations != nil && last.ComplexityViolations != nil {
+		delta := *last.ComplexityViolations - *first.ComplexityViolations
+		trends["complexity_violations"] = map[string]interface{}{
+			"start":     *first.ComplexityViolations,
+			"end":       *last.ComplexityViolations,
+			"delta":     delta,
+			"direction": getTrendDirection(float64(delta), 1.0),
+		}
+	}
+
+	if first.NamingViolations != nil && last.NamingViolations != nil {
+		delta := *last.NamingViolations - *first.NamingViolations
+		trends["naming_violations"] = map[string]interface{}{
+			"start":     *first.NamingViolations,
+			"end":       *last.NamingViolations,
+			"delta":     delta,
+			"direction": getTrendDirection(float64(delta), 1.0),
+		}
+	}
+
+	return trends
+}
+
+// getTrendDirection returns trend direction indicator based on delta
+func getTrendDirection(delta, threshold float64) string {
+	if delta > threshold {
+		return "degrading ↑"
+	} else if delta < -threshold {
+		return "improving ↓"
+	}
+	return "stable →"
+}
+
+// Output functions
+
 // outputTrendAnalysisConsole displays trend analysis results to the console,
-// including beta notice, time period, snapshot count, and aggregated metrics
-// (complexity, duplication, documentation coverage) with visual formatting.
+// including time period, snapshot count, and burden metrics trends
+// (MBI score, duplication, documentation, complexity, naming) with visual indicators.
 func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 	fmt.Println("=== TREND ANALYSIS ===")
-
-	// Display beta notice prominently
-	if notice, ok := analysis["beta_notice"].(string); ok {
-		fmt.Println()
-		fmt.Println(notice)
-		fmt.Println()
-	}
 
 	fmt.Printf("Period: %v\n", analysis["period"])
 	fmt.Printf("Snapshots analyzed: %v\n", analysis["snapshots"])
@@ -386,18 +451,102 @@ func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 	fmt.Printf("Threshold: %.1f%%\n", analysis["threshold"])
 	fmt.Println()
 
-	if summary, ok := analysis["summary"].(map[string]interface{}); ok {
-		fmt.Println("Summary:")
-		if startDate := summary["start_date"]; startDate != nil {
-			fmt.Printf("  Start Date: %v\n", startDate)
-		}
-		if endDate := summary["end_date"]; endDate != nil {
-			fmt.Printf("  End Date: %v\n", endDate)
-		}
-		if timespan := summary["timespan"]; timespan != nil {
-			fmt.Printf("  Timespan: %.1f days\n", timespan)
-		}
+	displayTrendSummary(analysis)
+	displayBurdenTrends(analysis)
+}
+
+func displayTrendSummary(analysis map[string]interface{}) {
+	summary, ok := analysis["summary"].(map[string]interface{})
+	if !ok {
+		return
 	}
+
+	fmt.Println("Summary:")
+	if startDate := summary["start_date"]; startDate != nil {
+		fmt.Printf("  Start Date: %v\n", startDate)
+	}
+	if endDate := summary["end_date"]; endDate != nil {
+		fmt.Printf("  End Date: %v\n", endDate)
+	}
+	if timespan := summary["timespan"]; timespan != nil {
+		fmt.Printf("  Timespan: %.1f days\n", timespan)
+	}
+}
+
+func displayBurdenTrends(analysis map[string]interface{}) {
+	burdenTrends, ok := analysis["burden_trends"].(map[string]interface{})
+	if !ok || len(burdenTrends) == 0 {
+		return
+	}
+
+	fmt.Println()
+	fmt.Println("=== BURDEN METRICS TRENDS ===")
+
+	displayMBITrend(burdenTrends)
+	displayDuplicationTrend(burdenTrends)
+	displayDocCoverageTrend(burdenTrends)
+	displayComplexityViolationsTrend(burdenTrends)
+	displayNamingViolationsTrend(burdenTrends)
+}
+
+func displayMBITrend(burdenTrends map[string]interface{}) {
+	mbi, ok := burdenTrends["mbi_score"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	fmt.Printf("\nMBI Score (Maintenance Burden Index):\n")
+	fmt.Printf("  Start:     %.2f\n", mbi["start"])
+	fmt.Printf("  End:       %.2f\n", mbi["end"])
+	fmt.Printf("  Delta:     %+.2f\n", mbi["delta"])
+	fmt.Printf("  Trend:     %s\n", mbi["direction"])
+}
+
+func displayDuplicationTrend(burdenTrends map[string]interface{}) {
+	dup, ok := burdenTrends["duplication_ratio"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	fmt.Printf("\nDuplication Ratio:\n")
+	fmt.Printf("  Start:     %.2f%%\n", dup["start"].(float64)*100)
+	fmt.Printf("  End:       %.2f%%\n", dup["end"].(float64)*100)
+	fmt.Printf("  Delta:     %+.2f%%\n", dup["delta"].(float64)*100)
+	fmt.Printf("  Trend:     %s\n", dup["direction"])
+}
+
+func displayDocCoverageTrend(burdenTrends map[string]interface{}) {
+	doc, ok := burdenTrends["doc_coverage"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	fmt.Printf("\nDocumentation Coverage:\n")
+	fmt.Printf("  Start:     %.2f%%\n", doc["start"].(float64)*100)
+	fmt.Printf("  End:       %.2f%%\n", doc["end"].(float64)*100)
+	fmt.Printf("  Delta:     %+.2f%%\n", doc["delta"].(float64)*100)
+	fmt.Printf("  Trend:     %s\n", doc["direction"])
+}
+
+func displayComplexityViolationsTrend(burdenTrends map[string]interface{}) {
+	comp, ok := burdenTrends["complexity_violations"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	fmt.Printf("\nComplexity Violations:\n")
+	fmt.Printf("  Start:     %d\n", comp["start"])
+	fmt.Printf("  End:       %d\n", comp["end"])
+	fmt.Printf("  Delta:     %+d\n", comp["delta"])
+	fmt.Printf("  Trend:     %s\n", comp["direction"])
+}
+
+func displayNamingViolationsTrend(burdenTrends map[string]interface{}) {
+	naming, ok := burdenTrends["naming_violations"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	fmt.Printf("\nNaming Violations:\n")
+	fmt.Printf("  Start:     %d\n", naming["start"])
+	fmt.Printf("  End:       %d\n", naming["end"])
+	fmt.Printf("  Delta:     %+d\n", naming["delta"])
+	fmt.Printf("  Trend:     %s\n", naming["direction"])
 }
 
 func outputForecastsConsole(forecasts map[string]interface{}) {

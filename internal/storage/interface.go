@@ -49,16 +49,21 @@ type SnapshotFilter struct {
 
 // SnapshotInfo provides summary information about a stored snapshot
 type SnapshotInfo struct {
-	ID          string            `json:"id"`
-	Timestamp   time.Time         `json:"timestamp"`
-	GitCommit   string            `json:"git_commit,omitempty"`
-	GitBranch   string            `json:"git_branch,omitempty"`
-	GitTag      string            `json:"git_tag,omitempty"`
-	Version     string            `json:"version,omitempty"`
-	Author      string            `json:"author,omitempty"`
-	Description string            `json:"description,omitempty"`
-	Tags        map[string]string `json:"tags,omitempty"`
-	Size        int64             `json:"size_bytes"`
+	ID                   string            `json:"id"`
+	Timestamp            time.Time         `json:"timestamp"`
+	GitCommit            string            `json:"git_commit,omitempty"`
+	GitBranch            string            `json:"git_branch,omitempty"`
+	GitTag               string            `json:"git_tag,omitempty"`
+	Version              string            `json:"version,omitempty"`
+	Author               string            `json:"author,omitempty"`
+	Description          string            `json:"description,omitempty"`
+	Tags                 map[string]string `json:"tags,omitempty"`
+	Size                 int64             `json:"size_bytes"`
+	MBIScoreAvg          *float64          `json:"mbi_score_avg,omitempty"`
+	DuplicationRatio     *float64          `json:"duplication_ratio,omitempty"`
+	DocCoverage          *float64          `json:"doc_coverage,omitempty"`
+	ComplexityViolations *int              `json:"complexity_violations,omitempty"`
+	NamingViolations     *int              `json:"naming_violations,omitempty"`
 }
 
 // RetentionPolicy defines how long to keep historical snapshots
