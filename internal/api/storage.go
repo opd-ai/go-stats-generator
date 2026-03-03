@@ -1,5 +1,5 @@
 // Package api provides REST API storage for analysis results.
-// 
+//
 // Deprecated: This file is kept for backward compatibility.
 // New code should use internal/api/storage package instead.
 package api
