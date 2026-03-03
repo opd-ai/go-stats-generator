@@ -11,6 +11,7 @@ func GetUserID(u *User) string {
 	return u.ID
 }
 
+// GetUserName returns the user's name or empty string if user is nil.
 func GetUserName(u *User) string {
 	if u == nil {
 		return ""
@@ -18,6 +19,7 @@ func GetUserName(u *User) string {
 	return u.Name
 }
 
+// GetUserEmail returns the user's email or empty string if user is nil.
 func GetUserEmail(u *User) string {
 	if u == nil {
 		return ""
@@ -33,6 +35,7 @@ func IsValidID(id string) bool {
 	return true
 }
 
+// IsValidName checks whether the provided name is non-empty.
 func IsValidName(name string) bool {
 	if name == "" {
 		return false
@@ -40,6 +43,7 @@ func IsValidName(name string) bool {
 	return true
 }
 
+// IsValidEmail checks whether the provided email is non-empty.
 func IsValidEmail(email string) bool {
 	if email == "" {
 		return false
@@ -54,18 +58,21 @@ func CheckErrorA(err error) {
 	}
 }
 
+// CheckErrorB panics if the provided error is non-nil.
 func CheckErrorB(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
+// CheckErrorC panics if the provided error is non-nil.
 func CheckErrorC(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
+// User represents a user with identifying information.
 type User struct {
 	ID    string
 	Name  string

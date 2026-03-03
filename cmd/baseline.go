@@ -396,6 +396,7 @@ type nopCloser struct {
 	io.Writer
 }
 
+// Close implements io.Closer with a no-op for nopCloser.
 func (nopCloser) Close() error { return nil }
 
 func runDeleteBaseline(cmd *cobra.Command, args []string) error {

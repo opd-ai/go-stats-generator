@@ -54,8 +54,10 @@ func NewHTMLReporter() Reporter {
 
 // Placeholder implementations for future reporters
 
+// CSVReporter generates analysis reports in CSV format.
 type CSVReporter struct{}
 
+// Generate writes the analysis report to the output writer in CSV format.
 func (r *CSVReporter) Generate(report *metrics.Report, output io.Writer) error {
 	writer := csv.NewWriter(output)
 	defer writer.Flush()
@@ -355,6 +357,7 @@ func (r *CSVReporter) Generate(report *metrics.Report, output io.Writer) error {
 	return nil
 }
 
+// WriteDiff writes a metrics comparison report to the output writer in CSV format.
 func (r *CSVReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) error {
 	writer := csv.NewWriter(output)
 	defer writer.Flush()

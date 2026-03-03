@@ -5,6 +5,7 @@ import "fmt"
 // below_threshold.go contains code blocks that are similar but below the similarity threshold
 // These should NOT be flagged as duplicates (negative test case)
 
+// CalculateAreaRectangle computes the area of a rectangle from its dimensions.
 func CalculateAreaRectangle(width, height float64) float64 {
 	if width <= 0 || height <= 0 {
 		return 0
@@ -13,6 +14,7 @@ func CalculateAreaRectangle(width, height float64) float64 {
 	return area
 }
 
+// CalculateAreaCircle computes the area of a circle from its radius.
 func CalculateAreaCircle(radius float64) float64 {
 	if radius <= 0 {
 		return 0
@@ -42,6 +44,7 @@ func AuthenticateUserByPassword(username, password string) (bool, error) {
 	return true, nil
 }
 
+// AuthenticateUserByToken validates user authentication via a JWT token.
 func AuthenticateUserByToken(token string) (bool, error) {
 	if token == "" {
 		return false, ErrEmptyToken
@@ -70,32 +73,40 @@ var (
 	ErrInvalidCredentials  = fmt.Errorf("invalid credentials")
 )
 
+// User represents an authenticated user with stored credentials.
 type User struct {
 	PasswordHash string
 }
 
+// FindUserByUsername retrieves a user record by their username.
 func FindUserByUsername(username string) *User {
 	return &User{}
 }
 
+// FindUserByID retrieves a user record by their unique identifier.
 func FindUserByID(id string) *User {
 	return &User{}
 }
 
+// HashPassword generates a hash of the provided password for secure storage.
 func HashPassword(password string) string {
 	return password
 }
 
+// UpdateLastLogin records the timestamp of the user's most recent login.
 func UpdateLastLogin(user *User) {}
 
+// Claims represents JWT token claims including the user identifier.
 type Claims struct {
 	UserID string
 }
 
+// ParseToken decodes a JWT token string and extracts its claims.
 func ParseToken(token string) *Claims {
 	return &Claims{}
 }
 
+// IsTokenExpired checks whether the token claims indicate expiration.
 func IsTokenExpired(claims *Claims) bool {
 	return false
 }

@@ -3,6 +3,7 @@ package exactclone
 // exact_clone.go contains exact duplicates (Type 1 clones)
 // These are identical code blocks that should be detected
 
+// ProcessUserDataA cleans nil values from a user's data map.
 func ProcessUserDataA(userID string, data map[string]interface{}) error {
 	if userID == "" {
 		return nil
@@ -18,6 +19,7 @@ func ProcessUserDataA(userID string, data map[string]interface{}) error {
 	return nil
 }
 
+// ProcessUserDataB cleans nil values from a user's data map.
 func ProcessUserDataB(userID string, data map[string]interface{}) error {
 	if userID == "" {
 		return nil
@@ -33,6 +35,7 @@ func ProcessUserDataB(userID string, data map[string]interface{}) error {
 	return nil
 }
 
+// ProcessUserDataC cleans nil values from a user's data map.
 func ProcessUserDataC(userID string, data map[string]interface{}) error {
 	if userID == "" {
 		return nil
@@ -62,6 +65,7 @@ func ValidateEmailA(email string) bool {
 	return true
 }
 
+// ValidateEmailB checks that an email address has required format characters.
 func ValidateEmailB(email string) bool {
 	if len(email) < 3 {
 		return false
