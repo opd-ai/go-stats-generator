@@ -21,13 +21,11 @@ go install github.com/opd-ai/go-stats-generator@latest
 
 ## Recommendations:
 ```bash
-# When long json outputs are encountered, use `jq`
-go-stats-generator analyze --format json | jq '.functions[]'
-# Check if it is installed
-which jq
-# If it is not, install it
-sudo apt-get install jq
+# Extract only task-relevant sections from JSON; discard everything else
+go-stats-generator analyze --format json | jq '{functions: .functions}'
+which jq || sudo apt-get install -y jq
 ```
+**Section filter**: Use only `.functions` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.concurrency`, `.duplication`, `.naming`, `.documentation`, `.placement`, `.organization`, `.burden`, `.scores`, `.generics`, `.patterns`, `.suggestions` — they are not relevant to test coverage prioritization by complexity.
 
 ### Required Analysis Workflow:
 ```bash
