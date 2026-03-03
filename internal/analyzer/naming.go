@@ -326,133 +326,143 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 		validSingleLetters: make(map[string]bool),
 	}
 
-	// Walk the AST to analyze identifiers
 	ast.Inspect(file, func(n ast.Node) bool {
 		switch node := n.(type) {
 		case *ast.FuncDecl:
-			// Analyze function/method name
-			if node.Name != nil && node.Name.Name != "_" {
-				idType := "function"
-				if node.Recv != nil && len(node.Recv.List) > 0 {
-					idType = "method"
-					ctx.receiverType = na.getReceiverTypeName(node.Recv)
-				} else {
-					ctx.receiverType = ""
-				}
-
-				ctx.functionName = node.Name.Name
-				pos := fset.Position(node.Pos())
-
-				// Check all identifier rules
-				if v := na.checkMixedCaps(node.Name.Name, ctx); v != nil {
-					v.File = filePath
-					v.Line = pos.Line
-					v.Type = idType
-					violations = append(violations, *v)
-				}
-
-				if v := na.checkAcronymCasing(node.Name.Name, ctx); v != nil {
-					v.File = filePath
-					v.Line = pos.Line
-					v.Type = idType
-					violations = append(violations, *v)
-				}
-
-				if v := na.checkIdentifierStuttering(node.Name.Name, ctx); v != nil {
-					v.File = filePath
-					v.Line = pos.Line
-					v.Type = idType
-					violations = append(violations, *v)
-				}
-			}
-
+			na.analyzeFunctionDecl(node, filePath, fset, ctx, &violations)
 		case *ast.GenDecl:
-			// Analyze type, const, and var declarations
-			for _, spec := range node.Specs {
-				switch s := spec.(type) {
-				case *ast.TypeSpec:
-					if s.Name != nil && s.Name.Name != "_" {
-						pos := fset.Position(s.Pos())
-
-						if v := na.checkMixedCaps(s.Name.Name, ctx); v != nil {
-							v.File = filePath
-							v.Line = pos.Line
-							v.Type = "type"
-							violations = append(violations, *v)
-						}
-
-						if v := na.checkAcronymCasing(s.Name.Name, ctx); v != nil {
-							v.File = filePath
-							v.Line = pos.Line
-							v.Type = "type"
-							violations = append(violations, *v)
-						}
-
-						if v := na.checkIdentifierStuttering(s.Name.Name, ctx); v != nil {
-							v.File = filePath
-							v.Line = pos.Line
-							v.Type = "type"
-							violations = append(violations, *v)
-						}
-					}
-
-				case *ast.ValueSpec:
-					// Analyze const and var names
-					idType := "var"
-					if node.Tok == token.CONST {
-						idType = "const"
-					}
-
-					for _, name := range s.Names {
-						if name != nil && name.Name != "_" {
-							pos := fset.Position(name.Pos())
-
-							if v := na.checkMixedCaps(name.Name, ctx); v != nil {
-								v.File = filePath
-								v.Line = pos.Line
-								v.Type = idType
-								violations = append(violations, *v)
-							}
-
-							if v := na.checkSingleLetterName(name.Name, idType, ctx); v != nil {
-								v.File = filePath
-								v.Line = pos.Line
-								violations = append(violations, *v)
-							}
-
-							if v := na.checkAcronymCasing(name.Name, ctx); v != nil {
-								v.File = filePath
-								v.Line = pos.Line
-								v.Type = idType
-								violations = append(violations, *v)
-							}
-						}
-					}
-				}
-			}
-
+			na.analyzeGenDecl(node, filePath, fset, ctx, &violations)
 		case *ast.ForStmt, *ast.RangeStmt:
-			// Track loop scope for valid single-letter names
 			ctx.inLoop = true
 			ctx.loopDepth++
-
 		case *ast.AssignStmt:
-			// Track loop variables
-			if ctx.inLoop {
-				for _, lhs := range node.Lhs {
-					if ident, ok := lhs.(*ast.Ident); ok {
-						if len(ident.Name) == 1 && (ident.Name == "i" || ident.Name == "j" || ident.Name == "k") {
-							ctx.validSingleLetters[ident.Name] = true
-						}
-					}
-				}
-			}
+			na.trackLoopVariables(node, ctx)
 		}
-
 		return true
 	})
 
 	return violations
+}
+
+// analyzeFunctionDecl analyzes function/method declarations for naming violations
+func (na *NamingAnalyzer) analyzeFunctionDecl(node *ast.FuncDecl, filePath string, fset *token.FileSet, ctx *identifierContext, violations *[]metrics.IdentifierViolation) {
+	if node.Name == nil || node.Name.Name == "_" {
+		return
+	}
+
+	idType := "function"
+	if node.Recv != nil && len(node.Recv.List) > 0 {
+		idType = "method"
+		ctx.receiverType = na.getReceiverTypeName(node.Recv)
+	} else {
+		ctx.receiverType = ""
+	}
+
+	ctx.functionName = node.Name.Name
+	pos := fset.Position(node.Pos())
+
+	na.checkIdentifier(node.Name.Name, filePath, pos.Line, idType, ctx, violations)
+}
+
+// analyzeGenDecl analyzes type, const, and var declarations for naming violations
+func (na *NamingAnalyzer) analyzeGenDecl(node *ast.GenDecl, filePath string, fset *token.FileSet, ctx *identifierContext, violations *[]metrics.IdentifierViolation) {
+	for _, spec := range node.Specs {
+		switch s := spec.(type) {
+		case *ast.TypeSpec:
+			na.analyzeTypeSpec(s, filePath, fset, ctx, violations)
+		case *ast.ValueSpec:
+			na.analyzeValueSpec(s, node.Tok, filePath, fset, ctx, violations)
+		}
+	}
+}
+
+// analyzeTypeSpec analyzes type declarations for naming violations
+func (na *NamingAnalyzer) analyzeTypeSpec(spec *ast.TypeSpec, filePath string, fset *token.FileSet, ctx *identifierContext, violations *[]metrics.IdentifierViolation) {
+	if spec.Name == nil || spec.Name.Name == "_" {
+		return
+	}
+
+	pos := fset.Position(spec.Pos())
+	na.checkIdentifier(spec.Name.Name, filePath, pos.Line, "type", ctx, violations)
+}
+
+// analyzeValueSpec analyzes const and var declarations for naming violations
+func (na *NamingAnalyzer) analyzeValueSpec(spec *ast.ValueSpec, tok token.Token, filePath string, fset *token.FileSet, ctx *identifierContext, violations *[]metrics.IdentifierViolation) {
+	idType := "var"
+	if tok == token.CONST {
+		idType = "const"
+	}
+
+	for _, name := range spec.Names {
+		if name == nil || name.Name == "_" {
+			continue
+		}
+
+		pos := fset.Position(name.Pos())
+		na.checkIdentifierWithSingleLetter(name.Name, filePath, pos.Line, idType, ctx, violations)
+	}
+}
+
+// checkIdentifier performs all standard identifier checks (MixedCaps, acronyms, stuttering)
+func (na *NamingAnalyzer) checkIdentifier(name, filePath string, line int, idType string, ctx *identifierContext, violations *[]metrics.IdentifierViolation) {
+	if v := na.checkMixedCaps(name, ctx); v != nil {
+		v.File = filePath
+		v.Line = line
+		v.Type = idType
+		*violations = append(*violations, *v)
+	}
+
+	if v := na.checkAcronymCasing(name, ctx); v != nil {
+		v.File = filePath
+		v.Line = line
+		v.Type = idType
+		*violations = append(*violations, *v)
+	}
+
+	if v := na.checkIdentifierStuttering(name, ctx); v != nil {
+		v.File = filePath
+		v.Line = line
+		v.Type = idType
+		*violations = append(*violations, *v)
+	}
+}
+
+// checkIdentifierWithSingleLetter performs all identifier checks including single-letter check
+func (na *NamingAnalyzer) checkIdentifierWithSingleLetter(name, filePath string, line int, idType string, ctx *identifierContext, violations *[]metrics.IdentifierViolation) {
+	if v := na.checkMixedCaps(name, ctx); v != nil {
+		v.File = filePath
+		v.Line = line
+		v.Type = idType
+		*violations = append(*violations, *v)
+	}
+
+	if v := na.checkSingleLetterName(name, idType, ctx); v != nil {
+		v.File = filePath
+		v.Line = line
+		*violations = append(*violations, *v)
+	}
+
+	if v := na.checkAcronymCasing(name, ctx); v != nil {
+		v.File = filePath
+		v.Line = line
+		v.Type = idType
+		*violations = append(*violations, *v)
+	}
+}
+
+// trackLoopVariables tracks valid single-letter loop variable names
+func (na *NamingAnalyzer) trackLoopVariables(node *ast.AssignStmt, ctx *identifierContext) {
+	if !ctx.inLoop {
+		return
+	}
+
+	for _, lhs := range node.Lhs {
+		if ident, ok := lhs.(*ast.Ident); ok {
+			if len(ident.Name) == 1 && (ident.Name == "i" || ident.Name == "j" || ident.Name == "k") {
+				ctx.validSingleLetters[ident.Name] = true
+			}
+		}
+	}
 }
 
 // checkMixedCaps verifies identifier uses MixedCaps (no underscores except test functions)
