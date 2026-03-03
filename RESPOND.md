@@ -195,7 +195,7 @@ Duplication Ratio: 3.21%
 Functions Exceeding Thresholds: 2
 
 $ cat baseline.json | jq '{functions: (.functions | length), doc_coverage: .documentation.coverage.overall, duplication_ratio: .duplication.duplication_ratio}'
-{"functions": 142, "doc_coverage": 0.73}
+{"functions": 142, "doc_coverage": 0.73, "duplication_ratio": 0.0321}
 
 $ # Phase 2: Select and implement roadmap task
 $ # (Read ROADMAP.md, select highest-priority TODO item)
