@@ -1028,3 +1028,67 @@ func TestTokenize(t *testing.T) {
 		})
 	}
 }
+
+// TestNormalizeBlock_LargeBlockProtection tests memory protection for pathologically large blocks
+func TestNormalizeBlock_LargeBlockProtection(t *testing.T) {
+	fset := token.NewFileSet()
+	da := NewDuplicationAnalyzer(fset)
+
+	tests := []struct {
+		name           string
+		nodeCount      int
+		shouldSkipCopy bool
+	}{
+		{
+			name:           "normal size block",
+			nodeCount:      100,
+			shouldSkipCopy: false,
+		},
+		{
+			name:           "large block under threshold",
+			nodeCount:      MaxDeepCopyNodes - 1,
+			shouldSkipCopy: false,
+		},
+		{
+			name:           "block at threshold",
+			nodeCount:      MaxDeepCopyNodes,
+			shouldSkipCopy: false,
+		},
+		{
+			name:           "block exceeds threshold",
+			nodeCount:      MaxDeepCopyNodes + 1,
+			shouldSkipCopy: true,
+		},
+		{
+			name:           "pathologically large block",
+			nodeCount:      100000,
+			shouldSkipCopy: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock block with specified node count
+			block := StatementBlock{
+				File:       "test.go",
+				StartLine:  1,
+				EndLine:    100,
+				Statements: []ast.Stmt{}, // Empty for this test
+				NodeCount:  tt.nodeCount,
+			}
+
+			result := da.NormalizeBlock(block)
+
+			if tt.shouldSkipCopy {
+				// Large blocks should return a simplified fingerprint
+				assert.Contains(t, result.Structure, "LARGE_BLOCK_")
+				assert.Contains(t, result.Structure, fmt.Sprintf("%d_nodes", tt.nodeCount))
+			} else {
+				// Normal blocks should process normally (empty in this case)
+				assert.NotContains(t, result.Structure, "LARGE_BLOCK_")
+			}
+
+			assert.Equal(t, tt.nodeCount, result.NodeCount)
+		})
+	}
+}

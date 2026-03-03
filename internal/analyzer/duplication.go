@@ -13,6 +13,10 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
+// MaxDeepCopyNodes is the maximum number of AST nodes allowed for deep copy operations
+// to prevent excessive memory usage on pathological code
+const MaxDeepCopyNodes = 10000
+
 // DuplicationAnalyzer performs code duplication detection using AST fingerprinting
 type DuplicationAnalyzer struct {
 	fset *token.FileSet
@@ -184,6 +188,16 @@ func (da *DuplicationAnalyzer) countNodes(stmts []ast.Stmt) int {
 
 // NormalizeBlock strips identifiers, literals, and comments to produce structural form
 func (da *DuplicationAnalyzer) NormalizeBlock(block StatementBlock) NormalizedBlock {
+	// Protect against excessive memory usage for pathological code
+	if block.NodeCount > MaxDeepCopyNodes {
+		// For extremely large blocks, skip deep copy and use a simplified fingerprint
+		// This prevents memory exhaustion on blocks with >10,000 nodes
+		return NormalizedBlock{
+			Structure: fmt.Sprintf("LARGE_BLOCK_%d_nodes", block.NodeCount),
+			NodeCount: block.NodeCount,
+		}
+	}
+
 	var buf bytes.Buffer
 
 	// Create a normalized version of each statement
