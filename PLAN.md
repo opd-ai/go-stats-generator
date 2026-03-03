@@ -67,6 +67,7 @@ Fetch the contents of a remote Go repository entirely in the browser, without an
    - Individual file contents are fetched via `GET /repos/{owner}/{repo}/git/blobs/{sha}` (base64-encoded).
    - This avoids pulling the full `.git` history (which `isomorphic-git` would do) and keeps network transfer minimal.
    - **Fallback consideration**: For repositories exceeding the GitHub tree API's truncation limit (~100,000 entries), implement paginated directory traversal using `GET /repos/{owner}/{repo}/contents/{path}?ref={ref}`.
+   - **Bulk download alternative**: For very large repositories, use the zipball endpoint (`GET /repos/{owner}/{repo}/zipball/{ref}`) and extract `.go` files client-side with `fflate` (preferred over JSZip for its smaller bundle size and better performance in a browser/WASM context). This reduces API requests to a single call at the cost of a larger download.
 
 2. **Resolve refs to a tree SHA** — Before fetching the tree:
    - If the user provides a branch or tag name: `GET /repos/{owner}/{repo}/git/ref/heads/{branch}` or `.../tags/{tag}` to get the commit SHA, then `GET /repos/{owner}/{repo}/git/commits/{sha}` to get the tree SHA.
@@ -94,7 +95,7 @@ Fetch the contents of a remote Go repository entirely in the browser, without an
 
 ### Open Questions / Risks
 
-- **Large repositories**: Repos with thousands of Go files will require thousands of blob requests. Even with a token (5,000/hour), analyzing a 3,000-file repo consumes most of the hourly budget. Mitigation: use the GitHub Archive/Zipball download endpoint (`GET /repos/{owner}/{repo}/zipball/{ref}`) as an alternative, extracting `.go` files client-side with a library like `fflate` or JSZip. This reduces requests to 1 but increases download size.
+- **Large repositories**: Repos with thousands of Go files will require thousands of blob requests. Even with a token (5,000/hour), analyzing a 3,000-file repo consumes most of the hourly budget. Mitigation: use the zipball endpoint (described in Step 1 above) with `fflate` for client-side extraction, reducing API requests to 1 at the cost of a larger download.
 - **Private repositories**: Require a token with `repo` scope. The UI should never store tokens in `localStorage`; use `sessionStorage` only, and clear on page unload.
 - **CORS**: GitHub API supports CORS for browser requests. No proxy needed.
 
@@ -222,10 +223,12 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
 
          - name: Build WASM binary
            run: |
+             mkdir -p dist/wasm
              GOOS=js GOARCH=wasm go build -ldflags "-s -w" -o dist/wasm/go-stats-generator.wasm ./cmd/wasm/
              HASH=$(sha256sum dist/wasm/go-stats-generator.wasm | head -c 8)
-             mv dist/wasm/go-stats-generator.wasm "dist/wasm/go-stats-generator.${HASH}.wasm"
-             echo "{\"wasmFile\": \"go-stats-generator.${HASH}.wasm\"}" > dist/wasm/wasm-manifest.json
+             HASHED_NAME="go-stats-generator.${HASH}.wasm"
+             mv dist/wasm/go-stats-generator.wasm "dist/wasm/${HASHED_NAME}"
+             echo "{\"wasmFile\": \"${HASHED_NAME}\"}" > dist/wasm/wasm-manifest.json
 
          - name: Copy static assets
            run: |
@@ -236,9 +239,10 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
 
          - name: Optimize WASM (optional)
            run: |
+             WASM_FILE=$(cat dist/wasm/wasm-manifest.json | grep -o '"go-stats-generator\.[^"]*\.wasm"' | tr -d '"')
              if command -v wasm-opt &> /dev/null; then
-               wasm-opt -Oz dist/wasm/go-stats-generator.*.wasm -o dist/wasm/optimized.wasm
-               mv dist/wasm/optimized.wasm dist/wasm/go-stats-generator.*.wasm
+               wasm-opt -Oz "dist/wasm/${WASM_FILE}" -o dist/wasm/optimized.wasm
+               mv dist/wasm/optimized.wasm "dist/wasm/${WASM_FILE}"
              fi
            continue-on-error: true
 
