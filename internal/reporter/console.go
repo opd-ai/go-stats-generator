@@ -93,6 +93,11 @@ func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) er
 		cr.writeOrganizationAnalysis(output, report)
 	}
 
+	// Refactoring suggestions section
+	if cr.config.IncludeDetails && len(report.Suggestions) > 0 {
+		cr.writeRefactoringSuggestions(output, report)
+	}
+
 	// Footer
 	cr.writeFooter(output, report)
 
@@ -253,6 +258,45 @@ func (cr *ConsoleReporter) writeTopComplexFunctions(output io.Writer, functions 
 			fn.Complexity.Overall,
 		)
 	}
+	fmt.Fprintln(output)
+}
+
+func (cr *ConsoleReporter) writeRefactoringSuggestions(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== REFACTORING SUGGESTIONS ===")
+
+	suggestions := report.Suggestions
+	if len(suggestions) == 0 {
+		fmt.Fprintln(output, "No refactoring suggestions generated.")
+		fmt.Fprintln(output)
+		return
+	}
+
+	fmt.Fprintf(output, "Total Suggestions: %d (sorted by impact/effort ratio)\n", len(suggestions))
+	fmt.Fprintln(output)
+
+	// Display top 20 suggestions (or all if fewer)
+	limit := 20
+	if len(suggestions) < limit {
+		limit = len(suggestions)
+	}
+
+	for i := 0; i < limit; i++ {
+		cr.writeSingleSuggestion(output, i+1, &suggestions[i])
+	}
+
+	if len(suggestions) > limit {
+		fmt.Fprintf(output, "... and %d more suggestions (use JSON output for full list)\n", len(suggestions)-limit)
+		fmt.Fprintln(output)
+	}
+}
+
+func (cr *ConsoleReporter) writeSingleSuggestion(output io.Writer, index int, s *metrics.SuggestionInfo) {
+	fmt.Fprintf(output, "%d. [%s] %s\n", index, s.Category, s.Description)
+	fmt.Fprintf(output, "   Target: %s\n", s.Target)
+	fmt.Fprintf(output, "   Location: %s\n", s.Location)
+	fmt.Fprintf(output, "   Effort: %s (%d lines affected)\n", s.Effort, s.AffectedLines)
+	fmt.Fprintf(output, "   MBI Impact: %.1f points\n", s.MBIImpact)
+	fmt.Fprintf(output, "   ROI Score: %.2f (higher = better)\n", s.ImpactEffort)
 	fmt.Fprintln(output)
 }
 

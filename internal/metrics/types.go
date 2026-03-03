@@ -22,6 +22,7 @@ type Report struct {
 	Organization  OrganizationMetrics  `json:"organization"`
 	Burden        BurdenMetrics        `json:"burden"`
 	Scores        ScoringMetrics       `json:"scores"`
+	Suggestions   []SuggestionInfo     `json:"suggestions,omitempty"`
 }
 
 // ReportMetadata contains information about the analysis run
@@ -1135,4 +1136,17 @@ type ScoreBreakdown struct {
 	Documentation float64 `json:"documentation"`
 	Organization  float64 `json:"organization"`
 	Burden        float64 `json:"burden"`
+}
+
+// SuggestionInfo represents a refactoring suggestion for inclusion in reports
+type SuggestionInfo struct {
+	Action        string  `json:"action"`
+	Target        string  `json:"target"`
+	Location      string  `json:"location"`
+	Description   string  `json:"description"`
+	Effort        string  `json:"effort"`
+	MBIImpact     float64 `json:"mbi_impact"`
+	ImpactEffort  float64 `json:"impact_effort"`
+	Category      string  `json:"category"`
+	AffectedLines int     `json:"affected_lines"`
 }

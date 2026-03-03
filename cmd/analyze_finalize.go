@@ -53,6 +53,9 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 func finalizeScoringMetrics(report *metrics.Report, cfg *config.Config) {
 	scoringAnalyzer := analyzer.NewScoringAnalyzer(cfg.Analysis.Scoring.Weights)
 	report.Scores = *scoringAnalyzer.CalculateAllScores(report)
+
+	// Generate refactoring suggestions
+	generateRefactoringSuggestions(report, scoringAnalyzer, cfg)
 }
 
 // finalizeDuplicationMetrics performs duplication analysis on all collected files
@@ -582,5 +585,27 @@ func buildComplexityDistribution(report *metrics.Report) {
 		default:
 			report.Complexity.Distribution["20+"]++
 		}
+	}
+}
+
+// generateRefactoringSuggestions creates prioritized refactoring recommendations
+func generateRefactoringSuggestions(report *metrics.Report, scorer *analyzer.ScoringAnalyzer, cfg *config.Config) {
+	suggestionGen := analyzer.NewSuggestionGenerator(scorer)
+	rawSuggestions := suggestionGen.GenerateSuggestions(report)
+
+	// Convert to metrics.SuggestionInfo for report serialization
+	report.Suggestions = make([]metrics.SuggestionInfo, 0, len(rawSuggestions))
+	for _, s := range rawSuggestions {
+		report.Suggestions = append(report.Suggestions, metrics.SuggestionInfo{
+			Action:        string(s.Action),
+			Target:        s.Target,
+			Location:      s.Location,
+			Description:   s.Description,
+			Effort:        string(s.Effort),
+			MBIImpact:     s.MBIImpact,
+			ImpactEffort:  s.ImpactEffort,
+			Category:      s.Category,
+			AffectedLines: s.AffectedLines,
+		})
 	}
 }
