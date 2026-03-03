@@ -25,7 +25,7 @@
   - Configurable block size and similarity thresholds
   - Support for Type 1 (exact), Type 2 (renamed), and Type 3 (near) clone detection
   - Optional test file filtering for focused analysis
-- **Historical Metrics Storage**: SQLite and JSON backends for tracking metrics over time
+- **Historical Metrics Storage**: SQLite, JSON, and in-memory backends for tracking metrics over time
 - **Complexity Differential Analysis**: Compare metrics snapshots with multi-dimensional comparisons
 - **Baseline Management**: Create and manage reference snapshots for comparisons
 - **Regression Detection**: Compare snapshots to identify metric increases and decreases
@@ -378,9 +378,6 @@ The following features are under development and will be included in future rele
 - **Confidence interval calculations** for forecast reliability
 - **Correlation analysis** between different metrics
 
-### Storage Backend Expansion
-- **Memory storage** - In-memory storage for temporary analysis runs
-
 ### Advanced Maintenance Detection
 See [ROADMAP.md](ROADMAP.md) for detailed implementation plans for:
 - Enhanced code duplication analysis with semantic similarity
@@ -391,7 +388,6 @@ See [ROADMAP.md](ROADMAP.md) for detailed implementation plans for:
 - Additional burden indicators (magic numbers, dead code, deep nesting)
 
 ### Configuration Enhancement
-- Complete configuration file loader for all documented options
 - Per-project configuration inheritance
 - Team-level default profiles
 

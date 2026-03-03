@@ -257,137 +257,165 @@ func (da *DuplicationAnalyzer) normalizeLiteral(lit *ast.BasicLit) *ast.BasicLit
 
 // deepCopyAndNormalize performs a deep copy while normalizing identifiers and literals
 func (da *DuplicationAnalyzer) deepCopyAndNormalize(node ast.Node) ast.Node {
-	// Use ast.Inspect to walk and copy the tree
-	var result ast.Node
-
 	switch n := node.(type) {
 	case *ast.BlockStmt:
-		stmts := make([]ast.Stmt, len(n.List))
-		for i, stmt := range n.List {
-			stmts[i] = da.normalizeNode(stmt).(ast.Stmt)
-		}
-		result = &ast.BlockStmt{List: stmts}
-
+		return da.normalizeBlockStmt(n)
 	case *ast.ExprStmt:
-		result = &ast.ExprStmt{X: da.normalizeNode(n.X).(ast.Expr)}
-
+		return da.normalizeExprStmt(n)
 	case *ast.AssignStmt:
-		lhs := make([]ast.Expr, len(n.Lhs))
-		for i, expr := range n.Lhs {
-			lhs[i] = da.normalizeNode(expr).(ast.Expr)
-		}
-		rhs := make([]ast.Expr, len(n.Rhs))
-		for i, expr := range n.Rhs {
-			rhs[i] = da.normalizeNode(expr).(ast.Expr)
-		}
-		result = &ast.AssignStmt{Lhs: lhs, Tok: n.Tok, Rhs: rhs}
-
+		return da.normalizeAssignStmt(n)
 	case *ast.IfStmt:
-		var init ast.Stmt
-		if n.Init != nil {
-			init = da.normalizeNode(n.Init).(ast.Stmt)
-		}
-		var elseBranch ast.Stmt
-		if n.Else != nil {
-			elseBranch = da.normalizeNode(n.Else).(ast.Stmt)
-		}
-		result = &ast.IfStmt{
-			Init: init,
-			Cond: da.normalizeNode(n.Cond).(ast.Expr),
-			Body: da.normalizeNode(n.Body).(*ast.BlockStmt),
-			Else: elseBranch,
-		}
-
+		return da.normalizeIfStmt(n)
 	case *ast.ForStmt:
-		var init, post ast.Stmt
-		var cond ast.Expr
-		if n.Init != nil {
-			init = da.normalizeNode(n.Init).(ast.Stmt)
-		}
-		if n.Cond != nil {
-			cond = da.normalizeNode(n.Cond).(ast.Expr)
-		}
-		if n.Post != nil {
-			post = da.normalizeNode(n.Post).(ast.Stmt)
-		}
-		result = &ast.ForStmt{
-			Init: init,
-			Cond: cond,
-			Post: post,
-			Body: da.normalizeNode(n.Body).(*ast.BlockStmt),
-		}
-
+		return da.normalizeForStmt(n)
 	case *ast.RangeStmt:
-		var key, value ast.Expr
-		if n.Key != nil {
-			key = da.normalizeNode(n.Key).(ast.Expr)
-		}
-		if n.Value != nil {
-			value = da.normalizeNode(n.Value).(ast.Expr)
-		}
-		result = &ast.RangeStmt{
-			Key:   key,
-			Value: value,
-			Tok:   n.Tok,
-			X:     da.normalizeNode(n.X).(ast.Expr),
-			Body:  da.normalizeNode(n.Body).(*ast.BlockStmt),
-		}
-
+		return da.normalizeRangeStmt(n)
 	case *ast.ReturnStmt:
-		results := make([]ast.Expr, len(n.Results))
-		for i, expr := range n.Results {
-			results[i] = da.normalizeNode(expr).(ast.Expr)
-		}
-		result = &ast.ReturnStmt{Results: results}
-
+		return da.normalizeReturnStmt(n)
 	case *ast.CallExpr:
-		args := make([]ast.Expr, len(n.Args))
-		for i, arg := range n.Args {
-			args[i] = da.normalizeNode(arg).(ast.Expr)
-		}
-		result = &ast.CallExpr{
-			Fun:      da.normalizeNode(n.Fun).(ast.Expr),
-			Args:     args,
-			Ellipsis: n.Ellipsis,
-		}
-
+		return da.normalizeCallExpr(n)
 	case *ast.BinaryExpr:
-		result = &ast.BinaryExpr{
-			X:  da.normalizeNode(n.X).(ast.Expr),
-			Op: n.Op,
-			Y:  da.normalizeNode(n.Y).(ast.Expr),
-		}
-
+		return da.normalizeBinaryExpr(n)
 	case *ast.UnaryExpr:
-		result = &ast.UnaryExpr{
-			Op: n.Op,
-			X:  da.normalizeNode(n.X).(ast.Expr),
-		}
-
+		return da.normalizeUnaryExpr(n)
 	case *ast.SelectorExpr:
-		result = &ast.SelectorExpr{
-			X:   da.normalizeNode(n.X).(ast.Expr),
-			Sel: &ast.Ident{Name: "_"},
-		}
-
+		return da.normalizeSelectorExpr(n)
 	case *ast.IndexExpr:
-		result = &ast.IndexExpr{
-			X:     da.normalizeNode(n.X).(ast.Expr),
-			Index: da.normalizeNode(n.Index).(ast.Expr),
-		}
-
+		return da.normalizeIndexExpr(n)
 	case *ast.StarExpr:
-		result = &ast.StarExpr{X: da.normalizeNode(n.X).(ast.Expr)}
-
+		return &ast.StarExpr{X: da.normalizeNode(n.X).(ast.Expr)}
 	case *ast.ParenExpr:
-		result = &ast.ParenExpr{X: da.normalizeNode(n.X).(ast.Expr)}
-
+		return &ast.ParenExpr{X: da.normalizeNode(n.X).(ast.Expr)}
 	default:
-		// For unhandled types, return the node as-is
-		result = node
+		return node
 	}
+}
 
-	return result
+func (da *DuplicationAnalyzer) normalizeBlockStmt(n *ast.BlockStmt) ast.Node {
+	stmts := make([]ast.Stmt, len(n.List))
+	for i, stmt := range n.List {
+		stmts[i] = da.normalizeNode(stmt).(ast.Stmt)
+	}
+	return &ast.BlockStmt{List: stmts}
+}
+
+func (da *DuplicationAnalyzer) normalizeExprStmt(n *ast.ExprStmt) ast.Node {
+	return &ast.ExprStmt{X: da.normalizeNode(n.X).(ast.Expr)}
+}
+
+func (da *DuplicationAnalyzer) normalizeAssignStmt(n *ast.AssignStmt) ast.Node {
+	lhs := make([]ast.Expr, len(n.Lhs))
+	for i, expr := range n.Lhs {
+		lhs[i] = da.normalizeNode(expr).(ast.Expr)
+	}
+	rhs := make([]ast.Expr, len(n.Rhs))
+	for i, expr := range n.Rhs {
+		rhs[i] = da.normalizeNode(expr).(ast.Expr)
+	}
+	return &ast.AssignStmt{Lhs: lhs, Tok: n.Tok, Rhs: rhs}
+}
+
+func (da *DuplicationAnalyzer) normalizeIfStmt(n *ast.IfStmt) ast.Node {
+	var init ast.Stmt
+	if n.Init != nil {
+		init = da.normalizeNode(n.Init).(ast.Stmt)
+	}
+	var elseBranch ast.Stmt
+	if n.Else != nil {
+		elseBranch = da.normalizeNode(n.Else).(ast.Stmt)
+	}
+	return &ast.IfStmt{
+		Init: init,
+		Cond: da.normalizeNode(n.Cond).(ast.Expr),
+		Body: da.normalizeNode(n.Body).(*ast.BlockStmt),
+		Else: elseBranch,
+	}
+}
+
+func (da *DuplicationAnalyzer) normalizeForStmt(n *ast.ForStmt) ast.Node {
+	var init, post ast.Stmt
+	var cond ast.Expr
+	if n.Init != nil {
+		init = da.normalizeNode(n.Init).(ast.Stmt)
+	}
+	if n.Cond != nil {
+		cond = da.normalizeNode(n.Cond).(ast.Expr)
+	}
+	if n.Post != nil {
+		post = da.normalizeNode(n.Post).(ast.Stmt)
+	}
+	return &ast.ForStmt{
+		Init: init,
+		Cond: cond,
+		Post: post,
+		Body: da.normalizeNode(n.Body).(*ast.BlockStmt),
+	}
+}
+
+func (da *DuplicationAnalyzer) normalizeRangeStmt(n *ast.RangeStmt) ast.Node {
+	var key, value ast.Expr
+	if n.Key != nil {
+		key = da.normalizeNode(n.Key).(ast.Expr)
+	}
+	if n.Value != nil {
+		value = da.normalizeNode(n.Value).(ast.Expr)
+	}
+	return &ast.RangeStmt{
+		Key:   key,
+		Value: value,
+		Tok:   n.Tok,
+		X:     da.normalizeNode(n.X).(ast.Expr),
+		Body:  da.normalizeNode(n.Body).(*ast.BlockStmt),
+	}
+}
+
+func (da *DuplicationAnalyzer) normalizeReturnStmt(n *ast.ReturnStmt) ast.Node {
+	results := make([]ast.Expr, len(n.Results))
+	for i, expr := range n.Results {
+		results[i] = da.normalizeNode(expr).(ast.Expr)
+	}
+	return &ast.ReturnStmt{Results: results}
+}
+
+func (da *DuplicationAnalyzer) normalizeCallExpr(n *ast.CallExpr) ast.Node {
+	args := make([]ast.Expr, len(n.Args))
+	for i, arg := range n.Args {
+		args[i] = da.normalizeNode(arg).(ast.Expr)
+	}
+	return &ast.CallExpr{
+		Fun:      da.normalizeNode(n.Fun).(ast.Expr),
+		Args:     args,
+		Ellipsis: n.Ellipsis,
+	}
+}
+
+func (da *DuplicationAnalyzer) normalizeBinaryExpr(n *ast.BinaryExpr) ast.Node {
+	return &ast.BinaryExpr{
+		X:  da.normalizeNode(n.X).(ast.Expr),
+		Op: n.Op,
+		Y:  da.normalizeNode(n.Y).(ast.Expr),
+	}
+}
+
+func (da *DuplicationAnalyzer) normalizeUnaryExpr(n *ast.UnaryExpr) ast.Node {
+	return &ast.UnaryExpr{
+		Op: n.Op,
+		X:  da.normalizeNode(n.X).(ast.Expr),
+	}
+}
+
+func (da *DuplicationAnalyzer) normalizeSelectorExpr(n *ast.SelectorExpr) ast.Node {
+	return &ast.SelectorExpr{
+		X:   da.normalizeNode(n.X).(ast.Expr),
+		Sel: &ast.Ident{Name: "_"},
+	}
+}
+
+func (da *DuplicationAnalyzer) normalizeIndexExpr(n *ast.IndexExpr) ast.Node {
+	return &ast.IndexExpr{
+		X:     da.normalizeNode(n.X).(ast.Expr),
+		Index: da.normalizeNode(n.Index).(ast.Expr),
+	}
 }
 
 // ComputeHash computes a structural hash using FNV-1a
