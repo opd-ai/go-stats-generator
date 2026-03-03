@@ -579,7 +579,125 @@ func (ba *BurdenAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int, m
 }
 
 // DetectFeatureEnvy identifies methods with excessive external references
-func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, ratio float64) *metrics.FeatureEnvyIssue {
-	// TODO: Implement feature envy detection
-	return nil
+func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ratio float64) *metrics.FeatureEnvyIssue {
+	if fn == nil || fn.Body == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return nil
+	}
+
+	receiverType := ba.extractReceiverType(fn)
+	if receiverType == "" {
+		return nil
+	}
+
+	receiverVar := ba.getReceiverVarName(fn)
+
+	selfRefs, externalRefs := ba.countReferences(fn.Body, receiverVar)
+
+	if len(externalRefs) == 0 {
+		return nil
+	}
+
+	maxExtType, maxExtCount := ba.findMostReferencedType(externalRefs)
+
+	if maxExtCount == 0 || float64(maxExtCount)/float64(max(selfRefs, 1)) < ratio {
+		return nil
+	}
+
+	pos := ba.fset.Position(fn.Pos())
+
+	return &metrics.FeatureEnvyIssue{
+		Method:         fn.Name.Name,
+		File:           pos.Filename,
+		Line:           pos.Line,
+		ReceiverType:   receiverType,
+		SelfReferences: selfRefs,
+		ExternalType:   maxExtType,
+		ExternalRefs:   maxExtCount,
+		Ratio:          float64(maxExtCount) / float64(max(selfRefs, 1)),
+		SuggestedMove:  "Consider moving this method to " + maxExtType + " or extracting shared logic",
+	}
+}
+
+// getReceiverVarName extracts the receiver variable name from a method declaration,
+// returning an empty string if the function is not a method or has no receiver name.
+func (ba *BurdenAnalyzer) getReceiverVarName(fn *ast.FuncDecl) string {
+	if fn.Recv == nil || len(fn.Recv.List) == 0 || len(fn.Recv.List[0].Names) == 0 {
+		return ""
+	}
+	return fn.Recv.List[0].Names[0].Name
+}
+
+// extractReceiverType extracts the receiver type name from a method declaration,
+// handling both value and pointer receivers, returning empty string for non-methods.
+func (ba *BurdenAnalyzer) extractReceiverType(fn *ast.FuncDecl) string {
+	if fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return ""
+	}
+
+	recvType := fn.Recv.List[0].Type
+
+	switch t := recvType.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name
+		}
+	}
+
+	return ""
+}
+
+// countReferences analyzes a function body to count self-references (to the receiver) and
+// external references (to other variables), returning counts for feature envy detection.
+func (ba *BurdenAnalyzer) countReferences(body *ast.BlockStmt, receiverVar string) (int, map[string]int) {
+	selfRefs := 0
+	externalRefs := make(map[string]int)
+
+	ast.Inspect(body, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok {
+			varName := ba.getVarName(sel.X)
+
+			if varName == receiverVar {
+				selfRefs++
+			} else if varName != "" {
+				externalRefs[varName]++
+			}
+		}
+		return true
+	})
+
+	return selfRefs, externalRefs
+}
+
+// getVarName extracts the variable name from an identifier expression,
+// used to identify which object a selector expression is accessing.
+func (ba *BurdenAnalyzer) getVarName(expr ast.Expr) string {
+	if ident, ok := expr.(*ast.Ident); ok {
+		return ident.Name
+	}
+	return ""
+}
+
+// findMostReferencedType identifies the most frequently referenced external type
+// from a map of type names to reference counts, used in feature envy detection.
+func (ba *BurdenAnalyzer) findMostReferencedType(refs map[string]int) (string, int) {
+	maxType := ""
+	maxCount := 0
+
+	for typeName, count := range refs {
+		if count > maxCount {
+			maxType = typeName
+			maxCount = count
+		}
+	}
+
+	return maxType, maxCount
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

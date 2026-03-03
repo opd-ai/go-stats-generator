@@ -593,12 +593,135 @@ func AtThreshold() {
 	}
 }
 
-func TestDetectFeatureEnvy_Placeholder(t *testing.T) {
-	fset := token.NewFileSet()
-	analyzer := NewBurdenAnalyzer(fset)
+func TestDetectFeatureEnvy(t *testing.T) {
+	tests := []struct {
+		name         string
+		src          string
+		ratio        float64
+		wantIssue    bool
+		wantExtType  string
+		wantMinRatio float64
+	}{
+		{
+			name: "detects feature envy when external refs exceed threshold",
+			src: `package test
+type Person struct{}
+type Address struct{ City string }
 
-	result := analyzer.DetectFeatureEnvy(nil, 2.0)
-	if result != nil {
-		t.Error("Expected nil result from placeholder implementation")
+func (p *Person) GetCity(addr Address) string {
+	// 5 external references to Address
+	c1 := addr.City
+	c2 := addr.City
+	c3 := addr.City
+	c4 := addr.City
+	return addr.City
+}`,
+			ratio:        2.0,
+			wantIssue:    true,
+			wantExtType:  "addr",
+			wantMinRatio: 2.0,
+		},
+		{
+			name: "no issue when self-references dominate",
+			src: `package test
+type Person struct{ Name string; Age int }
+
+func (p *Person) GetInfo() string {
+	return p.Name + string(p.Age)
+}`,
+			ratio:     2.0,
+			wantIssue: false,
+		},
+		{
+			name: "no issue for non-methods",
+			src: `package test
+func standaloneFunc() {}`,
+			ratio:     2.0,
+			wantIssue: false,
+		},
+		{
+			name: "no issue when ratio not met",
+			src: `package test
+type Person struct{ Name string }
+type Address struct{ City string }
+
+func (p *Person) Format(addr Address) string {
+	return p.Name + addr.City
+}`,
+			ratio:     5.0,
+			wantIssue: false,
+		},
+		{
+			name:      "handles nil function gracefully",
+			src:       `package test`,
+			ratio:     2.0,
+			wantIssue: false,
+		},
+		{
+			name: "detects with pointer receivers",
+			src: `package test
+type Handler struct{}
+type Logger struct{ Level string }
+
+func (h *Handler) Log(logger Logger) {
+	_ = logger.Level
+	_ = logger.Level
+	_ = logger.Level
+}`,
+			ratio:        2.0,
+			wantIssue:    true,
+			wantExtType:  "logger",
+			wantMinRatio: 2.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			analyzer := NewBurdenAnalyzer(fset)
+
+			file, err := parser.ParseFile(fset, "test.go", tt.src, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var fnDecl *ast.FuncDecl
+			ast.Inspect(file, func(n ast.Node) bool {
+				if fd, ok := n.(*ast.FuncDecl); ok && fd.Recv != nil {
+					fnDecl = fd
+					return false
+				}
+				return true
+			})
+
+			if fnDecl == nil && tt.wantIssue {
+				t.Fatal("Expected to find method declaration")
+			}
+
+			result := analyzer.DetectFeatureEnvy(fnDecl, file, tt.ratio)
+
+			if tt.wantIssue {
+				if result == nil {
+					t.Error("Expected feature envy issue but got nil")
+					return
+				}
+
+				if result.ExternalType != tt.wantExtType {
+					t.Errorf("External type = %q, want %q", result.ExternalType, tt.wantExtType)
+				}
+
+				if result.Ratio < tt.wantMinRatio {
+					t.Errorf("Ratio = %.2f, want >= %.2f", result.Ratio, tt.wantMinRatio)
+				}
+
+				if result.SuggestedMove == "" {
+					t.Error("Expected suggestion but got empty string")
+				}
+			} else {
+				if result != nil {
+					t.Errorf("Expected no issue but got: %+v", result)
+				}
+			}
+		})
 	}
 }
