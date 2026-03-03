@@ -187,9 +187,12 @@ type FilterConfig struct {
 
 // StorageConfig controls historical metrics storage
 type StorageConfig struct {
-	Type        string `mapstructure:"type" json:"type"`               // "sqlite", "json", "memory"
+	Type        string `mapstructure:"type" json:"type"`               // "sqlite", "json", "memory", "postgres"
 	Path        string `mapstructure:"path" json:"path"`               // File path for sqlite/json
 	Compression bool   `mapstructure:"compression" json:"compression"` // Enable compression for stored data
+
+	// PostgreSQL connection settings
+	PostgresConnectionString string `mapstructure:"postgres_connection_string" json:"postgres_connection_string"`
 
 	// Retention policy
 	MaxSnapshots int           `mapstructure:"max_snapshots" json:"max_snapshots"`

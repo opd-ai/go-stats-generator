@@ -16,10 +16,25 @@ const (
 )
 
 // New creates a new ResultStore based on configuration.
-// Currently only supports in-memory storage.
-// PostgreSQL and MongoDB backends will be added in future releases.
+// Supports in-memory and PostgreSQL backends.
+// MongoDB backend will be added in future releases.
 func New(cfg *config.Config) ResultStore {
-	// For now, always return in-memory storage
-	// Future: read cfg.Storage.Backend to select implementation
+	if cfg == nil || cfg.Storage.Type == "" || cfg.Storage.Type == string(BackendMemory) {
+		return NewMemory()
+	}
+
+	if cfg.Storage.Type == string(BackendPostgres) {
+		connStr := cfg.Storage.PostgresConnectionString
+		if connStr == "" {
+			return NewMemory()
+		}
+
+		store, err := NewPostgres(connStr)
+		if err != nil {
+			return NewMemory()
+		}
+		return store
+	}
+
 	return NewMemory()
 }
