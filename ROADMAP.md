@@ -15,39 +15,63 @@ This roadmap describes a step-by-step plan for adding maintenance burden detecti
 
 ---
 
-## Phase 1: Code Duplication Detection
+## Phase 1: Code Duplication Detection ✅ COMPLETE
 
 Detect duplicated or near-duplicate code blocks that force developers to make the same change in multiple places.
 
-### Step 1.1 — AST-Based Block Fingerprinting
+### Step 1.1 — AST-Based Block Fingerprinting ✅ COMPLETE
 
-- Walk every function and method body to extract statement-level sub-trees.
-- Normalize each sub-tree (strip identifiers, literals, comments) and compute a structural hash.
-- Store `(hash, file, startLine, endLine, nodeCount)` tuples for later comparison.
+**Status**: Implemented and tested
+**Files**: `internal/analyzer/duplication.go`, `internal/analyzer/duplication_test.go`
 
-### Step 1.2 — Clone Pair Detection
+Implemented features:
+- ✅ Walk every function and method body to extract statement-level sub-trees
+- ✅ Normalize each sub-tree (strip identifiers, literals, comments) and compute a structural hash
+- ✅ Store `(hash, file, startLine, endLine, nodeCount)` tuples for later comparison
+- ✅ DuplicationAnalyzer with FileSet support and StatementBlock/NormalizedBlock types
+- ✅ Hash-based fingerprinting using FNV-1a algorithm for fast structural comparison
 
-- Group fingerprints by hash; groups with two or more entries are clone pairs.
-- Classify clones:
-  - **Type 1** — exact duplicates (identical after whitespace normalization).
-  - **Type 2** — renamed duplicates (identical structure, different identifier names).
-  - **Type 3** — near duplicates (structural similarity above a configurable threshold, e.g. ≥80%).
-- Report clone set size, total duplicated lines, and affected files.
+### Step 1.2 — Clone Pair Detection ✅ COMPLETE
 
-### Step 1.3 — Duplication Metrics & Reporting
+**Status**: Implemented and tested
+**Files**: `internal/analyzer/duplication.go`, `internal/analyzer/duplication_test.go`
 
-- Add a `DuplicationMetrics` struct to `internal/metrics/types.go`:
-  - `ClonePairs`, `DuplicatedLines`, `DuplicationRatio`, `LargestCloneSize`.
-- Add a `duplication` section to every output format (console, JSON, HTML, Markdown).
-- Include a per-file duplication score so teams can prioritize extraction.
+Implemented features:
+- ✅ Group fingerprints by hash; groups with two or more entries are clone pairs
+- ✅ Classify clones:
+  - ✅ **Type 1** — exact duplicates (identical after whitespace normalization)
+  - ✅ **Type 2** — renamed duplicates (identical structure, different identifier names)
+  - ✅ **Type 3** — near duplicates (structural similarity above configurable threshold ≥80%)
+- ✅ Report clone set size, total duplicated lines, and affected files
+- ✅ Clone classification with severity levels and location tracking
 
-### Step 1.4 — Configuration & Thresholds
+### Step 1.3 — Duplication Metrics & Reporting ✅ COMPLETE
 
-- Add config keys in `.go-stats-generator.yaml`:
-  - `maintenance.duplication.min_block_lines` (default: 6) — minimum block size to consider.
-  - `maintenance.duplication.similarity_threshold` (default: 0.80) — threshold for Type 3 clones.
-  - `maintenance.duplication.ignore_test_files` (default: false).
-- Wire thresholds into the `analyze` command flags.
+**Status**: Implemented and tested
+**Files**: `internal/metrics/types.go`, `internal/reporter/console.go`, `internal/reporter/json.go`, `internal/reporter/html.go`, `internal/reporter/markdown.go`
+
+Implemented features:
+- ✅ `DuplicationMetrics` struct in `internal/metrics/types.go`:
+  - ✅ `ClonePairs`, `DuplicatedLines`, `DuplicationRatio`, `LargestCloneSize`
+- ✅ `duplication` section in all output formats (console, JSON, HTML, Markdown, CSV)
+- ✅ Per-file duplication score for prioritization
+- ✅ Clone details with file locations, line ranges, and similarity scores
+
+### Step 1.4 — Configuration & Thresholds ✅ COMPLETE
+
+**Status**: Implemented and tested
+**Files**: `.go-stats-generator.yaml`, `cmd/analyze.go`, `internal/config/config.go`
+
+Implemented features:
+- ✅ Config keys in `.go-stats-generator.yaml`:
+  - ✅ `duplication.min_block_lines` (default: 6) — minimum block size to consider
+  - ✅ `duplication.similarity_threshold` (default: 0.80) — threshold for Type 3 clones
+  - ✅ `duplication.ignore_test_files` (default: false)
+- ✅ CLI flags wired into `analyze` command:
+  - ✅ `--min-block-lines` flag
+  - ✅ `--similarity-threshold` flag
+  - ✅ `--ignore-test-duplication` flag
+- ✅ Integration with Viper configuration system
 
 ---
 
