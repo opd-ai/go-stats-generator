@@ -78,6 +78,9 @@ func (d *DocumentationAnalyzer) Analyze(files []*ast.File, pkgs map[string]*ast.
 	// Analyze annotations (TODO, FIXME, HACK, etc.)
 	d.analyzeAnnotations(files, m)
 
+	// Analyze documentation quality
+	d.analyzeQuality(files, m)
+
 	return m
 }
 
@@ -292,4 +295,75 @@ func (d *DocumentationAnalyzer) addAnnotationToMetrics(category, filePath string
 			File: filePath, Line: line, Description: description,
 		})
 	}
+}
+
+// analyzeQuality performs comprehensive quality analysis on documentation
+func (d *DocumentationAnalyzer) analyzeQuality(files []*ast.File, m *metrics.DocumentationMetrics) {
+	var totalLength int
+	var commentCount int
+	var inlineComments int
+	var blockComments int
+	var codeExamples int
+
+	for _, file := range files {
+		for _, cg := range file.Comments {
+			commentText := cg.Text()
+			commentCount++
+			totalLength += len(commentText)
+
+			for _, comment := range cg.List {
+				if strings.HasPrefix(comment.Text, "//") {
+					inlineComments++
+				} else if strings.HasPrefix(comment.Text, "/*") {
+					blockComments++
+				}
+			}
+
+			if d.containsCodeExample(commentText) {
+				codeExamples++
+			}
+		}
+	}
+
+	if commentCount > 0 {
+		m.Quality.AverageLength = float64(totalLength) / float64(commentCount)
+	}
+	m.Quality.InlineComments = inlineComments
+	m.Quality.BlockComments = blockComments
+	m.Quality.CodeExamples = codeExamples
+	m.Quality.QualityScore = d.calculateQualityScore(m)
+}
+
+// containsCodeExample detects code examples in comments
+func (d *DocumentationAnalyzer) containsCodeExample(text string) bool {
+	lines := strings.Split(text, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.Contains(trimmed, "Example:") ||
+			strings.Contains(trimmed, "Usage:") ||
+			(strings.HasPrefix(trimmed, "func ") || strings.HasPrefix(trimmed, "var ") || strings.HasPrefix(trimmed, "type ")) {
+			return true
+		}
+	}
+	return false
+}
+
+// calculateQualityScore computes overall quality score based on coverage and quality
+func (d *DocumentationAnalyzer) calculateQualityScore(m *metrics.DocumentationMetrics) float64 {
+	score := 0.0
+
+	score += m.Coverage.Overall * 0.4
+
+	if m.Quality.AverageLength > 50 {
+		score += 20.0
+	} else if m.Quality.AverageLength > 30 {
+		score += 10.0
+	}
+
+	score += float64(m.Quality.CodeExamples) * 2.0
+	if score > 100.0 {
+		score = 100.0
+	}
+
+	return score
 }
