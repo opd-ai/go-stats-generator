@@ -23,17 +23,23 @@ func NewOrganizationAnalyzer(fset *token.FileSet) *OrganizationAnalyzer {
 
 // OrganizationConfig holds threshold configuration
 type OrganizationConfig struct {
-	MaxFileLines     int
-	MaxFileFunctions int
-	MaxFileTypes     int
+	MaxFileLines       int
+	MaxFileFunctions   int
+	MaxFileTypes       int
+	MaxPackageFiles    int
+	MaxExportedSymbols int
+	MaxDirectoryDepth  int
 }
 
 // DefaultOrganizationConfig returns default configuration
 func DefaultOrganizationConfig() OrganizationConfig {
 	return OrganizationConfig{
-		MaxFileLines:     500,
-		MaxFileFunctions: 20,
-		MaxFileTypes:     5,
+		MaxFileLines:       500,
+		MaxFileFunctions:   20,
+		MaxFileTypes:       5,
+		MaxPackageFiles:    20,
+		MaxExportedSymbols: 50,
+		MaxDirectoryDepth:  5,
 	}
 }
 
@@ -224,4 +230,176 @@ func (oa *OrganizationAnalyzer) getSuggestions(lines metrics.LineMetrics, funcCo
 	}
 
 	return suggestions
+}
+
+// PackageInfo holds aggregated package data
+type PackageInfo struct {
+	Name            string
+	Files           []string
+	ExportedSymbols int
+	TotalFunctions  int
+	CohesionScore   float64
+}
+
+// AnalyzePackageSizes analyzes package size metrics
+func (oa *OrganizationAnalyzer) AnalyzePackageSizes(pkgs map[string]*PackageInfo, config OrganizationConfig) []metrics.OversizedPackage {
+	var results []metrics.OversizedPackage
+
+	for name, pkg := range pkgs {
+		if oa.shouldReportPackage(pkg, config) {
+			results = append(results, metrics.OversizedPackage{
+				Package:         name,
+				FileCount:       len(pkg.Files),
+				ExportedSymbols: pkg.ExportedSymbols,
+				TotalFunctions:  pkg.TotalFunctions,
+				CohesionScore:   pkg.CohesionScore,
+				IsMegaPackage:   oa.isMegaPackage(pkg),
+				Severity:        oa.getPackageSeverity(pkg, config),
+				Suggestions:     oa.getPackageSuggestions(pkg, config),
+			})
+		}
+	}
+
+	return results
+}
+
+// shouldReportPackage checks if package should be reported
+func (oa *OrganizationAnalyzer) shouldReportPackage(pkg *PackageInfo, config OrganizationConfig) bool {
+	return oa.isPackageOversized(pkg, config) || oa.isMegaPackage(pkg)
+}
+
+// isPackageOversized checks if package exceeds thresholds
+func (oa *OrganizationAnalyzer) isPackageOversized(pkg *PackageInfo, config OrganizationConfig) bool {
+	return len(pkg.Files) > config.MaxPackageFiles ||
+		pkg.ExportedSymbols > config.MaxExportedSymbols
+}
+
+// isMegaPackage checks for low cohesion + high symbol count
+func (oa *OrganizationAnalyzer) isMegaPackage(pkg *PackageInfo) bool {
+	return pkg.CohesionScore < 0.5 && pkg.ExportedSymbols > 30
+}
+
+// getPackageSeverity determines severity level
+func (oa *OrganizationAnalyzer) getPackageSeverity(pkg *PackageInfo, config OrganizationConfig) string {
+	if oa.isMegaPackage(pkg) {
+		return "critical"
+	}
+
+	violations := 0
+	if len(pkg.Files) > config.MaxPackageFiles*2 {
+		violations++
+	}
+	if pkg.ExportedSymbols > config.MaxExportedSymbols*2 {
+		violations++
+	}
+
+	if violations >= 2 {
+		return "critical"
+	}
+	if violations == 1 {
+		return "high"
+	}
+	return "medium"
+}
+
+// getPackageSuggestions generates package improvement suggestions
+func (oa *OrganizationAnalyzer) getPackageSuggestions(pkg *PackageInfo, config OrganizationConfig) []string {
+	var suggestions []string
+
+	if len(pkg.Files) > config.MaxPackageFiles {
+		suggestions = append(suggestions, "Too many files - consider splitting into sub-packages")
+	}
+	if pkg.ExportedSymbols > config.MaxExportedSymbols {
+		suggestions = append(suggestions, "Too many exported symbols - reduce public API surface")
+	}
+	if oa.isMegaPackage(pkg) {
+		suggestions = append(suggestions, "Mega-package detected - refactor into cohesive modules")
+	}
+
+	return suggestions
+}
+
+// AnalyzeDirectoryDepth analyzes directory nesting depth
+func (oa *OrganizationAnalyzer) AnalyzeDirectoryDepth(paths []string, rootPath string, config OrganizationConfig) []metrics.DeepDirectory {
+	depthMap := make(map[string]*directoryStats)
+
+	for _, path := range paths {
+		dir := oa.getDirectoryPath(path)
+		depth := oa.calculateDepth(dir, rootPath)
+		if depth > config.MaxDirectoryDepth {
+			if stats, exists := depthMap[dir]; exists {
+				stats.fileCount++
+			} else {
+				depthMap[dir] = &directoryStats{
+					depth:     depth,
+					fileCount: 1,
+				}
+			}
+		}
+	}
+
+	return oa.buildDeepDirectories(depthMap, config)
+}
+
+// directoryStats holds directory statistics
+type directoryStats struct {
+	depth     int
+	fileCount int
+}
+
+// calculateDepth calculates directory nesting depth
+func (oa *OrganizationAnalyzer) calculateDepth(dirPath, rootPath string) int {
+	rel := strings.TrimPrefix(dirPath, rootPath)
+	rel = strings.TrimPrefix(rel, "/")
+	if rel == "" || rel == "." {
+		return 0
+	}
+	return strings.Count(rel, "/") + 1
+}
+
+// getDirectoryPath extracts directory from file path
+func (oa *OrganizationAnalyzer) getDirectoryPath(filePath string) string {
+	lastSlash := strings.LastIndex(filePath, "/")
+	if lastSlash == -1 {
+		return "."
+	}
+	return filePath[:lastSlash]
+}
+
+// buildDeepDirectories converts depth map to results
+func (oa *OrganizationAnalyzer) buildDeepDirectories(depthMap map[string]*directoryStats, config OrganizationConfig) []metrics.DeepDirectory {
+	var results []metrics.DeepDirectory
+
+	for path, stats := range depthMap {
+		results = append(results, metrics.DeepDirectory{
+			Path:       path,
+			Depth:      stats.depth,
+			FileCount:  stats.fileCount,
+			Severity:   oa.getDepthSeverity(stats.depth, config),
+			Suggestion: oa.getDepthSuggestion(stats.depth, config),
+		})
+	}
+
+	return results
+}
+
+// getDepthSeverity determines depth severity
+func (oa *OrganizationAnalyzer) getDepthSeverity(depth int, config OrganizationConfig) string {
+	threshold := float64(config.MaxDirectoryDepth)
+	if float64(depth) > threshold*2 {
+		return "critical"
+	}
+	if float64(depth) > threshold*1.5 {
+		return "high"
+	}
+	return "medium"
+}
+
+// getDepthSuggestion generates depth suggestion
+func (oa *OrganizationAnalyzer) getDepthSuggestion(depth int, config OrganizationConfig) string {
+	excess := depth - config.MaxDirectoryDepth
+	if excess > 3 {
+		return "Restructure directory hierarchy - nesting is excessively deep"
+	}
+	return "Consider flattening directory structure"
 }

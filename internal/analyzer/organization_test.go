@@ -413,3 +413,487 @@ func createLineMetrics(total int) metrics.LineMetrics {
 		Blank:    total * 1 / 10,
 	}
 }
+
+// Tests for package size analysis
+
+func TestAnalyzePackageSizes(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name      string
+		packages  map[string]*PackageInfo
+		wantCount int
+	}{
+		{
+			name: "no oversized packages",
+			packages: map[string]*PackageInfo{
+				"small": {
+					Name:            "small",
+					Files:           []string{"a.go", "b.go"},
+					ExportedSymbols: 10,
+					TotalFunctions:  5,
+					CohesionScore:   0.8,
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "oversized by file count",
+			packages: map[string]*PackageInfo{
+				"large": {
+					Name:            "large",
+					Files:           make([]string, 25),
+					ExportedSymbols: 10,
+					TotalFunctions:  30,
+					CohesionScore:   0.8,
+				},
+			},
+			wantCount: 1,
+		},
+		{
+			name: "oversized by exported symbols",
+			packages: map[string]*PackageInfo{
+				"exports": {
+					Name:            "exports",
+					Files:           []string{"a.go"},
+					ExportedSymbols: 60,
+					TotalFunctions:  70,
+					CohesionScore:   0.8,
+				},
+			},
+			wantCount: 1,
+		},
+		{
+			name: "mega package",
+			packages: map[string]*PackageInfo{
+				"mega": {
+					Name:            "mega",
+					Files:           []string{"a.go"},
+					ExportedSymbols: 35,
+					TotalFunctions:  50,
+					CohesionScore:   0.3,
+				},
+			},
+			wantCount: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			results := analyzer.AnalyzePackageSizes(tt.packages, config)
+			assert.Len(t, results, tt.wantCount)
+
+			if tt.wantCount > 0 {
+				result := results[0]
+				assert.NotEmpty(t, result.Package)
+				assert.NotEmpty(t, result.Severity)
+				if tt.name == "mega package" {
+					assert.True(t, result.IsMegaPackage)
+				}
+			}
+		})
+	}
+}
+
+func TestIsPackageOversized(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name string
+		pkg  *PackageInfo
+		want bool
+	}{
+		{
+			name: "within limits",
+			pkg: &PackageInfo{
+				Files:           []string{"a.go"},
+				ExportedSymbols: 10,
+			},
+			want: false,
+		},
+		{
+			name: "too many files",
+			pkg: &PackageInfo{
+				Files:           make([]string, 25),
+				ExportedSymbols: 10,
+			},
+			want: true,
+		},
+		{
+			name: "too many exports",
+			pkg: &PackageInfo{
+				Files:           []string{"a.go"},
+				ExportedSymbols: 60,
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.isPackageOversized(tt.pkg, config)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestIsMegaPackage(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name string
+		pkg  *PackageInfo
+		want bool
+	}{
+		{
+			name: "not mega package",
+			pkg: &PackageInfo{
+				ExportedSymbols: 25,
+				CohesionScore:   0.6,
+			},
+			want: false,
+		},
+		{
+			name: "low cohesion but few exports",
+			pkg: &PackageInfo{
+				ExportedSymbols: 25,
+				CohesionScore:   0.3,
+			},
+			want: false,
+		},
+		{
+			name: "many exports but good cohesion",
+			pkg: &PackageInfo{
+				ExportedSymbols: 40,
+				CohesionScore:   0.7,
+			},
+			want: false,
+		},
+		{
+			name: "mega package",
+			pkg: &PackageInfo{
+				ExportedSymbols: 40,
+				CohesionScore:   0.3,
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.isMegaPackage(tt.pkg)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetPackageSeverity(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name string
+		pkg  *PackageInfo
+		want string
+	}{
+		{
+			name: "medium severity",
+			pkg: &PackageInfo{
+				Files:           make([]string, 25),
+				ExportedSymbols: 10,
+				CohesionScore:   0.8,
+			},
+			want: "medium",
+		},
+		{
+			name: "high severity",
+			pkg: &PackageInfo{
+				Files:           make([]string, 45),
+				ExportedSymbols: 10,
+				CohesionScore:   0.8,
+			},
+			want: "high",
+		},
+		{
+			name: "critical severity - violations",
+			pkg: &PackageInfo{
+				Files:           make([]string, 45),
+				ExportedSymbols: 110,
+				CohesionScore:   0.8,
+			},
+			want: "critical",
+		},
+		{
+			name: "critical severity - mega package",
+			pkg: &PackageInfo{
+				Files:           []string{"a.go"},
+				ExportedSymbols: 40,
+				CohesionScore:   0.3,
+			},
+			want: "critical",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getPackageSeverity(tt.pkg, config)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetPackageSuggestions(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name      string
+		pkg       *PackageInfo
+		wantCount int
+		wantMega  bool
+	}{
+		{
+			name: "no suggestions",
+			pkg: &PackageInfo{
+				Files:           []string{"a.go"},
+				ExportedSymbols: 10,
+				CohesionScore:   0.8,
+			},
+			wantCount: 0,
+			wantMega:  false,
+		},
+		{
+			name: "file count suggestion",
+			pkg: &PackageInfo{
+				Files:           make([]string, 25),
+				ExportedSymbols: 10,
+				CohesionScore:   0.8,
+			},
+			wantCount: 1,
+			wantMega:  false,
+		},
+		{
+			name: "mega package suggestion",
+			pkg: &PackageInfo{
+				Files:           make([]string, 25),
+				ExportedSymbols: 60,
+				CohesionScore:   0.3,
+			},
+			wantCount: 3,
+			wantMega:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suggestions := analyzer.getPackageSuggestions(tt.pkg, config)
+			assert.Len(t, suggestions, tt.wantCount)
+			if tt.wantMega {
+				found := false
+				for _, s := range suggestions {
+					if strings.Contains(s, "Mega-package") {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "should have mega package suggestion")
+			}
+		})
+	}
+}
+
+// Tests for directory depth analysis
+
+func TestAnalyzeDirectoryDepth(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name      string
+		paths     []string
+		rootPath  string
+		wantCount int
+	}{
+		{
+			name: "no deep directories",
+			paths: []string{
+				"/project/file1.go",
+				"/project/pkg/file2.go",
+			},
+			rootPath:  "/project",
+			wantCount: 0,
+		},
+		{
+			name: "deep directory",
+			paths: []string{
+				"/project/a/b/c/d/e/f/file.go",
+			},
+			rootPath:  "/project",
+			wantCount: 1,
+		},
+		{
+			name: "multiple files in deep directory",
+			paths: []string{
+				"/project/a/b/c/d/e/f/file1.go",
+				"/project/a/b/c/d/e/f/file2.go",
+			},
+			rootPath:  "/project",
+			wantCount: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			results := analyzer.AnalyzeDirectoryDepth(tt.paths, tt.rootPath, config)
+			assert.Len(t, results, tt.wantCount)
+
+			if tt.wantCount > 0 {
+				result := results[0]
+				assert.NotEmpty(t, result.Path)
+				assert.Greater(t, result.Depth, config.MaxDirectoryDepth)
+				assert.NotEmpty(t, result.Severity)
+				assert.NotEmpty(t, result.Suggestion)
+			}
+		})
+	}
+}
+
+func TestCalculateDepth(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name     string
+		dirPath  string
+		rootPath string
+		want     int
+	}{
+		{
+			name:     "root level",
+			dirPath:  "/project",
+			rootPath: "/project",
+			want:     0,
+		},
+		{
+			name:     "one level",
+			dirPath:  "/project/pkg",
+			rootPath: "/project",
+			want:     1,
+		},
+		{
+			name:     "multiple levels",
+			dirPath:  "/project/a/b/c",
+			rootPath: "/project",
+			want:     3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.calculateDepth(tt.dirPath, tt.rootPath)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetDirectoryPath(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{
+			name: "file in root",
+			path: "file.go",
+			want: ".",
+		},
+		{
+			name: "file in directory",
+			path: "/project/pkg/file.go",
+			want: "/project/pkg",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getDirectoryPath(tt.path)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetDepthSeverity(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name  string
+		depth int
+		want  string
+	}{
+		{
+			name:  "medium severity",
+			depth: 6,
+			want:  "medium",
+		},
+		{
+			name:  "high severity",
+			depth: 8,
+			want:  "high",
+		},
+		{
+			name:  "critical severity",
+			depth: 11,
+			want:  "critical",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getDepthSeverity(tt.depth, config)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetDepthSuggestion(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name  string
+		depth int
+		want  string
+	}{
+		{
+			name:  "moderate depth",
+			depth: 6,
+			want:  "Consider flattening directory structure",
+		},
+		{
+			name:  "excessive depth",
+			depth: 10,
+			want:  "Restructure directory hierarchy - nesting is excessively deep",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getDepthSuggestion(tt.depth, config)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
