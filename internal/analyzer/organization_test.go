@@ -1392,3 +1392,385 @@ func TestDefaultOrganizationConfig_ImportsField(t *testing.T) {
 	config := DefaultOrganizationConfig()
 	assert.Equal(t, 15, config.MaxFileImports, "default max file imports should be 15")
 }
+
+// TestCountFileLines_EdgeCases tests edge cases for line counting
+func TestCountFileLines_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name      string
+		content   string
+		wantCode  int
+		wantComm  int
+		wantBlank int
+	}{
+		{
+			name:      "mixed comment on code line",
+			content:   "x := 5 // inline comment",
+			wantCode:  1,
+			wantComm:  0,
+			wantBlank: 0,
+		},
+		{
+			name:      "block comment with code on same line",
+			content:   "/* comment */ package main",
+			wantCode:  0,
+			wantComm:  1,
+			wantBlank: 0,
+		},
+		{
+			name:      "multi-line block comment",
+			content:   "/*\nline1\nline2\n*/\npackage main",
+			wantCode:  1,
+			wantComm:  4,
+			wantBlank: 0,
+		},
+		{
+			name:      "nested block comment markers",
+			content:   "/* start /* nested */ end */\ncode",
+			wantCode:  1,
+			wantComm:  1,
+			wantBlank: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpFile := createTempFile(t, tt.content)
+			defer os.Remove(tmpFile)
+
+			fset := token.NewFileSet()
+			analyzer := NewOrganizationAnalyzer(fset)
+
+			lines := analyzer.countFileLines(tmpFile)
+			assert.Equal(t, tt.wantCode, lines.Code, "code lines")
+			assert.Equal(t, tt.wantComm, lines.Comments, "comment lines")
+			assert.Equal(t, tt.wantBlank, lines.Blank, "blank lines")
+		})
+	}
+}
+
+// TestCountFileLines_ReadError tests file read error handling
+func TestCountFileLines_ReadError(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	lines := analyzer.countFileLines("/nonexistent/path/file.go")
+	assert.Equal(t, 0, lines.Code)
+	assert.Equal(t, 0, lines.Comments)
+	assert.Equal(t, 0, lines.Blank)
+	assert.Equal(t, 0, lines.Total)
+}
+
+// TestAnalyzeLinesInFile_AllLineTypes tests all line classification types
+func TestAnalyzeLinesInFile_AllLineTypes(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	lines := []string{
+		"",
+		"// single line comment",
+		"x := 5",
+		"y := 10 // inline comment",
+		"/*",
+		"block comment line 1",
+		"block comment line 2",
+		"*/",
+		"z := 15",
+	}
+
+	result := analyzer.analyzeLinesInFile(lines)
+	assert.Greater(t, result.Code, 0, "should have code lines")
+	assert.Greater(t, result.Comments, 0, "should have comment lines")
+	assert.Greater(t, result.Blank, 0, "should have blank lines")
+	assert.Equal(t, result.Total, result.Code+result.Comments+result.Blank)
+}
+
+// BenchmarkAnalyzeFileSizes benchmarks file size analysis
+func BenchmarkAnalyzeFileSizes(b *testing.B) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	code := `package main
+
+import "fmt"
+
+type User struct {
+	ID   int
+	Name string
+}
+
+func (u *User) String() string {
+	return fmt.Sprintf("User %d: %s", u.ID, u.Name)
+}
+
+func main() {
+	u := &User{ID: 1, Name: "Alice"}
+	fmt.Println(u)
+}
+`
+	tmpFile := filepath.Join(b.TempDir(), "test.go")
+	err := os.WriteFile(tmpFile, []byte(code), 0o644)
+	require.NoError(b, err)
+
+	file, err := parser.ParseFile(fset, tmpFile, nil, 0)
+	require.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := analyzer.AnalyzeFileSizes(file, tmpFile, config)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkAnalyzePackageSizes benchmarks package size analysis
+func BenchmarkAnalyzePackageSizes(b *testing.B) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	packageData := map[string]*PackageInfo{
+		"main": {
+			Name:            "main",
+			Files:           []string{"file1.go", "file2.go", "file3.go"},
+			ExportedSymbols: 15,
+			TotalFunctions:  20,
+			CohesionScore:   0.8,
+		},
+		"util": {
+			Name:            "util",
+			Files:           []string{"util1.go", "util2.go"},
+			ExportedSymbols: 10,
+			TotalFunctions:  12,
+			CohesionScore:   0.9,
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		analyzer.AnalyzePackageSizes(packageData, config)
+	}
+}
+
+// BenchmarkAnalyzeDirectoryDepth benchmarks directory depth analysis
+func BenchmarkAnalyzeDirectoryDepth(b *testing.B) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	files := []string{
+		"/project/cmd/app/main.go",
+		"/project/internal/service/user/handler.go",
+		"/project/internal/service/user/repository.go",
+		"/project/pkg/util/string.go",
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		analyzer.AnalyzeDirectoryDepth(files, "/project", config)
+	}
+}
+
+// BenchmarkAnalyzeImportGraph benchmarks import graph analysis
+func BenchmarkAnalyzeImportGraph(b *testing.B) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	graphData := &ImportGraphData{
+		PackageFanIn: map[string][]string{
+			"main":    {"service", "util"},
+			"service": {"repository", "model"},
+			"util":    {},
+		},
+		PackageFanOut: map[string][]string{
+			"main":    {"service", "util"},
+			"service": {"repository", "model", "util"},
+			"util":    {},
+		},
+		FileImports: map[string]int{
+			"/project/cmd/main.go":            3,
+			"/project/internal/service.go":    3,
+			"/project/internal/repository.go": 1,
+		},
+		FilePackageMap: map[string]string{
+			"/project/cmd/main.go":            "main",
+			"/project/internal/service.go":    "service",
+			"/project/internal/repository.go": "repository",
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		analyzer.AnalyzeImportGraph(graphData, config)
+	}
+}
+
+// TestIntegration_RealTestdata tests against actual testdata files
+func TestIntegration_RealTestdata(t *testing.T) {
+	testdataPath := filepath.Join("testdata", "simple")
+	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
+		t.Skip("testdata/simple not found")
+	}
+
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	files, err := filepath.Glob(filepath.Join(testdataPath, "*.go"))
+	require.NoError(t, err)
+	require.NotEmpty(t, files, "should find test files")
+
+	for _, filePath := range files {
+		t.Run(filepath.Base(filePath), func(t *testing.T) {
+			file, err := parser.ParseFile(fset, filePath, nil, 0)
+			if err != nil {
+				t.Logf("Skipping unparseable file: %v", err)
+				return
+			}
+
+			result, err := analyzer.AnalyzeFileSizes(file, filePath, config)
+			require.NoError(t, err)
+			assert.NotNil(t, result)
+		})
+	}
+}
+
+// TestIntegration_EmptyPackage tests edge case of empty package
+func TestIntegration_EmptyPackage(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	packageData := map[string]*PackageInfo{}
+	result := analyzer.AnalyzePackageSizes(packageData, config)
+
+	assert.Equal(t, 0, len(result), "empty package data should return empty result")
+}
+
+// TestIntegration_SingleFilePackage tests single-file package
+func TestIntegration_SingleFilePackage(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	packageData := map[string]*PackageInfo{
+		"main": {
+			Name:            "main",
+			Files:           []string{"main.go"},
+			ExportedSymbols: 1,
+			TotalFunctions:  1,
+			CohesionScore:   1.0,
+		},
+	}
+
+	result := analyzer.AnalyzePackageSizes(packageData, config)
+	assert.Equal(t, 0, len(result), "single file package should not be flagged")
+}
+
+// TestGetSeverity_AllPaths tests all severity calculation paths
+func TestGetSeverity_AllPaths(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name      string
+		lines     int
+		funcCount int
+		typeCount int
+		want      string
+	}{
+		{
+			name:      "no violations - medium",
+			lines:     300,
+			funcCount: 5,
+			typeCount: 2,
+			want:      "medium",
+		},
+		{
+			name:      "one critical violation - high",
+			lines:     1200,
+			funcCount: 5,
+			typeCount: 2,
+			want:      "high",
+		},
+		{
+			name:      "one critical func violation - high",
+			lines:     300,
+			funcCount: 50,
+			typeCount: 2,
+			want:      "high",
+		},
+		{
+			name:      "one critical type violation - high",
+			lines:     300,
+			funcCount: 5,
+			typeCount: 15,
+			want:      "high",
+		},
+		{
+			name:      "two critical violations - critical",
+			lines:     1200,
+			funcCount: 50,
+			typeCount: 2,
+			want:      "critical",
+		},
+		{
+			name:      "three critical violations - critical",
+			lines:     1200,
+			funcCount: 50,
+			typeCount: 15,
+			want:      "critical",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lineMetrics := createLineMetrics(tt.lines)
+			result := analyzer.getSeverity(lineMetrics, tt.funcCount, tt.typeCount, config)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+// TestCalculateAvgInstability_EdgeCases tests edge cases for instability calculation
+func TestCalculateAvgInstability_EdgeCases(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name      string
+		graphData *ImportGraphData
+		want      float64
+	}{
+		{
+			name: "empty fan-out",
+			graphData: &ImportGraphData{
+				PackageFanOut: map[string][]string{},
+				PackageFanIn:  map[string][]string{},
+			},
+			want: 0.0,
+		},
+		{
+			name: "single package no deps",
+			graphData: &ImportGraphData{
+				PackageFanOut: map[string][]string{
+					"pkg1": {},
+				},
+				PackageFanIn: map[string][]string{
+					"pkg1": {},
+				},
+			},
+			want: 0.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.calculateAvgInstability(tt.graphData)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
