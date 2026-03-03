@@ -102,6 +102,10 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	finalizePlacementMetrics(report, analyzers, collectedMetrics, cfg)
 	finalizeDocumentationMetrics(report, analyzers, collectedMetrics, cfg)
 	finalizeOrganizationMetrics(report, analyzers, collectedMetrics, cfg, projectRoot)
+
+	// Generate refactoring suggestions after all metrics are finalized
+	finalizeRefactoringSuggestions(report, cfg)
+
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	if cfg.Output.Verbose {
@@ -177,6 +181,10 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	finalizePlacementMetrics(report, analyzers, metrics, cfg)
 	finalizeDocumentationMetrics(report, analyzers, metrics, cfg)
 	finalizeOrganizationMetrics(report, analyzers, metrics, cfg, targetDir)
+
+	// Step 6: Generate refactoring suggestions after all metrics are finalized
+	finalizeRefactoringSuggestions(report, cfg)
+
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	return report, nil
