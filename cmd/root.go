@@ -80,7 +80,20 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil && verbose {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	if err := viper.ReadInConfig(); err == nil {
+		if verbose {
+			fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		}
+	} else {
+		// Check if a config file was explicitly provided or exists but failed to load
+		if cfgFile != "" {
+			// Explicit config file provided but failed to load
+			fmt.Fprintf(os.Stderr, "Warning: Failed to load config file '%s': %v\n", cfgFile, err)
+		} else if _, configNotFoundErr := err.(viper.ConfigFileNotFoundError); !configNotFoundErr {
+			// Config file exists but has errors (YAML syntax, permissions, etc.)
+			fmt.Fprintf(os.Stderr, "Warning: Config file found but failed to load: %v\n", err)
+			fmt.Fprintln(os.Stderr, "Proceeding with default configuration and command-line flags.")
+		}
+		// If config file simply doesn't exist, proceed silently with defaults
 	}
 }
