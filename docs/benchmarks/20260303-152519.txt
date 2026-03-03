@@ -1,0 +1,16 @@
+goos: linux
+goarch: amd64
+pkg: github.com/opd-ai/go-stats-generator/cmd
+cpu: AMD Ryzen 7 7735HS with Radeon Graphics        
+BenchmarkFullAnalysis_CurrentCodebase-16       	       5	 473063901 ns/op	237743598 B/op	 3870094 allocs/op
+--- BENCH: BenchmarkFullAnalysis_CurrentCodebase-16
+    analyze_bench_test.go:34: Analyzing 127 Go files in /home/user/go/src/github.com/opd-ai/go-stats-generator
+    analyze_bench_test.go:34: Analyzing 127 Go files in /home/user/go/src/github.com/opd-ai/go-stats-generator
+
+BenchmarkFullAnalysis_WithMemoryTracking-16    	
+       5	 471908721 ns/op	        11.34 MB_peak	       127.0 files	         0.4712 sec/op	237812139 B/op	 3869951 allocs/op
+--- BENCH: BenchmarkFullAnalysis_WithMemoryTracking-16
+    analyze_bench_test.go:107: Performance: 270 files/sec, Peak memory: 10.2 MB
+    analyze_bench_test.go:107: Performance: 270 files/sec, Peak memory: 11.3 MB
+PASS
+ok  	github.com/opd-ai/go-stats-generator/cmd	5.899s

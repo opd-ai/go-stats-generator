@@ -41,7 +41,7 @@ func (pa *PatternAnalyzer) AnalyzePatterns(file *ast.File, pkgName, filePath str
 func (pa *PatternAnalyzer) detectSingleton(file *ast.File, filePath string, patterns *metrics.DesignPatternMetrics) {
 	hasSyncOnce := false
 	var onceLine int
-	
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		if genDecl, ok := n.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
 			for _, spec := range genDecl.Specs {
@@ -49,13 +49,13 @@ func (pa *PatternAnalyzer) detectSingleton(file *ast.File, filePath string, patt
 				if !ok {
 					continue
 				}
-				
+
 				for i, name := range valueSpec.Names {
 					if valueSpec.Type != nil && pa.isSyncOnce(valueSpec.Type) {
 						hasSyncOnce = true
 						onceLine = pa.fset.Position(name.Pos()).Line
 					}
-					
+
 					if i < len(valueSpec.Values) {
 						if compLit, ok := valueSpec.Values[i].(*ast.CompositeLit); ok {
 							if pa.isSyncOnce(compLit.Type) {
@@ -69,7 +69,7 @@ func (pa *PatternAnalyzer) detectSingleton(file *ast.File, filePath string, patt
 		}
 		return true
 	})
-	
+
 	if hasSyncOnce {
 		patterns.Singleton = append(patterns.Singleton, metrics.PatternInstance{
 			Name:            "Singleton (sync.Once)",
@@ -136,16 +136,16 @@ func (pa *PatternAnalyzer) detectBuilder(file *ast.File, filePath string, patter
 
 		if _, exists := typeBuilders[recvType]; !exists {
 			typeBuilders[recvType] = &builderCandidate{
-				typeName:     recvType,
-				line:         pa.fset.Position(funcDecl.Pos()).Line,
-				setterCount:  0,
-				hasBuild:     false,
-				returnsSelf:  0,
+				typeName:    recvType,
+				line:        pa.fset.Position(funcDecl.Pos()).Line,
+				setterCount: 0,
+				hasBuild:    false,
+				returnsSelf: 0,
 			}
 		}
 
 		candidate := typeBuilders[recvType]
-		
+
 		if strings.HasPrefix(funcDecl.Name.Name, "Set") || strings.HasPrefix(funcDecl.Name.Name, "With") {
 			candidate.setterCount++
 			if pa.returnsSelf(funcDecl, recvType) {
@@ -183,9 +183,9 @@ func (pa *PatternAnalyzer) detectObserver(file *ast.File, filePath string, patte
 		}
 
 		funcName := funcDecl.Name.Name
-		hasRegister := strings.Contains(funcName, "Register") || strings.Contains(funcName, "Add") || 
+		hasRegister := strings.Contains(funcName, "Register") || strings.Contains(funcName, "Add") ||
 			strings.Contains(funcName, "Subscribe") || strings.Contains(funcName, "Listen")
-		
+
 		if !hasRegister {
 			return true
 		}
@@ -224,8 +224,8 @@ func (pa *PatternAnalyzer) detectStrategy(file *ast.File, filePath string, patte
 				typeName := typeSpec.Name.Name
 				if _, exists := typeStrategies[typeName]; !exists {
 					typeStrategies[typeName] = &strategyCandidate{
-						typeName:     typeName,
-						line:         pa.fset.Position(typeSpec.Pos()).Line,
+						typeName:        typeName,
+						line:            pa.fset.Position(typeSpec.Pos()).Line,
 						interfaceFields: 1,
 					}
 				} else {
@@ -324,7 +324,7 @@ func (pa *PatternAnalyzer) returnsSelf(funcDecl *ast.FuncDecl, recvType string) 
 	if funcDecl.Type.Results == nil || len(funcDecl.Type.Results.List) == 0 {
 		return false
 	}
-	
+
 	for _, result := range funcDecl.Type.Results.List {
 		switch t := result.Type.(type) {
 		case *ast.StarExpr:
@@ -344,7 +344,7 @@ func (pa *PatternAnalyzer) hasCallbackParam(funcDecl *ast.FuncDecl) bool {
 	if funcDecl.Type.Params == nil {
 		return false
 	}
-	
+
 	for _, param := range funcDecl.Type.Params.List {
 		if _, ok := param.Type.(*ast.FuncType); ok {
 			return true
