@@ -218,6 +218,13 @@ storage:
   type: sqlite                      # Storage backend: "sqlite" or "json"
   path: .go-stats-generator/metrics.db
   compression: true
+
+maintenance:
+  burden:
+    max_params: 5                   # Maximum parameters before flagging function signature
+    max_returns: 3                  # Maximum return values before flagging function signature
+    max_nesting: 4                  # Maximum nesting depth before flagging deep nesting
+    feature_envy_ratio: 2.0         # External reference threshold for feature envy detection
 ```
 
 ### Duplication Detection Configuration
@@ -242,6 +249,38 @@ go-stats-generator analyze . --ignore-test-duplication
 
 # Combine multiple duplication settings
 go-stats-generator analyze . --min-block-lines 4 --similarity-threshold 0.85 --ignore-test-duplication
+```
+
+### Maintenance Burden Configuration
+
+The tool detects maintenance burden indicators including magic numbers, dead code, complex signatures, deep nesting, and feature envy patterns:
+
+**CLI Flags:**
+- `--max-params` (default: 5) - Maximum function parameters before flagging high signature complexity
+- `--max-returns` (default: 3) - Maximum return values before flagging high signature complexity
+- `--max-nesting` (default: 4) - Maximum nesting depth before flagging deeply nested code
+- `--feature-envy-ratio` (default: 2.0) - Threshold ratio for detecting feature envy (external references / self references)
+
+**What is detected:**
+- **Magic Numbers**: Numeric and string literals that should be named constants (excludes 0, 1, -1, "")
+- **Dead Code**: Unreferenced unexported functions and unreachable code after return/panic/os.Exit
+- **Signature Complexity**: Functions with too many parameters, return values, or boolean flag parameters
+- **Deep Nesting**: Functions with excessive control structure nesting that should use guard clauses
+- **Feature Envy**: Methods that reference external objects more than their own receiver (misplaced methods)
+
+**Examples:**
+```bash
+# Stricter signature complexity thresholds
+go-stats-generator analyze . --max-params 3 --max-returns 2
+
+# Allow deeper nesting for complex algorithms
+go-stats-generator analyze . --max-nesting 6
+
+# More sensitive feature envy detection
+go-stats-generator analyze . --feature-envy-ratio 1.5
+
+# Combine maintenance burden settings
+go-stats-generator analyze . --max-params 4 --max-nesting 3 --feature-envy-ratio 2.5
 ```
 
 ## Metrics Explained
