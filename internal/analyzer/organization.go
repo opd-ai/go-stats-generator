@@ -29,6 +29,7 @@ type OrganizationConfig struct {
 	MaxPackageFiles    int
 	MaxExportedSymbols int
 	MaxDirectoryDepth  int
+	MaxFileImports     int
 }
 
 // DefaultOrganizationConfig returns default configuration
@@ -40,6 +41,7 @@ func DefaultOrganizationConfig() OrganizationConfig {
 		MaxPackageFiles:    20,
 		MaxExportedSymbols: 50,
 		MaxDirectoryDepth:  5,
+		MaxFileImports:     15,
 	}
 }
 
@@ -402,4 +404,204 @@ func (oa *OrganizationAnalyzer) getDepthSuggestion(depth int, config Organizatio
 		return "Restructure directory hierarchy - nesting is excessively deep"
 	}
 	return "Consider flattening directory structure"
+}
+
+// ImportGraphData tracks import relationships across the codebase
+type ImportGraphData struct {
+	FileImports    map[string]int      // file -> import count
+	PackageFanIn   map[string][]string // package -> packages that import it
+	PackageFanOut  map[string][]string // package -> packages it imports
+	FilePackageMap map[string]string   // file -> package name
+}
+
+// AnalyzeImportGraph analyzes import relationships and identifies problematic patterns
+func (oa *OrganizationAnalyzer) AnalyzeImportGraph(graphData *ImportGraphData, config OrganizationConfig) (*ImportGraphMetrics, error) {
+	if graphData == nil {
+		return nil, nil
+	}
+
+	metrics := &ImportGraphMetrics{
+		FileImportViolations: oa.findFileImportViolations(graphData, config),
+		HighFanInPackages:    oa.findHighFanIn(graphData),
+		HighFanOutPackages:   oa.findHighFanOut(graphData),
+	}
+
+	metrics.AvgInstability = oa.calculateAvgInstability(graphData)
+
+	return metrics, nil
+}
+
+// ImportGraphMetrics holds import graph analysis results
+type ImportGraphMetrics struct {
+	FileImportViolations []FileImportViolation
+	HighFanInPackages    []metrics.FanInPackage
+	HighFanOutPackages   []metrics.FanOutPackage
+	AvgInstability       float64
+}
+
+// FileImportViolation represents a file with too many imports
+type FileImportViolation struct {
+	File        string
+	Package     string
+	ImportCount int
+	Severity    string
+	Suggestion  string
+}
+
+// findFileImportViolations identifies files with excessive imports
+func (oa *OrganizationAnalyzer) findFileImportViolations(graphData *ImportGraphData, config OrganizationConfig) []FileImportViolation {
+	var violations []FileImportViolation
+
+	for file, count := range graphData.FileImports {
+		if count > config.MaxFileImports {
+			violations = append(violations, FileImportViolation{
+				File:        file,
+				Package:     graphData.FilePackageMap[file],
+				ImportCount: count,
+				Severity:    oa.getImportSeverity(count, config),
+				Suggestion:  oa.getImportSuggestion(count, config),
+			})
+		}
+	}
+
+	return violations
+}
+
+// getImportSeverity determines severity of import count violation
+func (oa *OrganizationAnalyzer) getImportSeverity(count int, config OrganizationConfig) string {
+	threshold := float64(config.MaxFileImports)
+	if float64(count) > threshold*2 {
+		return "critical"
+	}
+	if float64(count) > threshold*1.5 {
+		return "high"
+	}
+	return "medium"
+}
+
+// getImportSuggestion generates import violation suggestion
+func (oa *OrganizationAnalyzer) getImportSuggestion(count int, config OrganizationConfig) string {
+	excess := count - config.MaxFileImports
+	if excess > 10 {
+		return "Excessive imports - split into multiple focused files"
+	}
+	return "Too many imports - consider refactoring to reduce dependencies"
+}
+
+// findHighFanIn identifies hub packages with high incoming dependencies
+func (oa *OrganizationAnalyzer) findHighFanIn(graphData *ImportGraphData) []metrics.FanInPackage {
+	var results []metrics.FanInPackage
+	threshold := 3
+
+	for pkg, dependents := range graphData.PackageFanIn {
+		fanIn := len(dependents)
+		if fanIn >= threshold {
+			results = append(results, metrics.FanInPackage{
+				Package:      pkg,
+				FanIn:        fanIn,
+				Dependents:   dependents,
+				IsBottleneck: fanIn >= 5,
+				RiskLevel:    oa.getFanInRisk(fanIn),
+				Suggestion:   oa.getFanInSuggestion(fanIn),
+			})
+		}
+	}
+
+	return results
+}
+
+// getFanInRisk determines risk level for high fan-in
+func (oa *OrganizationAnalyzer) getFanInRisk(fanIn int) string {
+	if fanIn >= 10 {
+		return "critical"
+	}
+	if fanIn >= 5 {
+		return "high"
+	}
+	return "medium"
+}
+
+// getFanInSuggestion generates suggestion for high fan-in
+func (oa *OrganizationAnalyzer) getFanInSuggestion(fanIn int) string {
+	if fanIn >= 10 {
+		return "Critical bottleneck - changes to this package affect many dependents"
+	}
+	return "Hub package - ensure stability and comprehensive testing"
+}
+
+// findHighFanOut identifies authority packages with high outgoing dependencies
+func (oa *OrganizationAnalyzer) findHighFanOut(graphData *ImportGraphData) []metrics.FanOutPackage {
+	var results []metrics.FanOutPackage
+	threshold := 5
+
+	for pkg, dependencies := range graphData.PackageFanOut {
+		fanOut := len(dependencies)
+		if fanOut >= threshold {
+			fanIn := len(graphData.PackageFanIn[pkg])
+			instability := oa.calculateInstability(fanIn, fanOut)
+
+			results = append(results, metrics.FanOutPackage{
+				Package:      pkg,
+				FanOut:       fanOut,
+				Dependencies: dependencies,
+				Instability:  instability,
+				CouplingRisk: oa.getCouplingRisk(fanOut, instability),
+				Suggestion:   oa.getFanOutSuggestion(fanOut),
+			})
+		}
+	}
+
+	return results
+}
+
+// calculateInstability computes Martin's instability metric: Ce / (Ca + Ce)
+func (oa *OrganizationAnalyzer) calculateInstability(fanIn, fanOut int) float64 {
+	total := fanIn + fanOut
+	if total == 0 {
+		return 0.0
+	}
+	return float64(fanOut) / float64(total)
+}
+
+// getCouplingRisk determines coupling risk level
+func (oa *OrganizationAnalyzer) getCouplingRisk(fanOut int, instability float64) string {
+	if fanOut >= 10 && instability > 0.7 {
+		return "critical"
+	}
+	if fanOut >= 7 || instability > 0.6 {
+		return "high"
+	}
+	return "medium"
+}
+
+// getFanOutSuggestion generates suggestion for high fan-out
+func (oa *OrganizationAnalyzer) getFanOutSuggestion(fanOut int) string {
+	if fanOut >= 10 {
+		return "Excessive coupling - refactor to reduce dependencies"
+	}
+	return "High coupling - consider dependency injection or interfaces"
+}
+
+// calculateAvgInstability computes average instability across all packages
+func (oa *OrganizationAnalyzer) calculateAvgInstability(graphData *ImportGraphData) float64 {
+	if len(graphData.PackageFanOut) == 0 {
+		return 0.0
+	}
+
+	total := 0.0
+	count := 0
+
+	for pkg, fanOutDeps := range graphData.PackageFanOut {
+		fanOut := len(fanOutDeps)
+		fanIn := len(graphData.PackageFanIn[pkg])
+		instability := oa.calculateInstability(fanIn, fanOut)
+		total += instability
+		count++
+	}
+
+	if count == 0 {
+		return 0.0
+	}
+
+	return total / float64(count)
 }

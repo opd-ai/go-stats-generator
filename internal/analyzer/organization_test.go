@@ -897,3 +897,498 @@ func TestGetDepthSuggestion(t *testing.T) {
 		})
 	}
 }
+
+// Tests for import graph analysis
+
+func TestAnalyzeImportGraph(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name           string
+		graphData      *ImportGraphData
+		wantViolations int
+		wantFanIn      int
+		wantFanOut     int
+	}{
+		{
+			name:           "nil graph data",
+			graphData:      nil,
+			wantViolations: 0,
+			wantFanIn:      0,
+			wantFanOut:     0,
+		},
+		{
+			name: "no violations",
+			graphData: &ImportGraphData{
+				FileImports:    map[string]int{"file1.go": 5},
+				PackageFanIn:   map[string][]string{},
+				PackageFanOut:  map[string][]string{},
+				FilePackageMap: map[string]string{"file1.go": "pkg"},
+			},
+			wantViolations: 0,
+			wantFanIn:      0,
+			wantFanOut:     0,
+		},
+		{
+			name: "file import violations",
+			graphData: &ImportGraphData{
+				FileImports:    map[string]int{"file1.go": 20},
+				PackageFanIn:   map[string][]string{},
+				PackageFanOut:  map[string][]string{},
+				FilePackageMap: map[string]string{"file1.go": "pkg"},
+			},
+			wantViolations: 1,
+			wantFanIn:      0,
+			wantFanOut:     0,
+		},
+		{
+			name: "high fan-in",
+			graphData: &ImportGraphData{
+				FileImports: map[string]int{},
+				PackageFanIn: map[string][]string{
+					"hub": {"pkg1", "pkg2", "pkg3", "pkg4"},
+				},
+				PackageFanOut:  map[string][]string{},
+				FilePackageMap: map[string]string{},
+			},
+			wantViolations: 0,
+			wantFanIn:      1,
+			wantFanOut:     0,
+		},
+		{
+			name: "high fan-out",
+			graphData: &ImportGraphData{
+				FileImports:  map[string]int{},
+				PackageFanIn: map[string][]string{},
+				PackageFanOut: map[string][]string{
+					"authority": {"dep1", "dep2", "dep3", "dep4", "dep5", "dep6"},
+				},
+				FilePackageMap: map[string]string{},
+			},
+			wantViolations: 0,
+			wantFanIn:      0,
+			wantFanOut:     1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := analyzer.AnalyzeImportGraph(tt.graphData, config)
+			require.NoError(t, err)
+
+			if tt.graphData == nil {
+				assert.Nil(t, result)
+				return
+			}
+
+			assert.NotNil(t, result)
+			assert.Len(t, result.FileImportViolations, tt.wantViolations)
+			assert.Len(t, result.HighFanInPackages, tt.wantFanIn)
+			assert.Len(t, result.HighFanOutPackages, tt.wantFanOut)
+		})
+	}
+}
+
+func TestFindFileImportViolations(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	graphData := &ImportGraphData{
+		FileImports: map[string]int{
+			"normal.go":   10,
+			"high.go":     20,
+			"critical.go": 35,
+		},
+		FilePackageMap: map[string]string{
+			"normal.go":   "pkg",
+			"high.go":     "pkg",
+			"critical.go": "pkg",
+		},
+	}
+
+	violations := analyzer.findFileImportViolations(graphData, config)
+	assert.Len(t, violations, 2)
+
+	for _, v := range violations {
+		assert.Greater(t, v.ImportCount, config.MaxFileImports)
+		assert.NotEmpty(t, v.Severity)
+		assert.NotEmpty(t, v.Suggestion)
+	}
+}
+
+func TestGetImportSeverity(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name  string
+		count int
+		want  string
+	}{
+		{
+			name:  "medium severity",
+			count: 18,
+			want:  "medium",
+		},
+		{
+			name:  "high severity",
+			count: 25,
+			want:  "high",
+		},
+		{
+			name:  "critical severity",
+			count: 35,
+			want:  "critical",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getImportSeverity(tt.count, config)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetImportSuggestion(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+	config := DefaultOrganizationConfig()
+
+	tests := []struct {
+		name  string
+		count int
+		want  string
+	}{
+		{
+			name:  "moderate excess",
+			count: 18,
+			want:  "Too many imports - consider refactoring to reduce dependencies",
+		},
+		{
+			name:  "excessive imports",
+			count: 30,
+			want:  "Excessive imports - split into multiple focused files",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getImportSuggestion(tt.count, config)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestFindHighFanIn(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	graphData := &ImportGraphData{
+		PackageFanIn: map[string][]string{
+			"low":      {"dep1", "dep2"},
+			"medium":   {"dep1", "dep2", "dep3"},
+			"high":     {"dep1", "dep2", "dep3", "dep4", "dep5"},
+			"critical": {"d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10"},
+		},
+	}
+
+	results := analyzer.findHighFanIn(graphData)
+	assert.GreaterOrEqual(t, len(results), 2)
+
+	for _, r := range results {
+		assert.GreaterOrEqual(t, r.FanIn, 3)
+		assert.NotEmpty(t, r.RiskLevel)
+		assert.NotEmpty(t, r.Suggestion)
+		if r.FanIn >= 5 {
+			assert.True(t, r.IsBottleneck)
+		}
+	}
+}
+
+func TestGetFanInRisk(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name  string
+		fanIn int
+		want  string
+	}{
+		{
+			name:  "medium risk",
+			fanIn: 3,
+			want:  "medium",
+		},
+		{
+			name:  "high risk",
+			fanIn: 6,
+			want:  "high",
+		},
+		{
+			name:  "critical risk",
+			fanIn: 12,
+			want:  "critical",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getFanInRisk(tt.fanIn)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetFanInSuggestion(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name  string
+		fanIn int
+		want  string
+	}{
+		{
+			name:  "moderate fan-in",
+			fanIn: 4,
+			want:  "Hub package - ensure stability and comprehensive testing",
+		},
+		{
+			name:  "critical fan-in",
+			fanIn: 12,
+			want:  "Critical bottleneck - changes to this package affect many dependents",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getFanInSuggestion(tt.fanIn)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestFindHighFanOut(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	graphData := &ImportGraphData{
+		PackageFanIn: map[string][]string{
+			"low":    {},
+			"medium": {"dep1"},
+		},
+		PackageFanOut: map[string][]string{
+			"low":    {"dep1", "dep2"},
+			"medium": {"dep1", "dep2", "dep3", "dep4", "dep5"},
+			"high":   {"d1", "d2", "d3", "d4", "d5", "d6", "d7"},
+		},
+	}
+
+	results := analyzer.findHighFanOut(graphData)
+	assert.GreaterOrEqual(t, len(results), 1)
+
+	for _, r := range results {
+		assert.GreaterOrEqual(t, r.FanOut, 5)
+		assert.NotEmpty(t, r.CouplingRisk)
+		assert.NotEmpty(t, r.Suggestion)
+		assert.GreaterOrEqual(t, r.Instability, 0.0)
+		assert.LessOrEqual(t, r.Instability, 1.0)
+	}
+}
+
+func TestCalculateInstability(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name    string
+		fanIn   int
+		fanOut  int
+		want    float64
+		wantMin float64
+		wantMax float64
+	}{
+		{
+			name:    "no dependencies",
+			fanIn:   0,
+			fanOut:  0,
+			want:    0.0,
+			wantMin: 0.0,
+			wantMax: 0.0,
+		},
+		{
+			name:    "only incoming",
+			fanIn:   5,
+			fanOut:  0,
+			want:    0.0,
+			wantMin: 0.0,
+			wantMax: 0.0,
+		},
+		{
+			name:    "only outgoing",
+			fanIn:   0,
+			fanOut:  5,
+			want:    1.0,
+			wantMin: 1.0,
+			wantMax: 1.0,
+		},
+		{
+			name:    "balanced",
+			fanIn:   5,
+			fanOut:  5,
+			wantMin: 0.45,
+			wantMax: 0.55,
+		},
+		{
+			name:    "more outgoing",
+			fanIn:   2,
+			fanOut:  8,
+			wantMin: 0.75,
+			wantMax: 0.85,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.calculateInstability(tt.fanIn, tt.fanOut)
+			if tt.want > 0 {
+				assert.Equal(t, tt.want, result)
+			} else {
+				assert.GreaterOrEqual(t, result, tt.wantMin)
+				assert.LessOrEqual(t, result, tt.wantMax)
+			}
+		})
+	}
+}
+
+func TestGetCouplingRisk(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name        string
+		fanOut      int
+		instability float64
+		want        string
+	}{
+		{
+			name:        "medium risk",
+			fanOut:      5,
+			instability: 0.5,
+			want:        "medium",
+		},
+		{
+			name:        "high risk - high instability",
+			fanOut:      6,
+			instability: 0.7,
+			want:        "high",
+		},
+		{
+			name:        "high risk - many deps",
+			fanOut:      8,
+			instability: 0.5,
+			want:        "high",
+		},
+		{
+			name:        "critical risk",
+			fanOut:      12,
+			instability: 0.8,
+			want:        "critical",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getCouplingRisk(tt.fanOut, tt.instability)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestGetFanOutSuggestion(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name   string
+		fanOut int
+		want   string
+	}{
+		{
+			name:   "moderate fan-out",
+			fanOut: 6,
+			want:   "High coupling - consider dependency injection or interfaces",
+		},
+		{
+			name:   "excessive fan-out",
+			fanOut: 12,
+			want:   "Excessive coupling - refactor to reduce dependencies",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.getFanOutSuggestion(tt.fanOut)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestCalculateAvgInstability(t *testing.T) {
+	fset := token.NewFileSet()
+	analyzer := NewOrganizationAnalyzer(fset)
+
+	tests := []struct {
+		name       string
+		graphData  *ImportGraphData
+		wantMin    float64
+		wantMax    float64
+		expectZero bool
+	}{
+		{
+			name: "no packages",
+			graphData: &ImportGraphData{
+				PackageFanIn:  map[string][]string{},
+				PackageFanOut: map[string][]string{},
+			},
+			expectZero: true,
+		},
+		{
+			name: "mixed instability",
+			graphData: &ImportGraphData{
+				PackageFanIn: map[string][]string{
+					"pkg1": {"dep1"},
+					"pkg2": {},
+				},
+				PackageFanOut: map[string][]string{
+					"pkg1": {"dep1"},
+					"pkg2": {"dep1", "dep2", "dep3"},
+				},
+			},
+			wantMin: 0.4,
+			wantMax: 0.8,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := analyzer.calculateAvgInstability(tt.graphData)
+			if tt.expectZero {
+				assert.Equal(t, 0.0, result)
+			} else {
+				assert.GreaterOrEqual(t, result, tt.wantMin)
+				assert.LessOrEqual(t, result, tt.wantMax)
+			}
+		})
+	}
+}
+
+func TestDefaultOrganizationConfig_ImportsField(t *testing.T) {
+	config := DefaultOrganizationConfig()
+	assert.Equal(t, 15, config.MaxFileImports, "default max file imports should be 15")
+}
