@@ -25,6 +25,7 @@ type AnalysisConfig struct {
 	IncludeComplexity    bool `mapstructure:"include_complexity" json:"include_complexity"`
 	IncludeDocumentation bool `mapstructure:"include_documentation" json:"include_documentation"`
 	IncludeGenerics      bool `mapstructure:"include_generics" json:"include_generics"`
+	EnableTeamMetrics    bool `mapstructure:"enable_team_metrics" json:"enable_team_metrics"`
 
 	// Test coverage integration
 	CoverageProfile string `mapstructure:"coverage_profile" json:"coverage_profile"`

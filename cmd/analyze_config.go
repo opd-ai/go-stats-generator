@@ -105,6 +105,9 @@ func loadBasicAnalysisSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.include_generics") {
 		cfg.Analysis.IncludeGenerics = viper.GetBool("analysis.include_generics")
 	}
+	if viper.IsSet("analysis.enable_team_metrics") {
+		cfg.Analysis.EnableTeamMetrics = viper.GetBool("analysis.enable_team_metrics")
+	}
 	if viper.IsSet("analysis.coverage_profile") {
 		cfg.Analysis.CoverageProfile = viper.GetString("analysis.coverage_profile")
 	}

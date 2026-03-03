@@ -25,6 +25,7 @@ type Report struct {
 	Scores               ScoringMetrics       `json:"scores"`
 	TestCoverage         TestCoverageMetrics  `json:"test_coverage,omitempty"`
 	TestQuality          TestQualityMetrics   `json:"test_quality,omitempty"`
+	Team                 *TeamMetrics         `json:"team,omitempty"`
 	Suggestions          []SuggestionInfo     `json:"suggestions,omitempty"`
 }
 
@@ -1215,4 +1216,22 @@ type TestFileInfo struct {
 	SubtestCount   int     `json:"subtest_count"`
 	AssertionCount int     `json:"assertion_count"`
 	AssertionRatio float64 `json:"assertion_ratio"`
+}
+
+// TeamMetrics represents team productivity analysis
+type TeamMetrics struct {
+	Developers      map[string]*DeveloperMetrics `json:"developers"`
+	TotalDevelopers int                          `json:"total_developers"`
+}
+
+// DeveloperMetrics represents individual contributor stats
+type DeveloperMetrics struct {
+	Name            string    `json:"name"`
+	CommitCount     int       `json:"commit_count"`
+	LinesAdded      int       `json:"lines_added"`
+	LinesRemoved    int       `json:"lines_removed"`
+	FilesModified   int       `json:"files_modified"`
+	FirstCommitDate time.Time `json:"first_commit_date"`
+	LastCommitDate  time.Time `json:"last_commit_date"`
+	ActiveDays      int       `json:"active_days"`
 }

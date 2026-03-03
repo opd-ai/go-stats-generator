@@ -721,3 +721,26 @@ func finalizeTestCoverageMetrics(report *metrics.Report, cfg *config.Config) {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze test quality: %v\n", err)
 	}
 }
+
+// finalizeTeamMetrics analyzes Git history for team productivity
+func finalizeTeamMetrics(report *metrics.Report, targetPath string, cfg *config.Config) {
+	// Skip if feature disabled
+	if !cfg.Analysis.EnableTeamMetrics {
+		return
+	}
+
+	teamAnalyzer := analyzer.NewTeamAnalyzer(targetPath)
+	teamMetrics, err := teamAnalyzer.AnalyzeTeamMetrics()
+	if err != nil {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Warning: team metrics unavailable (not a Git repo?): %v\n", err)
+		}
+		return
+	}
+
+	report.Team = teamMetrics
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Team metrics: %d developers analyzed\n",
+			teamMetrics.TotalDevelopers)
+	}
+}
