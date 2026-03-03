@@ -65,6 +65,9 @@ func (d *DocumentationAnalyzer) Analyze(files []*ast.File, pkgs map[string]*ast.
 	// Analyze exported symbols for documentation coverage
 	d.analyzeExportedSymbols(files, m)
 
+	// Analyze package-level documentation
+	d.analyzePackageDocs(files, pkgs, m)
+
 	return m
 }
 
@@ -185,4 +188,35 @@ func (d *DocumentationAnalyzer) getSeverity(category string) string {
 		return severity
 	}
 	return "low"
+}
+
+// analyzePackageDocs checks for package-level documentation
+func (d *DocumentationAnalyzer) analyzePackageDocs(files []*ast.File, pkgs map[string]*ast.Package, m *metrics.DocumentationMetrics) {
+	pkgDocs := make(map[string]bool)
+	totalPkgs := 0
+
+	for _, file := range files {
+		pkgName := file.Name.Name
+		if _, seen := pkgDocs[pkgName]; !seen {
+			totalPkgs++
+			pkgDocs[pkgName] = d.hasPackageDoc(file)
+		}
+	}
+
+	documented := 0
+	for _, hasDoc := range pkgDocs {
+		if hasDoc {
+			documented++
+		}
+	}
+
+	m.Coverage.Packages = calculatePercentage(documented, totalPkgs)
+}
+
+// hasPackageDoc checks if a file has package-level documentation
+func (d *DocumentationAnalyzer) hasPackageDoc(file *ast.File) bool {
+	if file.Doc != nil && file.Doc.Text() != "" {
+		return true
+	}
+	return false
 }

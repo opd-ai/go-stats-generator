@@ -391,3 +391,104 @@ type Type2 struct{}
 	// 3 of 4 total documented = 75%
 	assert.Equal(t, 75.0, result.Coverage.Overall)
 }
+
+func TestAnalyzePackageDocs(t *testing.T) {
+	tests := []struct {
+		name           string
+		sources        []string
+		expectedPkgCov float64
+	}{
+		{
+			name: "all packages documented",
+			sources: []string{
+				`// Package test provides testing utilities.
+package test
+
+// MyFunc performs an operation.
+func MyFunc() {}`,
+				`// Package helper contains helper functions.
+package helper
+
+// HelperFunc assists with operations.
+func HelperFunc() {}`,
+			},
+			expectedPkgCov: 100.0,
+		},
+		{
+			name: "no packages documented",
+			sources: []string{
+				`package test
+
+func MyFunc() {}`,
+				`package helper
+
+func HelperFunc() {}`,
+			},
+			expectedPkgCov: 0.0,
+		},
+		{
+			name: "partially documented",
+			sources: []string{
+				`// Package test provides testing utilities.
+package test
+
+func MyFunc() {}`,
+				`package helper
+
+func HelperFunc() {}`,
+			},
+			expectedPkgCov: 50.0,
+		},
+		{
+			name: "single package with doc",
+			sources: []string{
+				`// Package test provides testing utilities and helpers.
+package test
+
+func Func1() {}`,
+			},
+			expectedPkgCov: 100.0,
+		},
+		{
+			name: "single package without doc",
+			sources: []string{
+				`package test
+
+func Func1() {}`,
+			},
+			expectedPkgCov: 0.0,
+		},
+		{
+			name: "multiple files same package",
+			sources: []string{
+				`// Package test provides testing utilities.
+package test
+
+func Func1() {}`,
+				`package test
+
+func Func2() {}`,
+			},
+			expectedPkgCov: 100.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			analyzer := NewDocumentationAnalyzer(fset, nil)
+
+			var files []*ast.File
+			for i, src := range tt.sources {
+				file, err := parser.ParseFile(fset, "test"+string(rune('0'+i))+".go", src, parser.ParseComments)
+				require.NoError(t, err)
+				files = append(files, file)
+			}
+
+			result := analyzer.Analyze(files, nil)
+			require.NotNil(t, result)
+
+			assert.Equal(t, tt.expectedPkgCov, result.Coverage.Packages, "Package coverage mismatch")
+		})
+	}
+}
