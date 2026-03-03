@@ -246,7 +246,8 @@ type GoroutineMetrics struct {
 	Instances      []GoroutineInstance    `json:"instances"`
 }
 
-// ChannelMetrics tracks channel usage patterns
+// ChannelMetrics tracks channel usage patterns including buffered, unbuffered,
+// and directional channel counts along with detailed instance information.
 type ChannelMetrics struct {
 	TotalCount       int               `json:"total_count"`
 	BufferedCount    int               `json:"buffered_count"`
@@ -368,7 +369,8 @@ type DocumentationMetrics struct {
 	AnnotationsByCategory map[string]int        `json:"annotations_by_category"`
 }
 
-// DocumentationCoverage tracks GoDoc coverage
+// DocumentationCoverage tracks GoDoc coverage percentages for packages,
+// functions, types, and methods, plus an overall weighted coverage score.
 type DocumentationCoverage struct {
 	Packages  float64 `json:"packages"`
 	Functions float64 `json:"functions"`

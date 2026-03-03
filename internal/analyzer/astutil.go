@@ -5,7 +5,8 @@ import (
 	"go/token"
 )
 
-// CollectFunctions extracts all function declarations from an AST file
+// CollectFunctions extracts all function declarations from an AST file.
+// It traverses the entire AST tree and returns a slice of FuncDecl pointers.
 func CollectFunctions(file *ast.File) []*ast.FuncDecl {
 	var funcs []*ast.FuncDecl
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -17,7 +18,8 @@ func CollectFunctions(file *ast.File) []*ast.FuncDecl {
 	return funcs
 }
 
-// CollectTypes extracts all type declarations from an AST file
+// CollectTypes extracts all type declarations from an AST file.
+// It inspects GenDecl nodes with TYPE token and returns all TypeSpec found.
 func CollectTypes(file *ast.File) []*ast.TypeSpec {
 	var types []*ast.TypeSpec
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -33,7 +35,8 @@ func CollectTypes(file *ast.File) []*ast.TypeSpec {
 	return types
 }
 
-// ExtractReceiverType extracts the type name from a receiver expression
+// ExtractReceiverType extracts the type name from a receiver expression.
+// It handles pointer receivers, generic types, and simple identifiers.
 func ExtractReceiverType(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:
@@ -50,7 +53,7 @@ func ExtractReceiverType(expr ast.Expr) string {
 	return ""
 }
 
-// IsMethod checks if a FuncDecl is a method (has a receiver)
+// IsMethod checks if a FuncDecl is a method by verifying it has a receiver.
 func IsMethod(fn *ast.FuncDecl) bool {
 	return fn.Recv != nil && len(fn.Recv.List) > 0
 }
@@ -63,7 +66,8 @@ func GetMethodReceiverType(fn *ast.FuncDecl) string {
 	return ExtractReceiverType(fn.Recv.List[0].Type)
 }
 
-// CountNodes counts the number of AST nodes in a statement list
+// CountNodes counts the number of AST nodes in a statement list.
+// It recursively inspects each statement and counts all non-nil nodes.
 func CountNodes(stmts []ast.Stmt) int {
 	count := 0
 	for _, stmt := range stmts {

@@ -7,7 +7,8 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
-// JSONReporter generates JSON output
+// JSONReporter generates JSON formatted output for analysis reports and diffs.
+// It implements the Reporter interface and produces properly indented JSON.
 type JSONReporter struct {
 	indent bool
 }

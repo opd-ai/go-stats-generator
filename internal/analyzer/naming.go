@@ -32,7 +32,8 @@ type identifierContext struct {
 	validSingleLetters map[string]bool
 }
 
-// NewNamingAnalyzer creates a new naming analyzer
+// NewNamingAnalyzer creates a new naming analyzer for detecting file name,
+// identifier, and package name convention violations in Go code.
 func NewNamingAnalyzer() *NamingAnalyzer {
 	return &NamingAnalyzer{
 		genericFileNames: map[string]bool{

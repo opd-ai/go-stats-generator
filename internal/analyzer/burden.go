@@ -12,14 +12,15 @@ type BurdenAnalyzer struct {
 	fset *token.FileSet
 }
 
-// NewBurdenAnalyzer creates a new maintenance burden analyzer
+// NewBurdenAnalyzer creates a new maintenance burden analyzer for detecting
+// code smells like magic numbers, dead code, deep nesting, and feature envy.
 func NewBurdenAnalyzer(fset *token.FileSet) *BurdenAnalyzer {
 	return &BurdenAnalyzer{
 		fset: fset,
 	}
 }
 
-// FileSet returns the token.FileSet used by this analyzer
+// FileSet returns the token.FileSet used by this analyzer for position mapping.
 func (ba *BurdenAnalyzer) FileSet() *token.FileSet {
 	return ba.fset
 }
@@ -167,6 +168,7 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 }
 
 // DetectDeadCode identifies unreferenced unexported symbols and unreachable code
+// paths within the package, returning detailed metrics about dead code locations.
 func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
 	// Build symbol references across all files in package
 	refs := ba.buildReferenceMap(files)
@@ -483,7 +485,8 @@ func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, 
 	return "low"
 }
 
-// DetectDeepNesting identifies functions exceeding nesting depth threshold
+// DetectDeepNesting identifies functions exceeding the nesting depth threshold.
+// It returns nil if the function does not exceed the maximum allowed nesting.
 func (ba *BurdenAnalyzer) DetectDeepNesting(fn *ast.FuncDecl, maxNesting int) *metrics.NestingIssue {
 	if fn == nil || fn.Body == nil {
 		return nil
@@ -589,7 +592,8 @@ func (ba *BurdenAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int, m
 	}
 }
 
-// DetectFeatureEnvy identifies methods with excessive external references
+// DetectFeatureEnvy identifies methods with excessive external type references
+// compared to references to their own receiver type, suggesting misplaced logic.
 func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ratio float64) *metrics.FeatureEnvyIssue {
 	if fn == nil || fn.Body == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return nil

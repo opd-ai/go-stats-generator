@@ -25,7 +25,8 @@ type DocumentationConfig struct {
 	MinCommentWords     int
 }
 
-// NewDocumentationAnalyzer creates a new documentation analyzer
+// NewDocumentationAnalyzer creates a new documentation analyzer with the given
+// configuration. If cfg is nil, sensible defaults are used.
 func NewDocumentationAnalyzer(fset *token.FileSet, cfg *DocumentationConfig) *DocumentationAnalyzer {
 	if cfg == nil {
 		cfg = &DocumentationConfig{
@@ -52,7 +53,8 @@ func NewDocumentationAnalyzer(fset *token.FileSet, cfg *DocumentationConfig) *Do
 	}
 }
 
-// Analyze performs comprehensive documentation analysis
+// Analyze performs comprehensive documentation analysis including coverage,
+// quality, and annotation tracking for all provided AST files and packages.
 func (d *DocumentationAnalyzer) Analyze(files []*ast.File, pkgs map[string]*ast.Package) *metrics.DocumentationMetrics {
 	m := &metrics.DocumentationMetrics{
 		Coverage:              metrics.DocumentationCoverage{},

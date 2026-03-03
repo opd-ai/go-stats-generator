@@ -23,7 +23,8 @@ type InterfaceAnalyzer struct {
 	genericConstraints   map[string][]string             // interface -> type constraints
 }
 
-// NewInterfaceAnalyzer creates a new enhanced interface analyzer
+// NewInterfaceAnalyzer creates a new enhanced interface analyzer for detecting
+// implementations, embedding depth, and cross-file interface relationships.
 func NewInterfaceAnalyzer(fset *token.FileSet) *InterfaceAnalyzer {
 	return &InterfaceAnalyzer{
 		fset:                 fset,

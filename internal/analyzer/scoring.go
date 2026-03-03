@@ -11,13 +11,15 @@ type ScoringAnalyzer struct {
 }
 
 // NewScoringAnalyzer creates a new scoring analyzer with configured weights
+// for computing Maintenance Burden Index across files and packages.
 func NewScoringAnalyzer(weights config.ScoringWeights) *ScoringAnalyzer {
 	return &ScoringAnalyzer{
 		weights: weights,
 	}
 }
 
-// CalculateFileMBI computes the Maintenance Burden Index for a file
+// CalculateFileMBI computes the Maintenance Burden Index for a file by combining
+// weighted scores from duplication, naming, placement, documentation, and burden.
 func (sa *ScoringAnalyzer) CalculateFileMBI(file string, report *metrics.Report) float64 {
 	score := 0.0
 
@@ -256,7 +258,8 @@ func min(a, b float64) float64 {
 	return b
 }
 
-// CalculatePackageMBI computes the Maintenance Burden Index for a package
+// CalculatePackageMBI computes the Maintenance Burden Index for a package by
+// averaging MBI scores across all files belonging to the package.
 func (sa *ScoringAnalyzer) CalculatePackageMBI(pkg string, report *metrics.Report) float64 {
 	pkgFiles := getPackageFiles(pkg, report)
 	if len(pkgFiles) == 0 {
@@ -271,7 +274,7 @@ func (sa *ScoringAnalyzer) CalculatePackageMBI(pkg string, report *metrics.Repor
 	return totalScore / float64(len(pkgFiles))
 }
 
-// CalculateAllScores computes MBI for all files and packages
+// CalculateAllScores computes MBI for all files and packages in the report.
 func (sa *ScoringAnalyzer) CalculateAllScores(report *metrics.Report) *metrics.ScoringMetrics {
 	fileScores := sa.calculateFileScores(report)
 	packageScores := sa.calculatePackageScores(report)

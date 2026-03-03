@@ -22,14 +22,15 @@ type DuplicationAnalyzer struct {
 	fset *token.FileSet
 }
 
-// NewDuplicationAnalyzer creates a new duplication analyzer
+// NewDuplicationAnalyzer creates a new duplication analyzer for detecting
+// code clones and near-duplicates using structural and hash-based comparison.
 func NewDuplicationAnalyzer(fset *token.FileSet) *DuplicationAnalyzer {
 	return &DuplicationAnalyzer{
 		fset: fset,
 	}
 }
 
-// FileSet returns the token.FileSet used by this analyzer
+// FileSet returns the token.FileSet used by this analyzer for position mapping.
 func (da *DuplicationAnalyzer) FileSet() *token.FileSet {
 	return da.fset
 }
@@ -60,6 +61,7 @@ type BlockFingerprint struct {
 }
 
 // ExtractBlocks walks function and method bodies to extract statement-level sub-trees
+// for duplication analysis, respecting the minimum block size threshold.
 func (da *DuplicationAnalyzer) ExtractBlocks(file *ast.File, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 
@@ -172,7 +174,8 @@ func (da *DuplicationAnalyzer) extractNestedBlocks(stmt ast.Stmt, filePath strin
 	return blocks
 }
 
-// NormalizeBlock strips identifiers, literals, and comments to produce structural form
+// NormalizeBlock strips identifiers, literals, and comments to produce a structural
+// form suitable for clone detection by comparing code structure, not specific names.
 func (da *DuplicationAnalyzer) NormalizeBlock(block StatementBlock) NormalizedBlock {
 	// Protect against excessive memory usage for pathological code
 	if block.NodeCount > MaxDeepCopyNodes {
@@ -416,14 +419,14 @@ func (da *DuplicationAnalyzer) normalizeIndexExpr(n *ast.IndexExpr) ast.Node {
 	}
 }
 
-// ComputeHash computes a structural hash using FNV-1a
+// ComputeHash computes a structural hash using FNV-1a for fast duplicate lookup.
 func (da *DuplicationAnalyzer) ComputeHash(normalized NormalizedBlock) string {
 	h := fnv.New64a()
 	h.Write([]byte(normalized.Structure))
 	return fmt.Sprintf("%016x", h.Sum64())
 }
 
-// FingerprintBlocks creates fingerprints for all blocks
+// FingerprintBlocks creates fingerprints for all blocks by normalizing and hashing.
 func (da *DuplicationAnalyzer) FingerprintBlocks(blocks []StatementBlock) []BlockFingerprint {
 	fingerprints := make([]BlockFingerprint, 0, len(blocks))
 
@@ -446,7 +449,7 @@ func (da *DuplicationAnalyzer) FingerprintBlocks(blocks []StatementBlock) []Bloc
 	return fingerprints
 }
 
-// GroupFingerprintsByHash groups fingerprints by their hash value
+// GroupFingerprintsByHash groups fingerprints by their hash value for clone detection.
 func (da *DuplicationAnalyzer) GroupFingerprintsByHash(fingerprints []BlockFingerprint) map[string][]BlockFingerprint {
 	groups := make(map[string][]BlockFingerprint)
 
@@ -489,7 +492,8 @@ func (da *DuplicationAnalyzer) GetBlockSource(block StatementBlock) (string, err
 	return strings.TrimSpace(buf.String()), nil
 }
 
-// DetectClonePairs groups fingerprints by hash and identifies groups with 2+ entries
+// DetectClonePairs groups fingerprints by hash and identifies groups with 2+ entries,
+// returning classified clone pairs sorted by line count.
 func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint, similarityThreshold float64) []metrics.ClonePair {
 	// Group fingerprints by hash
 	groups := da.GroupFingerprintsByHash(fingerprints)
@@ -538,7 +542,8 @@ func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint,
 	return clonePairs
 }
 
-// ClassifyClone determines the clone type (Type 1/2/3)
+// ClassifyClone determines the clone type (exact, renamed, or near-clone) based
+// on source comparison and similarity threshold.
 func (da *DuplicationAnalyzer) ClassifyClone(pair metrics.ClonePair, group []BlockFingerprint, threshold float64) metrics.CloneType {
 	if len(group) < 2 {
 		return metrics.CloneTypeExact

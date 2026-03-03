@@ -14,7 +14,9 @@ type Config struct {
 	Storage     StorageConfig     `mapstructure:"storage" json:"storage"`
 }
 
-// AnalysisConfig controls what gets analyzed
+// AnalysisConfig controls what gets analyzed and defines threshold limits
+// for warnings. It includes settings for functions, structs, interfaces,
+// patterns, complexity, documentation, and generics analysis.
 type AnalysisConfig struct {
 	IncludeFunctions     bool `mapstructure:"include_functions" json:"include_functions"`
 	IncludeStructs       bool `mapstructure:"include_structs" json:"include_structs"`
@@ -119,7 +121,8 @@ type BurdenConfig struct {
 	IgnoreBenignMagic bool    `mapstructure:"ignore_benign_magic" json:"ignore_benign_magic"`
 }
 
-// OutputConfig controls output formatting
+// OutputConfig controls output formatting options including format type,
+// destination file, console display settings, and report content filtering.
 type OutputConfig struct {
 	Format      OutputFormat `mapstructure:"format" json:"format"`
 	Destination string       `mapstructure:"destination" json:"destination"`
@@ -189,7 +192,8 @@ type StorageConfig struct {
 	MaxAge       time.Duration `mapstructure:"max_age" json:"max_age"`
 }
 
-// DefaultConfig returns the default configuration
+// DefaultConfig returns the default configuration with sensible production values
+// for analysis, output, performance, filtering, and storage settings.
 func DefaultConfig() *Config {
 	return &Config{
 		Analysis: AnalysisConfig{

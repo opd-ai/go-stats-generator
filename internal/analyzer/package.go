@@ -22,7 +22,8 @@ type PackageAnalyzer struct {
 	packageLines     map[string]int      // package -> total lines of code
 }
 
-// NewPackageAnalyzer creates a new package analyzer
+// NewPackageAnalyzer creates a new package analyzer for tracking dependencies,
+// cohesion, coupling, and circular dependency detection across packages.
 func NewPackageAnalyzer(fset *token.FileSet) *PackageAnalyzer {
 	return &PackageAnalyzer{
 		fset:             fset,
@@ -34,7 +35,8 @@ func NewPackageAnalyzer(fset *token.FileSet) *PackageAnalyzer {
 	}
 }
 
-// AnalyzePackage analyzes a single package file and collects metrics
+// AnalyzePackage analyzes a single package file and collects dependency,
+// function count, and type count metrics for cohesion and coupling analysis.
 func (pa *PackageAnalyzer) AnalyzePackage(file *ast.File, filePath string) error {
 	if file.Name == nil {
 		return fmt.Errorf("file has no package name: %s", filePath)
@@ -89,7 +91,8 @@ func (pa *PackageAnalyzer) AnalyzePackage(file *ast.File, filePath string) error
 	return nil
 }
 
-// GenerateReport generates comprehensive package metrics report
+// GenerateReport generates comprehensive package metrics report including
+// cohesion, coupling, and dependency analysis for all analyzed packages.
 func (pa *PackageAnalyzer) GenerateReport() (*metrics.PackageReport, error) {
 	packages := make([]metrics.PackageMetrics, 0, len(pa.packageFiles))
 
