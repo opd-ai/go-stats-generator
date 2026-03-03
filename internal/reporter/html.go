@@ -99,14 +99,18 @@ func (hr *HTMLReporterImpl) WriteDiff(output io.Writer, diff *metrics.Complexity
 }
 
 // Template helper functions
+
+// formatTime formats a time value in standard date-time format.
 func formatTime(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
 }
 
+// formatDuration formats a duration with millisecond precision.
 func formatDuration(d time.Duration) string {
 	return d.Round(time.Millisecond).String()
 }
 
+// formatFloat formats a float64 value with two decimal places.
 func formatFloat(f float64) string {
 	return fmt.Sprintf("%.2f", f)
 }
@@ -135,10 +139,12 @@ func formatValue(v interface{}) string {
 	}
 }
 
+// formatPercent formats a float64 value as a percentage string.
 func formatPercent(f float64) string {
 	return fmt.Sprintf("%.1f%%", f)
 }
 
+// formatChange formats a change value as a signed percentage string.
 func formatChange(change float64) string {
 	if change > 0 {
 		return fmt.Sprintf("+%.1f%%", change)
@@ -146,6 +152,7 @@ func formatChange(change float64) string {
 	return fmt.Sprintf("%.1f%%", change)
 }
 
+// changeClass returns the CSS class name for a change value direction.
 func changeClass(change float64) string {
 	if change > 0 {
 		return "increase"
@@ -155,6 +162,7 @@ func changeClass(change float64) string {
 	return "neutral"
 }
 
+// severityClass returns the CSS class name for a severity level.
 func severityClass(severity metrics.SeverityLevel) string {
 	switch severity {
 	case metrics.SeverityLevelInfo:
@@ -170,6 +178,7 @@ func severityClass(severity metrics.SeverityLevel) string {
 	}
 }
 
+// thresholdClass returns the CSS class name for threshold status.
 func thresholdClass(exceeded bool) string {
 	if exceeded {
 		return "threshold-exceeded"
@@ -177,6 +186,7 @@ func thresholdClass(exceeded bool) string {
 	return "threshold-ok"
 }
 
+// trendClass returns the CSS class name for a trend direction.
 func trendClass(trend metrics.TrendDirection) string {
 	switch trend {
 	case metrics.TrendImproving:

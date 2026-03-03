@@ -69,6 +69,7 @@ Examples:
 	RunE: runAnalyze,
 }
 
+// init registers the analyze command and its flags with the root command.
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
 
@@ -252,6 +253,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// generateOutput creates the output report using the configured reporter and destination.
 func generateOutput(report *metrics.Report, cfg *config.Config) error {
 	// Create appropriate reporter using the factory
 	rep, err := reporter.NewReporter(string(cfg.Output.Format))

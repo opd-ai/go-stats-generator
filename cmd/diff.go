@@ -54,6 +54,7 @@ Examples:
 	RunE: runDiff,
 }
 
+// init registers the diff command and its flags with the root command.
 func init() {
 	rootCmd.AddCommand(diffCmd)
 
@@ -123,6 +124,7 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	return rep.WriteDiff(output, diffReport)
 }
 
+// loadReport reads and parses a metrics report from a JSON file.
 func loadReport(filename string) (*metrics.Report, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {

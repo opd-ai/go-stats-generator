@@ -30,6 +30,7 @@ type PlacementAnalyzer struct {
 	minCohesion    float64
 }
 
+// methodInfo stores information about a method's receiver type and definition file.
 type methodInfo struct {
 	receiverType string
 	file         string

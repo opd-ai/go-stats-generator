@@ -361,6 +361,7 @@ func prepareDocumentationInput(filesMap map[string]*ast.File) ([]*ast.File, map[
 	return files, pkgs
 }
 
+// buildPackageInfo constructs package metadata from collected metrics for placement analysis.
 func buildPackageInfo(collectedMetrics *CollectedMetrics, report *metrics.Report) map[string]*analyzer.PackageInfo {
 	pkgInfo := make(map[string]*analyzer.PackageInfo)
 
@@ -389,10 +390,12 @@ func buildPackageInfo(collectedMetrics *CollectedMetrics, report *metrics.Report
 	return pkgInfo
 }
 
+// countExportedSymbols returns the total count of exported symbols in a package.
 func countExportedSymbols(pkg metrics.PackageMetrics) int {
 	return pkg.Functions + pkg.Structs + pkg.Interfaces
 }
 
+// buildImportGraphData constructs import relationship data for placement analysis.
 func buildImportGraphData(collectedMetrics *CollectedMetrics) *analyzer.ImportGraphData {
 	graphData := &analyzer.ImportGraphData{
 		FileImports:    make(map[string]int),

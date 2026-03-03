@@ -49,6 +49,7 @@ func Execute() {
 	}
 }
 
+// init initializes the root command with global flags and configuration bindings.
 func init() {
 	cobra.OnInitialize(initConfig)
 

@@ -56,6 +56,7 @@ var deleteBaselineCmd = &cobra.Command{
 	RunE:  runDeleteBaseline,
 }
 
+// init registers the baseline command and its subcommands with the root command.
 func init() {
 	// Add baseline command to root
 	rootCmd.AddCommand(baselineCmd)
@@ -81,6 +82,7 @@ func init() {
 	listBaselinesCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file (default: stdout)")
 }
 
+// runBaseline executes the default baseline behavior by creating a new baseline snapshot.
 func runBaseline(cmd *cobra.Command, args []string) error {
 	// Default behavior is to create a baseline
 	return runCreateBaseline(cmd, args)
@@ -184,7 +186,9 @@ func initializeStorageBackend() (storage.MetricsStorage, error) {
 
 	// Use the proper storage factory function that respects configuration
 	return storage.NewStorage(storageConfig)
-} // convertToStorageConfig converts config.StorageConfig to storage.StorageConfig
+}
+
+// convertToStorageConfig converts config.StorageConfig to storage.StorageConfig.
 func convertToStorageConfig(cfg config.StorageConfig) storage.StorageConfig {
 	storageConfig := storage.StorageConfig{
 		Type: cfg.Type,
@@ -294,6 +298,7 @@ func outputJSONBaselineResult(snapshot metrics.MetricsSnapshot) error {
 	return encoder.Encode(output)
 }
 
+// runListBaselines retrieves and displays all stored baseline snapshots.
 func runListBaselines(cmd *cobra.Command, args []string) error {
 	storageBackend, err := initializeStorageBackend()
 	if err != nil {
@@ -448,6 +453,7 @@ func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 
 // Helper functions
 
+// analyzeCodebase performs code analysis on the target directory using the public API.
 func analyzeCodebase(targetPath string) (*metrics.Report, error) {
 	// Use the public API to analyze the project
 	api := go_stats_generator.NewAnalyzer()
@@ -459,23 +465,27 @@ func analyzeCodebase(targetPath string) (*metrics.Report, error) {
 	return report, nil
 }
 
+// generateBaselineID creates a unique baseline identifier based on the current timestamp.
 func generateBaselineID() string {
 	timestamp := time.Now().Format("20060102-150405")
 	return fmt.Sprintf("baseline-%s", timestamp)
 }
 
+// getCurrentBranch attempts to retrieve the current git branch name.
 func getCurrentBranch() string {
 	// Try to get current git branch
 	// This is a placeholder - in real implementation you'd use git commands
 	return ""
 }
 
+// getCurrentCommit attempts to retrieve the current git commit hash.
 func getCurrentCommit() string {
 	// Try to get current git commit hash
 	// This is a placeholder - in real implementation you'd use git commands
 	return ""
 }
 
+// convertToTagMap converts a slice of key=value tag strings to a map.
 func convertToTagMap(tagSlice []string) map[string]string {
 	tagMap := make(map[string]string)
 	for _, tag := range tagSlice {

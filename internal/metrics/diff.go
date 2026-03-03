@@ -632,6 +632,7 @@ func calculateDelta(oldValue, newValue, threshold float64) Delta {
 	}
 }
 
+// determineImpactLevel maps a delta's magnitude to an impact level.
 func determineImpactLevel(delta Delta) ImpactLevel {
 	if delta.Magnitude == ChangeMagnitudeCritical {
 		return ImpactLevelCritical
@@ -643,6 +644,7 @@ func determineImpactLevel(delta Delta) ImpactLevel {
 	return ImpactLevelLow
 }
 
+// determineSeverityLevel maps a delta's magnitude to a severity level.
 func determineSeverityLevel(delta Delta) SeverityLevel {
 	if delta.Magnitude == ChangeMagnitudeCritical {
 		return SeverityLevelCritical
@@ -654,6 +656,7 @@ func determineSeverityLevel(delta Delta) SeverityLevel {
 	return SeverityLevelInfo
 }
 
+// isRegression determines if a metric change qualifies as a regression.
 func isRegression(change MetricChange, config ThresholdConfig) bool {
 	// Consider it a regression if it's a negative change that exceeds thresholds
 	return change.Delta.Direction == ChangeDirectionIncrease &&
@@ -663,12 +666,14 @@ func isRegression(change MetricChange, config ThresholdConfig) bool {
 			change.Severity == SeverityLevelCritical)
 }
 
+// isImprovement determines if a metric change qualifies as an improvement.
 func isImprovement(change MetricChange) bool {
 	// Consider it an improvement if it's a positive change
 	return change.Delta.Direction == ChangeDirectionDecrease &&
 		change.Delta.Significant
 }
 
+// categorizeRegressionType determines the regression type based on the change category.
 func categorizeRegressionType(change MetricChange) RegressionType {
 	switch {
 	case strings.Contains(change.Category, "complexity"):
@@ -686,6 +691,7 @@ func categorizeRegressionType(change MetricChange) RegressionType {
 	}
 }
 
+// categorizeImprovementType determines the improvement type based on the change category.
 func categorizeImprovementType(change MetricChange) ImprovementType {
 	switch {
 	case strings.Contains(change.Category, "complexity"):
@@ -703,6 +709,7 @@ func categorizeImprovementType(change MetricChange) ImprovementType {
 	}
 }
 
+// calculateRegressionPriority computes a priority score based on severity and magnitude.
 func calculateRegressionPriority(change MetricChange) int {
 	priority := 1
 
@@ -738,6 +745,7 @@ func calculateRegressionPriority(change MetricChange) int {
 	return priority
 }
 
+// generateBenefitDescription creates a human-readable description for an improvement.
 func generateBenefitDescription(change MetricChange) string {
 	switch change.Delta.Magnitude {
 	case ChangeMagnitudeCritical:
@@ -753,6 +761,7 @@ func generateBenefitDescription(change MetricChange) string {
 	}
 }
 
+// extractFunctionName extracts the function name from a dot-separated path.
 func extractFunctionName(path string) string {
 	parts := strings.Split(path, ".")
 	if len(parts) > 1 {

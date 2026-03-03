@@ -640,6 +640,7 @@ func computeQualityScore(severities []string, total int) float64 {
 	return score
 }
 
+// toMixedCaps converts an underscore_separated string to MixedCaps format.
 func (na *NamingAnalyzer) toMixedCaps(s string) string {
 	parts := strings.Split(s, "_")
 	result := parts[0]

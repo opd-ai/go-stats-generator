@@ -76,6 +76,7 @@ specific baseline snapshots.`,
 	RunE: runTrendRegressions,
 }
 
+// init registers the trend command and its subcommands with the root command.
 func init() {
 	// Add trend command to root
 	rootCmd.AddCommand(trendCmd)
@@ -97,6 +98,7 @@ func init() {
 	trendCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 }
 
+// runTrend executes the default trend behavior by running trend analysis.
 func runTrend(cmd *cobra.Command, args []string) error {
 	// Default behavior is to analyze trends
 	return runTrendAnalyze(cmd, args)
@@ -297,6 +299,7 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 
 // Helper functions for trend analysis
 
+// analyzeTrends computes trend metrics from historical snapshots over the configured period.
 func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, threshold float64) map[string]interface{} {
 	result := map[string]interface{}{
 		"period":    fmt.Sprintf("%d days", trendDays),
@@ -326,6 +329,7 @@ func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, thre
 	return result
 }
 
+// generateForecasts produces metric forecasts based on historical trend data.
 func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) map[string]interface{} {
 	// PLACEHOLDER IMPLEMENTATION
 	// Full forecasting with regression analysis, ARIMA, or exponential smoothing
@@ -343,6 +347,7 @@ func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) 
 	return result
 }
 
+// detectRegressions identifies metric regressions by comparing historical and recent snapshots.
 func detectRegressions(historical, recent []storage.SnapshotInfo, threshold float64) map[string]interface{} {
 	// PLACEHOLDER IMPLEMENTATION
 	// Full regression detection with statistical hypothesis testing and
@@ -455,6 +460,7 @@ func outputTrendAnalysisConsole(analysis map[string]interface{}) {
 	displayBurdenTrends(analysis)
 }
 
+// displayTrendSummary outputs the summary section of trend analysis to console.
 func displayTrendSummary(analysis map[string]interface{}) {
 	summary, ok := analysis["summary"].(map[string]interface{})
 	if !ok {
@@ -473,6 +479,7 @@ func displayTrendSummary(analysis map[string]interface{}) {
 	}
 }
 
+// displayBurdenTrends outputs the burden metrics trends section to console.
 func displayBurdenTrends(analysis map[string]interface{}) {
 	burdenTrends, ok := analysis["burden_trends"].(map[string]interface{})
 	if !ok || len(burdenTrends) == 0 {
@@ -489,6 +496,7 @@ func displayBurdenTrends(analysis map[string]interface{}) {
 	displayNamingViolationsTrend(burdenTrends)
 }
 
+// displayMBITrend outputs the MBI (Maintenance Burden Index) trend to console.
 func displayMBITrend(burdenTrends map[string]interface{}) {
 	mbi, ok := burdenTrends["mbi_score"].(map[string]interface{})
 	if !ok {
@@ -501,6 +509,7 @@ func displayMBITrend(burdenTrends map[string]interface{}) {
 	fmt.Printf("  Trend:     %s\n", mbi["direction"])
 }
 
+// displayDuplicationTrend outputs the duplication ratio trend to console.
 func displayDuplicationTrend(burdenTrends map[string]interface{}) {
 	dup, ok := burdenTrends["duplication_ratio"].(map[string]interface{})
 	if !ok {
@@ -513,6 +522,7 @@ func displayDuplicationTrend(burdenTrends map[string]interface{}) {
 	fmt.Printf("  Trend:     %s\n", dup["direction"])
 }
 
+// displayDocCoverageTrend outputs the documentation coverage trend to console.
 func displayDocCoverageTrend(burdenTrends map[string]interface{}) {
 	doc, ok := burdenTrends["doc_coverage"].(map[string]interface{})
 	if !ok {
@@ -525,6 +535,7 @@ func displayDocCoverageTrend(burdenTrends map[string]interface{}) {
 	fmt.Printf("  Trend:     %s\n", doc["direction"])
 }
 
+// displayComplexityViolationsTrend outputs the complexity violations trend to console.
 func displayComplexityViolationsTrend(burdenTrends map[string]interface{}) {
 	comp, ok := burdenTrends["complexity_violations"].(map[string]interface{})
 	if !ok {
@@ -537,6 +548,7 @@ func displayComplexityViolationsTrend(burdenTrends map[string]interface{}) {
 	fmt.Printf("  Trend:     %s\n", comp["direction"])
 }
 
+// displayNamingViolationsTrend outputs the naming violations trend to console.
 func displayNamingViolationsTrend(burdenTrends map[string]interface{}) {
 	naming, ok := burdenTrends["naming_violations"].(map[string]interface{})
 	if !ok {
@@ -549,6 +561,7 @@ func displayNamingViolationsTrend(burdenTrends map[string]interface{}) {
 	fmt.Printf("  Trend:     %s\n", naming["direction"])
 }
 
+// outputForecastsConsole displays metric forecasts in human-readable console format.
 func outputForecastsConsole(forecasts map[string]interface{}) {
 	fmt.Println("=== METRIC FORECASTS ===")
 
@@ -573,6 +586,7 @@ func outputForecastsConsole(forecasts map[string]interface{}) {
 	fmt.Println()
 }
 
+// outputRegressionsConsole displays detected regressions in human-readable console format.
 func outputRegressionsConsole(regressions map[string]interface{}) {
 	fmt.Println("=== REGRESSION DETECTION ===")
 

@@ -49,6 +49,7 @@ func (r *CSVReporter) Generate(report *metrics.Report, output io.Writer) error {
 	return nil
 }
 
+// writeMetadataSection writes the metadata section to CSV output.
 func (r *CSVReporter) writeMetadataSection(writer *csv.Writer, report *metrics.Report) error {
 	if err := writer.Write([]string{"# METADATA"}); err != nil {
 		return fmt.Errorf("failed to write metadata header: %w", err)
@@ -72,6 +73,7 @@ func (r *CSVReporter) writeMetadataSection(writer *csv.Writer, report *metrics.R
 	return nil
 }
 
+// writeOverviewSection writes the overview statistics section to CSV output.
 func (r *CSVReporter) writeOverviewSection(writer *csv.Writer, report *metrics.Report) error {
 	if err := writer.Write([]string{""}); err != nil {
 		return err
@@ -435,6 +437,7 @@ func (r *CSVReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) 
 	return nil
 }
 
+// writeDiffSummary writes the diff summary section to CSV output.
 func (r *CSVReporter) writeDiffSummary(writer *csv.Writer, diff *metrics.ComplexityDiff) error {
 	if err := writer.Write([]string{""}); err != nil {
 		return err
@@ -460,6 +463,7 @@ func (r *CSVReporter) writeDiffSummary(writer *csv.Writer, diff *metrics.Complex
 	return nil
 }
 
+// writeDiffRegressions writes the regressions section to CSV output.
 func (r *CSVReporter) writeDiffRegressions(writer *csv.Writer, diff *metrics.ComplexityDiff) error {
 	if len(diff.Regressions) == 0 {
 		return nil
@@ -495,6 +499,7 @@ func (r *CSVReporter) writeDiffRegressions(writer *csv.Writer, diff *metrics.Com
 	return nil
 }
 
+// writeDiffImprovements writes the improvements section to CSV output.
 func (r *CSVReporter) writeDiffImprovements(writer *csv.Writer, diff *metrics.ComplexityDiff) error {
 	if len(diff.Improvements) == 0 {
 		return nil

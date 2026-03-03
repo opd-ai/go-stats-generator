@@ -326,6 +326,7 @@ func (j *JSONStorage) Close() error {
 
 // Helper functions
 
+// getFilename generates the filename for a snapshot with the appropriate extension.
 func (j *JSONStorage) getFilename(id string) string {
 	if j.config.Compression {
 		return id + ".json.gz"
@@ -333,6 +334,7 @@ func (j *JSONStorage) getFilename(id string) string {
 	return id + ".json"
 }
 
+// extractIDFromFilename removes the file extension to get the snapshot ID.
 func (j *JSONStorage) extractIDFromFilename(filename string) string {
 	// Remove .json or .json.gz extension
 	id := strings.TrimSuffix(filename, ".json.gz")
@@ -340,6 +342,7 @@ func (j *JSONStorage) extractIDFromFilename(filename string) string {
 	return id
 }
 
+// writeCompressed writes data to a gzip-compressed file.
 func (j *JSONStorage) writeCompressed(filepath string, data []byte) error {
 	file, err := os.Create(filepath)
 	if err != nil {
@@ -357,6 +360,7 @@ func (j *JSONStorage) writeCompressed(filepath string, data []byte) error {
 	return nil
 }
 
+// writeUncompressed writes data to a plain JSON file.
 func (j *JSONStorage) writeUncompressed(filepath string, data []byte) error {
 	if err := os.WriteFile(filepath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
@@ -364,6 +368,7 @@ func (j *JSONStorage) writeUncompressed(filepath string, data []byte) error {
 	return nil
 }
 
+// readFile reads data from a file, handling both compressed and uncompressed formats.
 func (j *JSONStorage) readFile(filepath string) ([]byte, error) {
 	// Try as-is first
 	data, err := j.tryReadFile(filepath)
@@ -386,6 +391,7 @@ func (j *JSONStorage) readFile(filepath string) ([]byte, error) {
 	return nil, err
 }
 
+// tryReadFile attempts to read a file, decompressing if the path ends in .gz.
 func (j *JSONStorage) tryReadFile(filepath string) ([]byte, error) {
 	file, err := os.Open(filepath)
 	if err != nil {

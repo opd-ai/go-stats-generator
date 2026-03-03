@@ -149,6 +149,8 @@ func findProjectRoot(filePath string) string {
 	return ""
 }
 
+// runAnalysisWorkflow orchestrates the complete analysis workflow: file discovery,
+// concurrent processing, metric aggregation, and report finalization.
 func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Config) (*metrics.Report, error) {
 	startTime := time.Now()
 

@@ -86,6 +86,7 @@ func (mr *MarkdownReporter) WriteDiff(output io.Writer, diff *metrics.Complexity
 
 // Template helper functions
 
+// formatDuration formats a duration with appropriate units (μs, ms, or s).
 func (mr *MarkdownReporter) formatDuration(d time.Duration) string {
 	if d < time.Millisecond {
 		return fmt.Sprintf("%.2fμs", float64(d.Nanoseconds())/1000)
@@ -96,6 +97,7 @@ func (mr *MarkdownReporter) formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%.2fs", d.Seconds())
 }
 
+// formatFloat formats a float64 value, omitting decimals for whole numbers.
 func (mr *MarkdownReporter) formatFloat(f float64) string {
 	if f == float64(int(f)) {
 		return fmt.Sprintf("%.0f", f)
@@ -103,10 +105,12 @@ func (mr *MarkdownReporter) formatFloat(f float64) string {
 	return fmt.Sprintf("%.2f", f)
 }
 
+// formatPercent formats a decimal value as a percentage string.
 func (mr *MarkdownReporter) formatPercent(f float64) string {
 	return fmt.Sprintf("%.1f%%", f*100)
 }
 
+// formatChange formats the change between two values as a percentage string.
 func (mr *MarkdownReporter) formatChange(oldVal, newVal float64) string {
 	if oldVal == 0 {
 		if newVal == 0 {
@@ -124,6 +128,7 @@ func (mr *MarkdownReporter) formatChange(oldVal, newVal float64) string {
 	return "no change"
 }
 
+// formatChangeSign returns an emoji indicator for the direction of change.
 func (mr *MarkdownReporter) formatChangeSign(change float64) string {
 	if change > 0 {
 		return "📈"
@@ -133,6 +138,7 @@ func (mr *MarkdownReporter) formatChangeSign(change float64) string {
 	return "➡️"
 }
 
+// truncateList limits a slice to the specified number of items.
 func (mr *MarkdownReporter) truncateList(items interface{}, limit int) interface{} {
 	switch v := items.(type) {
 	case []metrics.FunctionMetrics:
@@ -160,6 +166,7 @@ func (mr *MarkdownReporter) truncateList(items interface{}, limit int) interface
 	}
 }
 
+// escapeMarkdown escapes special Markdown characters to prevent formatting issues.
 func (mr *MarkdownReporter) escapeMarkdown(s string) string {
 	// Escape special Markdown characters that could break formatting
 	replacer := strings.NewReplacer(

@@ -500,6 +500,7 @@ func (s *SQLiteStorage) scanSnapshotInfo(rows *sql.Rows) (SnapshotInfo, error) {
 	return info, nil
 }
 
+// populateNullableStrings sets string fields from nullable SQL values.
 func populateNullableStrings(info *SnapshotInfo, gitCommit, gitBranch, gitTag, version, author, description sql.NullString) {
 	info.GitCommit = gitCommit.String
 	info.GitBranch = gitBranch.String
@@ -509,6 +510,7 @@ func populateNullableStrings(info *SnapshotInfo, gitCommit, gitBranch, gitTag, v
 	info.Description = description.String
 }
 
+// populateBurdenMetrics sets burden metric fields from nullable SQL values.
 func populateBurdenMetrics(info *SnapshotInfo, mbiScoreAvg, duplicationRatio, docCoverage sql.NullFloat64, complexityViolations, namingViolations sql.NullInt64) {
 	if mbiScoreAvg.Valid {
 		val := mbiScoreAvg.Float64
@@ -728,6 +730,7 @@ func (s *SQLiteStorage) Close() error {
 
 // Helper functions
 
+// createDirIfNotExists creates the directory for a file path if it doesn't exist.
 func createDirIfNotExists(path string) error {
 	dir := filepath.Dir(path)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -736,6 +739,7 @@ func createDirIfNotExists(path string) error {
 	return nil
 }
 
+// compress compresses data using gzip encoding.
 func compress(data []byte) ([]byte, error) {
 	var buf strings.Builder
 	gz := gzip.NewWriter(&buf)
@@ -748,6 +752,7 @@ func compress(data []byte) ([]byte, error) {
 	return []byte(buf.String()), nil
 }
 
+// decompress decompresses gzip-encoded data.
 func decompress(data []byte) ([]byte, error) {
 	reader, err := gzip.NewReader(strings.NewReader(string(data)))
 	if err != nil {
