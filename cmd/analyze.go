@@ -722,7 +722,14 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 			},
 		},
 		Burden: metrics.BurdenMetrics{
-			MagicNumbers: []metrics.MagicNumber{},
+			MagicNumbers:          []metrics.MagicNumber{},
+			ComplexSignatures:     []metrics.SignatureIssue{},
+			DeeplyNestedFunctions: []metrics.NestingIssue{},
+			FeatureEnvyMethods:    []metrics.FeatureEnvyIssue{},
+			DeadCode: metrics.DeadCodeMetrics{
+				UnreferencedFunctions: []metrics.UnreferencedSymbol{},
+				UnreachableCode:       []metrics.UnreachableBlock{},
+			},
 		},
 	}
 }
@@ -898,9 +905,63 @@ func aggregateConcurrencyMetrics(report *metrics.Report, concurrencyMetrics *met
 
 // analyzeBurdenInFile analyzes maintenance burden indicators in a single file
 func analyzeBurdenInFile(burdenAnalyzer *analyzer.BurdenAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) error {
+	// File-level analysis: magic numbers and dead code
 	magicNumbers := burdenAnalyzer.DetectMagicNumbers(result.File, result.FileInfo.Package)
 	report.Burden.MagicNumbers = append(report.Burden.MagicNumbers, magicNumbers...)
+
+	mergeDeadCodeMetrics(burdenAnalyzer, result, report)
+
+	// Function-level analysis
+	analyzeFunctionBurden(burdenAnalyzer, result, report, cfg)
+
 	return nil
+}
+
+// mergeDeadCodeMetrics analyzes and merges dead code detection results
+func mergeDeadCodeMetrics(burdenAnalyzer *analyzer.BurdenAnalyzer, result scanner.Result, report *metrics.Report) {
+	deadCode := burdenAnalyzer.DetectDeadCode([]*ast.File{result.File}, result.FileInfo.Package)
+	if deadCode == nil {
+		return
+	}
+	report.Burden.DeadCode.UnreferencedFunctions = append(report.Burden.DeadCode.UnreferencedFunctions, deadCode.UnreferencedFunctions...)
+	report.Burden.DeadCode.UnreachableCode = append(report.Burden.DeadCode.UnreachableCode, deadCode.UnreachableCode...)
+	report.Burden.DeadCode.TotalDeadLines += deadCode.TotalDeadLines
+}
+
+// analyzeFunctionBurden analyzes function-level burden indicators
+func analyzeFunctionBurden(burdenAnalyzer *analyzer.BurdenAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) {
+	ast.Inspect(result.File, func(n ast.Node) bool {
+		fn, ok := n.(*ast.FuncDecl)
+		if !ok || fn.Body == nil {
+			return true
+		}
+
+		analyzeSignatureAndNesting(burdenAnalyzer, fn, report, cfg)
+		analyzeFeatureEnvy(burdenAnalyzer, fn, result.File, report, cfg)
+
+		return true
+	})
+}
+
+// analyzeSignatureAndNesting detects signature complexity and deep nesting
+func analyzeSignatureAndNesting(burdenAnalyzer *analyzer.BurdenAnalyzer, fn *ast.FuncDecl, report *metrics.Report, cfg *config.Config) {
+	if sigIssue := burdenAnalyzer.AnalyzeSignatureComplexity(fn, cfg.Analysis.Burden.MaxParams, cfg.Analysis.Burden.MaxReturns); sigIssue != nil {
+		report.Burden.ComplexSignatures = append(report.Burden.ComplexSignatures, *sigIssue)
+	}
+
+	if nestingIssue := burdenAnalyzer.DetectDeepNesting(fn, cfg.Analysis.Burden.MaxNesting); nestingIssue != nil {
+		report.Burden.DeeplyNestedFunctions = append(report.Burden.DeeplyNestedFunctions, *nestingIssue)
+	}
+}
+
+// analyzeFeatureEnvy detects feature envy in methods
+func analyzeFeatureEnvy(burdenAnalyzer *analyzer.BurdenAnalyzer, fn *ast.FuncDecl, file *ast.File, report *metrics.Report, cfg *config.Config) {
+	if fn.Recv == nil {
+		return
+	}
+	if envyIssue := burdenAnalyzer.DetectFeatureEnvy(fn, file, cfg.Analysis.Burden.FeatureEnvyRatio); envyIssue != nil {
+		report.Burden.FeatureEnvyMethods = append(report.Burden.FeatureEnvyMethods, *envyIssue)
+	}
 }
 
 // finalizeReport populates the report with collected metrics and generates final package report
@@ -931,6 +992,9 @@ func finalizeReport(report *metrics.Report, collectedMetrics *CollectedMetrics, 
 
 	// Finalize concurrency metrics summary statistics
 	finalizeConcurrencyMetrics(report)
+
+	// Finalize burden metrics (dead code percentage)
+	finalizeBurdenMetrics(report)
 }
 
 // finalizeDuplicationMetrics performs duplication analysis on all collected files
@@ -1355,6 +1419,15 @@ func finalizeConcurrencyMetrics(report *metrics.Report) {
 		if instance.IsDirectional {
 			report.Patterns.ConcurrencyPatterns.Channels.DirectionalCount++
 		}
+	}
+}
+
+// finalizeBurdenMetrics calculates derived burden statistics
+func finalizeBurdenMetrics(report *metrics.Report) {
+	if report.Overview.TotalLinesOfCode > 0 {
+		totalDeadLines := float64(report.Burden.DeadCode.TotalDeadLines)
+		totalLines := float64(report.Overview.TotalLinesOfCode)
+		report.Burden.DeadCode.DeadCodePercent = (totalDeadLines / totalLines) * 100
 	}
 }
 
