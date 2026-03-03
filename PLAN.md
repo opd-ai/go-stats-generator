@@ -254,13 +254,32 @@
       - Quality score improved: 4 improvements, 1 neutral cohesion change
       - Average function complexity: 4.82 → 4.77 (-0.9% improvement)
 
-4.3. **Refactor buildSymbolIndex in placement.go (complexity 20.7)**
+4.3. **Refactor buildSymbolIndex in placement.go (complexity 20.7)** ✅ COMPLETED
    - **Deliverable**: Refactored function with complexity ≤15
    - **Dependencies**: None — standalone cleanup
+   - **Status**: COMPLETE - Implemented (2026-03-03)
    - **Metric Justification**: Highest complexity in analyzer package
-   - **Technical Details**:
-     - Extract AST walking logic into separate functions
-     - Consider using visitor pattern for cleaner structure
+   - **Files Modified**:
+      - internal/analyzer/placement.go (refactored buildSymbolIndex, added 8 helper functions)
+   - **Implementation Details**:
+      - Extracted collectDefinitions() for first-pass symbol collection (complexity: 2, 3.1 overall)
+      - Extracted collectDefinitionsFromFile() for file-level definition extraction (complexity: 2, 3.1 overall)
+      - Extracted processFuncDecl() for function/method declaration handling (complexity: 2, 3.1 overall)
+      - Extracted processGenDecl() for type/var/const declaration handling (complexity: 4, 6.7 overall)
+      - Extracted collectReferences() for second-pass reference collection (complexity: 2, 3.1 overall)
+      - Extracted collectReferencesFromFile() for file-level reference extraction (complexity: 3, 4.4 overall)
+      - Extracted getFuncDeclName() for function name extraction (complexity: 2, 3.1 overall)
+      - Extracted processIdentRef() for identifier reference processing (complexity: 4, 6.2 overall)
+      - Main buildSymbolIndex now orchestrates with simple delegation (cyclomatic: 1, overall: 1.3)
+      - Achieved 93.7% complexity reduction (20.7 → 1.3 overall, 14 → 1 cyclomatic)
+      - All helper functions meet thresholds: cyclomatic ≤4 and overall ≤6.7
+   - **Validation**:
+      - All analyzer tests passing with race detector
+      - Build successful
+      - Zero regressions in unrelated code
+      - Quality score: 50/100 from differential analysis (6 improvements, 0 regressions)
+      - Bonus improvement: walkForNestingDepth also improved (19.2 → 16.6, 13.5% reduction)
+      - Average function complexity improved: 4.77 → 4.74 (-0.6%)
 
 ## Technical Specifications
 
