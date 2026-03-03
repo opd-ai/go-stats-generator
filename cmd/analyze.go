@@ -120,6 +120,8 @@ func init() {
 		"maximum cyclomatic complexity warning threshold")
 	analyzeCmd.Flags().Float64("min-doc-coverage", 0.7,
 		"minimum documentation coverage warning threshold")
+	analyzeCmd.Flags().Bool("enforce-thresholds", false,
+		"exit with non-zero code if quality thresholds are violated (for CI/CD integration)")
 
 	// Duplication detection flags
 	analyzeCmd.Flags().Int("min-block-lines", 6,
@@ -147,6 +149,7 @@ func init() {
 	viper.BindPFlag("analysis.max_function_length", analyzeCmd.Flags().Lookup("max-function-length"))
 	viper.BindPFlag("analysis.max_cyclomatic_complexity", analyzeCmd.Flags().Lookup("max-complexity"))
 	viper.BindPFlag("analysis.min_documentation_coverage", analyzeCmd.Flags().Lookup("min-doc-coverage"))
+	viper.BindPFlag("analysis.enforce_thresholds", analyzeCmd.Flags().Lookup("enforce-thresholds"))
 	viper.BindPFlag("analysis.duplication.min_block_lines", analyzeCmd.Flags().Lookup("min-block-lines"))
 	viper.BindPFlag("analysis.duplication.similarity_threshold", analyzeCmd.Flags().Lookup("similarity-threshold"))
 	viper.BindPFlag("analysis.duplication.ignore_test_files", analyzeCmd.Flags().Lookup("ignore-test-duplication"))
@@ -194,6 +197,11 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	err = generateOutput(report, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to generate output: %w", err)
+	}
+
+	// Check quality gates if enforcement is enabled
+	if err := checkQualityGates(report, cfg); err != nil {
+		return err
 	}
 
 	return nil
@@ -302,6 +310,9 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 	}
 	if viper.IsSet("analysis.min_documentation_coverage") {
 		cfg.Analysis.MinDocumentationCoverage = viper.GetFloat64("analysis.min_documentation_coverage")
+	}
+	if viper.IsSet("analysis.enforce_thresholds") {
+		cfg.Analysis.EnforceThresholds = viper.GetBool("analysis.enforce_thresholds")
 	}
 	// Duplication settings
 	if viper.IsSet("analysis.duplication.min_block_lines") {
@@ -1113,6 +1124,37 @@ func generateOutput(report *metrics.Report, cfg *config.Config) error {
 	err = rep.Generate(report, output)
 	if err != nil {
 		return fmt.Errorf("failed to generate report: %w", err)
+	}
+
+	return nil
+}
+
+// checkQualityGates validates that the report meets configured quality thresholds
+func checkQualityGates(report *metrics.Report, cfg *config.Config) error {
+	if !cfg.Analysis.EnforceThresholds {
+		return nil
+	}
+
+	var violations []string
+
+	// Check documentation coverage threshold (coverage is stored as percentage, threshold as fraction)
+	thresholdPercent := cfg.Analysis.MinDocumentationCoverage * 100
+	if report.Documentation.Coverage.Overall < thresholdPercent {
+		violations = append(violations, fmt.Sprintf(
+			"Documentation coverage (%.2f%%) is below threshold (%.2f%%)",
+			report.Documentation.Coverage.Overall,
+			thresholdPercent,
+		))
+	}
+
+	// If violations exist, print them and return error
+	if len(violations) > 0 {
+		fmt.Fprintf(os.Stderr, "\n=== QUALITY GATE FAILURES ===\n")
+		for _, violation := range violations {
+			fmt.Fprintf(os.Stderr, "❌ %s\n", violation)
+		}
+		fmt.Fprintf(os.Stderr, "\nUse --enforce-thresholds=false to disable quality gate enforcement.\n")
+		return fmt.Errorf("quality gates failed: %d violation(s)", len(violations))
 	}
 
 	return nil

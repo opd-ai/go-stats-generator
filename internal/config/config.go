@@ -29,6 +29,7 @@ type AnalysisConfig struct {
 	MaxCyclomaticComplexity  int     `mapstructure:"max_cyclomatic_complexity" json:"max_cyclomatic_complexity"`
 	MaxStructFields          int     `mapstructure:"max_struct_fields" json:"max_struct_fields"`
 	MinDocumentationCoverage float64 `mapstructure:"min_documentation_coverage" json:"min_documentation_coverage"`
+	EnforceThresholds        bool    `mapstructure:"enforce_thresholds" json:"enforce_thresholds"`
 
 	// Duplication detection settings
 	Duplication DuplicationConfig `mapstructure:"duplication" json:"duplication"`
