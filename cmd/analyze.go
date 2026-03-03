@@ -148,6 +148,16 @@ func init() {
 	analyzeCmd.Flags().Int("max-file-imports", 15,
 		"maximum import statements per file")
 
+	// Maintenance burden analysis flags
+	analyzeCmd.Flags().Int("max-params", 5,
+		"maximum function parameters before flagging high signature complexity")
+	analyzeCmd.Flags().Int("max-returns", 3,
+		"maximum return values before flagging high signature complexity")
+	analyzeCmd.Flags().Int("max-nesting", 4,
+		"maximum nesting depth before flagging deeply nested code")
+	analyzeCmd.Flags().Float64("feature-envy-ratio", 2.0,
+		"threshold ratio for detecting feature envy (external references / self references)")
+
 	// Bind flags to viper
 	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
 	viper.BindPFlag("output.destination", analyzeCmd.Flags().Lookup("output"))
@@ -177,6 +187,10 @@ func init() {
 	viper.BindPFlag("analysis.organization.max_exported_symbols", analyzeCmd.Flags().Lookup("max-exported-symbols"))
 	viper.BindPFlag("analysis.organization.max_directory_depth", analyzeCmd.Flags().Lookup("max-directory-depth"))
 	viper.BindPFlag("analysis.organization.max_file_imports", analyzeCmd.Flags().Lookup("max-file-imports"))
+	viper.BindPFlag("analysis.burden.max_params", analyzeCmd.Flags().Lookup("max-params"))
+	viper.BindPFlag("analysis.burden.max_returns", analyzeCmd.Flags().Lookup("max-returns"))
+	viper.BindPFlag("analysis.burden.max_nesting", analyzeCmd.Flags().Lookup("max-nesting"))
+	viper.BindPFlag("analysis.burden.feature_envy_ratio", analyzeCmd.Flags().Lookup("feature-envy-ratio"))
 }
 
 // runAnalyze is the main entry point for the analyze command. Validates the target
