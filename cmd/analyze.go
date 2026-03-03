@@ -400,6 +400,7 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
 	finalizeNamingMetrics(report, analyzers, collectedMetrics, cfg)
 	finalizePlacementMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizeDocumentationMetrics(report, analyzers, collectedMetrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	if cfg.Output.Verbose {
@@ -473,6 +474,7 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	finalizeDuplicationMetrics(report, analyzers.Duplication, metrics, cfg)
 	finalizeNamingMetrics(report, analyzers, metrics, cfg)
 	finalizePlacementMetrics(report, analyzers, metrics, cfg)
+	finalizeDocumentationMetrics(report, analyzers, metrics, cfg)
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
 	return report, nil
@@ -480,15 +482,16 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 
 // AnalyzerSet holds all the different analyzers used in the workflow
 type AnalyzerSet struct {
-	Function    *analyzer.FunctionAnalyzer
-	Struct      *analyzer.StructAnalyzer
-	Interface   *analyzer.InterfaceAnalyzer
-	Package     *analyzer.PackageAnalyzer
-	Concurrency *analyzer.ConcurrencyAnalyzer
-	Duplication *analyzer.DuplicationAnalyzer
-	Naming      *analyzer.NamingAnalyzer
-	Placement   *analyzer.PlacementAnalyzer
-	fileSet     *token.FileSet
+	Function      *analyzer.FunctionAnalyzer
+	Struct        *analyzer.StructAnalyzer
+	Interface     *analyzer.InterfaceAnalyzer
+	Package       *analyzer.PackageAnalyzer
+	Concurrency   *analyzer.ConcurrencyAnalyzer
+	Duplication   *analyzer.DuplicationAnalyzer
+	Naming        *analyzer.NamingAnalyzer
+	Placement     *analyzer.PlacementAnalyzer
+	Documentation *analyzer.DocumentationAnalyzer
+	fileSet       *token.FileSet
 }
 
 // CollectedMetrics holds all metrics collected during analysis
@@ -549,16 +552,24 @@ func processFilesWithWorkerPool(ctx context.Context, files []scanner.FileInfo, d
 
 // createAnalyzers creates and returns all analyzers needed for the workflow
 func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
+	docConfig := &analyzer.DocumentationConfig{
+		RequireExportedDoc:  true,
+		RequirePackageDoc:   true,
+		StaleAnnotationDays: 180,
+		MinCommentWords:     5,
+	}
+
 	return &AnalyzerSet{
-		Function:    analyzer.NewFunctionAnalyzer(fileSet),
-		Struct:      analyzer.NewStructAnalyzer(fileSet),
-		Interface:   analyzer.NewInterfaceAnalyzer(fileSet),
-		Package:     analyzer.NewPackageAnalyzer(fileSet),
-		Concurrency: analyzer.NewConcurrencyAnalyzer(fileSet),
-		Duplication: analyzer.NewDuplicationAnalyzer(fileSet),
-		Naming:      analyzer.NewNamingAnalyzer(),
-		Placement:   analyzer.NewPlacementAnalyzer(cfg.Analysis.Placement.AffinityMargin, cfg.Analysis.Placement.MinCohesion),
-		fileSet:     fileSet,
+		Function:      analyzer.NewFunctionAnalyzer(fileSet),
+		Struct:        analyzer.NewStructAnalyzer(fileSet),
+		Interface:     analyzer.NewInterfaceAnalyzer(fileSet),
+		Package:       analyzer.NewPackageAnalyzer(fileSet),
+		Concurrency:   analyzer.NewConcurrencyAnalyzer(fileSet),
+		Duplication:   analyzer.NewDuplicationAnalyzer(fileSet),
+		Naming:        analyzer.NewNamingAnalyzer(),
+		Placement:     analyzer.NewPlacementAnalyzer(cfg.Analysis.Placement.AffinityMargin, cfg.Analysis.Placement.MinCohesion),
+		Documentation: analyzer.NewDocumentationAnalyzer(fileSet, docConfig),
+		fileSet:       fileSet,
 	}
 }
 
@@ -983,6 +994,56 @@ func countIdentifiers(file *ast.File) int {
 		return true
 	})
 	return count
+}
+
+// finalizeDocumentationMetrics performs documentation analysis on all collected files
+func finalizeDocumentationMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
+	// Skip if documentation analysis is disabled or no files
+	if !cfg.Analysis.IncludeDocumentation || len(collectedMetrics.Files) == 0 {
+		report.Documentation = metrics.DocumentationMetrics{}
+		return
+	}
+
+	// Convert files map to slice and group by package
+	files, pkgs := prepareDocumentationInput(collectedMetrics.Files)
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Running documentation analysis on %d files in %d packages...\n", len(files), len(pkgs))
+	}
+
+	// Run documentation analysis
+	docMetrics := analyzers.Documentation.Analyze(files, pkgs)
+	report.Documentation = *docMetrics
+
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Documentation coverage: %.1f%% (%.1f%% packages, %.1f%% functions, %.1f%% types)\n",
+			docMetrics.Coverage.Overall,
+			docMetrics.Coverage.Packages,
+			docMetrics.Coverage.Functions,
+			docMetrics.Coverage.Types)
+	}
+}
+
+// prepareDocumentationInput converts files map to slice and groups by package
+func prepareDocumentationInput(filesMap map[string]*ast.File) ([]*ast.File, map[string]*ast.Package) {
+	var files []*ast.File
+	pkgs := make(map[string]*ast.Package)
+
+	for filePath, astFile := range filesMap {
+		files = append(files, astFile)
+		if astFile.Name != nil {
+			pkgName := astFile.Name.Name
+			if _, exists := pkgs[pkgName]; !exists {
+				pkgs[pkgName] = &ast.Package{
+					Name:  pkgName,
+					Files: make(map[string]*ast.File),
+				}
+			}
+			pkgs[pkgName].Files[filePath] = astFile
+		}
+	}
+
+	return files, pkgs
 }
 
 // calculateOverviewMetrics calculates and sets the overview metrics in the report
