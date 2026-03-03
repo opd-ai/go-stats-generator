@@ -1026,3 +1026,215 @@ func (cr *ConsoleReporter) writeTopAnnotations(output io.Writer, doc metrics.Doc
 	}
 	fmt.Fprintln(output)
 }
+
+// writeOrganizationAnalysis generates organization health analysis output
+func (cr *ConsoleReporter) writeOrganizationAnalysis(output io.Writer, report *metrics.Report) {
+	fmt.Fprintln(output, "=== ORGANIZATION HEALTH ===")
+
+	org := report.Organization
+
+	// Summary metrics
+	fmt.Fprintf(output, "Oversized Files: %d\n", len(org.OversizedFiles))
+	fmt.Fprintf(output, "Oversized Packages: %d\n", len(org.OversizedPackages))
+	fmt.Fprintf(output, "Deep Directories: %d\n", len(org.DeepDirectories))
+	fmt.Fprintf(output, "High Fan-In Packages: %d\n", len(org.HighFanInPackages))
+	fmt.Fprintf(output, "High Fan-Out Packages: %d\n", len(org.HighFanOutPackages))
+	fmt.Fprintf(output, "Avg Package Instability: %.2f\n", org.AvgPackageStability)
+	fmt.Fprintln(output)
+
+	cr.writeOversizedFiles(output, org.OversizedFiles)
+	cr.writeOversizedPackages(output, org.OversizedPackages)
+	cr.writeDeepDirectories(output, org.DeepDirectories)
+	cr.writeHighFanInPackages(output, org.HighFanInPackages)
+	cr.writeHighFanOutPackages(output, org.HighFanOutPackages)
+}
+
+// writeOversizedFiles displays files exceeding size thresholds
+func (cr *ConsoleReporter) writeOversizedFiles(output io.Writer, files []metrics.OversizedFile) {
+	if len(files) == 0 {
+		return
+	}
+
+	sorted := make([]metrics.OversizedFile, len(files))
+	copy(sorted, files)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].MaintenanceBurden > sorted[j].MaintenanceBurden
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d Oversized Files:\n", limit)
+	fmt.Fprintf(output, "%-50s %8s %8s %8s %s\n", "File", "Lines", "Funcs", "Types", "Burden")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		f := sorted[i]
+		fmt.Fprintf(output, "%-50s %8d %8d %8d %.2f\n",
+			cr.truncate(f.File, 50),
+			f.Lines.Code,
+			f.FunctionCount,
+			f.TypeCount,
+			f.MaintenanceBurden,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeOversizedPackages displays packages exceeding size thresholds
+// writeOversizedPackages displays packages exceeding size thresholds
+func (cr *ConsoleReporter) writeOversizedPackages(output io.Writer, pkgs []metrics.OversizedPackage) {
+	if len(pkgs) == 0 {
+		return
+	}
+
+	sorted := make([]metrics.OversizedPackage, len(pkgs))
+	copy(sorted, pkgs)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].TotalFunctions > sorted[j].TotalFunctions
+	})
+
+	limit := cr.getDisplayLimit(len(sorted))
+	fmt.Fprintf(output, "Top %d Oversized Packages:\n", limit)
+	fmt.Fprintf(output, "%-30s %8s %8s %8s %s\n", "Package", "Files", "Exports", "Funcs", "Mega?")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		p := sorted[i]
+		mega := "No"
+		if p.IsMegaPackage {
+			mega = "Yes"
+		}
+		fmt.Fprintf(output, "%-30s %8d %8d %8d %s\n",
+			cr.truncate(p.Package, 30),
+			p.FileCount,
+			p.ExportedSymbols,
+			p.TotalFunctions,
+			mega,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// getDisplayLimit returns the appropriate display limit for tables
+func (cr *ConsoleReporter) getDisplayLimit(itemCount int) int {
+	limit := cr.config.Limit
+	if limit > itemCount {
+		limit = itemCount
+	}
+	if limit > 10 {
+		limit = 10
+	}
+	return limit
+}
+
+// writeDeepDirectories displays directory structures exceeding depth thresholds
+func (cr *ConsoleReporter) writeDeepDirectories(output io.Writer, dirs []metrics.DeepDirectory) {
+	if len(dirs) == 0 {
+		return
+	}
+
+	sorted := make([]metrics.DeepDirectory, len(dirs))
+	copy(sorted, dirs)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Depth > sorted[j].Depth
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d Deep Directories:\n", limit)
+	fmt.Fprintf(output, "%-60s %8s %8s\n", "Path", "Depth", "Files")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		d := sorted[i]
+		fmt.Fprintf(output, "%-60s %8d %8d\n",
+			cr.truncate(d.Path, 60),
+			d.Depth,
+			d.FileCount,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeHighFanInPackages displays packages with high incoming dependencies
+func (cr *ConsoleReporter) writeHighFanInPackages(output io.Writer, pkgs []metrics.FanInPackage) {
+	if len(pkgs) == 0 {
+		return
+	}
+
+	sorted := make([]metrics.FanInPackage, len(pkgs))
+	copy(sorted, pkgs)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].FanIn > sorted[j].FanIn
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d High Fan-In Packages (Bottlenecks):\n", limit)
+	fmt.Fprintf(output, "%-40s %8s %s\n", "Package", "Fan-In", "Risk Level")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		p := sorted[i]
+		fmt.Fprintf(output, "%-40s %8d %s\n",
+			cr.truncate(p.Package, 40),
+			p.FanIn,
+			p.RiskLevel,
+		)
+	}
+	fmt.Fprintln(output)
+}
+
+// writeHighFanOutPackages displays packages with high outgoing dependencies
+func (cr *ConsoleReporter) writeHighFanOutPackages(output io.Writer, pkgs []metrics.FanOutPackage) {
+	if len(pkgs) == 0 {
+		return
+	}
+
+	sorted := make([]metrics.FanOutPackage, len(pkgs))
+	copy(sorted, pkgs)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].FanOut > sorted[j].FanOut
+	})
+
+	limit := cr.config.Limit
+	if limit > len(sorted) {
+		limit = len(sorted)
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	fmt.Fprintf(output, "Top %d High Fan-Out Packages (Authority):\n", limit)
+	fmt.Fprintf(output, "%-40s %8s %12s %s\n", "Package", "Fan-Out", "Instability", "Risk")
+	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+
+	for i := 0; i < limit; i++ {
+		p := sorted[i]
+		fmt.Fprintf(output, "%-40s %8d %12.2f %s\n",
+			cr.truncate(p.Package, 40),
+			p.FanOut,
+			p.Instability,
+			p.CouplingRisk,
+		)
+	}
+	fmt.Fprintln(output)
+}

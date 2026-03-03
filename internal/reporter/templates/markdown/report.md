@@ -228,6 +228,70 @@
 {{end}}
 {{end}}
 {{end}}
+{{$totalOrgIssues := add (add (add (add (len .Report.Organization.OversizedFiles) (len .Report.Organization.OversizedPackages)) (len .Report.Organization.DeepDirectories)) (len .Report.Organization.HighFanInPackages)) (len .Report.Organization.HighFanOutPackages)}}
+{{if gt $totalOrgIssues 0}}
+## 🏢 Organization Health
+
+| Metric | Count |
+|--------|-------|
+| **Oversized Files** | {{len .Report.Organization.OversizedFiles}} |
+| **Oversized Packages** | {{len .Report.Organization.OversizedPackages}} |
+| **Deep Directories** | {{len .Report.Organization.DeepDirectories}} |
+| **High Fan-In Packages** | {{len .Report.Organization.HighFanInPackages}} |
+| **High Fan-Out Packages** | {{len .Report.Organization.HighFanOutPackages}} |
+| **Avg Package Instability** | {{formatFloat .Report.Organization.AvgPackageStability}} |
+
+{{if gt (len .Report.Organization.OversizedFiles) 0}}
+### Oversized Files
+
+| File | Lines | Functions | Types | Maintenance Burden |
+|------|-------|-----------|-------|-------------------|
+{{range .Report.Organization.OversizedFiles -}}
+| `{{escapeMarkdown .File}}` | {{.Lines.Code}} | {{.FunctionCount}} | {{.TypeCount}} | {{formatFloat .MaintenanceBurden}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Organization.OversizedPackages) 0}}
+### Oversized Packages
+
+| Package | Files | Exported Symbols | Functions | Cohesion | Mega Package |
+|---------|-------|------------------|-----------|----------|--------------|
+{{range .Report.Organization.OversizedPackages -}}
+| `{{escapeMarkdown .Package}}` | {{.FileCount}} | {{.ExportedSymbols}} | {{.TotalFunctions}} | {{formatFloat .CohesionScore}} | {{if .IsMegaPackage}}✅{{else}}❌{{end}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Organization.DeepDirectories) 0}}
+### Deep Directory Structures
+
+| Path | Depth | Files | Severity |
+|------|-------|-------|----------|
+{{range .Report.Organization.DeepDirectories -}}
+| `{{escapeMarkdown .Path}}` | {{.Depth}} | {{.FileCount}} | {{.Severity}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Organization.HighFanInPackages) 0}}
+### High Fan-In Packages (Bottlenecks)
+
+| Package | Fan-In | Bottleneck | Risk Level |
+|---------|--------|------------|------------|
+{{range .Report.Organization.HighFanInPackages -}}
+| `{{escapeMarkdown .Package}}` | {{.FanIn}} | {{if .IsBottleneck}}⚠️ Yes{{else}}No{{end}} | {{.RiskLevel}} |
+{{end}}
+{{end}}
+
+{{if gt (len .Report.Organization.HighFanOutPackages) 0}}
+### High Fan-Out Packages (High Coupling)
+
+| Package | Fan-Out | Instability | Coupling Risk |
+|---------|---------|-------------|---------------|
+{{range .Report.Organization.HighFanOutPackages -}}
+| `{{escapeMarkdown .Package}}` | {{.FanOut}} | {{formatFloat .Instability}} | {{.CouplingRisk}} |
+{{end}}
+{{end}}
+{{end}}
+
 
 ## 📈 Analysis Summary
 

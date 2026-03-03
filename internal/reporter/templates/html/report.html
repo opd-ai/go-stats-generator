@@ -44,6 +44,10 @@
             {{$totalAnnotations := add (add (add (add (add (add (len .Report.Documentation.TODOComments) (len .Report.Documentation.FIXMEComments)) (len .Report.Documentation.HACKComments)) (len .Report.Documentation.BUGComments)) (len .Report.Documentation.XXXComments)) (len .Report.Documentation.DEPRECATEDComments)) (len .Report.Documentation.NOTEComments)}}
             {{if or (gt .Report.Documentation.Coverage.Overall 0.0) (gt $totalAnnotations 0)}}
             <button class="nav-tab" data-tab="documentation">Documentation</button>
+            {{$totalOrgIssues := add (add (add (add (len .Report.Organization.OversizedFiles) (len .Report.Organization.OversizedPackages)) (len .Report.Organization.DeepDirectories)) (len .Report.Organization.HighFanInPackages)) (len .Report.Organization.HighFanOutPackages)}}
+            {{if gt $totalOrgIssues 0}}
+            <button class="nav-tab" data-tab="organization">Organization</button>
+            {{end}}
             {{end}}
             {{if .Report.Patterns.ConcurrencyPatterns}}
             <button class="nav-tab" data-tab="concurrency">Concurrency</button>
