@@ -135,6 +135,9 @@ type OutputConfig struct {
 	IncludeExamples bool   `mapstructure:"include_examples" json:"include_examples"`
 	SortBy          string `mapstructure:"sort_by" json:"sort_by"`
 	Limit           int    `mapstructure:"limit" json:"limit"`
+
+	// Section filtering — when non-empty, only listed sections appear in output
+	Sections []string `mapstructure:"sections" json:"sections,omitempty"`
 }
 
 // OutputFormat represents supported output formats

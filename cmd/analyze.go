@@ -63,7 +63,13 @@ Examples:
   go-stats-generator analyze . --skip-tests
 
   # Analyze with verbose output
-  go-stats-generator analyze . --verbose`,
+  go-stats-generator analyze . --verbose
+
+  # Output only functions and duplication sections (JSON)
+  go-stats-generator analyze . --format json --sections functions,duplication
+
+  # Shorthand: output only the functions section
+  go-stats-generator analyze . --format json --only functions`,
 
 	Args: cobra.MaximumNArgs(1),
 	RunE: runAnalyze,
@@ -80,6 +86,10 @@ func init() {
 		"output file (default: stdout)")
 	analyzeCmd.Flags().Bool("verbose", false,
 		"enable verbose output")
+	analyzeCmd.Flags().StringSlice("sections", []string{},
+		"include only these report sections in output (comma-separated: functions,structs,interfaces,packages,patterns,complexity,documentation,generics,duplication,naming,placement,organization,burden,scores,suggestions,metadata,overview)")
+	analyzeCmd.Flags().StringSlice("only", []string{},
+		"alias for --sections: include only these report sections in output")
 
 	// Performance flags
 	analyzeCmd.Flags().IntVarP(&workers, "workers", "w", 0,
@@ -163,6 +173,8 @@ func init() {
 	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
 	viper.BindPFlag("output.destination", analyzeCmd.Flags().Lookup("output"))
 	viper.BindPFlag("output.verbose", analyzeCmd.Flags().Lookup("verbose"))
+	viper.BindPFlag("output.sections", analyzeCmd.Flags().Lookup("sections"))
+	viper.BindPFlag("output.only", analyzeCmd.Flags().Lookup("only"))
 	viper.BindPFlag("performance.worker_count", analyzeCmd.Flags().Lookup("workers"))
 	viper.BindPFlag("performance.timeout", analyzeCmd.Flags().Lookup("timeout"))
 	viper.BindPFlag("filters.skip_vendor", analyzeCmd.Flags().Lookup("skip-vendor"))
@@ -238,6 +250,9 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("analysis failed: %w", err)
 	}
+
+	// Filter report sections if --sections or --only was specified
+	metrics.FilterReportSections(report, cfg.Output.Sections)
 
 	// Generate output
 	err = generateOutput(report, cfg)
