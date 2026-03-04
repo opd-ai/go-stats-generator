@@ -12,6 +12,15 @@ const BLOB_BATCH_SIZE = 6;
 /** Duration (ms) to keep cached blobs in localStorage. */
 const BLOB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+/** Maximum number of retries on HTTP 429 (rate limit) responses. */
+const MAX_RETRIES = 4;
+
+/** Base delay (ms) for exponential backoff on 429 retries. */
+const RETRY_BASE_DELAY_MS = 1000;
+
+/** Delay (ms) between blob download batches to avoid rate-limit bursts. */
+const INTER_BATCH_DELAY_MS = 100;
+
 class GitHubFetcher {
   /**
    * @param {string|null} token - GitHub personal access token (optional).
@@ -41,53 +50,119 @@ class GitHubFetcher {
   }
 
   /**
-   * Make an authenticated request to the GitHub API.
+   * Make an authenticated request to the GitHub API with automatic retry
+   * on HTTP 429 (Too Many Requests) responses using exponential backoff.
    * @param {string} endpoint - API endpoint path.
    * @param {string|null} etag - Optional ETag for conditional requests.
    * @returns {Promise<Response>} Fetch response.
    */
   async request(endpoint, etag = null) {
-    const headers = {
-      'Accept': 'application/vnd.github.v3+json',
-    };
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json',
+      };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
 
-    if (etag && this.cacheEnabled) {
-      headers['If-None-Match'] = etag;
-    }
+      if (etag && this.cacheEnabled) {
+        headers['If-None-Match'] = etag;
+      }
 
-    const fetchOptions = { headers };
-    if (this.abortController) {
-      fetchOptions.signal = this.abortController.signal;
-    }
+      const fetchOptions = { headers };
+      if (this.abortController) {
+        fetchOptions.signal = this.abortController.signal;
+      }
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, fetchOptions);
+      const response = await fetch(`${this.baseURL}${endpoint}`, fetchOptions);
 
-    // Update rate limit tracking
-    this.rateLimitRemaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '0', 10);
-    this.rateLimitReset = parseInt(response.headers.get('X-RateLimit-Reset') || '0', 10);
+      // Update rate limit tracking
+      this.rateLimitRemaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '0', 10);
+      this.rateLimitReset = parseInt(response.headers.get('X-RateLimit-Reset') || '0', 10);
 
-    if (response.status === 304) {
+      if (response.status === 304) {
+        return response;
+      }
+
+      // Handle rate limiting (429) with retry + exponential backoff.
+      if (response.status === 429) {
+        if (attempt === MAX_RETRIES) {
+          const resetDate = this.rateLimitReset
+            ? new Date(this.rateLimitReset * 1000)
+            : null;
+          const resetMsg = resetDate
+            ? ` Resets at ${resetDate.toLocaleTimeString()}.`
+            : '';
+          throw new Error(
+            `GitHub API rate limit exceeded (HTTP 429) after ${MAX_RETRIES} retries.${resetMsg} ` +
+            'Consider providing a personal access token for higher limits.'
+          );
+        }
+        const delay = this.getRetryDelay(response, attempt);
+        console.warn(
+          `Rate limited (429) on ${endpoint}. Retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms.`
+        );
+        await this.sleep(delay);
+        continue;
+      }
+
+      if (!response.ok) {
+        if (response.status === 403 && this.rateLimitRemaining === 0) {
+          const resetDate = new Date(this.rateLimitReset * 1000);
+          throw new Error(
+            `GitHub API rate limit exceeded. Resets at ${resetDate.toLocaleTimeString()}. ` +
+            'Consider providing a personal access token.'
+          );
+        }
+        const err = new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+        err.status = response.status;
+        throw err;
+      }
+
       return response;
     }
+  }
 
-    if (!response.ok) {
-      if (response.status === 403 && this.rateLimitRemaining === 0) {
-        const resetDate = new Date(this.rateLimitReset * 1000);
-        throw new Error(
-          `GitHub API rate limit exceeded. Resets at ${resetDate.toLocaleTimeString()}. ` +
-          'Consider providing a personal access token.'
-        );
+  /**
+   * Compute the delay (ms) before retrying a rate-limited request.
+   * Uses the Retry-After header if present, otherwise falls back to
+   * exponential backoff with jitter.
+   * @param {Response} response - The 429 response.
+   * @param {number} attempt - Zero-based retry attempt number.
+   * @returns {number} Delay in milliseconds.
+   */
+  getRetryDelay(response, attempt) {
+    const retryAfter = response.headers.get('Retry-After');
+    if (retryAfter) {
+      const seconds = parseInt(retryAfter, 10);
+      if (!isNaN(seconds) && seconds > 0) {
+        return seconds * 1000;
       }
-      const err = new Error(`GitHub API error: ${response.status} ${response.statusText}`);
-      err.status = response.status;
-      throw err;
     }
+    // Exponential backoff: 1s, 2s, 4s, 8s … plus random jitter up to 500ms.
+    const jitter = Math.random() * 500;
+    return RETRY_BASE_DELAY_MS * Math.pow(2, attempt) + jitter;
+  }
 
-    return response;
+  /**
+   * Sleep for the given duration, respecting the abort signal.
+   * @param {number} ms - Duration in milliseconds.
+   * @returns {Promise<void>}
+   */
+  sleep(ms) {
+    return new Promise((resolve, reject) => {
+      if (this.abortController && this.abortController.signal.aborted) {
+        return reject(new DOMException('Aborted', 'AbortError'));
+      }
+      const timer = setTimeout(resolve, ms);
+      if (this.abortController) {
+        this.abortController.signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      }
+    });
   }
 
   /**
@@ -360,7 +435,8 @@ class GitHubFetcher {
 
   /**
    * Fetch all Go file contents with progress tracking.
-   * Downloads blobs in parallel batches of {@link BLOB_BATCH_SIZE}.
+   * Downloads blobs in parallel batches of {@link BLOB_BATCH_SIZE}
+   * with a small inter-batch delay to reduce rate-limit pressure.
    * @param {string} owner - Repository owner.
    * @param {string} repo  - Repository name.
    * @param {Array} files  - File entries from the tree.
@@ -369,9 +445,10 @@ class GitHubFetcher {
    */
   async fetchFiles(owner, repo, files, onProgress = null) {
     const results = [];
+    let batchSize = BLOB_BATCH_SIZE;
 
-    for (let i = 0; i < files.length; i += BLOB_BATCH_SIZE) {
-      const batch = files.slice(i, i + BLOB_BATCH_SIZE);
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
       const batchResults = await Promise.all(
         batch.map(async (file) => {
           try {
@@ -394,6 +471,19 @@ class GitHubFetcher {
 
       if (onProgress) {
         onProgress(results.length, files.length);
+      }
+
+      // Adaptive throttling: if remaining quota is getting low, reduce
+      // batch size and increase the pause between batches.
+      let delay = INTER_BATCH_DELAY_MS;
+      if (typeof this.rateLimitRemaining === 'number' && this.rateLimitRemaining < 20) {
+        batchSize = Math.max(1, Math.floor(BLOB_BATCH_SIZE / 2));
+        delay = INTER_BATCH_DELAY_MS * 5;
+      }
+
+      // Wait between batches to avoid burst-triggered secondary rate limits.
+      if (i + batchSize < files.length) {
+        await this.sleep(delay);
       }
     }
 
