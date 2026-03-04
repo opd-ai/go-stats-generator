@@ -129,30 +129,47 @@ func (p *Postgres) List() []*AnalysisResult {
 	}
 	defer rows.Close()
 
+	return collectResults(rows)
+}
+
+func collectResults(rows *sql.Rows) []*AnalysisResult {
 	results := []*AnalysisResult{}
 	for rows.Next() {
-		var result AnalysisResult
-		var reportJSON []byte
-		var errorText *string
-
-		if err := rows.Scan(&result.ID, &result.Status, &reportJSON, &errorText); err != nil {
-			continue
+		if result := scanResult(rows); result != nil {
+			results = append(results, result)
 		}
+	}
+	return results
+}
 
-		if len(reportJSON) > 0 {
-			var report metrics.Report
-			if json.Unmarshal(reportJSON, &report) == nil {
-				result.Report = &report
-			}
-		}
-		if errorText != nil {
-			result.Error = fmt.Errorf(*errorText)
-		}
+func scanResult(rows *sql.Rows) *AnalysisResult {
+	var result AnalysisResult
+	var reportJSON []byte
+	var errorText *string
 
-		results = append(results, &result)
+	if err := rows.Scan(&result.ID, &result.Status, &reportJSON, &errorText); err != nil {
+		return nil
 	}
 
-	return results
+	populateReport(&result, reportJSON)
+	populateError(&result, errorText)
+
+	return &result
+}
+
+func populateReport(result *AnalysisResult, reportJSON []byte) {
+	if len(reportJSON) > 0 {
+		var report metrics.Report
+		if json.Unmarshal(reportJSON, &report) == nil {
+			result.Report = &report
+		}
+	}
+}
+
+func populateError(result *AnalysisResult, errorText *string) {
+	if errorText != nil {
+		result.Error = fmt.Errorf(*errorText)
+	}
 }
 
 // Delete removes an analysis result by ID.
