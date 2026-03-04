@@ -523,72 +523,99 @@ func (ba *BurdenAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int, m
 
 	switch n := node.(type) {
 	case *ast.IfStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-			*deepestLoc = n.Pos()
-		}
-		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
-		if n.Else != nil {
-			ba.walkForNestingDepth(n.Else, newDepth, maxDepth, deepestLoc)
-		}
-
+		ba.walkIfStmtNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.ForStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-			*deepestLoc = n.Pos()
-		}
-		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
-
+		ba.walkForStmtNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.RangeStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-			*deepestLoc = n.Pos()
-		}
-		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
-
+		ba.walkRangeStmtNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.SwitchStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-			*deepestLoc = n.Pos()
-		}
-		for _, stmt := range n.Body.List {
-			ba.walkForNestingDepth(stmt, newDepth, maxDepth, deepestLoc)
-		}
-
+		ba.walkSwitchStmtNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.TypeSwitchStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-			*deepestLoc = n.Pos()
-		}
-		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
-
+		ba.walkTypeSwitchStmtNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.SelectStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-			*deepestLoc = n.Pos()
-		}
-		ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
-
+		ba.walkSelectStmtNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.CaseClause:
-		for _, stmt := range n.Body {
-			ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
-		}
-
+		ba.walkCaseClauseNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.CommClause:
-		for _, stmt := range n.Body {
-			ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
-		}
-
+		ba.walkCommClauseNesting(n, currentDepth, maxDepth, deepestLoc)
 	case *ast.BlockStmt:
-		for _, stmt := range n.List {
-			ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
-		}
+		ba.walkBlockStmtNesting(n, currentDepth, maxDepth, deepestLoc)
+	}
+}
+
+// walkIfStmtNesting processes if statements for nesting depth tracking
+func (ba *BurdenAnalyzer) walkIfStmtNesting(n *ast.IfStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	newDepth := currentDepth + 1
+	ba.updateMaxDepth(newDepth, n.Pos(), maxDepth, deepestLoc)
+	ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+	if n.Else != nil {
+		ba.walkForNestingDepth(n.Else, newDepth, maxDepth, deepestLoc)
+	}
+}
+
+// walkForStmtNesting processes for statements for nesting depth tracking
+func (ba *BurdenAnalyzer) walkForStmtNesting(n *ast.ForStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	newDepth := currentDepth + 1
+	ba.updateMaxDepth(newDepth, n.Pos(), maxDepth, deepestLoc)
+	ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+}
+
+// walkRangeStmtNesting processes range statements for nesting depth tracking
+func (ba *BurdenAnalyzer) walkRangeStmtNesting(n *ast.RangeStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	newDepth := currentDepth + 1
+	ba.updateMaxDepth(newDepth, n.Pos(), maxDepth, deepestLoc)
+	ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+}
+
+// walkSwitchStmtNesting processes switch statements for nesting depth tracking
+func (ba *BurdenAnalyzer) walkSwitchStmtNesting(n *ast.SwitchStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	newDepth := currentDepth + 1
+	ba.updateMaxDepth(newDepth, n.Pos(), maxDepth, deepestLoc)
+	for _, stmt := range n.Body.List {
+		ba.walkForNestingDepth(stmt, newDepth, maxDepth, deepestLoc)
+	}
+}
+
+// walkTypeSwitchStmtNesting processes type switch statements for nesting depth tracking
+func (ba *BurdenAnalyzer) walkTypeSwitchStmtNesting(n *ast.TypeSwitchStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	newDepth := currentDepth + 1
+	ba.updateMaxDepth(newDepth, n.Pos(), maxDepth, deepestLoc)
+	ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+}
+
+// walkSelectStmtNesting processes select statements for nesting depth tracking
+func (ba *BurdenAnalyzer) walkSelectStmtNesting(n *ast.SelectStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	newDepth := currentDepth + 1
+	ba.updateMaxDepth(newDepth, n.Pos(), maxDepth, deepestLoc)
+	ba.walkForNestingDepth(n.Body, newDepth, maxDepth, deepestLoc)
+}
+
+// walkCaseClauseNesting processes case clauses for nesting depth tracking
+func (ba *BurdenAnalyzer) walkCaseClauseNesting(n *ast.CaseClause, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	for _, stmt := range n.Body {
+		ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
+	}
+}
+
+// walkCommClauseNesting processes comm clauses for nesting depth tracking
+func (ba *BurdenAnalyzer) walkCommClauseNesting(n *ast.CommClause, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	for _, stmt := range n.Body {
+		ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
+	}
+}
+
+// walkBlockStmtNesting processes block statements for nesting depth tracking
+func (ba *BurdenAnalyzer) walkBlockStmtNesting(n *ast.BlockStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
+	for _, stmt := range n.List {
+		ba.walkForNestingDepth(stmt, currentDepth, maxDepth, deepestLoc)
+	}
+}
+
+// updateMaxDepth updates the maximum depth and location if a new maximum is found
+func (ba *BurdenAnalyzer) updateMaxDepth(newDepth int, pos token.Pos, maxDepth *int, deepestLoc *token.Pos) {
+	if newDepth > *maxDepth {
+		*maxDepth = newDepth
+		*deepestLoc = pos
 	}
 }
 

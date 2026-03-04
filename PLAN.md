@@ -40,11 +40,12 @@
 
 ### Priority 2: High Complexity Violations (15.0-20.0)
 
-4. **Refactor `walkForNestingDepth` (burden.go) — complexity 19.2 → target ≤10.0**
+4. **[COMPLETED] Refactor `walkForNestingDepth` (burden.go) — complexity 19.2 → 4.4 ✓**
    - **File**: `internal/analyzer/burden.go`
    - **Deliverable**: Extract per-statement-type depth calculators; create depth calculation helper functions
    - **Dependencies**: None
    - **Metric Justification**: Complexity 19.2; 64 lines; burden analysis core function
+   - **Result**: Reduced complexity from 19.2 to 4.4 (77.1% improvement); lines reduced from 64 to 23 (64.1% reduction); extracted 10 helper functions (walkIfStmtNesting, walkForStmtNesting, walkRangeStmtNesting, walkSwitchStmtNesting, walkTypeSwitchStmtNesting, walkSelectStmtNesting, walkCaseClauseNesting, walkCommClauseNesting, walkBlockStmtNesting, updateMaxDepth); all new functions ≤6 lines; primary function walkForNestingDepth at 4.4 complexity (well under 10.0 threshold)
 
 5. **Refactor `List` — complexity 19.2 → target ≤10.0**
    - **File**: `internal/storage/json.go`
