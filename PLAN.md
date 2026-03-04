@@ -35,16 +35,11 @@ Compile the Go analysis engine to `GOOS=js GOARCH=wasm`, producing a `.wasm` bin
 5. **✅ Exclude storage from the WASM build** — Add build tags to `internal/storage/sqlite.go`, `internal/storage/json.go`, and `internal/storage/memory.go` so they are excluded from `js/wasm`. Provide a stub `internal/storage/storage_wasm.go` returning `ErrNotSupported` for any storage call. Since the browser UI performs one-shot analysis (no baseline/diff/trend), storage is not needed.
    - **Status:** Complete (2026-03-04). Added `//go:build !js || !wasm` tags to `sqlite.go`, `json.go`, and `memory.go`. Created `internal/storage/storage_wasm.go` with stub types (SQLiteStorage, JSONStorage, MemoryStorage) and constructor functions that return `ErrNotSupported`. All functions under 10 lines. Both native and WASM builds compile successfully. All storage tests pass (42/42). Zero regressions in unchanged code. Documentation added explaining WASM limitations.
 
-6. **Add Makefile target** — Add a `build-wasm` target:
-   ```makefile
-   build-wasm:
-   	@echo "Building WASM binary..."
-   	@mkdir -p $(BUILD_DIR)/wasm
-   	GOOS=js GOARCH=wasm go build $(LDFLAGS) -o $(BUILD_DIR)/wasm/go-stats-generator.wasm ./cmd/wasm/
-   	cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" $(BUILD_DIR)/wasm/
-   ```
+6. **✅ Add Makefile target** — Add a `build-wasm` target:
+   - **Status:** Complete (2026-03-04). Added `build-wasm` target to Makefile with WASM binary compilation and wasm_exec.js copying. Updated help section to document the new target. Target successfully builds 7.5MB WASM binary to `build/wasm/go-stats-generator.wasm`.
 
-7. **Verify compilation** — Run `GOOS=js GOARCH=wasm go build ./cmd/wasm/` locally. Fix any remaining import errors by adding build tags or shims until the binary compiles cleanly.
+7. **✅ Verify compilation** — Run `GOOS=js GOARCH=wasm go build ./cmd/wasm/` locally. Fix any remaining import errors by adding build tags or shims until the binary compiles cleanly.
+   - **Status:** Complete (2026-03-04). WASM compilation verified successful with `GOOS=js GOARCH=wasm go build ./cmd/wasm/`. Native build confirmed working with `go build .`. Binary size: 7.5MB uncompressed. All build targets functional.
 
 ### Dependencies
 

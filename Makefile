@@ -27,6 +27,16 @@ build-all:
 	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 .
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe .
 
+# Build WASM binary
+.PHONY: build-wasm
+build-wasm:
+	@echo "Building WASM binary..."
+	@mkdir -p $(BUILD_DIR)/wasm
+	GOOS=js GOARCH=wasm go build $(LDFLAGS) -o $(BUILD_DIR)/wasm/$(BINARY_NAME).wasm ./cmd/wasm/
+	cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" $(BUILD_DIR)/wasm/
+	@echo "WASM build complete: $(BUILD_DIR)/wasm/$(BINARY_NAME).wasm"
+	@echo "JavaScript loader: $(BUILD_DIR)/wasm/wasm_exec.js"
+
 # Install the application
 .PHONY: install
 install: build
@@ -152,6 +162,7 @@ help:
 	@echo "Available targets:"
 	@echo "  build          Build the application"
 	@echo "  build-all      Build for multiple platforms"
+	@echo "  build-wasm     Build WASM binary for browser deployment"
 	@echo "  install        Install the application"
 	@echo "  test           Run tests"
 	@echo "  test-coverage      Run tests with coverage report"

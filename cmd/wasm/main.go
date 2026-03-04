@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"syscall/js"
@@ -146,18 +147,21 @@ func buildConfig(input *ConfigInput) *config.Config {
 }
 
 // analyzeFilesFromMemory performs analysis on in-memory files (WASM path)
-func analyzeFilesFromMemory(_ *go_stats_generator.Analyzer, _ []FileInput) (*metrics.Report, error) {
-	// For now, we'll use a simple approach that leverages the existing API
-	// A future optimization would be to create a custom AnalyzeMemoryFiles method
-	// in the API that bypasses file system operations entirely
+func analyzeFilesFromMemory(analyzer *go_stats_generator.Analyzer, files []FileInput) (*metrics.Report, error) {
+	memFiles := convertToMemoryFiles(files)
+	return analyzer.AnalyzeMemoryFiles(context.Background(), memFiles, "/")
+}
 
-	// This is a placeholder - the actual implementation will require
-	// integration with the WASM-compatible scanner shim created in step 3
-
-	// TODO: Once scanner/discover_wasm.go and scanner/worker_wasm.go are implemented,
-	// replace this with proper in-memory analysis
-	// For now, return an error indicating the dependency on future steps
-	return nil, fmt.Errorf("WASM scanner shim not yet implemented - requires steps 3 and 4 from PLAN.md")
+// convertToMemoryFiles converts FileInput to MemoryFile
+func convertToMemoryFiles(files []FileInput) []go_stats_generator.MemoryFile {
+	result := make([]go_stats_generator.MemoryFile, len(files))
+	for i, f := range files {
+		result[i] = go_stats_generator.MemoryFile{
+			Path:    f.Path,
+			Content: f.Content,
+		}
+	}
+	return result
 }
 
 func main() {
