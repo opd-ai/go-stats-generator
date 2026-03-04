@@ -413,21 +413,32 @@ func detectRegressions(historical, recent []storage.SnapshotInfo, threshold floa
 		}
 	}
 
-	// Build time series from all available data
 	allSnapshots := append(historical, recent...)
+	allRegressions := collectMetricRegressions(allSnapshots, threshold)
+	overallSeverity := determineOverallSeverity(allRegressions)
 
-	// Analyze multiple metrics
+	return map[string]interface{}{
+		"threshold":            threshold,
+		"historical_count":     len(historical),
+		"recent_count":         len(recent),
+		"detected_regressions": allRegressions,
+		"severity":             overallSeverity,
+		"total_regressions":    len(allRegressions),
+	}
+}
+
+// collectMetricRegressions analyzes multiple metrics across snapshots and collects detected regressions.
+func collectMetricRegressions(snapshots []storage.SnapshotInfo, threshold float64) []map[string]interface{} {
 	metrics := []string{"mbi_score", "duplication_ratio", "doc_coverage", "complexity_violations"}
 	allRegressions := []map[string]interface{}{}
 
 	for _, metricName := range metrics {
-		series := buildTimeSeriesFromSnapshots(allSnapshots, metricName)
+		series := buildTimeSeriesFromSnapshots(snapshots, metricName)
 		if len(series.DataPoints) < 3 {
 			continue
 		}
 
-		// Detect regressions for this metric
-		results := analyzer.DetectRegressions(series, threshold*100) // Convert to percentage
+		results := analyzer.DetectRegressions(series, threshold*100)
 		for _, reg := range results {
 			allRegressions = append(allRegressions, map[string]interface{}{
 				"metric":            reg.MetricName,
@@ -441,34 +452,28 @@ func detectRegressions(historical, recent []storage.SnapshotInfo, threshold floa
 			})
 		}
 	}
+	return allRegressions
+}
 
-	// Determine overall severity
+// determineOverallSeverity returns the highest severity level found across all regressions.
+func determineOverallSeverity(regressions []map[string]interface{}) string {
 	overallSeverity := "low"
-	for _, reg := range allRegressions {
-		if sev, ok := reg["severity"].(string); ok {
-			if sev == "critical" {
-				overallSeverity = "critical"
-				break
-			}
-			if sev == "high" && overallSeverity != "critical" {
-				overallSeverity = "high"
-			}
-			if sev == "medium" && overallSeverity == "low" {
-				overallSeverity = "medium"
-			}
+	for _, reg := range regressions {
+		sev, ok := reg["severity"].(string)
+		if !ok {
+			continue
+		}
+		if sev == "critical" {
+			return "critical"
+		}
+		if sev == "high" && overallSeverity != "critical" {
+			overallSeverity = "high"
+		}
+		if sev == "medium" && overallSeverity == "low" {
+			overallSeverity = "medium"
 		}
 	}
-
-	result := map[string]interface{}{
-		"threshold":            threshold,
-		"historical_count":     len(historical),
-		"recent_count":         len(recent),
-		"detected_regressions": allRegressions,
-		"severity":             overallSeverity,
-		"total_regressions":    len(allRegressions),
-	}
-
-	return result
+	return overallSeverity
 }
 
 // Output functions
