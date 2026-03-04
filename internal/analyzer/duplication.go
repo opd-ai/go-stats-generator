@@ -576,7 +576,10 @@ func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint,
 
 	// Sort by line count (ascending) for shortest-to-longest ordering
 	sort.Slice(clonePairs, func(i, j int) bool {
-		return clonePairs[i].LineCount < clonePairs[j].LineCount
+		if clonePairs[i].LineCount != clonePairs[j].LineCount {
+			return clonePairs[i].LineCount < clonePairs[j].LineCount
+		}
+		return clonePairs[i].Hash < clonePairs[j].Hash
 	})
 
 	return clonePairs

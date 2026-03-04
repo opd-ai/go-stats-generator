@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -234,7 +235,7 @@ func TestMarkdownReporter_WithDuplication(t *testing.T) {
 	assert.Contains(t, output, "| **Largest Clone** | 35 lines |")
 
 	// Verify top clone pairs table
-	assert.Contains(t, output, "### Top Clone Pairs")
+	assert.Contains(t, output, "### Clone Pairs (Shortest to Longest)")
 	assert.Contains(t, output, "| Type | Lines | Instances | Locations |")
 	assert.Contains(t, output, "| exact |")
 	assert.Contains(t, output, "| renamed |")
@@ -327,9 +328,11 @@ func TestConsoleReporter_DuplicationSorting(t *testing.T) {
 			// Extract line count from the table row
 			fields := strings.Fields(line)
 			if len(fields) >= 2 {
-				// The line count should be the second field
-				assert.Contains(t, fields[1], "8", "Smallest clone should appear first")
-				firstCloneLineCount = 8
+				// Parse the line count as an integer for exact comparison
+				parsed, err := strconv.Atoi(fields[1])
+				require.NoError(t, err, "Failed to parse line count from table row")
+				firstCloneLineCount = parsed
+				assert.Equal(t, 8, firstCloneLineCount, "Smallest clone should appear first")
 				break
 			}
 		}
