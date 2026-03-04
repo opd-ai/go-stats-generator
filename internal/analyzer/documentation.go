@@ -299,38 +299,67 @@ func (d *DocumentationAnalyzer) addAnnotationToMetrics(category, filePath string
 
 // analyzeQuality performs comprehensive quality analysis on documentation
 func (d *DocumentationAnalyzer) analyzeQuality(files []*ast.File, m *metrics.DocumentationMetrics) {
-	var totalLength int
-	var commentCount int
-	var inlineComments int
-	var blockComments int
-	var codeExamples int
+	stats := d.collectQualityStats(files)
+	d.populateQualityMetrics(stats, m)
+}
 
+// qualityStats holds intermediate quality analysis statistics
+type qualityStats struct {
+	totalLength    int
+	commentCount   int
+	inlineComments int
+	blockComments  int
+	codeExamples   int
+}
+
+// collectQualityStats gathers quality statistics from all files
+func (d *DocumentationAnalyzer) collectQualityStats(files []*ast.File) *qualityStats {
+	stats := &qualityStats{}
 	for _, file := range files {
-		for _, cg := range file.Comments {
-			commentText := cg.Text()
-			commentCount++
-			totalLength += len(commentText)
+		d.processFileComments(file, stats)
+	}
+	return stats
+}
 
-			for _, comment := range cg.List {
-				if strings.HasPrefix(comment.Text, "//") {
-					inlineComments++
-				} else if strings.HasPrefix(comment.Text, "/*") {
-					blockComments++
-				}
-			}
+// processFileComments analyzes all comment groups in a file
+func (d *DocumentationAnalyzer) processFileComments(file *ast.File, stats *qualityStats) {
+	for _, cg := range file.Comments {
+		d.processCommentGroup(cg, stats)
+	}
+}
 
-			if d.containsCodeExample(commentText) {
-				codeExamples++
-			}
+// processCommentGroup analyzes a single comment group
+func (d *DocumentationAnalyzer) processCommentGroup(cg *ast.CommentGroup, stats *qualityStats) {
+	commentText := cg.Text()
+	stats.commentCount++
+	stats.totalLength += len(commentText)
+
+	d.classifyComments(cg, stats)
+
+	if d.containsCodeExample(commentText) {
+		stats.codeExamples++
+	}
+}
+
+// classifyComments categorizes individual comments as inline or block
+func (d *DocumentationAnalyzer) classifyComments(cg *ast.CommentGroup, stats *qualityStats) {
+	for _, comment := range cg.List {
+		if strings.HasPrefix(comment.Text, "//") {
+			stats.inlineComments++
+		} else if strings.HasPrefix(comment.Text, "/*") {
+			stats.blockComments++
 		}
 	}
+}
 
-	if commentCount > 0 {
-		m.Quality.AverageLength = float64(totalLength) / float64(commentCount)
+// populateQualityMetrics transfers collected stats to metrics structure
+func (d *DocumentationAnalyzer) populateQualityMetrics(stats *qualityStats, m *metrics.DocumentationMetrics) {
+	if stats.commentCount > 0 {
+		m.Quality.AverageLength = float64(stats.totalLength) / float64(stats.commentCount)
 	}
-	m.Quality.InlineComments = inlineComments
-	m.Quality.BlockComments = blockComments
-	m.Quality.CodeExamples = codeExamples
+	m.Quality.InlineComments = stats.inlineComments
+	m.Quality.BlockComments = stats.blockComments
+	m.Quality.CodeExamples = stats.codeExamples
 	m.Quality.QualityScore = d.calculateQualityScore(m)
 }
 
