@@ -487,22 +487,41 @@ func (na *NamingAnalyzer) checkSingleLetterName(name, idType string, ctx *identi
 	}
 }
 
-// checkAcronymCasing detects improper acronym casing
-func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext) *metrics.IdentifierViolation {
-	// Check for common acronyms with wrong casing
-	nameLower := strings.ToLower(name)
+// checkAcronymAtStart checks if an acronym at the start of a name is incorrectly cased.
+// It validates the beginning position of identifiers like "Url" -> "URL" or "UrlParser" -> "URLParser".
+func checkAcronymAtStart(name, nameLower, acronym, correctForm string) *metrics.IdentifierViolation {
+	acronymLen := len(acronym)
+	if !strings.HasPrefix(nameLower, acronym) {
+		return nil
+	}
 
-	for acronym, correctForm := range na.acronyms {
-		acronymLen := len(acronym)
+	actualPrefix := name[:acronymLen]
+	if actualPrefix != correctForm && isWrongAcronymCasing(actualPrefix, correctForm) {
+		suggested := correctForm + name[acronymLen:]
+		return &metrics.IdentifierViolation{
+			Name:          name,
+			ViolationType: "acronym_casing",
+			Description:   "Acronyms should be all caps (e.g., URL, HTTP, ID, API, JSON)",
+			SuggestedName: suggested,
+			Severity:      "low",
+		}
+	}
+	return nil
+}
 
-		// Look for the acronym in different positions
-		// Beginning of name: "Url" -> "URL", "UrlParser" -> "URLParser"
-		if strings.HasPrefix(nameLower, acronym) {
-			actualPrefix := name[:acronymLen]
+// checkAcronymInMiddle checks if an acronym in the middle or end of a name is incorrectly cased.
+// It searches for word boundaries in MixedCaps identifiers like "GetUrl" -> "GetURL" or "UserId" -> "UserID".
+func checkAcronymInMiddle(name, acronym, correctForm string) *metrics.IdentifierViolation {
+	acronymLen := len(acronym)
 
-			// Check if it's incorrectly cased
-			if actualPrefix != correctForm && isWrongAcronymCasing(actualPrefix, correctForm) {
-				suggested := correctForm + name[acronymLen:]
+	// Find word boundaries in MixedCaps names
+	for i := 1; i < len(name)-acronymLen+1; i++ {
+		if i > 0 && unicode.IsUpper(rune(name[i])) {
+			segment := name[i : i+acronymLen]
+			segmentLower := strings.ToLower(segment)
+
+			if segmentLower == acronym && isWrongAcronymCasing(segment, correctForm) {
+				suggested := name[:i] + correctForm + name[i+acronymLen:]
 				return &metrics.IdentifierViolation{
 					Name:          name,
 					ViolationType: "acronym_casing",
@@ -512,26 +531,25 @@ func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext
 				}
 			}
 		}
+	}
+	return nil
+}
 
-		// Middle/end of name: "GetUrl" -> "GetURL", "UserId" -> "UserID"
-		// We need to find word boundaries in MixedCaps names
-		for i := 1; i < len(name)-acronymLen+1; i++ {
-			// Check if we're at a word boundary (uppercase letter before this position)
-			if i > 0 && unicode.IsUpper(rune(name[i])) {
-				segment := name[i : i+acronymLen]
-				segmentLower := strings.ToLower(segment)
+// checkAcronymCasing detects improper acronym casing in Go identifiers.
+// It checks for common acronyms (URL, HTTP, ID, API, JSON) with incorrect casing
+// at the beginning, middle, or end of identifier names.
+func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext) *metrics.IdentifierViolation {
+	nameLower := strings.ToLower(name)
 
-				if segmentLower == acronym && isWrongAcronymCasing(segment, correctForm) {
-					suggested := name[:i] + correctForm + name[i+acronymLen:]
-					return &metrics.IdentifierViolation{
-						Name:          name,
-						ViolationType: "acronym_casing",
-						Description:   "Acronyms should be all caps (e.g., URL, HTTP, ID, API, JSON)",
-						SuggestedName: suggested,
-						Severity:      "low",
-					}
-				}
-			}
+	for acronym, correctForm := range na.acronyms {
+		// Check beginning of name: "Url" -> "URL", "UrlParser" -> "URLParser"
+		if v := checkAcronymAtStart(name, nameLower, acronym, correctForm); v != nil {
+			return v
+		}
+
+		// Check middle/end of name: "GetUrl" -> "GetURL", "UserId" -> "UserID"
+		if v := checkAcronymInMiddle(name, acronym, correctForm); v != nil {
+			return v
 		}
 	}
 
