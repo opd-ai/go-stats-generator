@@ -34,24 +34,43 @@ func (sa *StructAnalyzer) AnalyzeStructs(file *ast.File, pkgName string) ([]metr
 func (sa *StructAnalyzer) AnalyzeStructsWithPath(file *ast.File, pkgName, filePath string) ([]metrics.StructMetrics, error) {
 	var structs []metrics.StructMetrics
 
-	// Find all struct declarations (both standalone and in type specs)
 	for _, decl := range file.Decls {
-		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
-			for _, spec := range genDecl.Specs {
-				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
-					if structType, ok := typeSpec.Type.(*ast.StructType); ok {
-						structMetric, err := sa.analyzeStruct(file, typeSpec, structType, filePath, pkgName, genDecl.Doc)
-						if err != nil {
-							continue // Log warning and continue
-						}
-						structs = append(structs, structMetric)
-					}
-				}
-			}
-		}
+		sa.processDeclaration(decl, file, pkgName, filePath, &structs)
 	}
 
 	return structs, nil
+}
+
+// processDeclaration processes a single declaration and extracts struct metrics
+func (sa *StructAnalyzer) processDeclaration(decl ast.Decl, file *ast.File, pkgName, filePath string, structs *[]metrics.StructMetrics) {
+	genDecl, ok := decl.(*ast.GenDecl)
+	if !ok || genDecl.Tok != token.TYPE {
+		return
+	}
+
+	for _, spec := range genDecl.Specs {
+		sa.processTypeSpec(spec, genDecl, file, pkgName, filePath, structs)
+	}
+}
+
+// processTypeSpec processes a type specification and extracts struct metrics if it's a struct type
+func (sa *StructAnalyzer) processTypeSpec(spec ast.Spec, genDecl *ast.GenDecl, file *ast.File, pkgName, filePath string, structs *[]metrics.StructMetrics) {
+	typeSpec, ok := spec.(*ast.TypeSpec)
+	if !ok {
+		return
+	}
+
+	structType, ok := typeSpec.Type.(*ast.StructType)
+	if !ok {
+		return
+	}
+
+	structMetric, err := sa.analyzeStruct(file, typeSpec, structType, filePath, pkgName, genDecl.Doc)
+	if err != nil {
+		return
+	}
+
+	*structs = append(*structs, structMetric)
 }
 
 // analyzeStruct analyzes a single struct declaration

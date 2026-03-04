@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 47 production functions remain above complexity 10.0 (22 completed, 47 remaining out of 69 total)
+    - **Status**: 46 production functions remain above complexity 10.0 (23 completed, 46 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -130,11 +130,12 @@
       - ✅ Refactored `Retrieve` (12.7 → 7.0, 44.9% improvement; cyclomatic 9 → 5, 44.4% improvement)
       - ✅ Refactored `checkIdentifierStuttering` (12.4 → 3.1, 75.0% improvement; cyclomatic 8 → 2, 75.0% improvement; extracted 4 helper functions: checkMethodStuttering, isAllowedMethodPrefix, checkPackageStuttering, isAllowedFunctionPrefix)
       - ✅ Refactored `parseCoverageLine` (12.2 → 4.4, 63.9% improvement; cyclomatic 9 → 3, 66.7% improvement; extracted 3 helper functions: extractCoverageFields, parseFileAndRange, recordCoverage)
-      - ⏳ 46 functions remaining above 10.0 threshold (23 completed, 46 remaining out of 69 total)
+      - ✅ Refactored `AnalyzeStructsWithPath` (12.1 → 3.1, 74.4% improvement; cyclomatic 7 → 2, 71.4% improvement; lines 20 → 7, 65% reduction; extracted 2 helper functions: processDeclaration at 4.4 complexity, processTypeSpec at 5.7 complexity)
+      - ⏳ 45 functions remaining above 10.0 threshold (24 completed, 45 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ AnalyzeStructsWithPath (12.1) - internal/analyzer/struct.go [NEXT]
-      2. ⏳ writeDocumentationSection (12.1) - internal/reporter/csv.go
-      3. ⏳ Generate (12.1) - internal/reporter/html.go
+      1. ⏳ writeDocumentationSection (12.1) - internal/reporter/csv.go [NEXT]
+      2. ⏳ Generate (12.1) - internal/reporter/html.go
+      3. ⏳ Next highest complexity function
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
