@@ -1,9 +1,15 @@
 /**
  * WASM Loader for go-stats-generator
- * 
- * Loads and initializes the go-stats-generator WebAssembly binary,
- * providing a JavaScript interface to the analysis functions.
+ *
+ * Loads and initializes the Go WebAssembly binary, providing a
+ * JavaScript interface to the analysis functions.
  */
+
+/** Maximum time (ms) to wait for the Go runtime to expose the API. */
+const WASM_API_TIMEOUT_MS = 5000;
+
+/** Polling interval (ms) when waiting for the WASM API. */
+const WASM_API_POLL_MS = 50;
 
 class WASMLoader {
   constructor() {
@@ -14,82 +20,79 @@ class WASMLoader {
   }
 
   /**
-   * Load the WASM binary and initialize the Go runtime
-   * @param {string} wasmPath - Path to the .wasm file
-   * @returns {Promise<void>}
+   * Load the WASM binary and start the Go runtime.
+   * @param {string} wasmPath - URL of the .wasm file.
    */
   async load(wasmPath) {
-    // Load the Go WASM exec JavaScript runtime
     if (!globalThis.Go) {
       throw new Error('wasm_exec.js must be loaded before WASMLoader');
     }
 
     this.go = new Go();
-    
-    let wasmBytes;
-    
-    // Try streaming instantiation first (faster)
-    if (typeof WebAssembly.instantiateStreaming === 'function') {
-      try {
-        const result = await WebAssembly.instantiateStreaming(
-          fetch(wasmPath),
-          this.go.importObject
-        );
-        this.instance = result.instance;
-      } catch (e) {
-        console.warn('Streaming instantiation failed, falling back to buffer:', e);
-        // Fall through to buffer-based loading
-      }
-    }
-    
-    // Fallback: buffer-based instantiation
-    if (!this.instance) {
-      const response = await fetch(wasmPath);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch WASM binary: HTTP ${response.status} for ${wasmPath}`);
-      }
-      wasmBytes = await response.arrayBuffer();
-      const result = await WebAssembly.instantiate(wasmBytes, this.go.importObject);
-      this.instance = result.instance;
-    }
 
-    // Run the Go program (this starts the runtime and blocks via select{})
-    this.go.run(this.instance);
-    
-    // Wait for the Go runtime to expose the analysis API
+    // Prefer streaming instantiation; fall back to buffered if it fails.
+    this.instance = await this.instantiate(wasmPath);
+
+    // Start the Go runtime (blocks via `select {}` in main).
+    // Capture the Promise to avoid unhandled rejections if the Go program exits or panics.
+    this.runtimePromise = this.go.run(this.instance);
+    this.runtimePromise.catch((err) => {
+      console.error('Go WASM runtime exited with error:', err);
+    });
+
     await this.waitForAPI();
-    
     this.ready = true;
   }
 
   /**
-   * Wait for the Go WASM to expose the analysis API on globalThis
-   * @returns {Promise<void>}
+   * Instantiate the WASM binary, trying streaming first for speed.
+   * @param {string} wasmPath
+   * @returns {Promise<WebAssembly.Instance>}
+   */
+  async instantiate(wasmPath) {
+    if (typeof WebAssembly.instantiateStreaming === 'function') {
+      try {
+        const result = await WebAssembly.instantiateStreaming(
+          fetch(wasmPath),
+          this.go.importObject,
+        );
+        return result.instance;
+      } catch (e) {
+        console.warn('Streaming instantiation failed, falling back to buffer:', e);
+      }
+    }
+
+    const response = await fetch(wasmPath);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch WASM binary: HTTP ${response.status} for ${wasmPath}`);
+    }
+    const bytes = await response.arrayBuffer();
+    const result = await WebAssembly.instantiate(bytes, this.go.importObject);
+    return result.instance;
+  }
+
+  /**
+   * Poll until the Go runtime exposes `globalThis.analyzeCode`.
    */
   async waitForAPI() {
-    const maxWaitMs = 5000;
-    const pollIntervalMs = 50;
     let elapsed = 0;
-
-    while (!globalThis.analyzeCode && elapsed < maxWaitMs) {
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
-      elapsed += pollIntervalMs;
+    while (!globalThis.analyzeCode && elapsed < WASM_API_TIMEOUT_MS) {
+      await new Promise((resolve) => setTimeout(resolve, WASM_API_POLL_MS));
+      elapsed += WASM_API_POLL_MS;
     }
 
     if (!globalThis.analyzeCode) {
       throw new Error('WASM API did not initialize within timeout');
     }
 
-    this.analysisAPI = {
-      analyzeCode: globalThis.analyzeCode
-    };
+    this.analysisAPI = { analyzeCode: globalThis.analyzeCode };
   }
 
   /**
-   * Analyze Go source files and return results in the specified format
-   * @param {Array} files - Array of {path: string, content: string} objects
-   * @param {Object} options - Analysis options
-   * @returns {Promise<string>} - Analysis result (JSON or HTML string)
+   * Run analysis on in-memory Go source files.
+   * @param {Array<{path: string, content: string}>} files
+   * @param {Object} options
+   * @returns {Promise<string>} JSON or HTML result string.
    */
   async analyze(files, options = {}) {
     if (!this.ready) {
@@ -101,19 +104,18 @@ class WASMLoader {
       maxFunctionLength = 30,
       maxComplexity = 10,
       minDocCoverage = 0.7,
-      skipTests = true
+      skipTests = true,
     } = options;
 
-    // Build the AnalysisRequest matching Go's expected JSON structure
     const request = {
-      files: files,
+      files,
       outputFormat: format,
       config: {
         maxFunctionLength,
         maxCyclomaticComplexity: maxComplexity,
         minDocumentationCoverage: minDocCoverage,
-        skipTestFiles: skipTests
-      }
+        skipTestFiles: skipTests,
+      },
     };
 
     const result = await this.analysisAPI.analyzeCode(JSON.stringify(request));
@@ -121,20 +123,16 @@ class WASMLoader {
     if (!result.success) {
       throw new Error(result.error || 'Analysis failed');
     }
-
     return result.data;
   }
 
-  /**
-   * Check if WASM is loaded and ready
-   * @returns {boolean}
-   */
+  /** @returns {boolean} Whether the WASM runtime is ready. */
   isReady() {
     return this.ready;
   }
 }
 
-// Export for use in other modules
+// Export for use in other modules.
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = WASMLoader;
 }

@@ -1,17 +1,30 @@
 /**
  * GitHub Repository Fetcher for go-stats-generator WASM
- * 
- * Fetches Go source code from GitHub repositories entirely client-side using the GitHub REST API.
- * Supports branches, tags, commit SHAs, and handles rate limiting with optional authentication.
+ *
+ * Fetches Go source code from GitHub repositories entirely client-side
+ * using the GitHub REST API. Supports branches, tags, commit SHAs, and
+ * handles rate limiting with optional authentication.
  */
 
+/** Maximum concurrent blob download requests. */
+const BLOB_BATCH_SIZE = 6;
+
+/** Duration (ms) to keep cached blobs in localStorage. */
+const BLOB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
 class GitHubFetcher {
+  /**
+   * @param {string|null} token - GitHub personal access token (optional).
+   */
   constructor(token = null) {
     this.token = token;
     this.baseURL = 'https://api.github.com';
     this.rateLimitRemaining = null;
     this.rateLimitReset = null;
     this.cacheEnabled = true;
+
+    /** @type {AbortController|null} Active request controller for cancellation. */
+    this.abortController = null;
   }
 
   /**
@@ -28,92 +41,168 @@ class GitHubFetcher {
   }
 
   /**
-   * Make an authenticated request to the GitHub API
-   * @param {string} endpoint - API endpoint path
-   * @param {string} etag - Optional ETag for conditional requests
-   * @returns {Promise<Response>} - Fetch response
+   * Make an authenticated request to the GitHub API.
+   * @param {string} endpoint - API endpoint path.
+   * @param {string|null} etag - Optional ETag for conditional requests.
+   * @returns {Promise<Response>} Fetch response.
    */
   async request(endpoint, etag = null) {
     const headers = {
-      'Accept': 'application/vnd.github.v3+json'
+      'Accept': 'application/vnd.github.v3+json',
     };
-    
+
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-    
+
     if (etag && this.cacheEnabled) {
       headers['If-None-Match'] = etag;
     }
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, { headers });
-    
+    const fetchOptions = { headers };
+    if (this.abortController) {
+      fetchOptions.signal = this.abortController.signal;
+    }
+
+    const response = await fetch(`${this.baseURL}${endpoint}`, fetchOptions);
+
     // Update rate limit tracking
-    this.rateLimitRemaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '0');
-    this.rateLimitReset = parseInt(response.headers.get('X-RateLimit-Reset') || '0');
-    
+    this.rateLimitRemaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '0', 10);
+    this.rateLimitReset = parseInt(response.headers.get('X-RateLimit-Reset') || '0', 10);
+
     if (response.status === 304) {
-      // Not modified - return cached response marker
       return response;
     }
-    
+
     if (!response.ok) {
       if (response.status === 403 && this.rateLimitRemaining === 0) {
         const resetDate = new Date(this.rateLimitReset * 1000);
-        throw new Error(`GitHub API rate limit exceeded. Resets at ${resetDate.toLocaleTimeString()}. Consider providing a personal access token.`);
+        throw new Error(
+          `GitHub API rate limit exceeded. Resets at ${resetDate.toLocaleTimeString()}. ` +
+          'Consider providing a personal access token.'
+        );
       }
-      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+      const err = new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+      err.status = response.status;
+      throw err;
     }
-    
+
     return response;
   }
 
   /**
-   * Resolve a ref (branch, tag, or commit SHA) to a tree SHA
-   * @param {string} owner - Repository owner
-   * @param {string} repo - Repository name
-   * @param {string} ref - Branch name, tag name, commit SHA, or null for default branch
-   * @returns {Promise<string>} - Tree SHA
+   * Resolve a ref (branch, tag, or commit SHA) to a tree SHA.
+   * @param {string} owner - Repository owner.
+   * @param {string} repo  - Repository name.
+   * @param {string|null} ref - Branch, tag, commit SHA, or null for default branch.
+   * @returns {Promise<string>} Tree SHA.
    */
   async resolveTreeSHA(owner, repo, ref = null) {
     if (!ref) {
-      // Get default branch
-      const response = await this.request(`/repos/${owner}/${repo}`);
-      const repoData = await response.json();
-      ref = repoData.default_branch;
+      ref = await this.fetchDefaultBranch(owner, repo);
     }
 
-    // Try as branch first
+    // Try branch → tag → raw commit SHA, in order.
+    const treeSHA =
+      (await this.tryResolveBranch(owner, repo, ref)) ||
+      (await this.tryResolveTag(owner, repo, ref)) ||
+      (await this.tryResolveCommit(owner, repo, ref));
+
+    if (!treeSHA) {
+      throw new Error(`Could not resolve "${ref}" as a branch, tag, or commit SHA`);
+    }
+    return treeSHA;
+  }
+
+  /**
+   * Fetch the default branch name for a repository.
+   * @param {string} owner
+   * @param {string} repo
+   * @returns {Promise<string>}
+   */
+  async fetchDefaultBranch(owner, repo) {
+    const response = await this.request(`/repos/${owner}/${repo}`);
+    const data = await response.json();
+    return data.default_branch;
+  }
+
+  /**
+   * Try to resolve a ref as a branch name.
+   * Only swallows "not found" errors; rethrows rate-limit, abort, etc.
+   * @returns {Promise<string|null>} Tree SHA or null.
+   */
+  async tryResolveBranch(owner, repo, ref) {
     try {
       const response = await this.request(`/repos/${owner}/${repo}/git/ref/heads/${ref}`);
       const data = await response.json();
-      const commitSHA = data.object.sha;
-      
-      // Get commit to extract tree SHA
-      const commitResponse = await this.request(`/repos/${owner}/${repo}/git/commits/${commitSHA}`);
-      const commitData = await commitResponse.json();
-      return commitData.tree.sha;
-    } catch (e) {
-      // Not a branch, try as tag
-      try {
-        const response = await this.request(`/repos/${owner}/${repo}/git/ref/tags/${ref}`);
-        const data = await response.json();
-        const commitSHA = data.object.sha;
-        
-        const commitResponse = await this.request(`/repos/${owner}/${repo}/git/commits/${commitSHA}`);
-        const commitData = await commitResponse.json();
-        return commitData.tree.sha;
-      } catch (e2) {
-        // Assume it's a commit SHA directly
-        try {
-          const commitResponse = await this.request(`/repos/${owner}/${repo}/git/commits/${ref}`);
-          const commitData = await commitResponse.json();
-          return commitData.tree.sha;
-        } catch (e3) {
-          throw new Error(`Could not resolve ref "${ref}" as branch, tag, or commit SHA`);
-        }
-      }
+      return this.commitToTreeSHA(owner, repo, data.object.sha);
+    } catch (error) {
+      if (this.isNotFoundError(error)) return null;
+      throw error;
     }
+  }
+
+  /**
+   * Try to resolve a ref as a tag name, handling both lightweight and
+   * annotated tags.
+   * Only swallows "not found" errors; rethrows rate-limit, abort, etc.
+   * @returns {Promise<string|null>} Tree SHA or null.
+   */
+  async tryResolveTag(owner, repo, ref) {
+    try {
+      const response = await this.request(`/repos/${owner}/${repo}/git/ref/tags/${ref}`);
+      const data = await response.json();
+
+      let commitSHA = data.object.sha;
+
+      // Annotated tags point to a tag object, not a commit. Dereference.
+      if (data.object.type === 'tag') {
+        const tagResponse = await this.request(`/repos/${owner}/${repo}/git/tags/${commitSHA}`);
+        const tagData = await tagResponse.json();
+        commitSHA = tagData.object.sha;
+      }
+
+      return this.commitToTreeSHA(owner, repo, commitSHA);
+    } catch (error) {
+      if (this.isNotFoundError(error)) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * Try to resolve a ref as a raw commit SHA.
+   * Only swallows "not found" errors; rethrows rate-limit, abort, etc.
+   * @returns {Promise<string|null>} Tree SHA or null.
+   */
+  async tryResolveCommit(owner, repo, ref) {
+    try {
+      return this.commitToTreeSHA(owner, repo, ref);
+    } catch (error) {
+      if (this.isNotFoundError(error)) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * Check whether an error represents a "not found" API response (404 or 422).
+   * @param {Error} error
+   * @returns {boolean}
+   */
+  isNotFoundError(error) {
+    return error && (error.status === 404 || error.status === 422);
+  }
+
+  /**
+   * Given a commit SHA, return its tree SHA.
+   * @param {string} owner
+   * @param {string} repo
+   * @param {string} commitSHA
+   * @returns {Promise<string>} Tree SHA.
+   */
+  async commitToTreeSHA(owner, repo, commitSHA) {
+    const response = await this.request(`/repos/${owner}/${repo}/git/commits/${commitSHA}`);
+    const data = await response.json();
+    return data.tree.sha;
   }
 
   /**
@@ -191,139 +280,189 @@ class GitHubFetcher {
   }
 
   /**
-   * Set cached blob data in localStorage
-   * @param {string} cacheKey - Cache key
-   * @param {string} content - Blob content
-   * @param {string} etag - ETag from response
+   * Set cached blob data in localStorage.
+   * @param {string} cacheKey - localStorage key.
+   * @param {string} content  - Decoded blob content.
+   * @param {string} etag     - ETag from the response.
    */
   setCachedBlob(cacheKey, content, etag) {
     if (!this.cacheEnabled) return;
     try {
-      const data = {
+      localStorage.setItem(cacheKey, JSON.stringify({
         content,
         etag,
-        expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
-      };
-      localStorage.setItem(cacheKey, JSON.stringify(data));
+        expiresAt: Date.now() + BLOB_CACHE_TTL_MS,
+      }));
     } catch (e) {
       console.warn('Failed to cache blob:', e);
     }
   }
 
   /**
-   * Fetch blob content for a single file
-   * @param {string} owner - Repository owner
-   * @param {string} repo - Repository name
-   * @param {string} sha - Blob SHA
-   * @returns {Promise<string>} - File content as UTF-8 string
+   * Decode a base64-encoded string to a proper UTF-8 string.
+   * Unlike bare `atob()`, this handles multi-byte UTF-8 characters
+   * correctly (e.g. comments or strings in CJK, emoji, etc.).
+   * @param {string} base64 - Base64-encoded data (may contain newlines).
+   * @returns {string} Decoded UTF-8 string.
+   */
+  decodeBase64UTF8(base64) {
+    const binaryString = atob(base64.replace(/\n/g, ''));
+    const bytes = Uint8Array.from(binaryString, (ch) => ch.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  /**
+   * Fetch blob content for a single file.
+   * @param {string} owner - Repository owner.
+   * @param {string} repo  - Repository name.
+   * @param {string} sha   - Blob SHA.
+   * @returns {Promise<string>} File content as a UTF-8 string.
    */
   async fetchBlob(owner, repo, sha) {
     const cacheKey = this.getBlobCacheKey(owner, repo, sha);
     const cached = this.getCachedBlob(cacheKey);
-    
+
+    // If we have a cached copy, make a conditional request using its ETag.
     if (cached) {
-      const response = await this.request(`/repos/${owner}/${repo}/git/blobs/${sha}`, cached.etag);
+      const response = await this.request(
+        `/repos/${owner}/${repo}/git/blobs/${sha}`,
+        cached.etag,
+      );
       if (response.status === 304) {
         return cached.content;
       }
+      // Cache is stale – use the response we already received instead of
+      // making a second, redundant request.
+      return this.parseBlobResponse(response, cacheKey);
     }
-    
+
+    // No cache – fetch fresh.
     const response = await this.request(`/repos/${owner}/${repo}/git/blobs/${sha}`);
+    return this.parseBlobResponse(response, cacheKey);
+  }
+
+  /**
+   * Extract and cache the UTF-8 content from a blob API response.
+   * @param {Response} response - Fetch response from the blobs endpoint.
+   * @param {string} cacheKey  - localStorage cache key.
+   * @returns {Promise<string>} Decoded file content.
+   */
+  async parseBlobResponse(response, cacheKey) {
     const data = await response.json();
-    const content = atob(data.content);
+    const content = this.decodeBase64UTF8(data.content);
     const etag = response.headers.get('ETag');
-    
+
     if (etag) {
       this.setCachedBlob(cacheKey, content, etag);
     }
-    
     return content;
   }
 
   /**
-   * Fetch all Go file contents with progress tracking
-   * @param {string} owner - Repository owner
-   * @param {string} repo - Repository name
-   * @param {Array} files - Array of file entries from tree
-   * @param {Function} onProgress - Progress callback (current, total)
-   * @returns {Promise<Array>} - Array of {path, content} objects
+   * Fetch all Go file contents with progress tracking.
+   * Downloads blobs in parallel batches of {@link BLOB_BATCH_SIZE}.
+   * @param {string} owner - Repository owner.
+   * @param {string} repo  - Repository name.
+   * @param {Array} files  - File entries from the tree.
+   * @param {Function|null} onProgress - Callback receiving (current, total).
+   * @returns {Promise<Array<{path: string, content: string}>>}
    */
   async fetchFiles(owner, repo, files, onProgress = null) {
     const results = [];
-    const batchSize = 6; // Concurrent requests
-    
-    for (let i = 0; i < files.length; i += batchSize) {
-      const batch = files.slice(i, i + batchSize);
-      const promises = batch.map(async (file) => {
-        try {
-          const content = await this.fetchBlob(owner, repo, file.sha);
-          return { path: file.path, content };
-        } catch (error) {
-          console.error(`Failed to fetch ${file.path}:`, error);
-          return { path: file.path, content: '', error: error.message };
-        }
-      });
-      
-      const batchResults = await Promise.all(promises);
-      results.push(...batchResults);
-      
+
+    for (let i = 0; i < files.length; i += BLOB_BATCH_SIZE) {
+      const batch = files.slice(i, i + BLOB_BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (file) => {
+          try {
+            const content = await this.fetchBlob(owner, repo, file.sha);
+            return { path: file.path, content };
+          } catch (error) {
+            // Propagate cancellation so the caller can abort cleanly.
+            if (error && error.name === 'AbortError') throw error;
+            // Propagate fatal HTTP errors (rate-limit, server errors).
+            if (error && typeof error.status === 'number' && error.status !== 404) throw error;
+            console.error(`Failed to fetch ${file.path}:`, error);
+            return null;
+          }
+        }),
+      );
+
+      for (const r of batchResults) {
+        if (r) results.push(r);
+      }
+
       if (onProgress) {
         onProgress(results.length, files.length);
       }
     }
-    
-    return results.filter(r => !r.error);
+
+    return results;
   }
 
   /**
-   * Fetch a GitHub repository's Go source files
-   * @param {string} repoURL - GitHub repository URL
-   * @param {string} ref - Branch, tag, or commit SHA (null for default)
-   * @param {boolean} includeTests - Whether to include test files
-   * @param {Function} onProgress - Progress callback
-   * @returns {Promise<{files: Array, stats: Object}>} - Repository files and stats
+   * Fetch a GitHub repository's Go source files.
+   * @param {string} repoURL - GitHub repository URL.
+   * @param {string|null} ref - Branch, tag, or commit SHA (null for default).
+   * @param {boolean} includeTests - Whether to include test files.
+   * @param {Function|null} onProgress - Progress callback.
+   * @returns {Promise<{files: Array, stats: Object}>}
    */
   async fetchRepository(repoURL, ref = null, includeTests = false, onProgress = null) {
-    const { owner, repo } = this.parseRepoURL(repoURL);
-    
-    // Resolve ref to tree SHA
-    if (onProgress) onProgress({ stage: 'resolving', message: 'Resolving ref...' });
-    const treeSHA = await this.resolveTreeSHA(owner, repo, ref);
-    
-    // Fetch tree
-    if (onProgress) onProgress({ stage: 'fetching_tree', message: 'Fetching repository tree...' });
-    const tree = await this.fetchTree(owner, repo, treeSHA);
-    
-    // Filter to Go files
-    const goFiles = this.filterGoFiles(tree, includeTests);
-    
-    if (goFiles.length === 0) {
-      throw new Error('No Go source files found in repository');
+    // Create a fresh AbortController for this request cycle.
+    this.abortController = new AbortController();
+
+    try {
+      const { owner, repo } = this.parseRepoURL(repoURL);
+
+      if (onProgress) onProgress({ stage: 'resolving', message: 'Resolving ref…' });
+      const treeSHA = await this.resolveTreeSHA(owner, repo, ref);
+
+      if (onProgress) onProgress({ stage: 'fetching_tree', message: 'Fetching repository tree…' });
+      const tree = await this.fetchTree(owner, repo, treeSHA);
+      const goFiles = this.filterGoFiles(tree, includeTests);
+
+      if (goFiles.length === 0) {
+        throw new Error('No Go source files found in repository');
+      }
+
+      const files = await this.fetchFiles(owner, repo, goFiles, (current, total) => {
+        if (onProgress) {
+          onProgress({
+            stage: 'downloading',
+            message: `Downloading files (${current}/${total})…`,
+            current,
+            total,
+          });
+        }
+      });
+
+      return {
+        files,
+        stats: {
+          totalFiles: files.length,
+          totalSize: files.reduce((sum, f) => sum + f.content.length, 0),
+          owner,
+          repo,
+          ref: ref || 'default branch',
+          treeSHA,
+        },
+      };
+    } finally {
+      this.abortController = null;
     }
-    
-    // Fetch file contents
-    const files = await this.fetchFiles(owner, repo, goFiles, (current, total) => {
-      if (onProgress) {
-        onProgress({ 
-          stage: 'downloading', 
-          message: `Downloading files (${current}/${total})...`,
-          current,
-          total
-        });
-      }
-    });
-    
-    return {
-      files,
-      stats: {
-        totalFiles: files.length,
-        totalSize: files.reduce((sum, f) => sum + f.content.length, 0),
-        owner,
-        repo,
-        ref: ref || 'default branch',
-        treeSHA
-      }
-    };
+  }
+
+  /**
+   * Abort any in-flight fetch requests started by {@link fetchRepository}.
+   * The controller reference is kept (already aborted) so that any
+   * subsequent requests within the same cycle also receive the aborted
+   * signal.  Cleanup happens in the {@link fetchRepository} finally block.
+   */
+  abort() {
+    if (this.abortController) {
+      this.abortController.abort();
+    }
   }
 
   /**
