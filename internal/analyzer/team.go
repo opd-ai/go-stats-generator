@@ -1,4 +1,3 @@
-// Package analyzer provides team metrics analysis
 package analyzer
 
 import (

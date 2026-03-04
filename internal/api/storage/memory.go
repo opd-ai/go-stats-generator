@@ -1,4 +1,3 @@
-// Package storage provides storage abstractions for API analysis results.
 package storage
 
 import "sync"

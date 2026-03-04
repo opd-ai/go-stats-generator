@@ -1,4 +1,3 @@
-// Package api provides analysis workflow integration.
 package api
 
 import (

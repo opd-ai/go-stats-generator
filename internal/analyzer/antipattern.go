@@ -1,4 +1,3 @@
-// Package analyzer provides code analysis capabilities for Go source files.
 package analyzer
 
 import (

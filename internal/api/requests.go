@@ -1,4 +1,3 @@
-// Package api provides REST API types and structures for go-stats-generator.
 package api
 
 import (

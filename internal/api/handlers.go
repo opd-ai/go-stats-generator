@@ -1,4 +1,3 @@
-// Package api provides REST API handlers for go-stats-generator.
 package api
 
 import (

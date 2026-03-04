@@ -1,6 +1,5 @@
 //go:build js && wasm
 
-// Package main provides WebAssembly entry point for go-stats-generator
 package main
 
 import (
