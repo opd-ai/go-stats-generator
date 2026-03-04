@@ -500,65 +500,91 @@ func (fa *FunctionAnalyzer) walkForNestingDepth(node ast.Node, currentDepth int,
 
 	switch n := node.(type) {
 	case *ast.IfStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-		}
-		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
-		if n.Else != nil {
-			fa.walkForNestingDepth(n.Else, newDepth, maxDepth)
-		}
-
+		fa.walkIfStmtNesting(n, currentDepth, maxDepth)
 	case *ast.ForStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-		}
-		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
-
+		fa.walkForStmtNesting(n, currentDepth, maxDepth)
 	case *ast.RangeStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-		}
-		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
-
+		fa.walkRangeStmtNesting(n, currentDepth, maxDepth)
 	case *ast.SwitchStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-		}
-		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
-
+		fa.walkSwitchStmtNesting(n, currentDepth, maxDepth)
 	case *ast.TypeSwitchStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-		}
-		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
-
+		fa.walkTypeSwitchStmtNesting(n, currentDepth, maxDepth)
 	case *ast.SelectStmt:
-		newDepth := currentDepth + 1
-		if newDepth > *maxDepth {
-			*maxDepth = newDepth
-		}
-		fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
-
+		fa.walkSelectStmtNesting(n, currentDepth, maxDepth)
 	case *ast.BlockStmt:
-		// Process all statements in the block at the current depth
-		for _, stmt := range n.List {
-			fa.walkForNestingDepth(stmt, currentDepth, maxDepth)
-		}
-
+		fa.walkBlockStmtNesting(n, currentDepth, maxDepth)
 	default:
-		// For other nodes, inspect children without changing depth
-		ast.Inspect(node, func(child ast.Node) bool {
-			if child != node {
-				fa.walkForNestingDepth(child, currentDepth, maxDepth)
-				return false // Don't recurse automatically, we handle it manually
-			}
-			return true
-		})
+		fa.walkDefaultNodeNesting(node, currentDepth, maxDepth)
+	}
+}
+
+// walkIfStmtNesting processes if statements for nesting depth tracking
+func (fa *FunctionAnalyzer) walkIfStmtNesting(n *ast.IfStmt, currentDepth int, maxDepth *int) {
+	newDepth := currentDepth + 1
+	fa.updateMaxNestingDepth(newDepth, maxDepth)
+	fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+	if n.Else != nil {
+		fa.walkForNestingDepth(n.Else, newDepth, maxDepth)
+	}
+}
+
+// walkForStmtNesting processes for statements for nesting depth tracking
+func (fa *FunctionAnalyzer) walkForStmtNesting(n *ast.ForStmt, currentDepth int, maxDepth *int) {
+	newDepth := currentDepth + 1
+	fa.updateMaxNestingDepth(newDepth, maxDepth)
+	fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+}
+
+// walkRangeStmtNesting processes range statements for nesting depth tracking
+func (fa *FunctionAnalyzer) walkRangeStmtNesting(n *ast.RangeStmt, currentDepth int, maxDepth *int) {
+	newDepth := currentDepth + 1
+	fa.updateMaxNestingDepth(newDepth, maxDepth)
+	fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+}
+
+// walkSwitchStmtNesting processes switch statements for nesting depth tracking
+func (fa *FunctionAnalyzer) walkSwitchStmtNesting(n *ast.SwitchStmt, currentDepth int, maxDepth *int) {
+	newDepth := currentDepth + 1
+	fa.updateMaxNestingDepth(newDepth, maxDepth)
+	fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+}
+
+// walkTypeSwitchStmtNesting processes type switch statements for nesting depth tracking
+func (fa *FunctionAnalyzer) walkTypeSwitchStmtNesting(n *ast.TypeSwitchStmt, currentDepth int, maxDepth *int) {
+	newDepth := currentDepth + 1
+	fa.updateMaxNestingDepth(newDepth, maxDepth)
+	fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+}
+
+// walkSelectStmtNesting processes select statements for nesting depth tracking
+func (fa *FunctionAnalyzer) walkSelectStmtNesting(n *ast.SelectStmt, currentDepth int, maxDepth *int) {
+	newDepth := currentDepth + 1
+	fa.updateMaxNestingDepth(newDepth, maxDepth)
+	fa.walkForNestingDepth(n.Body, newDepth, maxDepth)
+}
+
+// walkBlockStmtNesting processes block statements for nesting depth tracking
+func (fa *FunctionAnalyzer) walkBlockStmtNesting(n *ast.BlockStmt, currentDepth int, maxDepth *int) {
+	for _, stmt := range n.List {
+		fa.walkForNestingDepth(stmt, currentDepth, maxDepth)
+	}
+}
+
+// walkDefaultNodeNesting handles other node types without changing depth
+func (fa *FunctionAnalyzer) walkDefaultNodeNesting(node ast.Node, currentDepth int, maxDepth *int) {
+	ast.Inspect(node, func(child ast.Node) bool {
+		if child != node {
+			fa.walkForNestingDepth(child, currentDepth, maxDepth)
+			return false
+		}
+		return true
+	})
+}
+
+// updateMaxNestingDepth updates the maximum depth if a new maximum is found
+func (fa *FunctionAnalyzer) updateMaxNestingDepth(newDepth int, maxDepth *int) {
+	if newDepth > *maxDepth {
+		*maxDepth = newDepth
 	}
 }
 

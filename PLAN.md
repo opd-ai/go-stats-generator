@@ -68,11 +68,12 @@
    - **Metric Justification**: Complexity 17.4; 44 lines; console report generation entry point
    - **Result**: Reduced complexity from 17.4 to 1.3 (92.5% improvement); cyclomatic from 13 to 1 (92.3% improvement); extracted 13 helper functions (writeReportSections at 4.9, 12 shouldWrite* functions at 1.0 each); primary function Generate at 1.3 complexity (well under 10.0 threshold)
 
-8. **Refactor `walkForNestingDepth` (function.go) — complexity 16.6 → target ≤10.0**
+8. **[COMPLETED] Refactor `walkForNestingDepth` (function.go) — complexity 16.6 → 4.4 ✓**
    - **File**: `internal/analyzer/function.go`
    - **Deliverable**: Extract per-node-type handlers; consolidate with burden.go walker if possible
    - **Dependencies**: Step 4 (potential code sharing)
    - **Metric Justification**: Complexity 16.6; 56 lines; function nesting analysis
+   - **Result**: Reduced complexity from 16.6 to 4.4 (73.5% improvement); lines reduced from 56 to 21 (62.5% reduction); extracted 9 helper functions (walkIfStmtNesting, walkForStmtNesting, walkRangeStmtNesting, walkSwitchStmtNesting, walkTypeSwitchStmtNesting, walkSelectStmtNesting, walkBlockStmtNesting, walkDefaultNodeNesting, updateMaxNestingDepth); all new functions ≤7 lines and complexity ≤3.1; primary function walkForNestingDepth at 4.4 complexity (well under 10.0 threshold)
 
 9. **Refactor `detectSingleton` — complexity 16.0 → target ≤10.0**
    - **File**: `internal/analyzer/pattern.go`
