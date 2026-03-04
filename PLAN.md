@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 44 production functions remain above complexity 10.0 (25 completed, 44 remaining out of 69 total)
+    - **Status**: 43 production functions remain above complexity 10.0 (26 completed, 43 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -132,11 +132,12 @@
       - ✅ Refactored `parseCoverageLine` (12.2 → 4.4, 63.9% improvement; cyclomatic 9 → 3, 66.7% improvement; extracted 3 helper functions: extractCoverageFields, parseFileAndRange, recordCoverage)
       - ✅ Refactored `AnalyzeStructsWithPath` (12.1 → 3.1, 74.4% improvement; cyclomatic 7 → 2, 71.4% improvement; lines 20 → 7, 65% reduction; extracted 2 helper functions: processDeclaration at 4.4 complexity, processTypeSpec at 5.7 complexity)
       - ✅ Refactored `watchEventLoop` (11.9 → 4.9, 58.8% improvement; cyclomatic 8 → 3, 62.5% improvement; lines 18 → 5, 72.2% reduction; extracted 3 helper functions: processWatchEvent at 7.0 complexity, processFileSystemEvent at 3.1 complexity, processWatcherError at 3.1 complexity)
-      - ⏳ 44 functions remaining above 10.0 threshold (25 completed, 44 remaining out of 69 total)
+      - ✅ Refactored `finalizeDuplicationMetrics` (11.9 → 3.1, 73.9% improvement; cyclomatic 8 → 2, 75.0% improvement; lines 52 → 10, 80.8% reduction; extracted 6 helper functions: prepareFilesForDuplication at 3.1 complexity, filterNonTestFiles at 4.9 complexity, createEmptyDuplicationMetrics at 1.3 complexity, logDuplicationStart at 4.4 complexity, runDuplicationAnalysis at 1.3 complexity, logDuplicationResults at 3.1 complexity)
+      - ⏳ 43 functions remaining above 10.0 threshold (26 completed, 43 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ finalizeDuplicationMetrics (11.9) - cmd/analyze_finalize.go [NEXT]
-      2. ⏳ detectStrategy (11.9) - internal/analyzer/pattern.go
-      3. ⏳ AnalyzePackage (11.9) - internal/analyzer/package.go
+      1. ⏳ detectStrategy (11.9) - internal/analyzer/pattern.go [NEXT]
+      2. ⏳ AnalyzePackage (11.9) - internal/analyzer/package.go
+      3. ⏳ AnalyzeDuplicationWithMetrics (11.6) - internal/analyzer/duplication.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"

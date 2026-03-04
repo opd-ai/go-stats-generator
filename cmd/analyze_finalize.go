@@ -65,58 +65,72 @@ func finalizeScoringMetrics(report *metrics.Report, cfg *config.Config) {
 
 // finalizeDuplicationMetrics performs duplication analysis on all collected files
 func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *analyzer.DuplicationAnalyzer, collectedMetrics *CollectedMetrics, cfg *config.Config) {
-	// Get configuration values for duplication detection
-	minBlockLines := cfg.Analysis.Duplication.MinBlockLines
-	similarityThreshold := cfg.Analysis.Duplication.SimilarityThreshold
-	ignoreTestFiles := cfg.Analysis.Duplication.IgnoreTestFiles
-
-	// Filter files if ignoring test files
-	filesToAnalyze := collectedMetrics.Files
-	if ignoreTestFiles {
-		filtered := make(map[string]*ast.File)
-		for filename, file := range collectedMetrics.Files {
-			if !strings.HasSuffix(filename, "_test.go") {
-				filtered[filename] = file
-			}
-		}
-		filesToAnalyze = filtered
-	}
-
-	// Skip if no files were collected
+	filesToAnalyze := prepareFilesForDuplication(collectedMetrics, cfg)
 	if len(filesToAnalyze) == 0 {
-		report.Duplication = metrics.DuplicationMetrics{
-			ClonePairs:       0,
-			DuplicatedLines:  0,
-			DuplicationRatio: 0.0,
-			LargestCloneSize: 0,
-			Clones:           []metrics.ClonePair{},
-		}
+		report.Duplication = createEmptyDuplicationMetrics()
 		return
 	}
 
-	if cfg.Output.Verbose {
-		if ignoreTestFiles {
-			fmt.Fprintf(os.Stderr, "Running duplication analysis on %d files (excluding test files)...\n", len(filesToAnalyze))
-		} else {
-			fmt.Fprintf(os.Stderr, "Running duplication analysis on %d files...\n", len(filesToAnalyze))
+	logDuplicationStart(cfg, len(filesToAnalyze))
+	duplicationMetrics := runDuplicationAnalysis(duplicationAnalyzer, filesToAnalyze, cfg)
+	report.Duplication = duplicationMetrics
+	logDuplicationResults(cfg, duplicationMetrics)
+}
+
+func prepareFilesForDuplication(collectedMetrics *CollectedMetrics, cfg *config.Config) map[string]*ast.File {
+	if !cfg.Analysis.Duplication.IgnoreTestFiles {
+		return collectedMetrics.Files
+	}
+	return filterNonTestFiles(collectedMetrics.Files)
+}
+
+func filterNonTestFiles(files map[string]*ast.File) map[string]*ast.File {
+	filtered := make(map[string]*ast.File)
+	for filename, file := range files {
+		if !strings.HasSuffix(filename, "_test.go") {
+			filtered[filename] = file
 		}
 	}
+	return filtered
+}
 
-	// Run duplication analysis
-	duplicationMetrics := duplicationAnalyzer.AnalyzeDuplication(
-		filesToAnalyze,
-		minBlockLines,
-		similarityThreshold,
-	)
-
-	report.Duplication = duplicationMetrics
-
-	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Found %d clone pairs, %d duplicated lines (%.2f%% duplication ratio)\n",
-			duplicationMetrics.ClonePairs,
-			duplicationMetrics.DuplicatedLines,
-			duplicationMetrics.DuplicationRatio*100)
+func createEmptyDuplicationMetrics() metrics.DuplicationMetrics {
+	return metrics.DuplicationMetrics{
+		ClonePairs:       0,
+		DuplicatedLines:  0,
+		DuplicationRatio: 0.0,
+		LargestCloneSize: 0,
+		Clones:           []metrics.ClonePair{},
 	}
+}
+
+func logDuplicationStart(cfg *config.Config, fileCount int) {
+	if !cfg.Output.Verbose {
+		return
+	}
+	msg := fmt.Sprintf("Running duplication analysis on %d files", fileCount)
+	if cfg.Analysis.Duplication.IgnoreTestFiles {
+		msg += " (excluding test files)"
+	}
+	fmt.Fprintf(os.Stderr, "%s...\n", msg)
+}
+
+func runDuplicationAnalysis(analyzer *analyzer.DuplicationAnalyzer, files map[string]*ast.File, cfg *config.Config) metrics.DuplicationMetrics {
+	return analyzer.AnalyzeDuplication(
+		files,
+		cfg.Analysis.Duplication.MinBlockLines,
+		cfg.Analysis.Duplication.SimilarityThreshold,
+	)
+}
+
+func logDuplicationResults(cfg *config.Config, metrics metrics.DuplicationMetrics) {
+	if !cfg.Output.Verbose {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "Found %d clone pairs, %d duplicated lines (%.2f%% duplication ratio)\n",
+		metrics.ClonePairs,
+		metrics.DuplicatedLines,
+		metrics.DuplicationRatio*100)
 }
 
 // finalizeNamingMetrics performs naming convention analysis on all collected files
