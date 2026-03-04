@@ -871,13 +871,13 @@ func (cr *ConsoleReporter) getSortedClones(clones []metrics.ClonePair) []metrics
 	sorted := make([]metrics.ClonePair, len(clones))
 	copy(sorted, clones)
 	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].LineCount > sorted[j].LineCount
+		return sorted[i].LineCount < sorted[j].LineCount
 	})
 	return sorted
 }
 
 func (cr *ConsoleReporter) writeDuplicationHeader(output io.Writer, limit int) {
-	fmt.Fprintf(output, "Top %d Clone Pairs (by size):\n", limit)
+	fmt.Fprintf(output, "Clone Pairs (shortest to longest, %d shown):\n", limit)
 	fmt.Fprintf(output, "%-15s %8s %8s %s\n", "Type", "Lines", "Instances", "Locations")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
 }
@@ -903,12 +903,11 @@ func (cr *ConsoleReporter) formatCloneLocations(clone metrics.ClonePair) string 
 	if len(clone.Instances) == 0 {
 		return ""
 	}
-	inst := clone.Instances[0]
-	location := fmt.Sprintf("%s:%d-%d", cr.truncate(inst.File, 40), inst.StartLine, inst.EndLine)
-	if len(clone.Instances) > 1 {
-		location += fmt.Sprintf(" (+%d more)", len(clone.Instances)-1)
+	var locations []string
+	for _, inst := range clone.Instances {
+		locations = append(locations, fmt.Sprintf("%s:%d-%d", cr.truncate(inst.File, 40), inst.StartLine, inst.EndLine))
 	}
-	return location
+	return strings.Join(locations, ", ")
 }
 
 // writeNamingAnalysis generates naming convention analysis output

@@ -103,9 +103,9 @@
 
 ### Top Clone Pairs
 
-| Type | Lines | Instances | First Location |
-|------|-------|-----------|----------------|
-{{range .Report.Duplication.Clones}}{{if ge .LineCount 6}}| {{.Type}} | {{.LineCount}} | {{len .Instances}} | {{escapeMarkdown (index .Instances 0).File}}:{{(index .Instances 0).StartLine}}-{{(index .Instances 0).EndLine}} |
+| Type | Lines | Instances | Locations |
+|------|-------|-----------|-----------|
+{{range .Report.Duplication.Clones}}{{if ge .LineCount 6}}| {{.Type}} | {{.LineCount}} | {{len .Instances}} | {{range $i, $inst := .Instances}}{{if $i}}, {{end}}{{escapeMarkdown $inst.File}}:{{$inst.StartLine}}-{{$inst.EndLine}}{{end}} |
 {{end}}{{end}}
 {{end}}
 

@@ -146,15 +146,17 @@ func TestConsoleReporter_WithDuplication(t *testing.T) {
 	assert.Contains(t, output, "Largest Clone Size: 35 lines")
 
 	// Verify clone pairs table
-	assert.Contains(t, output, "Top")
 	assert.Contains(t, output, "Clone Pairs")
+	assert.Contains(t, output, "shortest to longest")
 	assert.Contains(t, output, "exact")
 	assert.Contains(t, output, "renamed")
 	assert.Contains(t, output, "near")
 
-	// Verify specific clone details
+	// Verify specific clone details - all locations should be shown
 	assert.Contains(t, output, "testdata/user.go:10-45")
+	assert.Contains(t, output, "testdata/admin.go:20-55")
 	assert.Contains(t, output, "testdata/validator.go:30-50")
+	assert.Contains(t, output, "testdata/checker.go:15-35")
 }
 
 // TestJSONReporter_WithDuplication tests JSON reporter with duplication metrics
@@ -233,7 +235,7 @@ func TestMarkdownReporter_WithDuplication(t *testing.T) {
 
 	// Verify top clone pairs table
 	assert.Contains(t, output, "### Top Clone Pairs")
-	assert.Contains(t, output, "| Type | Lines | Instances | First Location |")
+	assert.Contains(t, output, "| Type | Lines | Instances | Locations |")
 	assert.Contains(t, output, "| exact |")
 	assert.Contains(t, output, "| renamed |")
 }
@@ -284,7 +286,7 @@ func TestReporters_WithNoDuplication(t *testing.T) {
 	})
 }
 
-// TestConsoleReporter_DuplicationSorting tests that clone pairs are sorted correctly
+// TestConsoleReporter_DuplicationSorting tests that clone pairs are sorted shortest to longest
 func TestConsoleReporter_DuplicationSorting(t *testing.T) {
 	report := createTestReportWithDuplication()
 
@@ -311,27 +313,27 @@ func TestConsoleReporter_DuplicationSorting(t *testing.T) {
 
 	output := buf.String()
 
-	// Verify largest clone appears first in output
+	// Verify smallest clone appears first in output (ascending order)
 	lines := strings.Split(output, "\n")
 	var cloneTableStarted bool
 	var firstCloneLineCount int
 
 	for _, line := range lines {
-		if strings.Contains(line, "Top") && strings.Contains(line, "Clone Pairs") {
+		if strings.Contains(line, "Clone Pairs") && strings.Contains(line, "shortest to longest") {
 			cloneTableStarted = true
 			continue
 		}
-		if cloneTableStarted && strings.Contains(line, "exact") {
+		if cloneTableStarted && (strings.Contains(line, "exact") || strings.Contains(line, "renamed") || strings.Contains(line, "near")) {
 			// Extract line count from the table row
 			fields := strings.Fields(line)
 			if len(fields) >= 2 {
 				// The line count should be the second field
-				assert.Contains(t, fields[1], "35", "Largest clone should appear first")
-				firstCloneLineCount = 35
+				assert.Contains(t, fields[1], "8", "Smallest clone should appear first")
+				firstCloneLineCount = 8
 				break
 			}
 		}
 	}
 
-	assert.Equal(t, 35, firstCloneLineCount, "First clone in table should be the largest")
+	assert.Equal(t, 8, firstCloneLineCount, "First clone in table should be the smallest")
 }
