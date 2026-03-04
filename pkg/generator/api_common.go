@@ -244,12 +244,6 @@ func createMergedGenerics(generics []metrics.GenericMetrics) metrics.GenericMetr
 	return merged
 }
 
-// mergeGenericsData is deprecated - use metrics.MergeGenericsData instead
-// Kept for backward compatibility
-func mergeGenericsData(merged *metrics.GenericMetrics, gen metrics.GenericMetrics) {
-	metrics.MergeGenericsData(merged, gen)
-}
-
 // calculateGenericComplexity calculates score
 func calculateGenericComplexity(complexities []metrics.GenericComplexity) float64 {
 	total := 0.0
