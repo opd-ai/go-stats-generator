@@ -265,7 +265,7 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
 
 4. **Enable GitHub Pages** — In repository Settings → Pages, select "GitHub Actions" as the source (not branch-based). The workflow handles deployment via the `actions/deploy-pages` action.
 
-5. **Add cache headers via `_headers` file** — Create `web/_headers` (copied to `dist/` during build):
+5. **✅ Add cache headers via `_headers` file** — Create `web/_headers` (copied to `dist/` during build):
    ```
    /wasm/*
      Cache-Control: public, max-age=31536000, immutable
@@ -277,8 +277,10 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
      Cache-Control: public, max-age=300
    ```
    Note: GitHub Pages has limited support for custom headers. If needed, the WASM manifest approach (content-hashed filenames) provides equivalent cache-busting without server-side header configuration.
+   - **Status:** Complete (2026-03-04). Created `web/_headers` with cache control headers for WASM (immutable, 1 year), wasm_exec.js (24 hours), HTML (5 minutes), CSS/JS (1 week). Updated GitHub Actions workflow to copy `_headers` and `404.html` to dist/ during deployment.
 
-6. **Add a `404.html`** — GitHub Pages serves this for unknown routes. Redirect to `index.html` for SPA-like behavior (though the app is single-page, this handles direct links).
+6. **✅ Add a `404.html`** — GitHub Pages serves this for unknown routes. Redirect to `index.html` for SPA-like behavior (though the app is single-page, this handles direct links).
+   - **Status:** Complete (2026-03-04). Created `web/404.html` with auto-redirect to home page via meta refresh, user-friendly 404 message, and styled error page matching site theme. Handles direct links and unknown routes gracefully.
 
 ### Dependencies
 
