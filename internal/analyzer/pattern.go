@@ -149,11 +149,21 @@ func (pa *PatternAnalyzer) detectFactory(file *ast.File, filePath string, patter
 
 // detectBuilder identifies builder patterns via method chaining
 func (pa *PatternAnalyzer) detectBuilder(file *ast.File, filePath string, patterns *metrics.DesignPatternMetrics) {
+	typeBuilders := pa.collectBuilderCandidates(file)
+	pa.appendBuilderPatterns(typeBuilders, filePath, patterns)
+}
+
+// collectBuilderCandidates scans methods to identify potential builder types
+func (pa *PatternAnalyzer) collectBuilderCandidates(file *ast.File) map[string]*builderCandidate {
 	typeBuilders := make(map[string]*builderCandidate)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
-		if !ok || funcDecl.Recv == nil || len(funcDecl.Recv.List) == 0 {
+		if !ok {
+			return true
+		}
+
+		if !pa.hasMethods(funcDecl) {
 			return true
 		}
 
@@ -162,43 +172,80 @@ func (pa *PatternAnalyzer) detectBuilder(file *ast.File, filePath string, patter
 			return true
 		}
 
-		if _, exists := typeBuilders[recvType]; !exists {
-			typeBuilders[recvType] = &builderCandidate{
-				typeName:    recvType,
-				line:        pa.fset.Position(funcDecl.Pos()).Line,
-				setterCount: 0,
-				hasBuild:    false,
-				returnsSelf: 0,
-			}
-		}
-
-		candidate := typeBuilders[recvType]
-
-		if strings.HasPrefix(funcDecl.Name.Name, "Set") || strings.HasPrefix(funcDecl.Name.Name, "With") {
-			candidate.setterCount++
-			if pa.returnsSelf(funcDecl, recvType) {
-				candidate.returnsSelf++
-			}
-		}
-
-		if funcDecl.Name.Name == "Build" || funcDecl.Name.Name == "Create" {
-			candidate.hasBuild = true
-		}
+		pa.ensureCandidateExists(typeBuilders, recvType, funcDecl)
+		pa.updateCandidateFromMethod(typeBuilders[recvType], funcDecl, recvType)
 
 		return true
 	})
 
-	for _, candidate := range typeBuilders {
-		if candidate.setterCount >= 2 && candidate.returnsSelf >= 2 && candidate.hasBuild {
-			patterns.Builder = append(patterns.Builder, metrics.PatternInstance{
-				Name:            "Builder Pattern",
-				File:            filePath,
-				Line:            candidate.line,
-				ConfidenceScore: 0.9,
-				Description:     "Fluent builder with method chaining",
-				Example:         candidate.typeName + " builder with " + string(rune(candidate.setterCount)) + " setters",
-			})
+	return typeBuilders
+}
+
+// hasMethods checks if function declaration has receiver methods
+func (pa *PatternAnalyzer) hasMethods(funcDecl *ast.FuncDecl) bool {
+	return funcDecl.Recv != nil && len(funcDecl.Recv.List) > 0
+}
+
+// ensureCandidateExists creates builder candidate if not already tracked
+func (pa *PatternAnalyzer) ensureCandidateExists(typeBuilders map[string]*builderCandidate, recvType string, funcDecl *ast.FuncDecl) {
+	if _, exists := typeBuilders[recvType]; !exists {
+		typeBuilders[recvType] = &builderCandidate{
+			typeName:    recvType,
+			line:        pa.fset.Position(funcDecl.Pos()).Line,
+			setterCount: 0,
+			hasBuild:    false,
+			returnsSelf: 0,
 		}
+	}
+}
+
+// updateCandidateFromMethod updates candidate based on method characteristics
+func (pa *PatternAnalyzer) updateCandidateFromMethod(candidate *builderCandidate, funcDecl *ast.FuncDecl, recvType string) {
+	if pa.isSetterMethod(funcDecl.Name.Name) {
+		candidate.setterCount++
+		if pa.returnsSelf(funcDecl, recvType) {
+			candidate.returnsSelf++
+		}
+	}
+
+	if pa.isBuildMethod(funcDecl.Name.Name) {
+		candidate.hasBuild = true
+	}
+}
+
+// isSetterMethod checks if method name suggests a setter
+func (pa *PatternAnalyzer) isSetterMethod(name string) bool {
+	return strings.HasPrefix(name, "Set") || strings.HasPrefix(name, "With")
+}
+
+// isBuildMethod checks if method name suggests a build/create function
+func (pa *PatternAnalyzer) isBuildMethod(name string) bool {
+	return name == "Build" || name == "Create"
+}
+
+// appendBuilderPatterns adds qualified builder candidates to pattern list
+func (pa *PatternAnalyzer) appendBuilderPatterns(typeBuilders map[string]*builderCandidate, filePath string, patterns *metrics.DesignPatternMetrics) {
+	for _, candidate := range typeBuilders {
+		if pa.isBuilderPattern(candidate) {
+			patterns.Builder = append(patterns.Builder, pa.createBuilderPattern(candidate, filePath))
+		}
+	}
+}
+
+// isBuilderPattern checks if candidate meets builder pattern criteria
+func (pa *PatternAnalyzer) isBuilderPattern(candidate *builderCandidate) bool {
+	return candidate.setterCount >= 2 && candidate.returnsSelf >= 2 && candidate.hasBuild
+}
+
+// createBuilderPattern constructs pattern instance from candidate
+func (pa *PatternAnalyzer) createBuilderPattern(candidate *builderCandidate, filePath string) metrics.PatternInstance {
+	return metrics.PatternInstance{
+		Name:            "Builder Pattern",
+		File:            filePath,
+		Line:            candidate.line,
+		ConfidenceScore: 0.9,
+		Description:     "Fluent builder with method chaining",
+		Example:         candidate.typeName + " builder with " + string(rune(candidate.setterCount)) + " setters",
 	}
 }
 

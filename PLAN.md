@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 51 production functions remain above complexity 10.0 (18 completed, 51 remaining out of 69 total)
+    - **Status**: 50 production functions remain above complexity 10.0 (19 completed, 50 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -125,12 +125,14 @@
       - ✅ Refactored `analyzeQuality` (12.9 → 1.3, 89.9% improvement; cyclomatic 8 → 1, 87.5% improvement)
       - ✅ Refactored `dfsCircular` (12.9 → 4.9, 62.0% improvement; cyclomatic 8 → 3, 62.5% improvement)
       - ✅ Refactored `runFileAnalysis` (12.7 → 4.4, 65.4% improvement; cyclomatic 9 → 3, 66.7% improvement)
-      - ⏳ 51 functions remaining above 10.0 threshold (18 completed, 51 remaining out of 69 total)
+      - ✅ Refactored `detectBuilder` (12.7 → 1.3, 89.8% improvement; cyclomatic 9 → 1, 88.9% improvement)
+      - ⏳ 50 functions remaining above 10.0 threshold (19 completed, 50 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ detectBuilder (12.7) - internal/analyzer/pattern.go [NEXT]
-      2. ⏳ writeNamingSection (12.7) - internal/reporter/csv.go
-      3. ⏳ AnalyzeTestCoverage (12.7) - internal/analyzer/test_coverage.go
-      4. ⏳ (additional functions to be identified)
+      1. ⏳ writeNamingSection (12.7) - internal/reporter/csv.go [NEXT]
+      2. ⏳ Retrieve (12.7) - internal/storage/sqlite.go
+      3. ⏳ checkIdentifierStuttering (12.4) - internal/analyzer/naming.go
+      4. ⏳ parseCoverageLine (12.2) - internal/analyzer/coverage.go
+      5. ⏳ AnalyzeStructsWithPath (12.1) - internal/analyzer/struct.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
