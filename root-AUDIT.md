@@ -18,12 +18,12 @@ The root package serves as the CLI entry point, delegating to the cmd package. A
 ## Issues Found
 
 ### High Priority
-- [ ] high complexity — FilterReportSections exceeds threshold (`internal/metrics/sections.go:45`) complexity 23, 68 lines
-- [ ] high complexity — runWatch exceeds threshold (`cmd/watch.go:71`) complexity 14, 44 lines
-- [ ] high complexity — extractNestedBlocks exceeds threshold (`internal/analyzer/duplication.go:112`) complexity 15, 45 lines
-- [ ] high complexity — List exceeds threshold (`internal/storage/json.go:89`) complexity 14, 63 lines
-- [ ] high complexity — checkStmtForUnreachable exceeds threshold (`internal/analyzer/burden.go:156`) complexity 13, 40 lines
-- [ ] high function-length — init function too long (`cmd/analyze.go:68`) 118 lines, complexity 1
+- [x] high complexity — FilterReportSections exceeds threshold (`internal/metrics/sections.go:45`) complexity 23, 68 lines (COMPLETED: refactored to complexity 2, 6 lines)
+- [x] high complexity — runWatch exceeds threshold (`cmd/watch.go:71`) complexity 14, 44 lines (COMPLETED: refactored to complexity 3, 21 lines)
+- [x] high complexity — extractNestedBlocks exceeds threshold (`internal/analyzer/duplication.go:112`) complexity 15, 45 lines (COMPLETED: refactored to complexity 2, 20 lines)
+- [x] high complexity — List exceeds threshold (`internal/storage/json.go:89`) complexity 14, 63 lines (COMPLETED: refactored to complexity 2, 8 lines)
+- [x] high complexity — checkStmtForUnreachable exceeds threshold (`internal/analyzer/burden.go:156`) complexity 13, 40 lines (COMPLETED: refactored to complexity 2, 16 lines)
+- [x] high function-length — init function too long (`cmd/analyze.go:68`) 118 lines, complexity 1 (COMPLETED: split into 15 helper functions, now 10 lines)
 - [ ] high duplication — Overall duplication ratio 47.1% (125 clone pairs, 11,384 duplicated lines)
 
 ### Medium Priority

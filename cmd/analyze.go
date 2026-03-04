@@ -78,8 +78,19 @@ Examples:
 // init registers the analyze command and its flags with the root command.
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
+	registerOutputFlags()
+	registerPerformanceFlags()
+	registerFilterFlags()
+	registerAnalysisFlags()
+	registerThresholdFlags()
+	registerDuplicationFlags()
+	registerOrganizationFlags()
+	registerBurdenFlags()
+	bindFlagsToViper()
+}
 
-	// Output flags
+// registerOutputFlags adds output format and section filtering flags.
+func registerOutputFlags() {
 	analyzeCmd.Flags().StringVarP(&outputFormat, "format", "f", "console",
 		"output format (console, json, csv, html, markdown)")
 	analyzeCmd.Flags().StringVarP(&outputFile, "output", "o", "",
@@ -90,14 +101,18 @@ func init() {
 		"include only these report sections in output (comma-separated: functions,structs,interfaces,packages,patterns,complexity,documentation,generics,duplication,naming,placement,organization,burden,scores,suggestions,metadata,overview)")
 	analyzeCmd.Flags().StringSlice("only", []string{},
 		"alias for --sections: include only these report sections in output")
+}
 
-	// Performance flags
+// registerPerformanceFlags adds concurrency and timeout flags.
+func registerPerformanceFlags() {
 	analyzeCmd.Flags().IntVarP(&workers, "workers", "w", 0,
 		"number of worker goroutines (default: number of CPU cores)")
 	analyzeCmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute,
 		"analysis timeout")
+}
 
-	// Filter flags
+// registerFilterFlags adds file filtering and exclusion flags.
+func registerFilterFlags() {
 	analyzeCmd.Flags().Bool("skip-vendor", true,
 		"skip vendor directories")
 	analyzeCmd.Flags().Bool("skip-tests", false,
@@ -108,8 +123,10 @@ func init() {
 		"exclude patterns (glob)")
 	analyzeCmd.Flags().StringSlice("include", []string{"**/*.go"},
 		"include patterns (glob)")
+}
 
-	// Analysis flags
+// registerAnalysisFlags adds feature enablement flags.
+func registerAnalysisFlags() {
 	analyzeCmd.Flags().Bool("include-patterns", true,
 		"include design pattern detection")
 	analyzeCmd.Flags().Bool("include-complexity", true,
@@ -122,8 +139,10 @@ func init() {
 		"enable team productivity analysis (requires Git repository)")
 	analyzeCmd.Flags().String("coverage-profile", "",
 		"path to Go coverage profile for test coverage correlation")
+}
 
-	// Threshold flags
+// registerThresholdFlags adds quality threshold flags.
+func registerThresholdFlags() {
 	analyzeCmd.Flags().Int("max-function-length", 30,
 		"maximum function length warning threshold")
 	analyzeCmd.Flags().Int("max-complexity", 10,
@@ -136,16 +155,20 @@ func init() {
 		"maximum number of undocumented exported symbols allowed")
 	analyzeCmd.Flags().Bool("enforce-thresholds", false,
 		"exit with non-zero code if quality thresholds are violated (for CI/CD integration)")
+}
 
-	// Duplication detection flags
+// registerDuplicationFlags adds code duplication detection flags.
+func registerDuplicationFlags() {
 	analyzeCmd.Flags().Int("min-block-lines", 6,
 		"minimum block size to consider for duplication detection")
 	analyzeCmd.Flags().Float64("similarity-threshold", 0.80,
 		"similarity threshold for near-duplicate detection (0.0-1.0)")
 	analyzeCmd.Flags().Bool("ignore-test-duplication", false,
 		"exclude test files from duplication analysis")
+}
 
-	// Organization analysis flags
+// registerOrganizationFlags adds code organization threshold flags.
+func registerOrganizationFlags() {
 	analyzeCmd.Flags().Int("max-file-lines", 500,
 		"maximum lines per file before flagging")
 	analyzeCmd.Flags().Int("max-file-functions", 20,
@@ -160,8 +183,10 @@ func init() {
 		"maximum directory nesting depth")
 	analyzeCmd.Flags().Int("max-file-imports", 15,
 		"maximum import statements per file")
+}
 
-	// Maintenance burden analysis flags
+// registerBurdenFlags adds maintenance burden analysis flags.
+func registerBurdenFlags() {
 	analyzeCmd.Flags().Int("max-params", 5,
 		"maximum function parameters before flagging high signature complexity")
 	analyzeCmd.Flags().Int("max-returns", 3,
@@ -172,20 +197,44 @@ func init() {
 		"threshold ratio for detecting feature envy (external references / self references)")
 	analyzeCmd.Flags().Float64("max-burden-score", 70.0,
 		"maximum Maintenance Burden Index (MBI) score allowed (0-100 scale, default 70=critical threshold)")
+}
 
-	// Bind flags to viper
+// bindFlagsToViper binds all command flags to viper configuration keys.
+func bindFlagsToViper() {
+	bindOutputFlags()
+	bindPerformanceFlags()
+	bindFilterFlags()
+	bindAnalysisFlags()
+	bindOrganizationFlags()
+	bindBurdenFlags()
+}
+
+// bindOutputFlags binds output-related flags to viper.
+func bindOutputFlags() {
 	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
 	viper.BindPFlag("output.destination", analyzeCmd.Flags().Lookup("output"))
 	viper.BindPFlag("output.verbose", analyzeCmd.Flags().Lookup("verbose"))
 	viper.BindPFlag("output.sections", analyzeCmd.Flags().Lookup("sections"))
 	viper.BindPFlag("output.only", analyzeCmd.Flags().Lookup("only"))
+}
+
+// bindPerformanceFlags binds performance-related flags to viper.
+func bindPerformanceFlags() {
 	viper.BindPFlag("performance.worker_count", analyzeCmd.Flags().Lookup("workers"))
 	viper.BindPFlag("performance.timeout", analyzeCmd.Flags().Lookup("timeout"))
+}
+
+// bindFilterFlags binds filter-related flags to viper.
+func bindFilterFlags() {
 	viper.BindPFlag("filters.skip_vendor", analyzeCmd.Flags().Lookup("skip-vendor"))
 	viper.BindPFlag("filters.skip_test_files", analyzeCmd.Flags().Lookup("skip-tests"))
 	viper.BindPFlag("filters.skip_generated", analyzeCmd.Flags().Lookup("skip-generated"))
 	viper.BindPFlag("filters.exclude_patterns", analyzeCmd.Flags().Lookup("exclude"))
 	viper.BindPFlag("filters.include_patterns", analyzeCmd.Flags().Lookup("include"))
+}
+
+// bindAnalysisFlags binds analysis-related flags to viper.
+func bindAnalysisFlags() {
 	viper.BindPFlag("analysis.include_patterns", analyzeCmd.Flags().Lookup("include-patterns"))
 	viper.BindPFlag("analysis.include_complexity", analyzeCmd.Flags().Lookup("include-complexity"))
 	viper.BindPFlag("analysis.include_documentation", analyzeCmd.Flags().Lookup("include-documentation"))
@@ -201,6 +250,10 @@ func init() {
 	viper.BindPFlag("analysis.duplication.min_block_lines", analyzeCmd.Flags().Lookup("min-block-lines"))
 	viper.BindPFlag("analysis.duplication.similarity_threshold", analyzeCmd.Flags().Lookup("similarity-threshold"))
 	viper.BindPFlag("analysis.duplication.ignore_test_files", analyzeCmd.Flags().Lookup("ignore-test-duplication"))
+}
+
+// bindOrganizationFlags binds organization-related flags to viper.
+func bindOrganizationFlags() {
 	viper.BindPFlag("analysis.organization.max_file_lines", analyzeCmd.Flags().Lookup("max-file-lines"))
 	viper.BindPFlag("analysis.organization.max_file_functions", analyzeCmd.Flags().Lookup("max-file-functions"))
 	viper.BindPFlag("analysis.organization.max_file_types", analyzeCmd.Flags().Lookup("max-file-types"))
@@ -208,6 +261,10 @@ func init() {
 	viper.BindPFlag("analysis.organization.max_exported_symbols", analyzeCmd.Flags().Lookup("max-exported-symbols"))
 	viper.BindPFlag("analysis.organization.max_directory_depth", analyzeCmd.Flags().Lookup("max-directory-depth"))
 	viper.BindPFlag("analysis.organization.max_file_imports", analyzeCmd.Flags().Lookup("max-file-imports"))
+}
+
+// bindBurdenFlags binds maintenance burden-related flags to viper.
+func bindBurdenFlags() {
 	viper.BindPFlag("analysis.burden.max_params", analyzeCmd.Flags().Lookup("max-params"))
 	viper.BindPFlag("analysis.burden.max_returns", analyzeCmd.Flags().Lookup("max-returns"))
 	viper.BindPFlag("analysis.burden.max_nesting", analyzeCmd.Flags().Lookup("max-nesting"))
