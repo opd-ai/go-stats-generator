@@ -13,7 +13,7 @@ This document tracks the audit status of all Go sub-packages in the `go-stats-ge
 - [x] **internal/reporter** — Needs Work — 19 issues (6 high, 8 med, 5 low) — doc:84.6% complexity:13 test:40.1% duplication:17.87%
 - [x] **internal/scanner** — Needs Work — 5 issues (1 high, 3 med, 1 low) — doc:90.0% complexity:8 test:43.8% duplication:0.0%
 - [x] **internal/storage** — Needs Work — 20 issues (6 high, 6 med, 4 low) — doc:87.5% complexity:14 test:49.2% duplication:0.35%
-- [ ] **cmd**
+- [x] **cmd** — Needs Work — 18 issues (6 high, 8 med, 4 low) — doc:100% complexity:14 test:49.3% duplication:239.14% naming:2
 - [ ] **cmd/wasm**
 - [ ] **pkg/go-stats-generator**
 
