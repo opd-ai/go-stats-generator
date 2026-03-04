@@ -224,27 +224,51 @@ func (pa *PackageAnalyzer) dfsCircular(pkg string, visited, recStack map[string]
 	path = append(path, pkg)
 
 	for _, dep := range pa.packageDeps[pkg] {
-		if !visited[dep] {
-			if cycle := pa.dfsCircular(dep, visited, recStack, path); len(cycle) > 0 {
-				return cycle
-			}
-		} else if recStack[dep] {
-			// Found cycle - return the cycle path starting from dep
-			cycleStart := -1
-			for i, p := range path {
-				if p == dep {
-					cycleStart = i
-					break
-				}
-			}
-			if cycleStart >= 0 {
-				return append(path[cycleStart:], dep) // Close the cycle
-			}
+		if cycle := pa.checkDependencyForCycle(dep, visited, recStack, path); len(cycle) > 0 {
+			return cycle
 		}
 	}
 
 	recStack[pkg] = false
 	return nil
+}
+
+// checkDependencyForCycle checks a single dependency for cycles
+func (pa *PackageAnalyzer) checkDependencyForCycle(dep string, visited, recStack map[string]bool, path []string) []string {
+	if !visited[dep] {
+		return pa.checkUnvisitedDependency(dep, visited, recStack, path)
+	}
+	if recStack[dep] {
+		return pa.extractCyclePath(dep, path)
+	}
+	return nil
+}
+
+// checkUnvisitedDependency recursively explores unvisited dependencies
+func (pa *PackageAnalyzer) checkUnvisitedDependency(dep string, visited, recStack map[string]bool, path []string) []string {
+	if cycle := pa.dfsCircular(dep, visited, recStack, path); len(cycle) > 0 {
+		return cycle
+	}
+	return nil
+}
+
+// extractCyclePath finds and returns the cycle path from the recursion stack
+func (pa *PackageAnalyzer) extractCyclePath(dep string, path []string) []string {
+	cycleStart := pa.findCycleStart(dep, path)
+	if cycleStart >= 0 {
+		return append(path[cycleStart:], dep)
+	}
+	return nil
+}
+
+// findCycleStart locates the starting index of the cycle in the path
+func (pa *PackageAnalyzer) findCycleStart(dep string, path []string) int {
+	for i, p := range path {
+		if p == dep {
+			return i
+		}
+	}
+	return -1
 }
 
 // calculateCycleSeverity determines how problematic a circular dependency is
