@@ -105,14 +105,14 @@
 
 ### Priority 3: Validation and Documentation
 
-13. **[COMPLETED ✓] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 0 production functions remain above complexity 10.0 (100% complete, 2 testdata functions remain above threshold as expected)
-    - **Achievement**: All 69 production functions that exceeded complexity 10.0 have been refactored to ≤10.0 ✅
+13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
+    - **Status**: 56 production functions remain above complexity 10.0 (13 completed, 56 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
       - ✅ Refactored `calculateDelta` (13.7 → 1.3, 90.5% improvement)
       - ✅ Refactored `AnalyzeInterfacesWithPath` (13.4 → 1.3, 90.3% improvement)
+      - ✅ Refactored `CalculateDocQualityScore` (13.2 → 3.1, 76.5% improvement; cyclomatic 9 → 2, 77.8% improvement)
       - ✅ Refactored `Store` (13.2 → 7.0, 47.0% improvement)
       - ✅ Refactored `runTrendRegressions` (13.2 → 5.7, 56.8% improvement)
       - ✅ Refactored `worker` (13.2 → 4.9, 62.9% improvement; cyclomatic 9 → 3, 66.7% improvement)
@@ -120,17 +120,17 @@
       - ✅ Refactored `getAuthorStats` (13.2 → 3.1, 76.5% improvement; cyclomatic 9 → 2, 77.8% improvement)
       - ✅ Refactored `checkNodeContext` (13.2 → 3.1, 76.5% improvement; cyclomatic 9 → 2, 77.8% improvement)
       - ✅ Refactored `AnalyzeFunctionAffinity` (13.2 → 4.9, 62.9% improvement; cyclomatic 9 → 3, 66.7% improvement)
-      - ⏳ 57 functions remaining above 10.0 threshold (12 completed, 57 remaining)
+      - ⏳ 56 functions remaining above 10.0 threshold (13 completed, 56 remaining)
     - **Next Targets** (highest complexity first):
-      1. ✅ worker (13.2 → 4.9) - internal/scanner/worker.go [COMPLETED]
-      2. ✅ matchesFilter (13.2 → 1.3, 2 instances) - internal/storage/memory.go & json.go [COMPLETED]
-      3. ✅ getAuthorStats (13.2 → 3.1) - internal/analyzer/team.go [COMPLETED]
-      4. ✅ checkNodeContext (13.2 → 3.1) - internal/analyzer/burden.go [COMPLETED]
-      5. ✅ AnalyzeFunctionAffinity (13.2 → 4.9) - internal/analyzer/placement.go [COMPLETED]
+      1. ⏳ isTerminating (12.9) - internal/analyzer/burden.go [NEXT]
+      2. ⏳ getTerminationReason (12.9) - internal/analyzer/burden.go
+      3. ⏳ dfsCircular (12.9) - internal/analyzer/package.go
+      4. ⏳ analyzeQuality (12.9) - internal/analyzer/documentation.go
+      5. ⏳ writeNamingSection (12.7) - internal/reporter/csv.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
-    - **Quality Score**: 40.0/100 (improving trend)
+    - **Quality Score**: 50.0/100 (improving trend)
 
 14. **Update inline documentation for refactored functions**
     - **Deliverable**: All extracted helper functions have GoDoc comments; package documentation coverage ≥50%
