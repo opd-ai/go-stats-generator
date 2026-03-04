@@ -474,11 +474,14 @@ class GitHubFetcher {
       }
 
       // Adaptive throttling: if remaining quota is getting low, reduce
-      // batch size and increase the pause between batches.
+      // batch size and increase the pause between batches. Reset to the
+      // default when the quota is healthy again.
       let delay = INTER_BATCH_DELAY_MS;
       if (typeof this.rateLimitRemaining === 'number' && this.rateLimitRemaining < 20) {
         batchSize = Math.max(1, Math.floor(BLOB_BATCH_SIZE / 2));
         delay = INTER_BATCH_DELAY_MS * 5;
+      } else {
+        batchSize = BLOB_BATCH_SIZE;
       }
 
       // Wait between batches to avoid burst-triggered secondary rate limits.
