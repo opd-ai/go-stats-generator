@@ -683,7 +683,39 @@ func filterSubsumedClonePairs(pairs []metrics.ClonePair) []metrics.ClonePair {
 // isRangeSubsumed checks whether a line range is fully contained within
 // any of the already-claimed ranges for the given file.
 func isRangeSubsumed(file string, start, end int, claimed map[string][]claimedRange) bool {
-	for _, r := range claimed[file] {
+	ranges := claimed[file]
+	if len(ranges) == 0 {
+		return false
+	}
+
+	// Work on a sorted copy to avoid repeatedly scanning an unsorted, growing slice.
+	sorted := make([]claimedRange, len(ranges))
+	copy(sorted, ranges)
+
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].start == sorted[j].start {
+			return sorted[i].end < sorted[j].end
+		}
+		return sorted[i].start < sorted[j].start
+	})
+
+	// Binary search for the last range with start <= query start.
+	idx := sort.Search(len(sorted), func(i int) bool {
+		return sorted[i].start > start
+	}) - 1
+
+	if idx >= 0 {
+		r := sorted[idx]
+		if start >= r.start && end <= r.end {
+			return true
+		}
+	}
+
+	// Also check the next range (in case of non-overlapping ranges where the
+	// query starts inside the gap but ends inside the following range).
+	nextIdx := idx + 1
+	if nextIdx >= 0 && nextIdx < len(sorted) {
+		r := sorted[nextIdx]
 		if start >= r.start && end <= r.end {
 			return true
 		}
