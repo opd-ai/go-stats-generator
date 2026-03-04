@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/opd-ai/go-stats-generator/internal/config"
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
@@ -211,65 +210,77 @@ func bindFlagsToViper() {
 
 // bindOutputFlags binds output-related flags to viper.
 func bindOutputFlags() {
-	viper.BindPFlag("output.format", analyzeCmd.Flags().Lookup("format"))
-	viper.BindPFlag("output.destination", analyzeCmd.Flags().Lookup("output"))
-	viper.BindPFlag("output.verbose", analyzeCmd.Flags().Lookup("verbose"))
-	viper.BindPFlag("output.sections", analyzeCmd.Flags().Lookup("sections"))
-	viper.BindPFlag("output.only", analyzeCmd.Flags().Lookup("only"))
+	bindFlags(analyzeCmd, []flagBinding{
+		{"format", "output.format"},
+		{"output", "output.destination"},
+		{"verbose", "output.verbose"},
+		{"sections", "output.sections"},
+		{"only", "output.only"},
+	})
 }
 
 // bindPerformanceFlags binds performance-related flags to viper.
 func bindPerformanceFlags() {
-	viper.BindPFlag("performance.worker_count", analyzeCmd.Flags().Lookup("workers"))
-	viper.BindPFlag("performance.timeout", analyzeCmd.Flags().Lookup("timeout"))
+	bindFlags(analyzeCmd, []flagBinding{
+		{"workers", "performance.worker_count"},
+		{"timeout", "performance.timeout"},
+	})
 }
 
 // bindFilterFlags binds filter-related flags to viper.
 func bindFilterFlags() {
-	viper.BindPFlag("filters.skip_vendor", analyzeCmd.Flags().Lookup("skip-vendor"))
-	viper.BindPFlag("filters.skip_test_files", analyzeCmd.Flags().Lookup("skip-tests"))
-	viper.BindPFlag("filters.skip_generated", analyzeCmd.Flags().Lookup("skip-generated"))
-	viper.BindPFlag("filters.exclude_patterns", analyzeCmd.Flags().Lookup("exclude"))
-	viper.BindPFlag("filters.include_patterns", analyzeCmd.Flags().Lookup("include"))
+	bindFlags(analyzeCmd, []flagBinding{
+		{"skip-vendor", "filters.skip_vendor"},
+		{"skip-tests", "filters.skip_test_files"},
+		{"skip-generated", "filters.skip_generated"},
+		{"exclude", "filters.exclude_patterns"},
+		{"include", "filters.include_patterns"},
+	})
 }
 
 // bindAnalysisFlags binds analysis-related flags to viper.
 func bindAnalysisFlags() {
-	viper.BindPFlag("analysis.include_patterns", analyzeCmd.Flags().Lookup("include-patterns"))
-	viper.BindPFlag("analysis.include_complexity", analyzeCmd.Flags().Lookup("include-complexity"))
-	viper.BindPFlag("analysis.include_documentation", analyzeCmd.Flags().Lookup("include-documentation"))
-	viper.BindPFlag("analysis.include_generics", analyzeCmd.Flags().Lookup("include-generics"))
-	viper.BindPFlag("analysis.enable_team_metrics", analyzeCmd.Flags().Lookup("enable-team-metrics"))
-	viper.BindPFlag("analysis.coverage_profile", analyzeCmd.Flags().Lookup("coverage-profile"))
-	viper.BindPFlag("analysis.max_function_length", analyzeCmd.Flags().Lookup("max-function-length"))
-	viper.BindPFlag("analysis.max_cyclomatic_complexity", analyzeCmd.Flags().Lookup("max-complexity"))
-	viper.BindPFlag("analysis.min_documentation_coverage", analyzeCmd.Flags().Lookup("min-doc-coverage"))
-	viper.BindPFlag("analysis.max_duplication_ratio", analyzeCmd.Flags().Lookup("max-duplication-ratio"))
-	viper.BindPFlag("analysis.max_undocumented_exports", analyzeCmd.Flags().Lookup("max-undocumented-exports"))
-	viper.BindPFlag("analysis.enforce_thresholds", analyzeCmd.Flags().Lookup("enforce-thresholds"))
-	viper.BindPFlag("analysis.duplication.min_block_lines", analyzeCmd.Flags().Lookup("min-block-lines"))
-	viper.BindPFlag("analysis.duplication.similarity_threshold", analyzeCmd.Flags().Lookup("similarity-threshold"))
-	viper.BindPFlag("analysis.duplication.ignore_test_files", analyzeCmd.Flags().Lookup("ignore-test-duplication"))
+	bindFlags(analyzeCmd, []flagBinding{
+		{"include-patterns", "analysis.include_patterns"},
+		{"include-complexity", "analysis.include_complexity"},
+		{"include-documentation", "analysis.include_documentation"},
+		{"include-generics", "analysis.include_generics"},
+		{"enable-team-metrics", "analysis.enable_team_metrics"},
+		{"coverage-profile", "analysis.coverage_profile"},
+		{"max-function-length", "analysis.max_function_length"},
+		{"max-complexity", "analysis.max_cyclomatic_complexity"},
+		{"min-doc-coverage", "analysis.min_documentation_coverage"},
+		{"max-duplication-ratio", "analysis.max_duplication_ratio"},
+		{"max-undocumented-exports", "analysis.max_undocumented_exports"},
+		{"enforce-thresholds", "analysis.enforce_thresholds"},
+		{"min-block-lines", "analysis.duplication.min_block_lines"},
+		{"similarity-threshold", "analysis.duplication.similarity_threshold"},
+		{"ignore-test-duplication", "analysis.duplication.ignore_test_files"},
+	})
 }
 
 // bindOrganizationFlags binds organization-related flags to viper.
 func bindOrganizationFlags() {
-	viper.BindPFlag("analysis.organization.max_file_lines", analyzeCmd.Flags().Lookup("max-file-lines"))
-	viper.BindPFlag("analysis.organization.max_file_functions", analyzeCmd.Flags().Lookup("max-file-functions"))
-	viper.BindPFlag("analysis.organization.max_file_types", analyzeCmd.Flags().Lookup("max-file-types"))
-	viper.BindPFlag("analysis.organization.max_package_files", analyzeCmd.Flags().Lookup("max-package-files"))
-	viper.BindPFlag("analysis.organization.max_exported_symbols", analyzeCmd.Flags().Lookup("max-exported-symbols"))
-	viper.BindPFlag("analysis.organization.max_directory_depth", analyzeCmd.Flags().Lookup("max-directory-depth"))
-	viper.BindPFlag("analysis.organization.max_file_imports", analyzeCmd.Flags().Lookup("max-file-imports"))
+	bindFlags(analyzeCmd, []flagBinding{
+		{"max-file-lines", "analysis.organization.max_file_lines"},
+		{"max-file-functions", "analysis.organization.max_file_functions"},
+		{"max-file-types", "analysis.organization.max_file_types"},
+		{"max-package-files", "analysis.organization.max_package_files"},
+		{"max-exported-symbols", "analysis.organization.max_exported_symbols"},
+		{"max-directory-depth", "analysis.organization.max_directory_depth"},
+		{"max-file-imports", "analysis.organization.max_file_imports"},
+	})
 }
 
 // bindBurdenFlags binds maintenance burden-related flags to viper.
 func bindBurdenFlags() {
-	viper.BindPFlag("analysis.burden.max_params", analyzeCmd.Flags().Lookup("max-params"))
-	viper.BindPFlag("analysis.burden.max_returns", analyzeCmd.Flags().Lookup("max-returns"))
-	viper.BindPFlag("analysis.burden.max_nesting", analyzeCmd.Flags().Lookup("max-nesting"))
-	viper.BindPFlag("analysis.burden.feature_envy_ratio", analyzeCmd.Flags().Lookup("feature-envy-ratio"))
-	viper.BindPFlag("analysis.scoring.max_burden_score", analyzeCmd.Flags().Lookup("max-burden-score"))
+	bindFlags(analyzeCmd, []flagBinding{
+		{"max-params", "analysis.burden.max_params"},
+		{"max-returns", "analysis.burden.max_returns"},
+		{"max-nesting", "analysis.burden.max_nesting"},
+		{"feature-envy-ratio", "analysis.burden.feature_envy_ratio"},
+		{"max-burden-score", "analysis.scoring.max_burden_score"},
+	})
 }
 
 // runAnalyze is the main entry point for the analyze command.
