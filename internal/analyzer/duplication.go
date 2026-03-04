@@ -550,8 +550,6 @@ func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint,
 	for hash, group := range duplicates {
 		if len(group) < 2 {
 			delete(duplicates, hash)
-		} else {
-			duplicates[hash] = group
 		}
 	}
 
@@ -623,12 +621,10 @@ func deduplicateOverlappingFingerprints(group []BlockFingerprint) []BlockFingerp
 	var result []BlockFingerprint
 	for _, fp := range group {
 		merged := false
-		for i := len(result) - 1; i >= 0; i-- {
-			if result[i].File != fp.File {
-				break
-			}
-			// Check if fp overlaps with or is adjacent to result[i]
-			if fp.StartLine <= result[i].EndLine+1 {
+		// Since results are sorted by file, only check backwards within the same file
+		for i := len(result) - 1; i >= 0 && result[i].File == fp.File; i-- {
+			// Check if fp overlaps with result[i]
+			if fp.StartLine <= result[i].EndLine {
 				// Extend the existing entry to cover both ranges
 				if fp.EndLine > result[i].EndLine {
 					result[i].EndLine = fp.EndLine

@@ -1233,7 +1233,10 @@ func TestFilterSubsumedClonePairs(t *testing.T) {
 
 func TestDetectClonePairs_OverlappingWindowsReduced(t *testing.T) {
 	// Two identical 8-statement functions should produce exactly 1 clone pair,
-	// not 3+ pairs from overlapping sliding windows.
+	// not multiple pairs from overlapping sliding windows. With a min window
+	// of 6, the sliding window would produce windows of size 6 (lines 1-6, 2-7,
+	// 3-8), size 7 (lines 1-7, 2-8), and size 8 (lines 1-8), creating redundant
+	// pairs that are all subsumed by the largest 8-line clone.
 	code := `package test
 func foo() {
 	a := 1
