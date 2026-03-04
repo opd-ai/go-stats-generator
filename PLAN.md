@@ -129,13 +129,12 @@
       - ✅ Refactored `writeNamingSection` (12.7 → 5.7, 55.1% improvement; cyclomatic 9 → 4, 55.6% improvement)
       - ✅ Refactored `Retrieve` (12.7 → 7.0, 44.9% improvement; cyclomatic 9 → 5, 44.4% improvement)
       - ✅ Refactored `checkIdentifierStuttering` (12.4 → 3.1, 75.0% improvement; cyclomatic 8 → 2, 75.0% improvement; extracted 4 helper functions: checkMethodStuttering, isAllowedMethodPrefix, checkPackageStuttering, isAllowedFunctionPrefix)
-      - ⏳ 47 functions remaining above 10.0 threshold (22 completed, 47 remaining out of 69 total)
+      - ✅ Refactored `parseCoverageLine` (12.2 → 4.4, 63.9% improvement; cyclomatic 9 → 3, 66.7% improvement; extracted 3 helper functions: extractCoverageFields, parseFileAndRange, recordCoverage)
+      - ⏳ 46 functions remaining above 10.0 threshold (23 completed, 46 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ parseCoverageLine (12.2) - internal/analyzer/coverage.go [NEXT]
-      2. ⏳ parseCoverageLine (12.2) - internal/analyzer/coverage.go
-      3. ⏳ AnalyzeStructsWithPath (12.1) - internal/analyzer/struct.go
-      4. ⏳ writeDocumentationSection (12.1) - internal/reporter/csv.go
-      5. ⏳ Generate (12.1) - internal/reporter/html.go
+      1. ⏳ AnalyzeStructsWithPath (12.1) - internal/analyzer/struct.go [NEXT]
+      2. ⏳ writeDocumentationSection (12.1) - internal/reporter/csv.go
+      3. ⏳ Generate (12.1) - internal/reporter/html.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"

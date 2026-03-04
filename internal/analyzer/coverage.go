@@ -45,37 +45,63 @@ func (a *TestCoverageAnalyzer) LoadCoverageProfile(path string) error {
 	return scanner.Err()
 }
 
+// parseCoverageLine parses a single line from Go coverage profile and records coverage data
 func (a *TestCoverageAnalyzer) parseCoverageLine(line string) error {
+	file, startLine, endLine, count, err := extractCoverageFields(line)
+	if err != nil {
+		return err
+	}
+	if file == "" {
+		return nil
+	}
+
+	a.recordCoverage(file, startLine, endLine, count)
+	return nil
+}
+
+// extractCoverageFields extracts file path, line range, and hit count from coverage line
+func extractCoverageFields(line string) (file string, startLine, endLine, count int, err error) {
 	parts := strings.Fields(line)
 	if len(parts) < 3 {
-		return nil
+		return "", 0, 0, 0, nil
 	}
 
-	fileAndRange := strings.Split(parts[0], ":")
+	file, startLine, endLine, err = parseFileAndRange(parts[0])
+	if err != nil || file == "" {
+		return "", 0, 0, 0, err
+	}
+
+	count, err = strconv.Atoi(parts[2])
+	return file, startLine, endLine, count, err
+}
+
+// parseFileAndRange extracts file path and line range from coverage file specification
+func parseFileAndRange(fileSpec string) (file string, startLine, endLine int, err error) {
+	fileAndRange := strings.Split(fileSpec, ":")
 	if len(fileAndRange) != 2 {
-		return nil
+		return "", 0, 0, nil
 	}
 
-	file := fileAndRange[0]
+	file = fileAndRange[0]
 	ranges := strings.Split(fileAndRange[1], ",")
 	if len(ranges) != 2 {
-		return nil
+		return "", 0, 0, nil
 	}
 
-	startLine, err := parseLineNum(ranges[0])
+	startLine, err = parseLineNum(ranges[0])
 	if err != nil {
-		return err
+		return "", 0, 0, err
 	}
-	endLine, err := parseLineNum(ranges[1])
+	endLine, err = parseLineNum(ranges[1])
 	if err != nil {
-		return err
-	}
-
-	count, err := strconv.Atoi(parts[2])
-	if err != nil {
-		return err
+		return "", 0, 0, err
 	}
 
+	return file, startLine, endLine, nil
+}
+
+// recordCoverage stores coverage hit counts for specified file and line range
+func (a *TestCoverageAnalyzer) recordCoverage(file string, startLine, endLine, count int) {
 	if a.coverageData[file] == nil {
 		a.coverageData[file] = make(map[int]int)
 	}
@@ -83,8 +109,6 @@ func (a *TestCoverageAnalyzer) parseCoverageLine(line string) error {
 	for i := startLine; i <= endLine; i++ {
 		a.coverageData[file][i] += count
 	}
-
-	return nil
 }
 
 func parseLineNum(s string) (int, error) {
