@@ -163,24 +163,59 @@ func loadPlacementSettings(cfg *config.Config) {
 
 // loadOrganizationSettings loads code organization settings from viper
 func loadOrganizationSettings(cfg *config.Config) {
+	loadMaxFileLines(cfg)
+	loadMaxFileFunctions(cfg)
+	loadMaxFileTypes(cfg)
+	loadMaxPackageFiles(cfg)
+	loadMaxExportedSymbols(cfg)
+	loadMaxDirectoryDepth(cfg)
+	loadMaxFileImports(cfg)
+}
+
+// loadMaxFileLines loads max_file_lines setting from viper
+func loadMaxFileLines(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_file_lines") {
 		cfg.Analysis.Organization.MaxFileLines = viper.GetInt("analysis.organization.max_file_lines")
 	}
+}
+
+// loadMaxFileFunctions loads max_file_functions setting from viper
+func loadMaxFileFunctions(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_file_functions") {
 		cfg.Analysis.Organization.MaxFileFunctions = viper.GetInt("analysis.organization.max_file_functions")
 	}
+}
+
+// loadMaxFileTypes loads max_file_types setting from viper
+func loadMaxFileTypes(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_file_types") {
 		cfg.Analysis.Organization.MaxFileTypes = viper.GetInt("analysis.organization.max_file_types")
 	}
+}
+
+// loadMaxPackageFiles loads max_package_files setting from viper
+func loadMaxPackageFiles(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_package_files") {
 		cfg.Analysis.Organization.MaxPackageFiles = viper.GetInt("analysis.organization.max_package_files")
 	}
+}
+
+// loadMaxExportedSymbols loads max_exported_symbols setting from viper
+func loadMaxExportedSymbols(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_exported_symbols") {
 		cfg.Analysis.Organization.MaxExportedSymbols = viper.GetInt("analysis.organization.max_exported_symbols")
 	}
+}
+
+// loadMaxDirectoryDepth loads max_directory_depth setting from viper
+func loadMaxDirectoryDepth(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_directory_depth") {
 		cfg.Analysis.Organization.MaxDirectoryDepth = viper.GetInt("analysis.organization.max_directory_depth")
 	}
+}
+
+// loadMaxFileImports loads max_file_imports setting from viper
+func loadMaxFileImports(cfg *config.Config) {
 	if viper.IsSet("analysis.organization.max_file_imports") {
 		cfg.Analysis.Organization.MaxFileImports = viper.GetInt("analysis.organization.max_file_imports")
 	}

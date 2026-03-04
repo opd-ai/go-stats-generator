@@ -143,9 +143,10 @@
       - ✅ Refactored `generateDiffSummary` (11.4 → 1.3, 88.6% improvement; cyclomatic 8 → 1, 87.5% improvement; lines 31 → 11, 64.5% reduction; extracted 4 helper functions: countSignificantChanges at 4.9 complexity, countCriticalIssues at 4.9 complexity, determineOverallTrend at 4.9 complexity, calculateQualityScore at 3.1 complexity)
       - ✅ Refactored `detectWorkerPools` (11.1 → 4.9, 55.9% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 41 → 6, 85.4% reduction; extracted 4 helper functions: groupGoroutinesByFile at 3.1 complexity, detectWorkerPoolInFile at 4.4 complexity, countAnonymousGoroutines at 4.9 complexity, buildWorkerPoolPattern at 1.3 complexity)
       - ✅ Refactored `AnalyzeFileCohesion` (11.1 → 4.9, 55.9% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 39 → 12, 69.2% reduction; extracted 3 helper functions: buildCohesionIssue at 1.3 complexity, countFileReferences at 4.9 complexity, determineCohesionSeverity at 4.4 complexity)
-      - ⏳ 33 functions remaining above 10.0 threshold (36 completed, 33 remaining out of 69 total)
+      - ✅ Refactored `loadOrganizationSettings` (10.9 → 1.3, 88.1% improvement; cyclomatic 8 → 1, 87.5% improvement; lines 21 → 7, 66.7% reduction; extracted 7 helper functions: loadMaxFileLines, loadMaxFileFunctions, loadMaxFileTypes, loadMaxPackageFiles, loadMaxExportedSymbols, loadMaxDirectoryDepth, loadMaxFileImports - all at 3.1 complexity)
+      - ⏳ 32 functions remaining above 10.0 threshold (37 completed, 32 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ (next highest complexity function)
+      1. ⏳ runAnalyze (cmd/analyze.go) - complexity 10.9
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
