@@ -31,13 +31,19 @@ func loadOutputConfiguration(cfg *config.Config) {
 	if viper.IsSet("output.show_progress") {
 		cfg.Output.ShowProgress = viper.GetBool("output.show_progress")
 	}
+	if viper.IsSet("output.use_colors") {
+		cfg.Output.UseColors = viper.GetBool("output.use_colors")
+	}
+	if viper.IsSet("output.include_examples") {
+		cfg.Output.IncludeExamples = viper.GetBool("output.include_examples")
+	}
 	applyVerboseDefaults(cfg)
 	cfg.Output.Sections = mergeSectionFlags()
 }
 
 // applyVerboseDefaults enables progress display when verbose mode is active
 func applyVerboseDefaults(cfg *config.Config) {
-	if cfg.Output.Verbose {
+	if cfg.Output.Verbose && !viper.IsSet("output.show_progress") {
 		cfg.Output.ShowProgress = true
 	}
 }
@@ -66,6 +72,15 @@ func loadPerformanceConfiguration(cfg *config.Config) {
 	}
 	if viper.IsSet("performance.timeout") {
 		cfg.Performance.Timeout = viper.GetDuration("performance.timeout")
+	}
+	if viper.IsSet("performance.enable_cache") {
+		cfg.Performance.EnableCache = viper.GetBool("performance.enable_cache")
+	}
+	if viper.IsSet("performance.max_memory_mb") {
+		cfg.Performance.MaxMemoryMB = viper.GetInt("performance.max_memory_mb")
+	}
+	if viper.IsSet("performance.enable_profiling") {
+		cfg.Performance.EnableProfiling = viper.GetBool("performance.enable_profiling")
 	}
 }
 
@@ -109,6 +124,9 @@ func loadBasicAnalysisSettings(cfg *config.Config) {
 // loadBooleanAnalysisSettings loads boolean analysis toggles.
 func loadBooleanAnalysisSettings(cfg *config.Config) {
 	boolSettings := map[string]*bool{
+		"analysis.include_functions":     &cfg.Analysis.IncludeFunctions,
+		"analysis.include_structs":       &cfg.Analysis.IncludeStructs,
+		"analysis.include_interfaces":    &cfg.Analysis.IncludeInterfaces,
 		"analysis.include_patterns":      &cfg.Analysis.IncludePatterns,
 		"analysis.include_complexity":    &cfg.Analysis.IncludeComplexity,
 		"analysis.include_documentation": &cfg.Analysis.IncludeDocumentation,

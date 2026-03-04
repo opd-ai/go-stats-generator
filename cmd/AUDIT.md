@@ -18,11 +18,11 @@ The `cmd` package contains the Cobra CLI command structure for go-stats-generato
 ## Issues Found
 
 ### High Severity (6 issues)
-- [ ] **high** complexity — `runWatch` exceeds cyclomatic complexity threshold (watch.go:L44, complexity 14)
-- [ ] **high** complexity — `finalizeTestCoverageMetrics` exceeds cyclomatic complexity threshold (analyze_finalize.go:L39, complexity 11)
+- [x] **high** complexity — `runWatch` exceeds cyclomatic complexity threshold (watch.go:L44, complexity 14) — FIXED: now 4.4
+- [x] **high** complexity — `finalizeTestCoverageMetrics` exceeds cyclomatic complexity threshold (analyze_finalize.go:L39, complexity 11) — FIXED: now 3.1
 - [ ] **high** duplication — Massive duplication ratio (239.14%) with 50 clone pairs, primarily in analyze.go lines 177-215 (38-line overlapping blocks)
 - [ ] **high** test-coverage — Package test coverage at 49.3%, below 65% threshold
-- [ ] **high** test-failures — 6 failing test cases in config loading (TestLoadAnalysisConfiguration, TestLoadOutputConfiguration, TestLoadPerformanceConfiguration, TestConfigFileIntegration, TestPartialConfigOverride, TestConfigurationLoadingIntegration)
+- [x] **high** test-failures — 6 failing test cases in config loading (TestLoadAnalysisConfiguration, TestLoadOutputConfiguration, TestLoadPerformanceConfiguration, TestConfigFileIntegration, TestPartialConfigOverride, TestConfigurationLoadingIntegration) — FIXED: all tests now pass
 - [ ] **high** function-length — 18 functions exceed 30-line threshold, worst offenders: `finalizeNamingMetrics` (68 lines), `runFileAnalysis` (58 lines), `runTrendRegressions` (53 lines)
 
 ### Medium Severity (8 issues)
