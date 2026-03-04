@@ -12,10 +12,11 @@ Compile the Go analysis engine to `GOOS=js GOARCH=wasm`, producing a `.wasm` bin
 
 ### Steps
 
-1. **Audit package compatibility** — Catalog every import used by the analysis path (`internal/analyzer/*`, `internal/metrics/*`, `internal/reporter/*`, `internal/scanner/*`, `internal/config/*`, `pkg/go-stats-generator/*`). Classify each as:
+1. **✅ Audit package compatibility** — Catalog every import used by the analysis path (`internal/analyzer/*`, `internal/metrics/*`, `internal/reporter/*`, `internal/scanner/*`, `internal/config/*`, `pkg/go-stats-generator/*`). Classify each as:
    - *WASM-safe* — Go standard library AST packages (`go/parser`, `go/ast`, `go/token`), `html/template`, `encoding/json`, `encoding/csv`, `fmt`, `strings`, `time`, `math`, etc.
    - *Needs adaptation* — `internal/scanner` (uses `os`, `filepath.Walk`), `internal/storage` (SQLite, PostgreSQL, MongoDB), `cmd/*` (Cobra CLI), `internal/api` (HTTP server), `fsnotify`.
    - *Exclude entirely* — `modernc.org/sqlite`, `github.com/lib/pq`, `go.mongodb.org/mongo-driver`, `github.com/spf13/cobra`, `github.com/spf13/viper`, `github.com/fsnotify/fsnotify`, `internal/multirepo`.
+   - **Status:** Complete (2026-03-04). Audit report: 28 WASM-safe packages, 3 need adaptation, 7 external deps to exclude. All core analyzers (function, struct, interface, package, concurrency, duplication, naming, placement, burden, documentation) are pure AST and require zero changes. See session artifact for full analysis.
 
 2. **Create a WASM-specific entry point** — Add a new file `cmd/wasm/main.go` with build tag `//go:build js && wasm`. This file:
    - Imports `syscall/js` to register Go functions on the JavaScript `globalThis`.
