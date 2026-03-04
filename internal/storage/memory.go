@@ -260,26 +260,47 @@ func (m *MemoryStorage) Close() error {
 
 // matchesFilter checks if a snapshot matches the filter criteria
 func matchesFilter(stored *storedSnapshot, filter SnapshotFilter) bool {
-	if filter.After != nil && stored.metadata.Timestamp.Before(*filter.After) {
+	return matchesTimeRange(stored.metadata.Timestamp, filter) &&
+		matchesBranch(stored.metadata.GitBranch, filter) &&
+		matchesTag(stored.metadata.GitTag, filter) &&
+		matchesAuthor(stored.metadata.Author, filter) &&
+		matchesTags(stored.metadata.Tags, filter)
+}
+
+// matchesTimeRange checks if timestamp falls within the filter's time range
+func matchesTimeRange(timestamp time.Time, filter SnapshotFilter) bool {
+	if filter.After != nil && timestamp.Before(*filter.After) {
 		return false
 	}
-	if filter.Before != nil && stored.metadata.Timestamp.After(*filter.Before) {
+	if filter.Before != nil && timestamp.After(*filter.Before) {
 		return false
 	}
-	if filter.Branch != "" && stored.metadata.GitBranch != filter.Branch {
-		return false
+	return true
+}
+
+// matchesBranch checks if branch matches the filter
+func matchesBranch(branch string, filter SnapshotFilter) bool {
+	return filter.Branch == "" || branch == filter.Branch
+}
+
+// matchesTag checks if tag matches the filter
+func matchesTag(tag string, filter SnapshotFilter) bool {
+	return filter.Tag == "" || tag == filter.Tag
+}
+
+// matchesAuthor checks if author matches the filter
+func matchesAuthor(author string, filter SnapshotFilter) bool {
+	return filter.Author == "" || author == filter.Author
+}
+
+// matchesTags checks if custom tags match the filter
+func matchesTags(tags map[string]string, filter SnapshotFilter) bool {
+	if filter.Tags == nil {
+		return true
 	}
-	if filter.Tag != "" && stored.metadata.GitTag != filter.Tag {
-		return false
-	}
-	if filter.Author != "" && stored.metadata.Author != filter.Author {
-		return false
-	}
-	if filter.Tags != nil {
-		for key, value := range filter.Tags {
-			if tagValue, ok := stored.metadata.Tags[key]; !ok || tagValue != value {
-				return false
-			}
+	for key, value := range filter.Tags {
+		if tagValue, ok := tags[key]; !ok || tagValue != value {
+			return false
 		}
 	}
 	return true

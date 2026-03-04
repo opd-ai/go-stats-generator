@@ -458,37 +458,48 @@ func (j *JSONStorage) tryReadFile(filepath string) ([]byte, error) {
 // matchesFilter evaluates whether a snapshot file matches the provided filter criteria,
 // checking time range (After/Before), Git branch, tag, and author constraints.
 func (j *JSONStorage) matchesFilter(fileData snapshotFile, filter SnapshotFilter) bool {
-	// Filter by time range
-	if filter.After != nil && !fileData.Metadata.Timestamp.After(*filter.After) {
-		return false
-	}
-	if filter.Before != nil && !fileData.Metadata.Timestamp.Before(*filter.Before) {
-		return false
-	}
+	return j.matchesTimeRange(fileData.Metadata.Timestamp, filter) &&
+		j.matchesBranch(fileData.Metadata.GitBranch, filter) &&
+		j.matchesGitTag(fileData.Metadata.GitTag, filter) &&
+		j.matchesAuthorFilter(fileData.Metadata.Author, filter) &&
+		j.matchesCustomTags(fileData.Metadata.Tags, filter)
+}
 
-	// Filter by branch
-	if filter.Branch != "" && fileData.Metadata.GitBranch != filter.Branch {
+// matchesTimeRange checks if timestamp falls within the filter's time range
+func (j *JSONStorage) matchesTimeRange(timestamp time.Time, filter SnapshotFilter) bool {
+	if filter.After != nil && !timestamp.After(*filter.After) {
 		return false
 	}
-
-	// Filter by tag (git tag)
-	if filter.Tag != "" && fileData.Metadata.GitTag != filter.Tag {
+	if filter.Before != nil && !timestamp.Before(*filter.Before) {
 		return false
 	}
+	return true
+}
 
-	// Filter by author
-	if filter.Author != "" && fileData.Metadata.Author != filter.Author {
-		return false
+// matchesBranch checks if branch matches the filter
+func (j *JSONStorage) matchesBranch(branch string, filter SnapshotFilter) bool {
+	return filter.Branch == "" || branch == filter.Branch
+}
+
+// matchesGitTag checks if git tag matches the filter
+func (j *JSONStorage) matchesGitTag(tag string, filter SnapshotFilter) bool {
+	return filter.Tag == "" || tag == filter.Tag
+}
+
+// matchesAuthorFilter checks if author matches the filter
+func (j *JSONStorage) matchesAuthorFilter(author string, filter SnapshotFilter) bool {
+	return filter.Author == "" || author == filter.Author
+}
+
+// matchesCustomTags checks if custom tags match the filter
+func (j *JSONStorage) matchesCustomTags(tags map[string]string, filter SnapshotFilter) bool {
+	if len(filter.Tags) == 0 {
+		return true
 	}
-
-	// Filter by custom tags
-	if len(filter.Tags) > 0 {
-		for key, value := range filter.Tags {
-			if fileData.Metadata.Tags[key] != value {
-				return false
-			}
+	for key, value := range filter.Tags {
+		if tags[key] != value {
+			return false
 		}
 	}
-
 	return true
 }
