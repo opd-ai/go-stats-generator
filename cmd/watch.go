@@ -48,28 +48,18 @@ func init() {
 
 // runWatch monitors the filesystem for changes.
 func runWatch(cmd *cobra.Command, args []string) error {
-	path := "."
-	if len(args) > 0 {
-		path = args[0]
-	}
-
-	absPath, err := filepath.Abs(path)
+	absPath, err := getWatchPath(args)
 	if err != nil {
-		return fmt.Errorf("invalid path: %w", err)
-	}
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return fmt.Errorf("failed to create watcher: %w", err)
-	}
-	defer watcher.Close()
-
-	if err := addWatchPaths(watcher, absPath); err != nil {
 		return err
 	}
 
-	fmt.Printf("Watching %s for changes (debounce: %v)...\n", absPath, watchDebounce)
-	fmt.Println("Press Ctrl+C to stop")
+	watcher, err := createWatcher(absPath)
+	if err != nil {
+		return err
+	}
+	defer watcher.Close()
+
+	printWatchStartMessage(absPath)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -78,29 +68,84 @@ func runWatch(cmd *cobra.Command, args []string) error {
 		analyzeWithWatch(absPath)
 	})
 
+	return watchEventLoop(ctx, watcher, debouncer)
+}
+
+// getWatchPath extracts and validates the watch path from arguments.
+func getWatchPath(args []string) (string, error) {
+	path := "."
+	if len(args) > 0 {
+		path = args[0]
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("invalid path: %w", err)
+	}
+	return absPath, nil
+}
+
+// createWatcher initializes a filesystem watcher for the given path.
+func createWatcher(absPath string) (*fsnotify.Watcher, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create watcher: %w", err)
+	}
+
+	if err := addWatchPaths(watcher, absPath); err != nil {
+		watcher.Close()
+		return nil, err
+	}
+
+	return watcher, nil
+}
+
+// printWatchStartMessage displays the initial watch status.
+func printWatchStartMessage(absPath string) {
+	fmt.Printf("Watching %s for changes (debounce: %v)...\n", absPath, watchDebounce)
+	fmt.Println("Press Ctrl+C to stop")
+}
+
+// watchEventLoop processes filesystem events until context cancellation.
+func watchEventLoop(ctx context.Context, watcher *fsnotify.Watcher, debouncer *debouncer) error {
 	for {
 		select {
 		case event, ok := <-watcher.Events:
-			if !ok {
+			if shouldStopOnChannel(ok) {
 				return nil
 			}
-			if isGoFile(event.Name) {
-				if !watchQuiet {
-					fmt.Printf("[%s] %s\n", time.Now().Format("15:04:05"), event.Name)
-				}
-				debouncer.trigger()
-			}
+			handleFileEvent(event, debouncer)
 
 		case err, ok := <-watcher.Errors:
-			if !ok {
+			if shouldStopOnChannel(ok) {
 				return nil
 			}
-			fmt.Fprintf(os.Stderr, "Watch error: %v\n", err)
+			handleWatchError(err)
 
 		case <-ctx.Done():
 			return nil
 		}
 	}
+}
+
+// shouldStopOnChannel checks if a channel is closed.
+func shouldStopOnChannel(ok bool) bool {
+	return !ok
+}
+
+// handleFileEvent processes a single file system event.
+func handleFileEvent(event fsnotify.Event, debouncer *debouncer) {
+	if isGoFile(event.Name) {
+		if !watchQuiet {
+			fmt.Printf("[%s] %s\n", time.Now().Format("15:04:05"), event.Name)
+		}
+		debouncer.trigger()
+	}
+}
+
+// handleWatchError logs a watcher error to stderr.
+func handleWatchError(err error) {
+	fmt.Fprintf(os.Stderr, "Watch error: %v\n", err)
 }
 
 // addWatchPaths recursively adds directories to watcher.

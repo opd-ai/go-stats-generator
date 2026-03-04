@@ -31,11 +31,12 @@
    - **Metric Justification**: Second highest complexity (21.5); 45 lines; core duplication detection logic
    - **Result**: Reduced complexity from 21.5 to 3.1 (85.6% improvement); extracted 5 helper functions (extractFromIfStmt, extractFromLoopBody, extractFromSwitchStmt, extractFromTypeSwitchStmt, extractFromSelectStmt); all functions under 18 lines and complexity ≤6.2
 
-3. **Refactor `runWatch` — complexity 20.2 → target ≤10.0**
+3. **[COMPLETED] Refactor `runWatch` — complexity 20.2 → 4.4 ✓**
    - **File**: `cmd/watch.go`
    - **Deliverable**: Extract event handling, error recovery, and file system notification logic into separate functions
    - **Dependencies**: None
    - **Metric Justification**: Third highest complexity (20.2); 44 lines; user-facing watch command
+   - **Result**: Reduced complexity from 20.2 to 4.4 (78.2% improvement); lines reduced from 44 to 16 (63.6% reduction); extracted 7 helper functions (getWatchPath, createWatcher, printWatchStartMessage, watchEventLoop, shouldStopOnChannel, handleFileEvent, handleWatchError); all new functions ≤16 lines; primary function runWatch at 4.4 complexity (well under 10.0 threshold)
 
 ### Priority 2: High Complexity Violations (15.0-20.0)
 
