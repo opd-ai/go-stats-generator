@@ -31,10 +31,19 @@ func loadOutputConfiguration(cfg *config.Config) {
 	if viper.IsSet("output.show_progress") {
 		cfg.Output.ShowProgress = viper.GetBool("output.show_progress")
 	}
+	applyVerboseDefaults(cfg)
+	cfg.Output.Sections = mergeSectionFlags()
+}
+
+// applyVerboseDefaults enables progress display when verbose mode is active
+func applyVerboseDefaults(cfg *config.Config) {
 	if cfg.Output.Verbose {
 		cfg.Output.ShowProgress = true
 	}
-	// Merge --sections and --only into cfg.Output.Sections (deduplicated)
+}
+
+// mergeSectionFlags combines --sections and --only flags with deduplication
+func mergeSectionFlags() []string {
 	seen := make(map[string]bool)
 	var merged []string
 	for _, src := range []string{"output.sections", "output.only"} {
@@ -47,7 +56,7 @@ func loadOutputConfiguration(cfg *config.Config) {
 			}
 		}
 	}
-	cfg.Output.Sections = merged
+	return merged
 }
 
 // loadPerformanceConfiguration loads performance-related settings from viper
