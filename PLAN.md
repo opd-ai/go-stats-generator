@@ -19,16 +19,17 @@
 
 ## Implementation Steps
 
-### Step 1: Reduce High-Complexity Functions in `internal/analyzer/` ✅ PARTIALLY COMPLETE (3/11 functions)
+### Step 1: Reduce High-Complexity Functions in `internal/analyzer/` ✅ PARTIALLY COMPLETE (4/11 functions)
 - **Deliverable**: Refactor all functions with complexity >10 in `internal/analyzer/` directory
 - **Dependencies**: None
-- **Status**: 3 functions refactored (27% reduction in violations)
+- **Status**: 4 functions refactored (36% reduction in violations)
 - **Completed Refactorings**:
   - ✅ `calculatePipelineConfidence` (10.1 → 5.7, -43.6%) — `internal/analyzer/concurrency.go`
   - ✅ `calculateFanInConfidence` (10.1 → 5.7, -43.6%) — `internal/analyzer/concurrency.go`
   - ✅ `isInternalPackage` (10.1 → 7.0, -30.7%) — `internal/analyzer/package.go`
-- **Remaining Targets** (8 functions):
-  - `collectTypeDefinitions` (10.3) — `internal/analyzer/interface.go`
+  - ✅ `collectTypeDefinitions` (10.3 → 4.9, -52.4%) — `internal/analyzer/interface.go`
+- **Remaining Targets** (7 functions):
+  - ✅ `collectTypeDefinitions` (10.3 → 4.9, -52.4%) — `internal/analyzer/interface.go`
   - `extractEmbeddedInterfaceNamesWithPkg` (10.3) — `internal/analyzer/interface.go`
   - `AnalyzeCorrelation` (10.1) — `internal/analyzer/coverage.go`
   - `analyzeTestFile` (10.1) — `internal/analyzer/coverage.go`

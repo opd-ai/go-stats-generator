@@ -93,20 +93,31 @@ func (ia *InterfaceAnalyzer) updateAllImplementationMetrics(interfaces []metrics
 // collectTypeDefinitions collects all type definitions for implementation analysis
 func (ia *InterfaceAnalyzer) collectTypeDefinitions(file *ast.File, pkgName string) {
 	for _, decl := range file.Decls {
-		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
-			for _, spec := range genDecl.Specs {
-				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
-					typeName := pkgName + "." + typeSpec.Name.Name
-
-					switch t := typeSpec.Type.(type) {
-					case *ast.InterfaceType:
-						ia.interfaceDefinitions[typeName] = t
-					case *ast.StructType:
-						ia.structDefinitions[typeName] = t
-					}
-				}
-			}
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
 		}
+		ia.processTypeDeclaration(genDecl, pkgName)
+	}
+}
+
+func (ia *InterfaceAnalyzer) processTypeDeclaration(genDecl *ast.GenDecl, pkgName string) {
+	for _, spec := range genDecl.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+		ia.storeTypeDefinition(typeSpec, pkgName)
+	}
+}
+
+func (ia *InterfaceAnalyzer) storeTypeDefinition(typeSpec *ast.TypeSpec, pkgName string) {
+	typeName := pkgName + "." + typeSpec.Name.Name
+	switch t := typeSpec.Type.(type) {
+	case *ast.InterfaceType:
+		ia.interfaceDefinitions[typeName] = t
+	case *ast.StructType:
+		ia.structDefinitions[typeName] = t
 	}
 }
 
