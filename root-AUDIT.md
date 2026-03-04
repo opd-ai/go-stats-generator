@@ -13,7 +13,8 @@ The root package serves as the CLI entry point, delegating to the cmd package. A
 | Max Function Length  | 118     | ≤30 lines | ✗      |
 | Test Coverage        | 0.0%    | ≥65%      | ✗      |
 | Duplication Ratio    | 47.1%   | ≤5%       | ✗      |
-| Naming Violations    | 47      | 0         | ✗      |
+| File Name Violations | 0       | 0         | ✓      |
+| Naming Violations    | 36      | 0         | ✗      |
 
 ## Issues Found
 
@@ -27,7 +28,7 @@ The root package serves as the CLI entry point, delegating to the cmd package. A
 - [x] high duplication — Production code duplication reduced from 9.5% to 7.0% (101→73 clone pairs, 2355→1717 duplicated lines, 27% reduction). Created shared helpers: CalculateDocQualityScore, AnalyzeDocumentation, MergeGenericsData. Overall 47.1% includes testdata (expected).
 
 ### Medium Priority
-- [ ] med naming — 11 file name violations (generic names like types.go)
+- [x] med naming — 11 file name violations (generic names like types.go) (COMPLETED: all 11 files renamed to descriptive names, violations reduced to 0)
 - [ ] med naming — 25 identifier violations (non-idiomatic names)
 - [ ] med naming — 11 package name violations
 - [x] med documentation — 1 TODO comment (verified: false positive, type name `TODOComment` detected as annotation)
