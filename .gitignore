@@ -34,7 +34,9 @@ go.work.sum
 # .idea/
 # .vscode/
 /go-stats-generator
+/go-stats-generator-new
 /test-binary
+/wasm
 
 # Repository cleanup
 # Binary artifacts
