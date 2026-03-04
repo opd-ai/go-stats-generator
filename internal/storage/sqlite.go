@@ -89,7 +89,11 @@ func (s *SQLiteStorage) configure() error {
 	return nil
 }
 
-// initSchema creates the necessary tables if they don't exist
+// initSchema creates the necessary database tables for metrics storage if they don't already exist.
+// It establishes the complete schema for SQLite persistence including snapshots table (primary metrics storage),
+// snapshot_tags table (key-value metadata), and snapshot_files table (per-file granular metrics). Each table
+// uses appropriate indexes for efficient querying and supports foreign key constraints for referential integrity.
+// This method is idempotent and safe to call multiple times. Returns error if table creation fails.
 func (s *SQLiteStorage) initSchema() error {
 	ctx := context.Background()
 
@@ -319,7 +323,10 @@ func (s *SQLiteStorage) insertSnapshotTags(ctx context.Context, tx *sql.Tx, snap
 	return nil
 }
 
-// Retrieve gets a specific snapshot by ID
+// Retrieve fetches a complete baseline snapshot by ID from SQLite storage including all metrics and metadata.
+// It deserializes compressed snapshot data, reconstructs the full metrics report structure, and populates metadata
+// fields (timestamp, git commit, tags). Used by diff and trend commands to load historical baselines for comparison.
+// Returns error if snapshot doesn't exist or if data deserialization fails due to schema version mismatch.
 func (s *SQLiteStorage) Retrieve(ctx context.Context, id string) (metrics.MetricsSnapshot, error) {
 	var snapshot metrics.MetricsSnapshot
 
@@ -612,7 +619,10 @@ func (s *SQLiteStorage) attachSnapshotTags(ctx context.Context, info *SnapshotIn
 	return nil
 }
 
-// Delete removes a snapshot
+// Delete removes a baseline snapshot and all associated metadata from SQLite persistent storage.
+// The operation cascades to related tables (snapshot_tags, snapshot_files) due to foreign key constraints,
+// ensuring complete cleanup without orphaned records. Returns error if the snapshot ID doesn't exist or if
+// database access fails. This method is used by the "baseline delete" command for baseline management.
 func (s *SQLiteStorage) Delete(ctx context.Context, id string) error {
 	// Delete will cascade to tags due to foreign key constraint
 	result, err := s.db.ExecContext(ctx, "DELETE FROM snapshots WHERE id = ?", id)
@@ -780,7 +790,10 @@ func (s *SQLiteStorage) GetByTag(ctx context.Context, key, value string) ([]metr
 	return snapshots, nil
 }
 
-// Close releases storage resources
+// Close releases all SQLite database connections and file handles, ensuring proper shutdown of the storage backend.
+// It commits any pending transactions, releases file locks, and closes the underlying database connection.
+// Should be called during application shutdown or when switching storage backends. Returns error if connection
+// closure fails, though this is rare and typically indicates filesystem issues or pending uncommitted transactions.
 func (s *SQLiteStorage) Close() error {
 	return s.db.Close()
 }

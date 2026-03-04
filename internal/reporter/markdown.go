@@ -35,7 +35,10 @@ func NewMarkdownReporter() Reporter {
 	}
 }
 
-// NewMarkdownReporterWithOptions creates a Markdown reporter with custom options
+// NewMarkdownReporterWithOptions creates a customizable Markdown reporter with fine-grained control over output content and formatting.
+// It allows callers to toggle overview sections, detail tables, and pagination limits independently, enabling tailored reports for different
+// audiences (e.g., executive summaries vs. detailed technical analysis). The maxItems parameter controls how many items appear in each
+// section table before truncation. Used when generating documentation-friendly reports for GitHub wikis or README files.
 func NewMarkdownReporterWithOptions(includeOverview, includeDetails bool, maxItems int) *MarkdownReporter {
 	return &MarkdownReporter{
 		includeOverview: includeOverview,

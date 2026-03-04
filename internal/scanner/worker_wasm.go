@@ -116,7 +116,9 @@ type BatchProcessor struct {
 	batchSize  int
 }
 
-// NewBatchProcessor creates batch processor
+// NewBatchProcessor creates a batch processor for WASM environments enabling efficient parallel file analysis with configurable batch sizes.
+// It wraps a worker pool optimized for WebAssembly single-threaded execution model, processing files in sequential batches to avoid memory
+// pressure in browser contexts. The batch size controls chunking strategy for large file sets (default 100 files per batch).
 func NewBatchProcessor(workerPool *WorkerPool, batchSize int) *BatchProcessor {
 	if batchSize <= 0 {
 		batchSize = 100

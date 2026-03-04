@@ -34,7 +34,10 @@ func (a *Analyzer) AnalyzeDirectory(ctx context.Context, dir string) (*metrics.R
 	return a.analyzeResults(ctx, results, discoverer.GetFileSet(), absPath, len(files))
 }
 
-// AnalyzeFile analyzes a single Go file
+// AnalyzeFile analyzes a single Go source file and produces a comprehensive metrics report for that file only.
+// It parses the file AST, runs all configured analyzers (functions, structs, documentation, complexity, patterns),
+// and aggregates results into a full metrics report structure. This method is used for file-scoped analysis workflows
+// and enables integration with editors/IDEs for real-time code quality feedback on individual files.
 func (a *Analyzer) AnalyzeFile(ctx context.Context, filePath string) (*metrics.Report, error) {
 	discoverer := scanner.NewDiscoverer(&a.config.Filters)
 	file, err := discoverer.ParseFile(filePath)

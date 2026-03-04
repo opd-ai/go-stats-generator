@@ -367,7 +367,15 @@ func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, thre
 	return result
 }
 
-// generateForecasts produces metric forecasts based on historical trend data using linear regression.
+// generateForecasts produces metric forecasts based on historical trend data using linear regression analysis.
+// It analyzes time-series data from baseline snapshots to predict future metric values at 7, 14, and 30-day horizons.
+// Parameters:
+//   - snapshots: chronologically ordered historical baseline snapshots (minimum 2 required)
+//   - metric: the metric name to forecast (e.g., "mbi_score", "complexity_avg", "duplication_ratio")
+//   - entity: optional entity filter for scoped forecasting (e.g., specific package or file)
+//
+// Returns a map containing forecast predictions with confidence intervals, trend line equation, R² correlation,
+// and error messages if insufficient data exists. Used by the "trend forecast" command for predictive analytics.
 func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) map[string]interface{} {
 	if len(snapshots) < 2 {
 		return map[string]interface{}{
@@ -508,7 +516,11 @@ func determineOverallSeverity(regressions []map[string]interface{}) string {
 
 // Output functions
 
-// calculateBurdenTrends computes trend direction and delta for burden metrics
+// calculateBurdenTrends computes trend direction and delta for burden metrics by comparing earliest and latest snapshots.
+// It analyzes maintainability burden indicators including MBI score, technical debt ratio, and cognitive load metrics
+// to determine if the codebase health is improving, degrading, or stable. Returns a map of metric trends with start/end
+// values, absolute delta, percentage change, and qualitative direction indicators ("improving", "stable", "degrading").
+// Used by the "trend analyze" command to display burden evolution over time.
 func calculateBurdenTrends(first, last storage.SnapshotInfo) map[string]interface{} {
 	trends := make(map[string]interface{})
 

@@ -14,8 +14,10 @@ const (
 	BackendMongo Backend = "mongo"
 )
 
-// New creates a new ResultStore based on configuration.
-// Supports in-memory, PostgreSQL, and MongoDB backends.
+// New creates a ResultStore backend instance dynamically based on application configuration, routing to the appropriate implementation.
+// It supports in-memory storage (for testing/development), PostgreSQL (for production persistence with ACID guarantees), and MongoDB
+// (for NoSQL document storage). The factory pattern enables runtime backend selection via config files or environment variables,
+// allowing seamless switching between storage implementations without code changes. Defaults to in-memory if configuration is unspecified.
 func New(cfg *config.Config) ResultStore {
 	if shouldUseMemory(cfg) {
 		return NewMemory()

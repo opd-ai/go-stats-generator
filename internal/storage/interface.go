@@ -130,7 +130,10 @@ func DefaultStorageConfig() StorageConfig {
 	}
 }
 
-// NewStorage creates a new storage instance based on configuration
+// NewStorage instantiates the appropriate metrics storage backend (SQLite, JSON, or in-memory) based on provided configuration.
+// It routes to specialized constructors for each storage type, handling database initialization, file system setup, or memory
+// allocation as appropriate. Returns a fully initialized storage instance conforming to the MetricsStorage interface, ready for
+// baseline snapshot persistence and retrieval operations. Returns error if the storage type is unsupported or initialization fails.
 func NewStorage(config StorageConfig) (MetricsStorage, error) {
 	switch config.Type {
 	case "sqlite":
@@ -144,12 +147,18 @@ func NewStorage(config StorageConfig) (MetricsStorage, error) {
 	}
 }
 
-// NewSQLiteStorage creates a new SQLite storage backend (forward declaration)
+// NewSQLiteStorage creates a SQLite-based persistent storage backend for baseline snapshots with full ACID transaction support.
+// This is a forward declaration wrapper that routes to NewSQLiteStorageImpl for actual initialization. SQLite storage provides
+// zero-configuration persistence, making it ideal for CI/CD pipelines and local development. The backend supports concurrent reads
+// and serialized writes, with automatic schema migrations and index optimization for query performance on large snapshot histories.
 func NewSQLiteStorage(config SQLiteConfig) (MetricsStorage, error) {
 	return NewSQLiteStorageImpl(config)
 }
 
-// NewJSONStorage creates a new JSON file storage backend (forward declaration)
+// NewJSONStorage creates a JSON file-based storage backend for baseline snapshots enabling human-readable persistence and version control integration.
+// This forward declaration wrapper routes to NewJSONStorageImpl for initialization. JSON storage writes each snapshot as an individual file
+// (optionally gzip-compressed), allowing git tracking of metrics history and manual inspection/editing. Ideal for small to medium repositories
+// where transparency and audit trails are prioritized over query performance or concurrent access patterns.
 func NewJSONStorage(config JSONConfig) (MetricsStorage, error) {
 	return NewJSONStorageImpl(config)
 }

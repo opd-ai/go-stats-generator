@@ -131,7 +131,11 @@ func extractTargetPath(args []string) string {
 	return "."
 }
 
-// initializeStorageBackend creates and configures the storage backend
+// initializeStorageBackend creates and configures the metrics storage backend based on application configuration.
+// It reads storage type and path settings from viper configuration (respecting config files and environment variables),
+// instantiates the appropriate storage implementation (SQLite or JSON), and initializes the database schema/file structure.
+// Defaults to SQLite with metrics.db in current directory if not configured. Returns configured storage instance ready
+// for baseline snapshot persistence, or error if initialization fails due to permissions or invalid configuration.
 func initializeStorageBackend() (storage.MetricsStorage, error) {
 	// Get storage configuration from viper (respects loaded config files)
 	storageType := viper.GetString("storage.type")

@@ -53,7 +53,10 @@ func (m *MemoryStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 	return nil
 }
 
-// Retrieve gets a specific snapshot by ID
+// Retrieve fetches a baseline snapshot from in-memory storage by ID with read-lock protection for safe concurrent access.
+// It returns a direct reference to the stored snapshot (not a deep copy), so callers should treat returned data as read-only.
+// Primarily used in testing scenarios and development workflows where baseline persistence is not required.
+// Returns error if the snapshot ID doesn't exist in the memory map.
 func (m *MemoryStorage) Retrieve(ctx context.Context, id string) (metrics.MetricsSnapshot, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -126,7 +129,10 @@ func (m *MemoryStorage) applyPagination(result []SnapshotInfo, filter SnapshotFi
 	return result[filter.Offset:end]
 }
 
-// Delete removes a snapshot from memory
+// Delete removes a baseline snapshot from the in-memory storage map with thread-safe synchronization.
+// It acquires an exclusive write lock before deletion to prevent concurrent access issues, returning error
+// if the snapshot ID doesn't exist in memory. This implementation is primarily used for testing scenarios
+// where persistence is not required and fast iteration is prioritized over durability.
 func (m *MemoryStorage) Delete(ctx context.Context, id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

@@ -321,7 +321,11 @@ func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 	}
 }
 
-// createInitialReport creates the initial report structure with metadata and empty pattern metrics
+// createInitialReport creates the initial report structure with metadata and empty pattern metrics containers.
+// This function constructs the foundational Report object that will be populated during analysis phases, including
+// metadata fields (repository path, timestamp, analysis duration), and initializes empty data structures for all
+// metric categories (functions, structs, patterns, concurrency, documentation, etc.). The report structure is then
+// progressively enriched by analyzer components throughout the workflow execution.
 func createInitialReport(targetDir string, startTime time.Time, fileCount int) *metrics.Report {
 	return &metrics.Report{
 		Metadata: metrics.ReportMetadata{

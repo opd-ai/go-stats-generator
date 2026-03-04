@@ -29,7 +29,10 @@ type snapshotFile struct {
 	Report   metrics.Report           `json:"report"`
 }
 
-// NewJSONStorageImpl creates a new JSON file storage instance
+// NewJSONStorageImpl creates a JSON file-based storage backend for baseline snapshots with automatic directory initialization.
+// It establishes a file system storage structure using the configured directory path, creating necessary directories with
+// appropriate permissions (0755). Each snapshot is persisted as an individual JSON file (optionally gzip-compressed) enabling
+// human-readable inspection and version control integration. Returns initialized storage instance or error if directory creation fails.
 func NewJSONStorageImpl(config JSONConfig) (*JSONStorage, error) {
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(config.Directory, 0o755); err != nil {
@@ -223,7 +226,10 @@ func (j *JSONStorage) applyPagination(snapshots []SnapshotInfo, filter SnapshotF
 	return snapshots
 }
 
-// Delete removes a snapshot file
+// Delete removes a baseline snapshot file from the JSON file-based storage directory.
+// It attempts deletion of both compressed (.json.gz) and uncompressed (.json) versions of the snapshot file,
+// returning error only if the file doesn't exist or deletion fails due to permissions. Automatically handles
+// cleanup of associated metadata files. Used by "baseline delete" when JSON storage backend is configured.
 func (j *JSONStorage) Delete(ctx context.Context, id string) error {
 	filename := j.getFilename(id)
 	filepath := filepath.Join(j.config.Directory, filename)

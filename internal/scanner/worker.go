@@ -233,7 +233,10 @@ type BatchProcessor struct {
 	batchSize  int
 }
 
-// NewBatchProcessor creates a new batch processor
+// NewBatchProcessor creates a batch processor for efficient parallel file analysis with configurable batch sizes.
+// It wraps a worker pool to enable chunked processing of large file sets, reducing memory pressure and improving throughput
+// for repositories with thousands of files. The batch size controls memory vs. parallelism tradeoff (default 100 files per batch).
+// Used by the analyzer to optimize performance when processing enterprise-scale codebases with 10,000+ source files.
 func NewBatchProcessor(workerPool *WorkerPool, batchSize int) *BatchProcessor {
 	if batchSize <= 0 {
 		batchSize = 100

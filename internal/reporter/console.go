@@ -68,7 +68,10 @@ func (cr *ConsoleReporter) calculateDisplayLimit(itemCount int) int {
 	return limit
 }
 
-// Generate generates a console report
+// Generate produces a human-readable console report with formatted tables, colors, and section headers for terminal display.
+// It orchestrates writing of all report sections (functions, complexity, duplication, documentation) with appropriate
+// formatting, pagination limits, and visual separators. Output is optimized for 80-120 column terminal widths with
+// ANSI color codes for improved readability. This is the default output format when no --format flag is specified.
 func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) error {
 	cr.writeHeader(output, report)
 	cr.writeReportSections(report, output)

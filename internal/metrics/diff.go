@@ -26,7 +26,10 @@ func DefaultDiffOptions() DiffOptions {
 	}
 }
 
-// CompareSnapshots compares two metrics snapshots and returns a comprehensive diff
+// CompareSnapshots performs a comprehensive differential analysis between two metrics snapshots to identify code quality regressions and improvements.
+// It compares function-level metrics (complexity, length, documentation) between baseline and current snapshots, categorizing changes into
+// regressions (quality degradation), improvements (quality enhancement), and neutral modifications. The comparison applies configured thresholds
+// to determine violation severity and calculates aggregate quality deltas. Used by the "diff" command for baseline comparison workflows.
 func CompareSnapshots(baseline, current MetricsSnapshot, config ThresholdConfig) (*ComplexityDiff, error) {
 	if baseline.ID == "" || current.ID == "" {
 		return nil, fmt.Errorf("both baseline and current snapshots must have valid IDs")
@@ -533,7 +536,11 @@ func compareComplexityMetrics(baseline, current ComplexityMetrics, config Thresh
 	return changes
 }
 
-// categorizeChanges separates changes into regressions and improvements
+// categorizeChanges separates metric changes into regressions and improvements based on configured quality thresholds.
+// It evaluates each change against threshold criteria (complexity, length, documentation coverage) to determine whether
+// the change represents a code quality regression (metric worsened) or improvement (metric improved). Returns two slices:
+// regressions (changes violating quality gates or increasing technical debt) and improvements (changes enhancing quality).
+// Used by differential analysis reporting to highlight code health trends between baseline and current state.
 func categorizeChanges(changes []MetricChange, config ThresholdConfig) ([]Regression, []Improvement) {
 	var regressions []Regression
 	var improvements []Improvement
