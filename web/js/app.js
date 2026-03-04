@@ -4,6 +4,9 @@
  * Orchestrates: UI events → GitHub fetcher → WASM analyzer → results rendering
  */
 
+/** Progress percentages for non-download stages. */
+const STAGE_PERCENT = { resolving: 5, fetching_tree: 10 };
+
 class App {
   constructor() {
     this.wasmLoader = new WASMLoader();
@@ -176,16 +179,11 @@ class App {
    * @param {Object} progress
    */
   handleFetchProgress(progress) {
-    const stagePercent = {
-      resolving: 5,
-      fetching_tree: 10,
-    };
-
     if (progress.stage === 'downloading') {
       const pct = 10 + (progress.current / progress.total) * 70;
       UI.updateProgress(pct, progress.message);
     } else {
-      UI.updateProgress(stagePercent[progress.stage] || 0, progress.message);
+      UI.updateProgress(STAGE_PERCENT[progress.stage] || 0, progress.message);
     }
   }
 
