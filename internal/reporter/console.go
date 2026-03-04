@@ -871,13 +871,21 @@ func (cr *ConsoleReporter) getSortedClones(clones []metrics.ClonePair) []metrics
 	sorted := make([]metrics.ClonePair, len(clones))
 	copy(sorted, clones)
 	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].LineCount > sorted[j].LineCount
+		if sorted[i].LineCount != sorted[j].LineCount {
+			return sorted[i].LineCount < sorted[j].LineCount
+		}
+		typeI := string(sorted[i].Type)
+		typeJ := string(sorted[j].Type)
+		if typeI != typeJ {
+			return typeI < typeJ
+		}
+		return cr.formatCloneLocations(sorted[i]) < cr.formatCloneLocations(sorted[j])
 	})
 	return sorted
 }
 
 func (cr *ConsoleReporter) writeDuplicationHeader(output io.Writer, limit int) {
-	fmt.Fprintf(output, "Top %d Clone Pairs (by size):\n", limit)
+	fmt.Fprintf(output, "Clone Pairs (shortest to longest, %d shown):\n", limit)
 	fmt.Fprintf(output, "%-15s %8s %8s %s\n", "Type", "Lines", "Instances", "Locations")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
 }
@@ -899,16 +907,27 @@ func (cr *ConsoleReporter) writeDuplicationRow(output io.Writer, clone metrics.C
 	)
 }
 
+const maxConsoleLocations = 3
+
 func (cr *ConsoleReporter) formatCloneLocations(clone metrics.ClonePair) string {
 	if len(clone.Instances) == 0 {
 		return ""
 	}
-	inst := clone.Instances[0]
-	location := fmt.Sprintf("%s:%d-%d", cr.truncate(inst.File, 40), inst.StartLine, inst.EndLine)
-	if len(clone.Instances) > 1 {
-		location += fmt.Sprintf(" (+%d more)", len(clone.Instances)-1)
+	count := len(clone.Instances)
+	limit := count
+	if limit > maxConsoleLocations {
+		limit = maxConsoleLocations
 	}
-	return location
+	locations := make([]string, 0, limit)
+	for i := 0; i < limit; i++ {
+		inst := clone.Instances[i]
+		locations = append(locations, fmt.Sprintf("%s:%d-%d", cr.truncate(inst.File, 40), inst.StartLine, inst.EndLine))
+	}
+	result := strings.Join(locations, ", ")
+	if count > maxConsoleLocations {
+		result += fmt.Sprintf(" (+%d more)", count-maxConsoleLocations)
+	}
+	return result
 }
 
 // writeNamingAnalysis generates naming convention analysis output

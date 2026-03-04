@@ -101,11 +101,11 @@
 | **Duplication Ratio** | {{formatPercent .Report.Duplication.DuplicationRatio}} |
 | **Largest Clone** | {{.Report.Duplication.LargestCloneSize}} lines |
 
-### Top Clone Pairs
+### Clone Pairs (Shortest to Longest)
 
-| Type | Lines | Instances | First Location |
-|------|-------|-----------|----------------|
-{{range .Report.Duplication.Clones}}{{if ge .LineCount 6}}| {{.Type}} | {{.LineCount}} | {{len .Instances}} | {{escapeMarkdown (index .Instances 0).File}}:{{(index .Instances 0).StartLine}}-{{(index .Instances 0).EndLine}} |
+| Type | Lines | Instances | Locations |
+|------|-------|-----------|-----------|
+{{range .Report.Duplication.Clones}}{{if ge .LineCount 6}}| {{.Type}} | {{.LineCount}} | {{len .Instances}} | {{$instanceCount := len .Instances}}{{range $i, $inst := .Instances}}{{if lt $i 5}}{{if gt $i 0}}<br>{{end}}{{escapeMarkdown $inst.File}}:{{$inst.StartLine}}-{{$inst.EndLine}}{{end}}{{end}}{{if gt $instanceCount 5}}<br>... additional instances omitted ...{{end}} |
 {{end}}{{end}}
 {{end}}
 
