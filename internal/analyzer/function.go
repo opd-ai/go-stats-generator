@@ -255,47 +255,62 @@ func (fa *FunctionAnalyzer) findCommentOutsideStrings(line, commentMarker string
 	for i := 0; i < len(line); i++ {
 		ch := line[i]
 
-		// Handle escape sequences in double-quoted strings
 		if inDoubleQuote {
-			if escaped {
-				escaped = false
-				continue
-			}
-			if ch == '\\' {
-				escaped = true
-				continue
-			}
-			if ch == '"' {
-				inDoubleQuote = false
-			}
+			inDoubleQuote, escaped = fa.processDoubleQuoteChar(ch, escaped)
 			continue
 		}
 
-		// Handle backtick raw strings (no escapes)
 		if inBacktick {
-			if ch == '`' {
-				inBacktick = false
-			}
+			inBacktick = fa.processBacktickChar(ch)
 			continue
 		}
 
-		// Not inside any string - check for string start or comment marker
-		if ch == '"' {
-			inDoubleQuote = true
-			continue
-		}
-		if ch == '`' {
-			inBacktick = true
+		if newQuoteState, insideQuote := fa.checkStringStart(ch); insideQuote {
+			inDoubleQuote, inBacktick = newQuoteState[0], newQuoteState[1]
 			continue
 		}
 
-		// Check if we're at the start of our comment marker
-		if i+len(commentMarker) <= len(line) && line[i:i+len(commentMarker)] == commentMarker {
+		if fa.matchesCommentMarker(line, i, commentMarker) {
 			return i
 		}
 	}
 
 	return -1
+}
+
+// processDoubleQuoteChar handles a character inside a double-quoted string
+func (fa *FunctionAnalyzer) processDoubleQuoteChar(ch byte, escaped bool) (stillInQuote, newEscaped bool) {
+	if escaped {
+		return true, false
+	}
+	if ch == '\\' {
+		return true, true
+	}
+	if ch == '"' {
+		return false, false
+	}
+	return true, false
+}
+
+// processBacktickChar handles a character inside a backtick raw string
+func (fa *FunctionAnalyzer) processBacktickChar(ch byte) bool {
+	return ch != '`'
+}
+
+// checkStringStart checks if the character starts a string literal
+func (fa *FunctionAnalyzer) checkStringStart(ch byte) (quoteState [2]bool, isStringStart bool) {
+	if ch == '"' {
+		return [2]bool{true, false}, true
+	}
+	if ch == '`' {
+		return [2]bool{false, true}, true
+	}
+	return [2]bool{false, false}, false
+}
+
+// matchesCommentMarker checks if the position starts with the comment marker
+func (fa *FunctionAnalyzer) matchesCommentMarker(line string, i int, commentMarker string) bool {
+	return i+len(commentMarker) <= len(line) && line[i:i+len(commentMarker)] == commentMarker
 }
 
 // classifyLine determines the type of a line (code, comment, or mixed)

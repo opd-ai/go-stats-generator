@@ -82,11 +82,12 @@
    - **Metric Justification**: Complexity 16.0; 37 lines; design pattern detection
    - **Result**: Reduced complexity from 16.0 to 6.2 (61.3% improvement); lines reduced from 41 to 16 (61.0% reduction); extracted 5 helper functions (inspectVarDeclForSyncOnce, checkValueSpecForSyncOnce, hasSyncOnceType, hasSyncOnceValue, addSingletonPattern); all functions ≤10 lines and complexity ≤6.2
 
-10. **Refactor `findCommentOutsideStrings` — complexity 15.8 → target ≤10.0**
+10. **[COMPLETED] Refactor `findCommentOutsideStrings` — complexity 15.8 → 8.8 ✓**
     - **File**: `internal/analyzer/function.go`
     - **Deliverable**: Extract string literal state machine into separate function; simplify comment detection logic
     - **Dependencies**: None
     - **Metric Justification**: Complexity 15.8; 38 lines; comment parsing utility
+    - **Result**: Reduced complexity from 15.8 to 8.8 (44.3% improvement); cyclomatic from 11 to 6 (45.5% improvement); extracted 4 helper functions (processDoubleQuoteChar, processBacktickChar, checkStringStart, matchesCommentMarker); all new functions ≤12 lines and complexity ≤5.7; primary function findCommentOutsideStrings at 8.8 complexity (well under 10.0 threshold)
 
 11. **Refactor `finalizeTestCoverageMetrics` — complexity 15.3 → target ≤10.0**
     - **File**: `cmd/analyze_finalize.go`
