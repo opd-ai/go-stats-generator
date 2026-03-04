@@ -573,39 +573,53 @@ func generateDiffSummary(changes []MetricChange, regressions []Regression, impro
 		NeutralChangeCount: len(changes) - len(regressions) - len(improvements),
 	}
 
-	// Count significant changes
-	for _, change := range changes {
-		if change.Delta.Significant {
-			summary.SignificantChanges++
-		}
-	}
-
-	// Count critical issues
-	for _, regression := range regressions {
-		if regression.Severity == SeverityLevelCritical {
-			summary.CriticalIssues++
-		}
-	}
-
-	// Determine overall trend
-	if len(regressions) > len(improvements) {
-		summary.OverallTrend = TrendDegrading
-	} else if len(improvements) > len(regressions) {
-		summary.OverallTrend = TrendImproving
-	} else {
-		summary.OverallTrend = TrendStable
-	}
-
-	// Calculate quality score (0-100, higher is better)
-	totalSignificantChanges := summary.SignificantChanges
-	if totalSignificantChanges == 0 {
-		summary.QualityScore = 100.0
-	} else {
-		improvementRatio := float64(len(improvements)) / float64(totalSignificantChanges)
-		summary.QualityScore = improvementRatio * 100.0
-	}
+	summary.SignificantChanges = countSignificantChanges(changes)
+	summary.CriticalIssues = countCriticalIssues(regressions)
+	summary.OverallTrend = determineOverallTrend(regressions, improvements)
+	summary.QualityScore = calculateQualityScore(summary.SignificantChanges, improvements)
 
 	return summary
+}
+
+// countSignificantChanges counts the number of significant changes
+func countSignificantChanges(changes []MetricChange) int {
+	count := 0
+	for _, change := range changes {
+		if change.Delta.Significant {
+			count++
+		}
+	}
+	return count
+}
+
+// countCriticalIssues counts the number of critical regressions
+func countCriticalIssues(regressions []Regression) int {
+	count := 0
+	for _, regression := range regressions {
+		if regression.Severity == SeverityLevelCritical {
+			count++
+		}
+	}
+	return count
+}
+
+// determineOverallTrend determines the overall trend based on regressions and improvements
+func determineOverallTrend(regressions []Regression, improvements []Improvement) TrendDirection {
+	if len(regressions) > len(improvements) {
+		return TrendDegrading
+	} else if len(improvements) > len(regressions) {
+		return TrendImproving
+	}
+	return TrendStable
+}
+
+// calculateQualityScore calculates the quality score (0-100, higher is better)
+func calculateQualityScore(significantChanges int, improvements []Improvement) float64 {
+	if significantChanges == 0 {
+		return 100.0
+	}
+	improvementRatio := float64(len(improvements)) / float64(significantChanges)
+	return improvementRatio * 100.0
 }
 
 // Helper functions

@@ -140,11 +140,11 @@
       - ✅ Refactored `New` (11.4 → 4.4, 61.4% improvement; cyclomatic 8 → 3, 62.5% improvement; lines 26 → 9, 65.4% reduction; extracted 4 helper functions: shouldUseMemory at 1.3 complexity, getBackendCreator at 3.1 complexity, createPostgresBackend at 4.4 complexity, createMongoBackend at 4.4 complexity)
       - ✅ Refactored `ProcessFiles` (11.4 → 3.1, 72.8% improvement; cyclomatic 8 → 2, 75.0% improvement; lines 42 → 10, 76.2% reduction; extracted 6 helper functions: createEmptyChannel at 1.3 complexity, createChannels at 1.3 complexity, startWorkers at 3.1 complexity, distributeJobs at 7.5 complexity, closeResultOnCompletion at 1.3 complexity, applyProgressTracking at 3.1 complexity)
       - ✅ Refactored `checkAcronymCasing` (11.1 → 6.2, 44.1% improvement; cyclomatic 7 → 4, 42.9% improvement; lines 47 → 15, 68.1% reduction; extracted 2 helper functions: checkAcronymAtStart at 4.4 complexity, checkAcronymInMiddle at 6.7 complexity)
-      - ⏳ 36 functions remaining above 10.0 threshold (33 completed, 36 remaining out of 69 total)
+      - ✅ Refactored `generateDiffSummary` (11.4 → 1.3, 88.6% improvement; cyclomatic 8 → 1, 87.5% improvement; lines 31 → 11, 64.5% reduction; extracted 4 helper functions: countSignificantChanges at 4.9 complexity, countCriticalIssues at 4.9 complexity, determineOverallTrend at 4.9 complexity, calculateQualityScore at 3.1 complexity)
+      - ⏳ 35 functions remaining above 10.0 threshold (34 completed, 35 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ generateDiffSummary (11.4) - internal/metrics/diff.go [NEXT]
-      2. ⏳ detectWorkerPools (11.1) - internal/analyzer/concurrency.go
-      3. ⏳ AnalyzeFileCohesion (11.1) - internal/analyzer/cohesion.go
+      1. ⏳ detectWorkerPools (11.1) - internal/analyzer/concurrency.go [NEXT]
+      2. ⏳ AnalyzeFileCohesion (11.1) - internal/analyzer/cohesion.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
