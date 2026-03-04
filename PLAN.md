@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 33 production functions remain above complexity 10.0 (36 completed, 33 remaining out of 69 total)
+    - **Status**: 31 production functions remain above complexity 10.0 (38 completed, 31 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -144,9 +144,13 @@
       - ✅ Refactored `detectWorkerPools` (11.1 → 4.9, 55.9% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 41 → 6, 85.4% reduction; extracted 4 helper functions: groupGoroutinesByFile at 3.1 complexity, detectWorkerPoolInFile at 4.4 complexity, countAnonymousGoroutines at 4.9 complexity, buildWorkerPoolPattern at 1.3 complexity)
       - ✅ Refactored `AnalyzeFileCohesion` (11.1 → 4.9, 55.9% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 39 → 12, 69.2% reduction; extracted 3 helper functions: buildCohesionIssue at 1.3 complexity, countFileReferences at 4.9 complexity, determineCohesionSeverity at 4.4 complexity)
       - ✅ Refactored `loadOrganizationSettings` (10.9 → 1.3, 88.1% improvement; cyclomatic 8 → 1, 87.5% improvement; lines 21 → 7, 66.7% reduction; extracted 7 helper functions: loadMaxFileLines, loadMaxFileFunctions, loadMaxFileTypes, loadMaxPackageFiles, loadMaxExportedSymbols, loadMaxDirectoryDepth, loadMaxFileImports - all at 3.1 complexity)
-      - ⏳ 32 functions remaining above 10.0 threshold (37 completed, 32 remaining out of 69 total)
+      - ✅ Refactored `runAnalyze` (10.9 → 4.4, 59.6% improvement; cyclomatic 8 → 3, 62.5% improvement; lines 33 → 10, 69.7% reduction; extracted 3 helper functions: validateAndResolvePath at 5.7 complexity, executeAnalysis at 4.4 complexity, processResults at 4.4 complexity)
+      - ⏳ 31 functions remaining above 10.0 threshold (38 completed, 31 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ runAnalyze (cmd/analyze.go) - complexity 10.9
+      1. ⏳ runTrendAnalyze (cmd/trend.go) - complexity 10.6
+      2. ⏳ runTrendForecast (cmd/trend.go) - complexity 10.6
+      3. ⏳ processAnalysisResults (cmd/analyze_workflow.go) - complexity 10.6
+      4. ⏳ analyzeImplementations (internal/analyzer/interface.go) - complexity 10.6
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"

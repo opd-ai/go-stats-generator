@@ -272,38 +272,50 @@ func bindBurdenFlags() {
 	viper.BindPFlag("analysis.scoring.max_burden_score", analyzeCmd.Flags().Lookup("max-burden-score"))
 }
 
-// runAnalyze is the main entry point for the analyze command. Validates the target
-// path (file or directory), loads configuration from flags and config file, performs
-// analysis, enforces quality thresholds, saves baseline if requested, and outputs
-// results in the specified format (console/JSON/HTML/CSV/Markdown).
+// runAnalyze is the main entry point for the analyze command.
 func runAnalyze(cmd *cobra.Command, args []string) error {
-	// Determine target path
+	absPath, fileInfo, err := validateAndResolvePath(args)
+	if err != nil {
+		return err
+	}
+
+	cfg := loadConfiguration()
+	report, err := executeAnalysis(absPath, fileInfo, cfg)
+	if err != nil {
+		return err
+	}
+
+	return processResults(report, cfg)
+}
+
+// validateAndResolvePath resolves and validates the target path from command arguments.
+func validateAndResolvePath(args []string) (string, os.FileInfo, error) {
 	targetPath := "."
 	if len(args) > 0 {
 		targetPath = args[0]
 	}
 
-	// Convert to absolute path
 	absPath, err := filepath.Abs(targetPath)
 	if err != nil {
-		return fmt.Errorf("failed to resolve path: %w", err)
+		return "", nil, fmt.Errorf("failed to resolve path: %w", err)
 	}
 
-	// Check if path exists
 	fileInfo, err := os.Stat(absPath)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("path does not exist: %s", absPath)
+		return "", nil, fmt.Errorf("path does not exist: %s", absPath)
 	}
 
-	// Load configuration
-	cfg := loadConfiguration()
+	return absPath, fileInfo, nil
+}
 
-	// Create context with timeout
+// executeAnalysis runs the analysis with timeout context for file or directory.
+func executeAnalysis(absPath string, fileInfo os.FileInfo, cfg *config.Config) (*metrics.Report, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Performance.Timeout)
 	defer cancel()
 
-	// Run analysis based on whether target is file or directory
 	var report *metrics.Report
+	var err error
+
 	if fileInfo.IsDir() {
 		report, err = runDirectoryAnalysis(ctx, absPath, cfg)
 	} else {
@@ -311,19 +323,20 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("analysis failed: %w", err)
+		return nil, fmt.Errorf("analysis failed: %w", err)
 	}
 
-	// Filter report sections if --sections or --only was specified
+	return report, nil
+}
+
+// processResults filters report sections, generates output, and checks quality gates.
+func processResults(report *metrics.Report, cfg *config.Config) error {
 	metrics.FilterReportSections(report, cfg.Output.Sections)
 
-	// Generate output
-	err = generateOutput(report, cfg)
-	if err != nil {
+	if err := generateOutput(report, cfg); err != nil {
 		return fmt.Errorf("failed to generate output: %w", err)
 	}
 
-	// Check quality gates if enforcement is enabled
 	if err := checkQualityGates(report, cfg); err != nil {
 		return err
 	}
