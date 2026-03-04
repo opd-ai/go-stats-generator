@@ -281,6 +281,12 @@ func (pa *PatternAnalyzer) detectObserver(file *ast.File, filePath string, patte
 
 // detectStrategy identifies strategy patterns via interface delegation
 func (pa *PatternAnalyzer) detectStrategy(file *ast.File, filePath string, patterns *metrics.DesignPatternMetrics) {
+	typeStrategies := pa.collectStrategyCandidates(file)
+	pa.appendStrategyPatterns(typeStrategies, filePath, patterns)
+}
+
+// collectStrategyCandidates scans AST for structs with interface fields
+func (pa *PatternAnalyzer) collectStrategyCandidates(file *ast.File) map[string]*strategyCandidate {
 	typeStrategies := make(map[string]*strategyCandidate)
 
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -294,34 +300,54 @@ func (pa *PatternAnalyzer) detectStrategy(file *ast.File, filePath string, patte
 			return true
 		}
 
-		for _, field := range structType.Fields.List {
-			if pa.isInterfaceField(field) {
-				typeName := typeSpec.Name.Name
-				if _, exists := typeStrategies[typeName]; !exists {
-					typeStrategies[typeName] = &strategyCandidate{
-						typeName:        typeName,
-						line:            pa.fset.Position(typeSpec.Pos()).Line,
-						interfaceFields: 1,
-					}
-				} else {
-					typeStrategies[typeName].interfaceFields++
-				}
-			}
-		}
+		pa.processStructFieldsForStrategy(typeSpec, structType, typeStrategies)
 		return true
 	})
 
+	return typeStrategies
+}
+
+// processStructFieldsForStrategy counts interface fields in a struct
+func (pa *PatternAnalyzer) processStructFieldsForStrategy(typeSpec *ast.TypeSpec, structType *ast.StructType, typeStrategies map[string]*strategyCandidate) {
+	for _, field := range structType.Fields.List {
+		if pa.isInterfaceField(field) {
+			pa.updateStrategyCandidate(typeSpec, typeStrategies)
+		}
+	}
+}
+
+// updateStrategyCandidate creates or updates strategy candidate for a type
+func (pa *PatternAnalyzer) updateStrategyCandidate(typeSpec *ast.TypeSpec, typeStrategies map[string]*strategyCandidate) {
+	typeName := typeSpec.Name.Name
+	if _, exists := typeStrategies[typeName]; !exists {
+		typeStrategies[typeName] = &strategyCandidate{
+			typeName:        typeName,
+			line:            pa.fset.Position(typeSpec.Pos()).Line,
+			interfaceFields: 1,
+		}
+	} else {
+		typeStrategies[typeName].interfaceFields++
+	}
+}
+
+// appendStrategyPatterns adds qualified strategy candidates to pattern list
+func (pa *PatternAnalyzer) appendStrategyPatterns(typeStrategies map[string]*strategyCandidate, filePath string, patterns *metrics.DesignPatternMetrics) {
 	for _, candidate := range typeStrategies {
 		if candidate.interfaceFields > 0 {
-			patterns.Strategy = append(patterns.Strategy, metrics.PatternInstance{
-				Name:            "Strategy Pattern",
-				File:            filePath,
-				Line:            candidate.line,
-				ConfidenceScore: 0.8,
-				Description:     "Struct with interface field(s) for strategy delegation",
-				Example:         candidate.typeName + " uses strategy pattern",
-			})
+			patterns.Strategy = append(patterns.Strategy, pa.createStrategyPattern(candidate, filePath))
 		}
+	}
+}
+
+// createStrategyPattern constructs pattern instance from candidate
+func (pa *PatternAnalyzer) createStrategyPattern(candidate *strategyCandidate, filePath string) metrics.PatternInstance {
+	return metrics.PatternInstance{
+		Name:            "Strategy Pattern",
+		File:            filePath,
+		Line:            candidate.line,
+		ConfidenceScore: 0.8,
+		Description:     "Struct with interface field(s) for strategy delegation",
+		Example:         candidate.typeName + " uses strategy pattern",
 	}
 }
 
