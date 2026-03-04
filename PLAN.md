@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 46 production functions remain above complexity 10.0 (23 completed, 46 remaining out of 69 total)
+    - **Status**: 44 production functions remain above complexity 10.0 (25 completed, 44 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -131,11 +131,12 @@
       - ✅ Refactored `checkIdentifierStuttering` (12.4 → 3.1, 75.0% improvement; cyclomatic 8 → 2, 75.0% improvement; extracted 4 helper functions: checkMethodStuttering, isAllowedMethodPrefix, checkPackageStuttering, isAllowedFunctionPrefix)
       - ✅ Refactored `parseCoverageLine` (12.2 → 4.4, 63.9% improvement; cyclomatic 9 → 3, 66.7% improvement; extracted 3 helper functions: extractCoverageFields, parseFileAndRange, recordCoverage)
       - ✅ Refactored `AnalyzeStructsWithPath` (12.1 → 3.1, 74.4% improvement; cyclomatic 7 → 2, 71.4% improvement; lines 20 → 7, 65% reduction; extracted 2 helper functions: processDeclaration at 4.4 complexity, processTypeSpec at 5.7 complexity)
-      - ⏳ 45 functions remaining above 10.0 threshold (24 completed, 45 remaining out of 69 total)
+      - ✅ Refactored `watchEventLoop` (11.9 → 4.9, 58.8% improvement; cyclomatic 8 → 3, 62.5% improvement; lines 18 → 5, 72.2% reduction; extracted 3 helper functions: processWatchEvent at 7.0 complexity, processFileSystemEvent at 3.1 complexity, processWatcherError at 3.1 complexity)
+      - ⏳ 44 functions remaining above 10.0 threshold (25 completed, 44 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ writeDocumentationSection (12.1) - internal/reporter/csv.go [NEXT]
-      2. ⏳ Generate (12.1) - internal/reporter/html.go
-      3. ⏳ Next highest complexity function
+      1. ⏳ finalizeDuplicationMetrics (11.9) - cmd/analyze_finalize.go [NEXT]
+      2. ⏳ detectStrategy (11.9) - internal/analyzer/pattern.go
+      3. ⏳ AnalyzePackage (11.9) - internal/analyzer/package.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"

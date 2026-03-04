@@ -109,23 +109,40 @@ func printWatchStartMessage(absPath string) {
 // watchEventLoop processes filesystem events until context cancellation.
 func watchEventLoop(ctx context.Context, watcher *fsnotify.Watcher, debouncer *debouncer) error {
 	for {
-		select {
-		case event, ok := <-watcher.Events:
-			if shouldStopOnChannel(ok) {
-				return nil
-			}
-			handleFileEvent(event, debouncer)
-
-		case err, ok := <-watcher.Errors:
-			if shouldStopOnChannel(ok) {
-				return nil
-			}
-			handleWatchError(err)
-
-		case <-ctx.Done():
+		if done := processWatchEvent(ctx, watcher, debouncer); done {
 			return nil
 		}
 	}
+}
+
+// processWatchEvent handles a single watch event cycle and returns true if done.
+func processWatchEvent(ctx context.Context, watcher *fsnotify.Watcher, debouncer *debouncer) bool {
+	select {
+	case event, ok := <-watcher.Events:
+		return processFileSystemEvent(event, ok, debouncer)
+	case err, ok := <-watcher.Errors:
+		return processWatcherError(err, ok)
+	case <-ctx.Done():
+		return true
+	}
+}
+
+// processFileSystemEvent handles file system events from the watcher.
+func processFileSystemEvent(event fsnotify.Event, ok bool, debouncer *debouncer) bool {
+	if shouldStopOnChannel(ok) {
+		return true
+	}
+	handleFileEvent(event, debouncer)
+	return false
+}
+
+// processWatcherError handles errors from the watcher.
+func processWatcherError(err error, ok bool) bool {
+	if shouldStopOnChannel(ok) {
+		return true
+	}
+	handleWatchError(err)
+	return false
 }
 
 // shouldStopOnChannel checks if a channel is closed.
