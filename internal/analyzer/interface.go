@@ -110,28 +110,45 @@ func (ia *InterfaceAnalyzer) collectTypeDefinitions(file *ast.File, pkgName stri
 
 // analyzeImplementations finds which types implement which interfaces
 func (ia *InterfaceAnalyzer) analyzeImplementations(file *ast.File, pkgName string) {
-	// Find all method declarations
+	methodsByType := ia.collectMethodsByType(file, pkgName)
+	ia.matchImplementations(methodsByType)
+}
+
+// collectMethodsByType builds a map of type names to their methods
+func (ia *InterfaceAnalyzer) collectMethodsByType(file *ast.File, pkgName string) map[string][]string {
 	methodsByType := make(map[string][]string)
 
 	for _, decl := range file.Decls {
-		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Recv != nil {
-			// This is a method
-			receiverType := ia.extractReceiverType(funcDecl.Recv)
-			if receiverType != "" {
-				fullTypeName := pkgName + "." + receiverType
-				methodsByType[fullTypeName] = append(methodsByType[fullTypeName], funcDecl.Name.Name)
-			}
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok || funcDecl.Recv == nil {
+			continue
 		}
+
+		receiverType := ia.extractReceiverType(funcDecl.Recv)
+		if receiverType == "" {
+			continue
+		}
+
+		fullTypeName := pkgName + "." + receiverType
+		methodsByType[fullTypeName] = append(methodsByType[fullTypeName], funcDecl.Name.Name)
 	}
 
-	// Check which types implement which interfaces
+	return methodsByType
+}
+
+// matchImplementations checks which types implement which interfaces
+func (ia *InterfaceAnalyzer) matchImplementations(methodsByType map[string][]string) {
 	for interfaceName, interfaceType := range ia.interfaceDefinitions {
 		requiredMethods := ia.extractInterfaceMethods(interfaceType)
+		ia.findImplementingTypes(interfaceName, requiredMethods, methodsByType)
+	}
+}
 
-		for typeName, typeMethods := range methodsByType {
-			if ia.implementsInterface(typeMethods, requiredMethods) {
-				ia.typeImplementations[interfaceName] = append(ia.typeImplementations[interfaceName], typeName)
-			}
+// findImplementingTypes identifies types that implement an interface
+func (ia *InterfaceAnalyzer) findImplementingTypes(interfaceName string, requiredMethods []string, methodsByType map[string][]string) {
+	for typeName, typeMethods := range methodsByType {
+		if ia.implementsInterface(typeMethods, requiredMethods) {
+			ia.typeImplementations[interfaceName] = append(ia.typeImplementations[interfaceName], typeName)
 		}
 	}
 }
