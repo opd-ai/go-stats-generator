@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 28 production functions remain above complexity 10.0 (41 completed, 28 remaining out of 69 total)
+    - **Status**: 22 production functions remain above complexity 10.0 (47 completed, 22 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -148,13 +148,21 @@
       - ✅ Refactored `runTrendAnalyze` (10.6 → 5.7, 46.2% improvement)
       - ✅ Refactored `runTrendForecast` (10.6 → 5.7, 46.2% improvement)
       - ✅ Refactored `processAnalysisResults` (10.6 → 4.9, 53.8% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 25 → 9, 64% reduction; extracted 2 helper functions: processNextResult at 7.5 complexity, processValidResult at 3.1 complexity)
-      - ⏳ 26 functions remaining above 10.0 threshold (43 completed, 26 remaining out of 69 total)
+      - ✅ Refactored `writeDiffRegressions` (10.6 → 3.1, 70.8% improvement; cyclomatic 7 → 2, 71.4% improvement; extracted 5 helper functions: writeRegressionEntry, getSeverityIcon, writeRegressionFile, writeRegressionChange, writeRegressionSuggestion; all new functions ≤6.2 complexity)
+      - ✅ Refactored `writeCircularDependencies` (10.6 → 3.1, 70.8% improvement; cyclomatic 7 → 2, 71.4% improvement; extracted 4 helper functions: writeCircularDepsEmpty, writeCircularDepsList, writeCircularDepsEntry, writeCircularDepsChain; all new functions ≤6.2 complexity)
+      - ✅ Refactored `writeDuplicationAnalysis` (10.6 → 3.1, 70.8% improvement; cyclomatic 7 → 2, 71.4% improvement; extracted 9 helper functions: writeDuplicationSummary, writeDuplicationTable, getSortedClones, calculateCloneLimit, writeDuplicationHeader, writeDuplicationRows, writeDuplicationRow, formatCloneLocations; all new functions ≤4.4 complexity)
+      - ✅ Refactored `writeFileCohesionIssues` (10.6 → 1.3, 87.7% improvement; cyclomatic 7 → 1, 85.7% improvement; extracted 6 helper functions: sortCohesionIssues, calculateCohesionLimit, writeCohesionHeader, writeCohesionRows, writeCohesionRow, formatSuggestedSplits; all new functions ≤4.4 complexity)
+      - ⏳ 22 functions remaining above 10.0 threshold (47 completed, 22 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
       1. ✅ runTrendAnalyze (cmd/trend.go) - complexity 10.6 → 5.7 (46.2% improvement)
       2. ✅ runTrendForecast (cmd/trend.go) - complexity 10.6 → 5.7 (46.2% improvement)
       3. ✅ processAnalysisResults (cmd/analyze_workflow.go) - complexity 10.6 → 4.9 (53.8% improvement)
       4. ✅ analyzeImplementations (internal/analyzer/interface.go) - complexity 10.6 → 1.3 (87.7% improvement; cyclomatic 7 → 1, 85.7% improvement; extracted 3 helper functions: collectMethodsByType at 6.2 complexity, matchImplementations at 3.1 complexity, findImplementingTypes at 4.9 complexity; all new functions under 10.0 threshold)
       5. ✅ List (internal/api/storage/postgres.go) - complexity 10.6 → 3.1 (70.8% improvement; lines 28 → 9, 67.9% reduction; extracted 4 helper functions: collectResults at 4.9 complexity, scanResult at 3.1 complexity, populateReport at 4.9 complexity, populateError at 3.1 complexity; all new functions under 10.0 threshold)
+      6. ✅ writeDiffRegressions (internal/reporter/console.go) - complexity 10.6 → 3.1 (70.8% improvement)
+      7. ✅ writeCircularDependencies (internal/reporter/console.go) - complexity 10.6 → 3.1 (70.8% improvement)
+      8. ✅ writeDuplicationAnalysis (internal/reporter/console.go) - complexity 10.6 → 3.1 (70.8% improvement)
+      9. ✅ writeFileCohesionIssues (internal/reporter/console.go) - complexity 10.6 → 1.3 (87.7% improvement)
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"

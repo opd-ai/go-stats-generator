@@ -447,38 +447,55 @@ func (cr *ConsoleReporter) writeDiffSummary(output io.Writer, diff *metrics.Comp
 // function, old/new values, and change percentage for each regression.
 func (cr *ConsoleReporter) writeDiffRegressions(output io.Writer, regressions []metrics.Regression) {
 	fmt.Fprintln(output, "=== REGRESSIONS ===")
-
 	for _, regression := range regressions {
-		var icon string
-		switch regression.Severity {
-		case metrics.SeverityLevelCritical:
-			icon = "🚨"
-		case metrics.SeverityLevelError:
-			icon = "❌"
-		case metrics.SeverityLevelWarning:
-			icon = "⚠️"
-		default:
-			icon = "ℹ️"
-		}
+		cr.writeRegressionEntry(output, regression)
+	}
+}
 
-		fmt.Fprintf(output, "%s %s: %s\n", icon, regression.Type, regression.Location)
-		if regression.File != "" {
-			fmt.Fprintf(output, "   File: %s", regression.File)
-			if regression.Line > 0 {
-				fmt.Fprintf(output, ":%d", regression.Line)
-			}
-			fmt.Fprintln(output, "")
-		}
-		fmt.Fprintf(output, "   Change: %v → %v", regression.OldValue, regression.NewValue)
-		if regression.Delta.Percentage > 0 {
-			fmt.Fprintf(output, " (%+.1f%%)", regression.Delta.Percentage)
-		}
-		fmt.Fprintln(output, "")
+func (cr *ConsoleReporter) writeRegressionEntry(output io.Writer, regression metrics.Regression) {
+	icon := cr.getSeverityIcon(regression.Severity)
+	fmt.Fprintf(output, "%s %s: %s\n", icon, regression.Type, regression.Location)
+	cr.writeRegressionFile(output, regression)
+	cr.writeRegressionChange(output, regression)
+	cr.writeRegressionSuggestion(output, regression)
+	fmt.Fprintln(output, "")
+}
 
-		if regression.Suggestion != "" {
-			fmt.Fprintf(output, "   Suggestion: %s\n", regression.Suggestion)
-		}
-		fmt.Fprintln(output, "")
+func (cr *ConsoleReporter) getSeverityIcon(severity metrics.SeverityLevel) string {
+	switch severity {
+	case metrics.SeverityLevelCritical:
+		return "🚨"
+	case metrics.SeverityLevelError:
+		return "❌"
+	case metrics.SeverityLevelWarning:
+		return "⚠️"
+	default:
+		return "ℹ️"
+	}
+}
+
+func (cr *ConsoleReporter) writeRegressionFile(output io.Writer, regression metrics.Regression) {
+	if regression.File == "" {
+		return
+	}
+	fmt.Fprintf(output, "   File: %s", regression.File)
+	if regression.Line > 0 {
+		fmt.Fprintf(output, ":%d", regression.Line)
+	}
+	fmt.Fprintln(output, "")
+}
+
+func (cr *ConsoleReporter) writeRegressionChange(output io.Writer, regression metrics.Regression) {
+	fmt.Fprintf(output, "   Change: %v → %v", regression.OldValue, regression.NewValue)
+	if regression.Delta.Percentage > 0 {
+		fmt.Fprintf(output, " (%+.1f%%)", regression.Delta.Percentage)
+	}
+	fmt.Fprintln(output, "")
+}
+
+func (cr *ConsoleReporter) writeRegressionSuggestion(output io.Writer, regression metrics.Regression) {
+	if regression.Suggestion != "" {
+		fmt.Fprintf(output, "   Suggestion: %s\n", regression.Suggestion)
 	}
 }
 
@@ -683,34 +700,47 @@ func (cr *ConsoleReporter) writePackageDependencies(output io.Writer, packages [
 // writeCircularDependencies displays circular dependency detection results
 func (cr *ConsoleReporter) writeCircularDependencies(output io.Writer, report *metrics.Report) {
 	fmt.Fprintln(output, "=== CIRCULAR DEPENDENCIES ===")
+	if cr.writeCircularDepsEmpty(output, report) {
+		return
+	}
+	fmt.Fprintf(output, "Found %d circular dependency chain(s):\n\n", len(report.CircularDependencies))
+	cr.writeCircularDepsList(output, report.CircularDependencies)
+}
 
+func (cr *ConsoleReporter) writeCircularDepsEmpty(output io.Writer, report *metrics.Report) bool {
 	if len(report.CircularDependencies) == 0 {
 		fmt.Fprintln(output, "No circular dependencies detected.")
 		fmt.Fprintln(output)
-		return
+		return true
 	}
+	return false
+}
 
-	fmt.Fprintf(output, "Found %d circular dependency chain(s):\n\n", len(report.CircularDependencies))
+func (cr *ConsoleReporter) writeCircularDepsList(output io.Writer, cycles []metrics.CircularDependency) {
+	for i, cycle := range cycles {
+		cr.writeCircularDepsEntry(output, i+1, cycle)
+	}
+}
 
-	for i, cycle := range report.CircularDependencies {
-		severity := cycle.Severity
-		if severity == "" {
-			severity = "unknown"
+func (cr *ConsoleReporter) writeCircularDepsEntry(output io.Writer, index int, cycle metrics.CircularDependency) {
+	severity := cycle.Severity
+	if severity == "" {
+		severity = "unknown"
+	}
+	fmt.Fprintf(output, "%d. [%s SEVERITY] ", index, toUpperCase(severity))
+	cr.writeCircularDepsChain(output, cycle.Packages)
+	fmt.Fprintln(output)
+}
+
+func (cr *ConsoleReporter) writeCircularDepsChain(output io.Writer, packages []string) {
+	for j, pkg := range packages {
+		if j > 0 {
+			fmt.Fprint(output, " → ")
 		}
-
-		fmt.Fprintf(output, "%d. [%s SEVERITY] ", i+1, toUpperCase(severity))
-
-		for j, pkg := range cycle.Packages {
-			if j > 0 {
-				fmt.Fprint(output, " → ")
-			}
-			fmt.Fprint(output, pkg)
-		}
-
-		if len(cycle.Packages) > 0 {
-			fmt.Fprintf(output, " → %s\n", cycle.Packages[0])
-		}
-		fmt.Fprintln(output)
+		fmt.Fprint(output, pkg)
+	}
+	if len(packages) > 0 {
+		fmt.Fprintf(output, " → %s\n", packages[0])
 	}
 }
 
@@ -722,59 +752,81 @@ func toUpperCase(s string) string {
 // writeDuplicationAnalysis generates duplication analysis output
 func (cr *ConsoleReporter) writeDuplicationAnalysis(output io.Writer, report *metrics.Report) {
 	fmt.Fprintln(output, "=== DUPLICATION ANALYSIS ===")
+	cr.writeDuplicationSummary(output, report.Duplication)
+	if len(report.Duplication.Clones) == 0 {
+		return
+	}
+	cr.writeDuplicationTable(output, report.Duplication.Clones)
+}
 
-	dup := report.Duplication
+func (cr *ConsoleReporter) writeDuplicationSummary(output io.Writer, dup metrics.DuplicationMetrics) {
 	fmt.Fprintf(output, "Clone Pairs Detected: %d\n", dup.ClonePairs)
 	fmt.Fprintf(output, "Duplicated Lines: %d\n", dup.DuplicatedLines)
 	fmt.Fprintf(output, "Duplication Ratio: %.2f%%\n", dup.DuplicationRatio*100)
 	fmt.Fprintf(output, "Largest Clone Size: %d lines\n", dup.LargestCloneSize)
 	fmt.Fprintln(output)
+}
 
-	if len(dup.Clones) == 0 {
-		return
-	}
+func (cr *ConsoleReporter) writeDuplicationTable(output io.Writer, clones []metrics.ClonePair) {
+	sortedClones := cr.getSortedClones(clones)
+	limit := cr.calculateCloneLimit(len(sortedClones))
+	cr.writeDuplicationHeader(output, limit)
+	cr.writeDuplicationRows(output, sortedClones, limit)
+}
 
-	// Show top clone pairs sorted by line count
-	clones := make([]metrics.ClonePair, len(dup.Clones))
-	copy(clones, dup.Clones)
-	sort.Slice(clones, func(i, j int) bool {
-		return clones[i].LineCount > clones[j].LineCount
+func (cr *ConsoleReporter) getSortedClones(clones []metrics.ClonePair) []metrics.ClonePair {
+	sorted := make([]metrics.ClonePair, len(clones))
+	copy(sorted, clones)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].LineCount > sorted[j].LineCount
 	})
+	return sorted
+}
 
+func (cr *ConsoleReporter) calculateCloneLimit(count int) int {
 	limit := cr.config.Limit
-	if limit > len(clones) {
-		limit = len(clones)
+	if limit > count {
+		limit = count
 	}
 	if limit > 10 {
 		limit = 10
 	}
+	return limit
+}
 
+func (cr *ConsoleReporter) writeDuplicationHeader(output io.Writer, limit int) {
 	fmt.Fprintf(output, "Top %d Clone Pairs (by size):\n", limit)
 	fmt.Fprintf(output, "%-15s %8s %8s %s\n", "Type", "Lines", "Instances", "Locations")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+}
 
+func (cr *ConsoleReporter) writeDuplicationRows(output io.Writer, clones []metrics.ClonePair, limit int) {
 	for i := 0; i < limit; i++ {
-		clone := clones[i]
-		cloneTypeStr := string(clone.Type)
-
-		// Format first location
-		var locations string
-		if len(clone.Instances) > 0 {
-			inst := clone.Instances[0]
-			locations = fmt.Sprintf("%s:%d-%d", cr.truncate(inst.File, 40), inst.StartLine, inst.EndLine)
-			if len(clone.Instances) > 1 {
-				locations += fmt.Sprintf(" (+%d more)", len(clone.Instances)-1)
-			}
-		}
-
-		fmt.Fprintf(output, "%-15s %8d %8d %s\n",
-			cloneTypeStr,
-			clone.LineCount,
-			len(clone.Instances),
-			locations,
-		)
+		cr.writeDuplicationRow(output, clones[i])
 	}
 	fmt.Fprintln(output)
+}
+
+func (cr *ConsoleReporter) writeDuplicationRow(output io.Writer, clone metrics.ClonePair) {
+	locations := cr.formatCloneLocations(clone)
+	fmt.Fprintf(output, "%-15s %8d %8d %s\n",
+		string(clone.Type),
+		clone.LineCount,
+		len(clone.Instances),
+		locations,
+	)
+}
+
+func (cr *ConsoleReporter) formatCloneLocations(clone metrics.ClonePair) string {
+	if len(clone.Instances) == 0 {
+		return ""
+	}
+	inst := clone.Instances[0]
+	location := fmt.Sprintf("%s:%d-%d", cr.truncate(inst.File, 40), inst.StartLine, inst.EndLine)
+	if len(clone.Instances) > 1 {
+		location += fmt.Sprintf(" (+%d more)", len(clone.Instances)-1)
+	}
+	return location
 }
 
 // writeNamingAnalysis generates naming convention analysis output
@@ -1022,7 +1074,13 @@ func (cr *ConsoleReporter) writeMisplacedMethods(output io.Writer, issues []metr
 
 // writeFileCohesionIssues displays file cohesion issues
 func (cr *ConsoleReporter) writeFileCohesionIssues(output io.Writer, issues []metrics.FileCohesionIssue) {
-	// Sort by cohesion score (ascending - worst first) then by severity
+	sorted := cr.sortCohesionIssues(issues)
+	limit := cr.calculateCohesionLimit(len(sorted))
+	cr.writeCohesionHeader(output, limit)
+	cr.writeCohesionRows(output, sorted, limit)
+}
+
+func (cr *ConsoleReporter) sortCohesionIssues(issues []metrics.FileCohesionIssue) []metrics.FileCohesionIssue {
 	sorted := make([]metrics.FileCohesionIssue, len(issues))
 	copy(sorted, issues)
 	sort.Slice(sorted, func(i, j int) bool {
@@ -1031,35 +1089,51 @@ func (cr *ConsoleReporter) writeFileCohesionIssues(output io.Writer, issues []me
 		}
 		return sorted[i].CohesionScore < sorted[j].CohesionScore
 	})
+	return sorted
+}
 
+func (cr *ConsoleReporter) calculateCohesionLimit(count int) int {
 	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
+	if limit > count {
+		limit = count
 	}
 	if limit > 10 {
 		limit = 10
 	}
+	return limit
+}
 
+func (cr *ConsoleReporter) writeCohesionHeader(output io.Writer, limit int) {
 	fmt.Fprintf(output, "Top %d Low Cohesion Files:\n", limit)
 	fmt.Fprintf(output, "%-40s %-12s %s\n", "File", "Cohesion", "Suggested Splits")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
+}
 
+func (cr *ConsoleReporter) writeCohesionRows(output io.Writer, sorted []metrics.FileCohesionIssue, limit int) {
 	for i := 0; i < limit; i++ {
-		issue := sorted[i]
-		splits := ""
-		if len(issue.SuggestedSplits) > 0 {
-			splits = issue.SuggestedSplits[0]
-			if len(issue.SuggestedSplits) > 1 {
-				splits += fmt.Sprintf(" (+%d more)", len(issue.SuggestedSplits)-1)
-			}
-		}
-		fmt.Fprintf(output, "%-40s %-12.2f %s\n",
-			cr.truncate(issue.File, 40),
-			issue.CohesionScore,
-			splits,
-		)
+		cr.writeCohesionRow(output, sorted[i])
 	}
 	fmt.Fprintln(output)
+}
+
+func (cr *ConsoleReporter) writeCohesionRow(output io.Writer, issue metrics.FileCohesionIssue) {
+	splits := cr.formatSuggestedSplits(issue.SuggestedSplits)
+	fmt.Fprintf(output, "%-40s %-12.2f %s\n",
+		cr.truncate(issue.File, 40),
+		issue.CohesionScore,
+		splits,
+	)
+}
+
+func (cr *ConsoleReporter) formatSuggestedSplits(splits []string) string {
+	if len(splits) == 0 {
+		return ""
+	}
+	result := splits[0]
+	if len(splits) > 1 {
+		result += fmt.Sprintf(" (+%d more)", len(splits)-1)
+	}
+	return result
 }
 
 // writeDocumentationAnalysis generates documentation analysis output
