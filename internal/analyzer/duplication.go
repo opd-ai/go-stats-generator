@@ -131,46 +131,76 @@ func (da *DuplicationAnalyzer) extractNestedBlocks(stmt ast.Stmt, filePath strin
 	case *ast.BlockStmt:
 		blocks = append(blocks, da.extractBlocksFromStmtList(s.List, filePath, minBlockLines)...)
 	case *ast.IfStmt:
-		if s.Body != nil {
-			blocks = append(blocks, da.extractBlocksFromStmtList(s.Body.List, filePath, minBlockLines)...)
-		}
-		if s.Else != nil {
-			blocks = append(blocks, da.extractNestedBlocks(s.Else, filePath, minBlockLines)...)
-		}
+		blocks = append(blocks, da.extractFromIfStmt(s, filePath, minBlockLines)...)
 	case *ast.ForStmt:
-		if s.Body != nil {
-			blocks = append(blocks, da.extractBlocksFromStmtList(s.Body.List, filePath, minBlockLines)...)
-		}
+		blocks = append(blocks, da.extractFromLoopBody(s.Body, filePath, minBlockLines)...)
 	case *ast.RangeStmt:
-		if s.Body != nil {
-			blocks = append(blocks, da.extractBlocksFromStmtList(s.Body.List, filePath, minBlockLines)...)
-		}
+		blocks = append(blocks, da.extractFromLoopBody(s.Body, filePath, minBlockLines)...)
 	case *ast.SwitchStmt:
-		if s.Body != nil {
-			for _, clause := range s.Body.List {
-				if cc, ok := clause.(*ast.CaseClause); ok {
-					blocks = append(blocks, da.extractBlocksFromStmtList(cc.Body, filePath, minBlockLines)...)
-				}
-			}
-		}
+		blocks = append(blocks, da.extractFromSwitchStmt(s, filePath, minBlockLines)...)
 	case *ast.TypeSwitchStmt:
-		if s.Body != nil {
-			for _, clause := range s.Body.List {
-				if cc, ok := clause.(*ast.CaseClause); ok {
-					blocks = append(blocks, da.extractBlocksFromStmtList(cc.Body, filePath, minBlockLines)...)
-				}
-			}
-		}
+		blocks = append(blocks, da.extractFromTypeSwitchStmt(s, filePath, minBlockLines)...)
 	case *ast.SelectStmt:
-		if s.Body != nil {
-			for _, clause := range s.Body.List {
-				if cc, ok := clause.(*ast.CommClause); ok {
-					blocks = append(blocks, da.extractBlocksFromStmtList(cc.Body, filePath, minBlockLines)...)
-				}
-			}
-		}
+		blocks = append(blocks, da.extractFromSelectStmt(s, filePath, minBlockLines)...)
 	}
 
+	return blocks
+}
+
+func (da *DuplicationAnalyzer) extractFromIfStmt(s *ast.IfStmt, filePath string, minBlockLines int) []StatementBlock {
+	var blocks []StatementBlock
+	if s.Body != nil {
+		blocks = append(blocks, da.extractBlocksFromStmtList(s.Body.List, filePath, minBlockLines)...)
+	}
+	if s.Else != nil {
+		blocks = append(blocks, da.extractNestedBlocks(s.Else, filePath, minBlockLines)...)
+	}
+	return blocks
+}
+
+func (da *DuplicationAnalyzer) extractFromLoopBody(body *ast.BlockStmt, filePath string, minBlockLines int) []StatementBlock {
+	if body == nil {
+		return nil
+	}
+	return da.extractBlocksFromStmtList(body.List, filePath, minBlockLines)
+}
+
+func (da *DuplicationAnalyzer) extractFromSwitchStmt(s *ast.SwitchStmt, filePath string, minBlockLines int) []StatementBlock {
+	var blocks []StatementBlock
+	if s.Body == nil {
+		return blocks
+	}
+	for _, clause := range s.Body.List {
+		if cc, ok := clause.(*ast.CaseClause); ok {
+			blocks = append(blocks, da.extractBlocksFromStmtList(cc.Body, filePath, minBlockLines)...)
+		}
+	}
+	return blocks
+}
+
+func (da *DuplicationAnalyzer) extractFromTypeSwitchStmt(s *ast.TypeSwitchStmt, filePath string, minBlockLines int) []StatementBlock {
+	var blocks []StatementBlock
+	if s.Body == nil {
+		return blocks
+	}
+	for _, clause := range s.Body.List {
+		if cc, ok := clause.(*ast.CaseClause); ok {
+			blocks = append(blocks, da.extractBlocksFromStmtList(cc.Body, filePath, minBlockLines)...)
+		}
+	}
+	return blocks
+}
+
+func (da *DuplicationAnalyzer) extractFromSelectStmt(s *ast.SelectStmt, filePath string, minBlockLines int) []StatementBlock {
+	var blocks []StatementBlock
+	if s.Body == nil {
+		return blocks
+	}
+	for _, clause := range s.Body.List {
+		if cc, ok := clause.(*ast.CommClause); ok {
+			blocks = append(blocks, da.extractBlocksFromStmtList(cc.Body, filePath, minBlockLines)...)
+		}
+	}
 	return blocks
 }
 

@@ -24,11 +24,12 @@
    - **Metric Justification**: Highest complexity in production code (30.4); 68 lines of code; single point of failure for report filtering
    - **Result**: Reduced complexity from 30.4 to 3.1 (89.8% improvement); extracted 3 helper functions (clearPackageSection, buildSectionKeepSet, clearUnrequestedSections); all functions under 10 lines and complexity ≤5
 
-2. **Refactor `extractNestedBlocks` — complexity 21.5 → target ≤10.0**
+2. **[COMPLETED] Refactor `extractNestedBlocks` — complexity 21.5 → 3.1 ✓**
    - **File**: `internal/analyzer/duplication.go`
    - **Deliverable**: Extract per-AST-node-type handlers into separate functions; implement visitor pattern for cleaner traversal
    - **Dependencies**: None
    - **Metric Justification**: Second highest complexity (21.5); 45 lines; core duplication detection logic
+   - **Result**: Reduced complexity from 21.5 to 3.1 (85.6% improvement); extracted 5 helper functions (extractFromIfStmt, extractFromLoopBody, extractFromSwitchStmt, extractFromTypeSwitchStmt, extractFromSelectStmt); all functions under 18 lines and complexity ≤6.2
 
 3. **Refactor `runWatch` — complexity 20.2 → target ≤10.0**
    - **File**: `cmd/watch.go`
