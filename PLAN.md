@@ -54,11 +54,12 @@
    - **Metric Justification**: Complexity 19.2; 63 lines; JSON storage list operation
    - **Result**: Reduced complexity from 19.2 to 3.1 (83.9% improvement); lines reduced from 63 to 7 (88.9% reduction); extracted 8 helper functions (readStorageDirectory, collectSnapshots, processSnapshotFile, isSnapshotFile, loadSnapshotMetadata, buildSnapshotInfo, sortSnapshotsByTimestamp, applyPagination); all functions ≤18 lines and complexity ≤7.0
 
-6. **Refactor `checkStmtForUnreachable` — complexity 18.9 → target ≤10.0**
+6. **[COMPLETED] Refactor `checkStmtForUnreachable` — complexity 18.9 → 3.1 ✓**
    - **File**: `internal/analyzer/burden.go`
    - **Deliverable**: Decompose statement type checks into individual checker functions
    - **Dependencies**: Step 4 (shared burden analyzer context)
    - **Metric Justification**: Complexity 18.9; 40 lines; unreachable code detection
+   - **Result**: Reduced complexity from 18.9 to 3.1 (83.6% improvement); cyclomatic reduced from 13 to 2 (84.6% improvement); extracted 4 helper functions (checkIfStmtUnreachable, checkElseClauseUnreachable, checkLoopBodyUnreachable, checkSwitchCasesUnreachable); all new functions ≤10 lines and complexity ≤6.2; primary function checkStmtForUnreachable at 3.1 complexity (well under 10.0 threshold)
 
 7. **Refactor `Generate` (console.go) — complexity 17.4 → target ≤10.0**
    - **File**: `internal/reporter/console.go`

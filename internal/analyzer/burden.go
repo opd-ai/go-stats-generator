@@ -308,43 +308,70 @@ func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []me
 
 	switch s := stmt.(type) {
 	case *ast.IfStmt:
-		if s.Body != nil {
-			unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
-		}
-		if s.Else != nil {
-			switch elseStmt := s.Else.(type) {
-			case *ast.BlockStmt:
-				unreachable = append(unreachable, ba.checkBlockForUnreachable(elseStmt, fn)...)
-			case *ast.IfStmt:
-				unreachable = append(unreachable, ba.checkStmtForUnreachable(elseStmt, fn)...)
-			}
-		}
+		unreachable = append(unreachable, ba.checkIfStmtUnreachable(s, fn)...)
 	case *ast.ForStmt:
-		if s.Body != nil {
-			unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
-		}
+		unreachable = append(unreachable, ba.checkLoopBodyUnreachable(s.Body, fn)...)
 	case *ast.RangeStmt:
-		if s.Body != nil {
-			unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
-		}
+		unreachable = append(unreachable, ba.checkLoopBodyUnreachable(s.Body, fn)...)
 	case *ast.SwitchStmt:
-		if s.Body != nil {
-			for _, clause := range s.Body.List {
-				if cc, ok := clause.(*ast.CaseClause); ok {
-					unreachable = append(unreachable, ba.checkBlockForUnreachable(&ast.BlockStmt{List: cc.Body}, fn)...)
-				}
-			}
-		}
+		unreachable = append(unreachable, ba.checkSwitchCasesUnreachable(s.Body, fn)...)
 	case *ast.TypeSwitchStmt:
-		if s.Body != nil {
-			for _, clause := range s.Body.List {
-				if cc, ok := clause.(*ast.CaseClause); ok {
-					unreachable = append(unreachable, ba.checkBlockForUnreachable(&ast.BlockStmt{List: cc.Body}, fn)...)
-				}
-			}
-		}
+		unreachable = append(unreachable, ba.checkSwitchCasesUnreachable(s.Body, fn)...)
 	}
 
+	return unreachable
+}
+
+// checkIfStmtUnreachable analyzes if/else statements for unreachable blocks,
+// checking both the main body and any else clause for dead code patterns.
+func (ba *BurdenAnalyzer) checkIfStmtUnreachable(s *ast.IfStmt, fn string) []metrics.UnreachableBlock {
+	var unreachable []metrics.UnreachableBlock
+
+	if s.Body != nil {
+		unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
+	}
+
+	if s.Else != nil {
+		unreachable = append(unreachable, ba.checkElseClauseUnreachable(s.Else, fn)...)
+	}
+
+	return unreachable
+}
+
+// checkElseClauseUnreachable analyzes else clauses for unreachable blocks,
+// handling both block statements and chained if-else statements recursively.
+func (ba *BurdenAnalyzer) checkElseClauseUnreachable(elseStmt ast.Stmt, fn string) []metrics.UnreachableBlock {
+	switch e := elseStmt.(type) {
+	case *ast.BlockStmt:
+		return ba.checkBlockForUnreachable(e, fn)
+	case *ast.IfStmt:
+		return ba.checkStmtForUnreachable(e, fn)
+	}
+	return nil
+}
+
+// checkLoopBodyUnreachable analyzes loop body for unreachable blocks,
+// supporting both for loops and range loops with nil-safe checking.
+func (ba *BurdenAnalyzer) checkLoopBodyUnreachable(body *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
+	if body == nil {
+		return nil
+	}
+	return ba.checkBlockForUnreachable(body, fn)
+}
+
+// checkSwitchCasesUnreachable analyzes switch/type switch cases for unreachable blocks,
+// examining each case clause body for dead code after terminating statements.
+func (ba *BurdenAnalyzer) checkSwitchCasesUnreachable(body *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
+	if body == nil {
+		return nil
+	}
+
+	var unreachable []metrics.UnreachableBlock
+	for _, clause := range body.List {
+		if cc, ok := clause.(*ast.CaseClause); ok {
+			unreachable = append(unreachable, ba.checkBlockForUnreachable(&ast.BlockStmt{List: cc.Body}, fn)...)
+		}
+	}
 	return unreachable
 }
 
