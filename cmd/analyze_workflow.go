@@ -366,34 +366,44 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 	}
 }
 
-// processAnalysisResults processes the worker results and collects all metrics
 // processAnalysisResults coordinates the analysis of all scanner results
 func processAnalysisResults(ctx context.Context, results <-chan scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) (*CollectedMetrics, *analyzer.PackageAnalyzer, error) {
 	collectedMetrics := &CollectedMetrics{}
 	processedFiles := 0
 
 	for {
-		select {
-		case result, ok := <-results:
-			if !ok {
-				// Channel is closed, all results processed
-				logProcessingSummary(processedFiles, collectedMetrics, cfg)
-				return collectedMetrics, analyzers.Package, nil
-			}
-
-			processedFiles++
-
-			if !handleScannerError(result.Error, cfg) {
-				continue
-			}
-
-			processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
-
-		case <-ctx.Done():
-			// Context cancelled, return with error
-			return nil, nil, fmt.Errorf("analysis cancelled: %w", ctx.Err())
+		done, err := processNextResult(ctx, results, &processedFiles, analyzers, collectedMetrics, report, cfg)
+		if done {
+			return collectedMetrics, analyzers.Package, err
 		}
 	}
+}
+
+// processNextResult processes a single result from the channel and returns completion status
+func processNextResult(ctx context.Context, results <-chan scanner.Result, processedFiles *int, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, report *metrics.Report, cfg *config.Config) (bool, error) {
+	select {
+	case result, ok := <-results:
+		if !ok {
+			logProcessingSummary(*processedFiles, collectedMetrics, cfg)
+			return true, nil
+		}
+		return processValidResult(result, processedFiles, analyzers, collectedMetrics, report, cfg), nil
+
+	case <-ctx.Done():
+		return true, fmt.Errorf("analysis cancelled: %w", ctx.Err())
+	}
+}
+
+// processValidResult handles a single valid result from the scanner
+func processValidResult(result scanner.Result, processedFiles *int, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, report *metrics.Report, cfg *config.Config) bool {
+	*processedFiles++
+
+	if !handleScannerError(result.Error, cfg) {
+		return false
+	}
+
+	processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
+	return false
 }
 
 // handleScannerError processes scanner errors and returns whether to continue processing
