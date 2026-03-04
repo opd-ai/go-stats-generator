@@ -540,57 +540,85 @@ func (na *NamingAnalyzer) checkAcronymCasing(name string, ctx *identifierContext
 
 // checkIdentifierStuttering detects stuttering in identifiers
 func (na *NamingAnalyzer) checkIdentifierStuttering(name string, ctx *identifierContext) *metrics.IdentifierViolation {
+	if v := na.checkMethodStuttering(name, ctx); v != nil {
+		return v
+	}
+	return na.checkPackageStuttering(name, ctx)
+}
+
+// checkMethodStuttering detects method names that repeat the receiver type
+func (na *NamingAnalyzer) checkMethodStuttering(name string, ctx *identifierContext) *metrics.IdentifierViolation {
+	if ctx.receiverType == "" {
+		return nil
+	}
+
 	nameLower := strings.ToLower(name)
+	receiverLower := strings.ToLower(ctx.receiverType)
 
-	// Check method stuttering: User.GetUser, User.UserName
-	if ctx.receiverType != "" {
-		receiverLower := strings.ToLower(ctx.receiverType)
-
-		// Method name starts with receiver type
-		if strings.HasPrefix(nameLower, receiverLower) && len(name) > len(ctx.receiverType) {
-			// GetUser from User is okay, but UserName from User stutters
-			if !strings.HasPrefix(nameLower, "get"+receiverLower) &&
-				!strings.HasPrefix(nameLower, "set"+receiverLower) &&
-				!strings.HasPrefix(nameLower, "new"+receiverLower) {
-				suggested := name[len(ctx.receiverType):]
-				if len(suggested) > 0 {
-					return &metrics.IdentifierViolation{
-						Name:          name,
-						ViolationType: "stuttering",
-						Description:   "Method name repeats receiver type (e.g., User.UserName should be User.Name)",
-						SuggestedName: suggested,
-						Severity:      "low",
-					}
-				}
-			}
-		}
+	if !strings.HasPrefix(nameLower, receiverLower) || len(name) <= len(ctx.receiverType) {
+		return nil
 	}
 
-	// Check package stuttering: package user, func NewUser (okay), type UserService (stutters)
-	if ctx.packageName != "" && ctx.packageName != "main" {
-		packageLower := strings.ToLower(ctx.packageName)
-
-		// Exported name starts with package name
-		if unicode.IsUpper(rune(name[0])) && strings.HasPrefix(nameLower, packageLower) && len(name) > len(ctx.packageName) {
-			// NewUser, ParseUser are okay (common constructors/operations)
-			// But UserService, UserHandler stutter
-			if !strings.HasPrefix(ctx.functionName, "New") &&
-				!strings.HasPrefix(ctx.functionName, "Parse") &&
-				!strings.HasPrefix(ctx.functionName, "Make") {
-				// Only flag types and exported vars/consts, not all functions
-				// This is a softer check
-				return &metrics.IdentifierViolation{
-					Name:          name,
-					ViolationType: "package_stuttering",
-					Description:   "Exported name repeats package name (e.g., user.UserService should be user.Service)",
-					SuggestedName: name[len(ctx.packageName):],
-					Severity:      "low",
-				}
-			}
-		}
+	if na.isAllowedMethodPrefix(nameLower, receiverLower) {
+		return nil
 	}
 
-	return nil
+	suggested := name[len(ctx.receiverType):]
+	if len(suggested) == 0 {
+		return nil
+	}
+
+	return &metrics.IdentifierViolation{
+		Name:          name,
+		ViolationType: "stuttering",
+		Description:   "Method name repeats receiver type (e.g., User.UserName should be User.Name)",
+		SuggestedName: suggested,
+		Severity:      "low",
+	}
+}
+
+// isAllowedMethodPrefix checks if method prefix is acceptable (e.g., GetUser, SetUser, NewUser)
+func (na *NamingAnalyzer) isAllowedMethodPrefix(nameLower, receiverLower string) bool {
+	return strings.HasPrefix(nameLower, "get"+receiverLower) ||
+		strings.HasPrefix(nameLower, "set"+receiverLower) ||
+		strings.HasPrefix(nameLower, "new"+receiverLower)
+}
+
+// checkPackageStuttering detects exported names that repeat the package name
+func (na *NamingAnalyzer) checkPackageStuttering(name string, ctx *identifierContext) *metrics.IdentifierViolation {
+	if ctx.packageName == "" || ctx.packageName == "main" {
+		return nil
+	}
+
+	if !unicode.IsUpper(rune(name[0])) {
+		return nil
+	}
+
+	nameLower := strings.ToLower(name)
+	packageLower := strings.ToLower(ctx.packageName)
+
+	if !strings.HasPrefix(nameLower, packageLower) || len(name) <= len(ctx.packageName) {
+		return nil
+	}
+
+	if na.isAllowedFunctionPrefix(ctx.functionName) {
+		return nil
+	}
+
+	return &metrics.IdentifierViolation{
+		Name:          name,
+		ViolationType: "package_stuttering",
+		Description:   "Exported name repeats package name (e.g., user.UserService should be user.Service)",
+		SuggestedName: name[len(ctx.packageName):],
+		Severity:      "low",
+	}
+}
+
+// isAllowedFunctionPrefix checks if function prefix is acceptable (e.g., NewUser, ParseUser, MakeUser)
+func (na *NamingAnalyzer) isAllowedFunctionPrefix(functionName string) bool {
+	return strings.HasPrefix(functionName, "New") ||
+		strings.HasPrefix(functionName, "Parse") ||
+		strings.HasPrefix(functionName, "Make")
 }
 
 // ComputeIdentifierQualityScore calculates an overall identifier naming quality score
