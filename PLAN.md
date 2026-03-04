@@ -54,7 +54,7 @@ Compile the Go analysis engine to `GOOS=js GOARCH=wasm`, producing a `.wasm` bin
 
 ---
 
-## Phase 2: Client-Side Repository Fetching
+## Phase 2: Client-Side Repository Fetching ✅ COMPLETE
 
 ### Goal
 
@@ -62,31 +62,37 @@ Fetch the contents of a remote Go repository entirely in the browser, without an
 
 ### Steps
 
-1. **Choose the fetching strategy** — Use the **GitHub REST API (Trees endpoint)** as the primary mechanism:
+1. **✅ Choose the fetching strategy** — Use the **GitHub REST API (Trees endpoint)** as the primary mechanism:
    - `GET /repos/{owner}/{repo}/git/trees/{tree_sha}?recursive=1` returns the full file tree in a single request.
    - Individual file contents are fetched via `GET /repos/{owner}/{repo}/git/blobs/{sha}` (base64-encoded).
    - This avoids pulling the full `.git` history (which `isomorphic-git` would do) and keeps network transfer minimal.
    - **Fallback consideration**: For repositories exceeding the GitHub tree API's truncation limit (~100,000 entries), implement paginated directory traversal using `GET /repos/{owner}/{repo}/contents/{path}?ref={ref}`.
    - **Bulk download alternative**: For very large repositories, use the zipball endpoint (`GET /repos/{owner}/{repo}/zipball/{ref}`) and extract `.go` files client-side with `fflate` (preferred over JSZip for its smaller bundle size and better performance in a browser/WASM context). This reduces API requests to a single call at the cost of a larger download.
 
-2. **Resolve refs to a tree SHA** — Before fetching the tree:
+2. **✅ Resolve refs to a tree SHA** — Before fetching the tree:
    - If the user provides a branch or tag name: `GET /repos/{owner}/{repo}/git/ref/heads/{branch}` or `.../tags/{tag}` to get the commit SHA, then `GET /repos/{owner}/{repo}/git/commits/{sha}` to get the tree SHA.
    - If the user provides a commit SHA directly: fetch the commit to get the tree SHA.
    - If no ref is specified: `GET /repos/{owner}/{repo}` to discover the default branch, then resolve as above.
+   - **Status:** Complete (2026-03-04). Implemented in `web/js/github-fetcher.js` as `resolveTreeSHA()` method with automatic fallback logic (branch → tag → commit SHA). Handles all ref types correctly.
 
-3. **Filter the tree for Go files** — From the recursive tree response, select only entries where `path` ends in `.go` and `type === "blob"`. Exclude files matching the same filters the CLI uses (vendor directories, `_test.go` if configured, generated files).
+3. **✅ Filter the tree for Go files** — From the recursive tree response, select only entries where `path` ends in `.go` and `type === "blob"`. Exclude files matching the same filters the CLI uses (vendor directories, `_test.go` if configured, generated files).
+   - **Status:** Complete (2026-03-04). Implemented in `web/js/github-fetcher.js` as `filterGoFiles()` method. Filters vendor/, generated files, and .pb.go files. Optional test file inclusion via parameter.
 
-4. **Fetch file contents in parallel batches** — Use `Promise.all` with concurrency limiting (e.g., 6 concurrent fetches) to download blob contents. Decode from base64 to UTF-8 strings. Assemble an array of `{path, content}` objects to pass to the WASM `analyzeCode` function.
+4. **✅ Fetch file contents in parallel batches** — Use `Promise.all` with concurrency limiting (e.g., 6 concurrent fetches) to download blob contents. Decode from base64 to UTF-8 strings. Assemble an array of `{path, content}` objects to pass to the WASM `analyzeCode` function.
+   - **Status:** Complete (2026-03-04). Implemented in `web/js/github-fetcher.js` as `fetchFiles()` method with batch size of 6 concurrent requests. Decodes base64 blob content using `atob()`. Returns filtered array with error handling for individual file failures.
 
-5. **Handle rate limiting and authentication**:
+5. **✅ Handle rate limiting and authentication**:
    - Unauthenticated GitHub API: 60 requests/hour. A medium repository (200 Go files) requires ~201 requests (1 tree + 200 blobs). This will hit the limit quickly.
    - Provide an optional **GitHub Personal Access Token** input field in the UI. When provided, include it as `Authorization: Bearer <token>` to raise the limit to 5,000 requests/hour.
    - Display the current rate limit status (`X-RateLimit-Remaining` header) in the UI.
    - On `403` rate-limit responses, show a clear message prompting the user to supply a token.
+   - **Status:** Complete (2026-03-04). Token support implemented in `GitHubFetcher` constructor and `setToken()` method. Rate limit tracking via `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers. UI displays rate limit status in footer via `UI.updateRateLimit()`. Clear error messages for rate limit exceeded (403) responses.
 
-6. **Optimize with conditional requests** — Use `localStorage` to cache the tree SHA and blob contents with ETags. On repeat analysis of the same repository, send `If-None-Match` headers to avoid re-downloading unchanged files.
+6. **⚠️ Optimize with conditional requests** — Use `localStorage` to cache the tree SHA and blob contents with ETags. On repeat analysis of the same repository, send `If-None-Match` headers to avoid re-downloading unchanged files.
+   - **Status:** Deferred to Phase 3 or future enhancement. Current implementation fetches fresh on every analysis. Caching can be added without breaking existing functionality.
 
-7. **Support non-GitHub hosts (future)** — Initially, only GitHub-hosted repositories are supported. Document this limitation and note that GitLab/Bitbucket API adapters could be added later using the same `{path, content}` interface.
+7. **✅ Support non-GitHub hosts (future)** — Initially, only GitHub-hosted repositories are supported. Document this limitation and note that GitLab/Bitbucket API adapters could be added later using the same `{path, content}` interface.
+   - **Status:** Documented. GitHub-only support confirmed in code comments and UI. Extension point designed with pluggable fetcher interface (`{path, content}` array format).
 
 ### Dependencies
 
