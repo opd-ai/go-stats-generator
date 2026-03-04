@@ -184,7 +184,7 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
 
 ### Steps
 
-1. **Define the site output directory** — Use `web/` as the source directory for static assets during development. The CI workflow assembles the final deployable site into `dist/`:
+1. **✅ Define the site output directory** — Use `web/` as the source directory for static assets during development. The CI workflow assembles the final deployable site into `dist/`:
    ```
    dist/
    ├── index.html
@@ -199,8 +199,10 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
    └── wasm/
        └── go-stats-generator.<content-hash>.wasm
    ```
+   - **Status:** Complete (2026-03-04). Added `build-dist` Makefile target that mirrors GitHub Actions workflow. Creates dist/ directory with content-hashed WASM binary, static assets, and wasm-manifest.json. Enables local testing with `make build-dist && cd dist && python3 -m http.server 8080`. Updated Makefile help and clean targets. Zero Go code changes, zero complexity regressions.
 
-2. **Content-hash the WASM binary** — In the build script, compute the SHA-256 hash of the `.wasm` file and rename it to `go-stats-generator.<first-8-chars-of-hash>.wasm`. Update a generated `wasm-manifest.json` file that the JavaScript loader reads to discover the current filename. This ensures browsers cache the WASM blob aggressively and only re-download when it changes.
+2. **✅ Content-hash the WASM binary** — In the build script, compute the SHA-256 hash of the `.wasm` file and rename it to `go-stats-generator.<first-8-chars-of-hash>.wasm`. Update a generated `wasm-manifest.json` file that the JavaScript loader reads to discover the current filename. This ensures browsers cache the WASM blob aggressively and only re-download when it changes.
+   - **Status:** Complete (2026-03-04). Implemented in GitHub Actions workflow (.github/workflows/deploy-pages.yml lines 35-38) and local build-dist target. Uses sha256sum to generate 8-character hash prefix. Creates wasm-manifest.json with {"wasmFile": "go-stats-generator.<hash>.wasm"}. JavaScript loader (web/js/app.js lines 22-25) fetches manifest and loads hashed file dynamically. Tested successfully with local build producing go-stats-generator.c179ee0e.wasm (7.4MB).
 
 3. **✅ Create the GitHub Actions workflow** — Add `.github/workflows/deploy-pages.yml`:
    ```yaml
