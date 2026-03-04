@@ -24,7 +24,7 @@ The root package serves as the CLI entry point, delegating to the cmd package. A
 - [x] high complexity — List exceeds threshold (`internal/storage/json.go:89`) complexity 14, 63 lines (COMPLETED: refactored to complexity 2, 8 lines)
 - [x] high complexity — checkStmtForUnreachable exceeds threshold (`internal/analyzer/burden.go:156`) complexity 13, 40 lines (COMPLETED: refactored to complexity 2, 16 lines)
 - [x] high function-length — init function too long (`cmd/analyze.go:68`) 118 lines, complexity 1 (COMPLETED: split into 15 helper functions, now 10 lines)
-- [ ] high duplication — Overall duplication ratio 47.1% (125 clone pairs, 11,384 duplicated lines)
+- [x] high duplication — Production code duplication reduced from 9.5% to 7.0% (101→73 clone pairs, 2355→1717 duplicated lines, 27% reduction). Created shared helpers: CalculateDocQualityScore, AnalyzeDocumentation, MergeGenericsData. Overall 47.1% includes testdata (expected).
 
 ### Medium Priority
 - [ ] med naming — 11 file name violations (generic names like types.go)

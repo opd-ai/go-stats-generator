@@ -4,7 +4,6 @@ import (
 	"go/ast"
 	"go/token"
 	"reflect"
-	"strings"
 
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
@@ -262,72 +261,12 @@ func (sa *StructAnalyzer) calculateComplexity(structMetric metrics.StructMetrics
 
 // analyzeDocumentation analyzes struct documentation quality
 func (sa *StructAnalyzer) analyzeDocumentation(doc *ast.CommentGroup) metrics.DocumentationInfo {
-	docInfo := metrics.DocumentationInfo{}
-
-	if doc == nil {
-		return docInfo
-	}
-
-	docInfo.HasComment = true
-
-	// Combine all comment lines
-	var docText strings.Builder
-	for _, comment := range doc.List {
-		docText.WriteString(comment.Text)
-		docText.WriteString(" ")
-	}
-
-	text := docText.String()
-	docInfo.CommentLength = len(text)
-
-	// Check for code examples (simple heuristic)
-	docInfo.HasExample = strings.Contains(text, "Example") ||
-		strings.Contains(text, "example") ||
-		strings.Contains(text, "//")
-
-	// Calculate quality score
-	docInfo.QualityScore = sa.calculateDocQualityScore(text)
-
-	return docInfo
+	return AnalyzeDocumentation(doc, sa.calculateDocQualityScore)
 }
 
 // calculateDocQualityScore calculates documentation quality score
 func (sa *StructAnalyzer) calculateDocQualityScore(docText string) float64 {
-	if len(docText) == 0 {
-		return 0.0
-	}
-
-	score := 0.0
-
-	// Base score for having documentation
-	score += 0.3
-
-	// Length-based scoring
-	if len(docText) > 50 {
-		score += 0.2
-	}
-	if len(docText) > 100 {
-		score += 0.2
-	}
-
-	// Content quality indicators
-	if strings.Contains(strings.ToLower(docText), "represents") ||
-		strings.Contains(strings.ToLower(docText), "contains") ||
-		strings.Contains(strings.ToLower(docText), "provides") {
-		score += 0.2
-	}
-
-	// Example presence
-	if strings.Contains(strings.ToLower(docText), "example") {
-		score += 0.1
-	}
-
-	// Cap at 1.0
-	if score > 1.0 {
-		score = 1.0
-	}
-
-	return score
+	return CalculateDocQualityScore(docText, []string{"represents", "contains", "provides"})
 }
 
 // analyzeStructMethods finds and analyzes all methods associated with a struct

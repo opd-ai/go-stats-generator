@@ -239,34 +239,15 @@ func createMergedGenerics(generics []metrics.GenericMetrics) metrics.GenericMetr
 	}
 
 	for _, gen := range generics {
-		mergeGenericsData(&merged, gen)
+		metrics.MergeGenericsData(&merged, gen)
 	}
 	return merged
 }
 
-// mergeGenericsData merges single generic
+// mergeGenericsData is deprecated - use metrics.MergeGenericsData instead
+// Kept for backward compatibility
 func mergeGenericsData(merged *metrics.GenericMetrics, gen metrics.GenericMetrics) {
-	merged.TypeParameters.Count += gen.TypeParameters.Count
-	merged.TypeParameters.Complexity = append(
-		merged.TypeParameters.Complexity,
-		gen.TypeParameters.Complexity...)
-
-	for k, v := range gen.TypeParameters.Constraints {
-		merged.TypeParameters.Constraints[k] += v
-	}
-	for k, v := range gen.ConstraintUsage {
-		merged.ConstraintUsage[k] += v
-	}
-
-	merged.Instantiations.Functions = append(
-		merged.Instantiations.Functions,
-		gen.Instantiations.Functions...)
-	merged.Instantiations.Types = append(
-		merged.Instantiations.Types,
-		gen.Instantiations.Types...)
-	merged.Instantiations.Methods = append(
-		merged.Instantiations.Methods,
-		gen.Instantiations.Methods...)
+	metrics.MergeGenericsData(merged, gen)
 }
 
 // calculateGenericComplexity calculates score
