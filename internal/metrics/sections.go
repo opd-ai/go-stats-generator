@@ -26,80 +26,66 @@ var ValidSections = map[string]bool{
 	"suggestions":   true,
 }
 
+// sectionHandler defines how to clear a specific report section.
+type sectionHandler func(*Report)
+
+// sectionHandlers maps section names to their clearing functions.
+var sectionHandlers = map[string]sectionHandler{
+	"metadata":      func(r *Report) { r.Metadata = ReportMetadata{} },
+	"overview":      func(r *Report) { r.Overview = OverviewMetrics{} },
+	"functions":     func(r *Report) { r.Functions = nil },
+	"structs":       func(r *Report) { r.Structs = nil },
+	"interfaces":    func(r *Report) { r.Interfaces = nil },
+	"packages":      clearPackageSection,
+	"patterns":      func(r *Report) { r.Patterns = PatternMetrics{} },
+	"complexity":    func(r *Report) { r.Complexity = ComplexityMetrics{} },
+	"documentation": func(r *Report) { r.Documentation = DocumentationMetrics{} },
+	"generics":      func(r *Report) { r.Generics = GenericMetrics{} },
+	"duplication":   func(r *Report) { r.Duplication = DuplicationMetrics{} },
+	"naming":        func(r *Report) { r.Naming = NamingMetrics{} },
+	"placement":     func(r *Report) { r.Placement = PlacementMetrics{} },
+	"organization":  func(r *Report) { r.Organization = OrganizationMetrics{} },
+	"burden":        func(r *Report) { r.Burden = BurdenMetrics{} },
+	"scores":        func(r *Report) { r.Scores = ScoringMetrics{} },
+	"test_coverage": func(r *Report) { r.TestCoverage = TestCoverageMetrics{} },
+	"test_quality":  func(r *Report) { r.TestQuality = TestQualityMetrics{} },
+	"suggestions":   func(r *Report) { r.Suggestions = nil },
+}
+
+// clearPackageSection clears both packages and circular dependencies.
+func clearPackageSection(r *Report) {
+	r.Packages = nil
+	r.CircularDependencies = nil
+}
+
 // FilterReportSections zeros out report sections that are not in the requested set.
-// FilterReportSections returns the report unchanged if sections is empty.
+// Returns the report unchanged if sections is empty.
 func FilterReportSections(report *Report, sections []string) {
 	if len(sections) == 0 {
 		return
 	}
 
-	// Build lookup set, normalizing to lowercase
+	keep := buildSectionKeepSet(sections)
+	clearUnrequestedSections(report, keep)
+}
+
+// buildSectionKeepSet creates a set of section names to keep, normalized to lowercase.
+func buildSectionKeepSet(sections []string) map[string]bool {
 	keep := make(map[string]bool, len(sections))
 	for _, s := range sections {
 		keep[strings.ToLower(strings.TrimSpace(s))] = true
 	}
-
-	// "concurrency" is an alias for "patterns"
 	if keep["concurrency"] {
 		keep["patterns"] = true
 	}
+	return keep
+}
 
-	if !keep["metadata"] {
-		report.Metadata = ReportMetadata{}
-	}
-	if !keep["overview"] {
-		report.Overview = OverviewMetrics{}
-	}
-	if !keep["functions"] {
-		report.Functions = nil
-	}
-	if !keep["structs"] {
-		report.Structs = nil
-	}
-	if !keep["interfaces"] {
-		report.Interfaces = nil
-	}
-	if !keep["packages"] {
-		report.Packages = nil
-		report.CircularDependencies = nil
-	}
-	if !keep["patterns"] {
-		report.Patterns = PatternMetrics{}
-	}
-	if !keep["complexity"] {
-		report.Complexity = ComplexityMetrics{}
-	}
-	if !keep["documentation"] {
-		report.Documentation = DocumentationMetrics{}
-	}
-	if !keep["generics"] {
-		report.Generics = GenericMetrics{}
-	}
-	if !keep["duplication"] {
-		report.Duplication = DuplicationMetrics{}
-	}
-	if !keep["naming"] {
-		report.Naming = NamingMetrics{}
-	}
-	if !keep["placement"] {
-		report.Placement = PlacementMetrics{}
-	}
-	if !keep["organization"] {
-		report.Organization = OrganizationMetrics{}
-	}
-	if !keep["burden"] {
-		report.Burden = BurdenMetrics{}
-	}
-	if !keep["scores"] {
-		report.Scores = ScoringMetrics{}
-	}
-	if !keep["test_coverage"] {
-		report.TestCoverage = TestCoverageMetrics{}
-	}
-	if !keep["test_quality"] {
-		report.TestQuality = TestQualityMetrics{}
-	}
-	if !keep["suggestions"] {
-		report.Suggestions = nil
+// clearUnrequestedSections removes all sections not in the keep set.
+func clearUnrequestedSections(report *Report, keep map[string]bool) {
+	for section, handler := range sectionHandlers {
+		if !keep[section] {
+			handler(report)
+		}
 	}
 }
