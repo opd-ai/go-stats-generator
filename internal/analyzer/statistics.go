@@ -40,6 +40,7 @@ func convertToTimeSeries(series metrics.MetricTimeSeries) (x, y []float64) {
 	return x, y
 }
 
+// computeLeastSquares calculates linear regression slope and intercept using least squares method.
 func computeLeastSquares(x, y []float64) (slope, intercept float64) {
 	meanX, meanY := mean(x), mean(y)
 
@@ -57,6 +58,7 @@ func computeLeastSquares(x, y []float64) (slope, intercept float64) {
 	return slope, intercept
 }
 
+// computeCorrelation derives Pearson correlation coefficient from R-squared and slope sign.
 func computeCorrelation(rSquared, slope float64) float64 {
 	correlation := 0.0
 	if rSquared >= 0 {

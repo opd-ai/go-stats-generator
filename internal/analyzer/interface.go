@@ -101,6 +101,7 @@ func (ia *InterfaceAnalyzer) collectTypeDefinitions(file *ast.File, pkgName stri
 	}
 }
 
+// processTypeDeclaration extracts and stores type specifications from a general declaration.
 func (ia *InterfaceAnalyzer) processTypeDeclaration(genDecl *ast.GenDecl, pkgName string) {
 	for _, spec := range genDecl.Specs {
 		typeSpec, ok := spec.(*ast.TypeSpec)
@@ -111,6 +112,7 @@ func (ia *InterfaceAnalyzer) processTypeDeclaration(genDecl *ast.GenDecl, pkgNam
 	}
 }
 
+// storeTypeDefinition records a type definition in the analyzer's type registry.
 func (ia *InterfaceAnalyzer) storeTypeDefinition(typeSpec *ast.TypeSpec, pkgName string) {
 	typeName := pkgName + "." + typeSpec.Name.Name
 	switch t := typeSpec.Type.(type) {

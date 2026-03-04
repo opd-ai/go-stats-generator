@@ -77,6 +77,7 @@ func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *ana
 	logDuplicationResults(cfg, duplicationMetrics)
 }
 
+// prepareFilesForDuplication filters files for duplication analysis based on configuration.
 func prepareFilesForDuplication(collectedMetrics *CollectedMetrics, cfg *config.Config) map[string]*ast.File {
 	if !cfg.Analysis.Duplication.IgnoreTestFiles {
 		return collectedMetrics.Files
@@ -84,6 +85,7 @@ func prepareFilesForDuplication(collectedMetrics *CollectedMetrics, cfg *config.
 	return filterNonTestFiles(collectedMetrics.Files)
 }
 
+// filterNonTestFiles removes test files from the analysis set.
 func filterNonTestFiles(files map[string]*ast.File) map[string]*ast.File {
 	filtered := make(map[string]*ast.File)
 	for filename, file := range files {
@@ -94,6 +96,7 @@ func filterNonTestFiles(files map[string]*ast.File) map[string]*ast.File {
 	return filtered
 }
 
+// createEmptyDuplicationMetrics returns zero-initialized duplication metrics.
 func createEmptyDuplicationMetrics() metrics.DuplicationMetrics {
 	return metrics.DuplicationMetrics{
 		ClonePairs:       0,
@@ -104,6 +107,7 @@ func createEmptyDuplicationMetrics() metrics.DuplicationMetrics {
 	}
 }
 
+// logDuplicationStart prints duplication analysis progress if verbose mode is enabled.
 func logDuplicationStart(cfg *config.Config, fileCount int) {
 	if !cfg.Output.Verbose {
 		return
@@ -115,6 +119,7 @@ func logDuplicationStart(cfg *config.Config, fileCount int) {
 	fmt.Fprintf(os.Stderr, "%s...\n", msg)
 }
 
+// runDuplicationAnalysis executes duplication detection using configured thresholds.
 func runDuplicationAnalysis(analyzer *analyzer.DuplicationAnalyzer, files map[string]*ast.File, cfg *config.Config) metrics.DuplicationMetrics {
 	return analyzer.AnalyzeDuplication(
 		files,
@@ -123,6 +128,7 @@ func runDuplicationAnalysis(analyzer *analyzer.DuplicationAnalyzer, files map[st
 	)
 }
 
+// logDuplicationResults prints duplication analysis results if verbose mode is enabled.
 func logDuplicationResults(cfg *config.Config, metrics metrics.DuplicationMetrics) {
 	if !cfg.Output.Verbose {
 		return
@@ -163,6 +169,7 @@ func extractFilePaths(collectedMetrics *CollectedMetrics) []string {
 	return filePaths
 }
 
+// createEmptyNamingMetrics returns zero-initialized naming metrics with empty violation lists.
 func createEmptyNamingMetrics() metrics.NamingMetrics {
 	return metrics.NamingMetrics{
 		FileNameViolations:    0,
@@ -175,12 +182,14 @@ func createEmptyNamingMetrics() metrics.NamingMetrics {
 	}
 }
 
+// logNamingStart prints naming analysis progress if verbose mode is enabled.
 func logNamingStart(cfg *config.Config, fileCount int) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Running naming convention analysis on %d files...\n", fileCount)
 	}
 }
 
+// analyzeAllIdentifiers runs identifier analysis on all collected files and returns violations with count.
 func analyzeAllIdentifiers(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics) ([]metrics.IdentifierViolation, int) {
 	var identifierViolations []metrics.IdentifierViolation
 	totalIdentifiers := 0
@@ -192,6 +201,7 @@ func analyzeAllIdentifiers(analyzers *AnalyzerSet, collectedMetrics *CollectedMe
 	return identifierViolations, totalIdentifiers
 }
 
+// analyzeAllPackageNames extracts unique packages and analyzes package naming conventions.
 func analyzeAllPackageNames(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics) ([]metrics.PackageNameViolation, map[string]struct {
 	dirName  string
 	filePath string
@@ -206,6 +216,7 @@ func analyzeAllPackageNames(analyzers *AnalyzerSet, collectedMetrics *CollectedM
 	return packageNameViolations, uniquePackages
 }
 
+// collectUniquePackages builds a map of unique package names with their directory and file locations.
 func collectUniquePackages(collectedMetrics *CollectedMetrics) map[string]struct {
 	dirName  string
 	filePath string
@@ -229,6 +240,7 @@ func collectUniquePackages(collectedMetrics *CollectedMetrics) map[string]struct
 	return uniquePackages
 }
 
+// buildNamingMetrics combines all naming analysis results into a comprehensive metrics structure.
 func buildNamingMetrics(analyzers *AnalyzerSet, fileNameViolations []metrics.FileNameViolation,
 	identifierViolations []metrics.IdentifierViolation, packageNameViolations []metrics.PackageNameViolation,
 	fileCount, totalIdentifiers, packageCount int,
@@ -249,6 +261,7 @@ func buildNamingMetrics(analyzers *AnalyzerSet, fileNameViolations []metrics.Fil
 	}
 }
 
+// logNamingResults prints naming analysis summary if verbose mode is enabled.
 func logNamingResults(cfg *config.Config, naming metrics.NamingMetrics) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Found %d file, %d identifier, %d package naming violations (score: %.2f)\n",

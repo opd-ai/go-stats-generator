@@ -374,6 +374,7 @@ func (pa *PatternAnalyzer) isSyncOnce(expr ast.Expr) bool {
 	return ok && ident.Name == "sync" && sel.Sel.Name == "Once"
 }
 
+// isFactoryName checks if a function name follows factory method naming conventions.
 func (pa *PatternAnalyzer) isFactoryName(name string) bool {
 	prefixes := []string{"New", "Create", "Make", "Build"}
 	for _, prefix := range prefixes {
@@ -384,6 +385,7 @@ func (pa *PatternAnalyzer) isFactoryName(name string) bool {
 	return false
 }
 
+// isInterfaceReturn determines if an expression represents an interface type.
 func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr) bool {
 	if _, ok := expr.(*ast.InterfaceType); ok {
 		return true
@@ -394,6 +396,7 @@ func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr) bool {
 	return false
 }
 
+// hasTypeSwitch checks if a function body contains a type switch statement.
 func (pa *PatternAnalyzer) hasTypeSwitch(body *ast.BlockStmt) bool {
 	hasSwitch := false
 	ast.Inspect(body, func(n ast.Node) bool {
@@ -406,6 +409,7 @@ func (pa *PatternAnalyzer) hasTypeSwitch(body *ast.BlockStmt) bool {
 	return hasSwitch
 }
 
+// getReceiverTypeName extracts the type name from a method receiver field list.
 func (pa *PatternAnalyzer) getReceiverTypeName(recv *ast.FieldList) string {
 	if len(recv.List) == 0 {
 		return ""
@@ -421,6 +425,7 @@ func (pa *PatternAnalyzer) getReceiverTypeName(recv *ast.FieldList) string {
 	return ""
 }
 
+// returnsSelf checks if a method returns its receiver type for builder pattern detection.
 func (pa *PatternAnalyzer) returnsSelf(funcDecl *ast.FuncDecl, recvType string) bool {
 	if funcDecl.Type.Results == nil || len(funcDecl.Type.Results.List) == 0 {
 		return false
@@ -441,6 +446,7 @@ func (pa *PatternAnalyzer) returnsSelf(funcDecl *ast.FuncDecl, recvType string) 
 	return false
 }
 
+// hasCallbackParam checks if a function accepts a function parameter for strategy/callback patterns.
 func (pa *PatternAnalyzer) hasCallbackParam(funcDecl *ast.FuncDecl) bool {
 	if funcDecl.Type.Params == nil {
 		return false
@@ -461,6 +467,7 @@ func (pa *PatternAnalyzer) hasCallbackParam(funcDecl *ast.FuncDecl) bool {
 	return false
 }
 
+// isInterfaceField determines if a struct field is an interface type.
 func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field) bool {
 	if _, ok := field.Type.(*ast.InterfaceType); ok {
 		return true

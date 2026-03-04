@@ -211,6 +211,7 @@ func (fa *FunctionAnalyzer) countLinesInRange(file *token.File, startLine, endLi
 	}
 }
 
+// readFileLines loads and splits a file into lines for the specified line range.
 func (fa *FunctionAnalyzer) readFileLines(fileName string, startLine, endLine int) ([]string, bool) {
 	src, err := os.ReadFile(fileName)
 	if err != nil {
@@ -225,6 +226,7 @@ func (fa *FunctionAnalyzer) readFileLines(fileName string, startLine, endLine in
 	return lines, true
 }
 
+// classifyLines categorizes each line as code, comment, or blank within the given range.
 func (fa *FunctionAnalyzer) classifyLines(lines []string, startLine, endLine int) (codeLines, commentLines, blankLines int) {
 	inBlockComment := false
 

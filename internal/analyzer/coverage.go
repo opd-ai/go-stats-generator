@@ -111,6 +111,7 @@ func (a *TestCoverageAnalyzer) recordCoverage(file string, startLine, endLine, c
 	}
 }
 
+// parseLineNum extracts the line number from a coverage profile line specification.
 func parseLineNum(s string) (int, error) {
 	parts := strings.Split(s, ".")
 	return strconv.Atoi(parts[0])
@@ -135,6 +136,7 @@ func (a *TestCoverageAnalyzer) AnalyzeCorrelation(functions []metrics.FunctionMe
 	return result
 }
 
+// aggregateFunctionMetrics collects coverage statistics across all functions.
 func (a *TestCoverageAnalyzer) aggregateFunctionMetrics(functions []metrics.FunctionMetrics, result *metrics.TestCoverageMetrics) (totalFunctions, coveredFunctions int, totalComplexity, coveredComplexity float64) {
 	for _, fn := range functions {
 		coverage := a.calculateFunctionCoverage(fn)
@@ -152,6 +154,7 @@ func (a *TestCoverageAnalyzer) aggregateFunctionMetrics(functions []metrics.Func
 	return totalFunctions, coveredFunctions, totalComplexity, coveredComplexity
 }
 
+// collectHighRiskFunctions adds high-risk functions to the result based on complexity and coverage.
 func (a *TestCoverageAnalyzer) collectHighRiskFunctions(fn metrics.FunctionMetrics, coverage float64, result *metrics.TestCoverageMetrics) {
 	if a.isHighRisk(fn, coverage) {
 		result.HighRiskFunctions = append(result.HighRiskFunctions, metrics.HighRiskFunction{
@@ -165,6 +168,7 @@ func (a *TestCoverageAnalyzer) collectHighRiskFunctions(fn metrics.FunctionMetri
 	}
 }
 
+// collectCoverageGaps identifies exported functions with insufficient test coverage.
 func (a *TestCoverageAnalyzer) collectCoverageGaps(fn metrics.FunctionMetrics, coverage float64, result *metrics.TestCoverageMetrics) {
 	if a.isCoverageGap(fn, coverage) {
 		result.CoverageGaps = append(result.CoverageGaps, metrics.CoverageGap{
@@ -178,6 +182,7 @@ func (a *TestCoverageAnalyzer) collectCoverageGaps(fn metrics.FunctionMetrics, c
 	}
 }
 
+// calculateCoverageRate computes coverage percentage handling zero-division safely.
 func (a *TestCoverageAnalyzer) calculateCoverageRate(covered, total float64) float64 {
 	if total > 0 {
 		return covered / total
@@ -185,6 +190,7 @@ func (a *TestCoverageAnalyzer) calculateCoverageRate(covered, total float64) flo
 	return 0.0
 }
 
+// calculateFunctionCoverage computes line coverage percentage for a specific function.
 func (a *TestCoverageAnalyzer) calculateFunctionCoverage(fn metrics.FunctionMetrics) float64 {
 	file := fn.File
 	startLine := fn.Line
@@ -208,15 +214,18 @@ func (a *TestCoverageAnalyzer) calculateFunctionCoverage(fn metrics.FunctionMetr
 	return float64(covered) / float64(total)
 }
 
+// isHighRisk determines if a function poses risk based on complexity and coverage thresholds.
 func (a *TestCoverageAnalyzer) isHighRisk(fn metrics.FunctionMetrics, coverage float64) bool {
 	return (fn.Complexity.Cyclomatic > 5 && coverage < 0.5) ||
 		(fn.Complexity.Cyclomatic > 10 && coverage < 0.8)
 }
 
+// isCoverageGap returns true for exported functions with below-threshold coverage.
 func (a *TestCoverageAnalyzer) isCoverageGap(fn metrics.FunctionMetrics, coverage float64) bool {
 	return coverage < 0.7 && fn.IsExported
 }
 
+// calculateRiskScore computes a risk metric combining complexity, coverage, and size factors.
 func (a *TestCoverageAnalyzer) calculateRiskScore(fn metrics.FunctionMetrics, coverage float64) float64 {
 	score := float64(fn.Complexity.Cyclomatic) * (1.0 - coverage)
 	if fn.Lines.Total > 50 {
@@ -225,6 +234,7 @@ func (a *TestCoverageAnalyzer) calculateRiskScore(fn metrics.FunctionMetrics, co
 	return score
 }
 
+// gapSeverity categorizes coverage gaps as critical, high, medium, or low based on coverage and complexity.
 func (a *TestCoverageAnalyzer) gapSeverity(fn metrics.FunctionMetrics, coverage float64) string {
 	if coverage < 0.3 && fn.Complexity.Cyclomatic > 5 {
 		return "critical"
@@ -292,6 +302,7 @@ func analyzeTestFile(path, relPath string) metrics.TestFileInfo {
 	return info
 }
 
+// countTestMetrics scans test file lines to count tests, subtests, and assertions.
 func countTestMetrics(lines []string, info *metrics.TestFileInfo) {
 	for _, line := range lines {
 		if strings.Contains(line, "func Test") {
@@ -306,12 +317,14 @@ func countTestMetrics(lines []string, info *metrics.TestFileInfo) {
 	}
 }
 
+// calculateAssertionRatio computes the average number of assertions per test.
 func calculateAssertionRatio(info *metrics.TestFileInfo) {
 	if info.TestCount > 0 {
 		info.AssertionRatio = float64(info.AssertionCount) / float64(info.TestCount)
 	}
 }
 
+// containsAssertion checks if a line contains common testing assertion patterns.
 func containsAssertion(line string) bool {
 	assertions := []string{
 		"assert.", "require.", "t.Error", "t.Fatal",

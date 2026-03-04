@@ -31,6 +31,7 @@ func init() {
 	serveCmd.Flags().IntVarP(&serverPort, "port", "p", 8080, "API server port")
 }
 
+// runServe starts the API server on the configured port and handles the serve command execution.
 func runServe(cmd *cobra.Command, args []string) error {
 	version := rootCmd.Version
 	if version == "" {

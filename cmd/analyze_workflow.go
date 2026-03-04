@@ -49,12 +49,14 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	return report, nil
 }
 
+// logVerboseFileAnalysis prints file analysis progress if verbose mode is enabled.
 func logVerboseFileAnalysis(filePath string, cfg *config.Config) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Analyzing file: %s\n", filePath)
 	}
 }
 
+// parseAndPrepareFile parses a single file and creates its scanner result with metadata.
 func parseAndPrepareFile(filePath, projectRoot string, cfg *config.Config) (scanner.Result, *scanner.Discoverer, error) {
 	discoverer := scanner.NewDiscoverer(&cfg.Filters)
 
@@ -77,6 +79,7 @@ func parseAndPrepareFile(filePath, projectRoot string, cfg *config.Config) (scan
 	return result, discoverer, nil
 }
 
+// createFileInfoForSingleFile builds scanner file metadata from file system and AST information.
 func createFileInfoForSingleFile(filePath, projectRoot string, file *ast.File) (scanner.FileInfo, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
@@ -100,6 +103,7 @@ func createFileInfoForSingleFile(filePath, projectRoot string, file *ast.File) (
 	return scannerFileInfo, nil
 }
 
+// calculateRelativePath computes the relative path from project root, falling back to basename.
 func calculateRelativePath(filePath, projectRoot string) string {
 	if projectRoot != "" {
 		if rel, err := filepath.Rel(projectRoot, filePath); err == nil {
@@ -109,6 +113,7 @@ func calculateRelativePath(filePath, projectRoot string) string {
 	return filepath.Base(filePath)
 }
 
+// runSingleFileAnalysis orchestrates analysis for a single file and returns results with collected metrics.
 func runSingleFileAnalysis(result scanner.Result, discoverer *scanner.Discoverer, filePath string, startTime time.Time, cfg *config.Config) (*metrics.Report, *CollectedMetrics, *AnalyzerSet) {
 	analyzers := createAnalyzers(discoverer.GetFileSet(), cfg)
 	report := createInitialReport(filepath.Dir(filePath), startTime, 1)
@@ -120,6 +125,7 @@ func runSingleFileAnalysis(result scanner.Result, discoverer *scanner.Discoverer
 	return report, collectedMetrics, analyzers
 }
 
+// finalizeAllMetrics runs all post-processing steps to complete the analysis report.
 func finalizeAllMetrics(report *metrics.Report, collectedMetrics *CollectedMetrics, analyzers *AnalyzerSet, projectRoot string, cfg *config.Config) {
 	finalizeReport(report, collectedMetrics, analyzers.Package, cfg)
 	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)

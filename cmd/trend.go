@@ -757,6 +757,7 @@ func outputForecastsConsole(forecasts map[string]interface{}) {
 	fmt.Println()
 }
 
+// printForecastHeader outputs the forecast metadata including metric, entity, method, and data points.
 func printForecastHeader(forecasts map[string]interface{}) {
 	if metric := forecasts["metric"]; metric != nil && metric != "" {
 		fmt.Printf("Metric: %v\n", metric)
@@ -769,6 +770,7 @@ func printForecastHeader(forecasts map[string]interface{}) {
 	fmt.Println()
 }
 
+// printTrendStatistics displays the linear regression equation and R-squared value with reliability indicator.
 func printTrendStatistics(forecasts map[string]interface{}) {
 	trendStats, ok := forecasts["trend_statistics"].(map[string]interface{})
 	if !ok {
@@ -786,6 +788,7 @@ func printTrendStatistics(forecasts map[string]interface{}) {
 	fmt.Println()
 }
 
+// printReliabilityIndicator appends a visual indicator based on R-squared goodness of fit.
 func printReliabilityIndicator(r2 float64) {
 	if r2 >= 0.8 {
 		fmt.Print(" (excellent fit) ✓")
@@ -796,6 +799,7 @@ func printReliabilityIndicator(r2 float64) {
 	}
 }
 
+// printForecastValues outputs future forecast values with confidence intervals and warnings.
 func printForecastValues(forecasts map[string]interface{}) {
 	forecastsList, ok := forecasts["forecasts"].([]map[string]interface{})
 	if !ok {
@@ -823,6 +827,7 @@ func outputRegressionsConsole(regressions map[string]interface{}) {
 	fmt.Println()
 }
 
+// printRegressionHeader displays regression detection metadata including thresholds and snapshot counts.
 func printRegressionHeader(regressions map[string]interface{}) {
 	fmt.Printf("Threshold: %.1f%%\n", regressions["threshold"])
 	fmt.Printf("Historical snapshots: %v\n", regressions["historical_count"])
@@ -831,6 +836,7 @@ func printRegressionHeader(regressions map[string]interface{}) {
 	fmt.Println()
 }
 
+// printRegressionList outputs all detected regressions or a success message if none found.
 func printRegressionList(regressions map[string]interface{}) {
 	regList, ok := regressions["regressions"].([]map[string]interface{})
 	if !ok {
@@ -848,6 +854,7 @@ func printRegressionList(regressions map[string]interface{}) {
 	}
 }
 
+// printRegressionItem formats and displays a single regression entry with deviation and p-value.
 func printRegressionItem(index int, reg map[string]interface{}) {
 	indicator := getRegressionIndicator(reg["classification"])
 	fmt.Printf("%d. [%s] %s %s\n", index, reg["severity"], indicator, reg["metric"])
@@ -857,6 +864,7 @@ func printRegressionItem(index int, reg map[string]interface{}) {
 	fmt.Println()
 }
 
+// getRegressionIndicator returns a visual arrow indicator based on regression classification.
 func getRegressionIndicator(classification interface{}) string {
 	switch classification {
 	case "regression":

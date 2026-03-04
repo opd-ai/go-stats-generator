@@ -499,6 +499,7 @@ func groupGoroutinesByFile(goroutines []metrics.GoroutineInstance) map[string][]
 	return fileGoroutines
 }
 
+// detectWorkerPoolInFile identifies worker pool patterns based on goroutine, channel, and WaitGroup usage.
 func (ca *ConcurrencyAnalyzer) detectWorkerPoolInFile(file string, goroutines []metrics.GoroutineInstance, concurrency *metrics.ConcurrencyPatternMetrics) *metrics.PatternInstance {
 	if len(goroutines) < 1 {
 		return nil
@@ -512,6 +513,7 @@ func (ca *ConcurrencyAnalyzer) detectWorkerPoolInFile(file string, goroutines []
 	return nil
 }
 
+// countAnonymousGoroutines returns the number of anonymous goroutines in the provided list.
 func countAnonymousGoroutines(goroutines []metrics.GoroutineInstance) int {
 	count := 0
 	for _, g := range goroutines {
@@ -522,6 +524,7 @@ func countAnonymousGoroutines(goroutines []metrics.GoroutineInstance) int {
 	return count
 }
 
+// buildWorkerPoolPattern creates a pattern instance representing a detected worker pool.
 func (ca *ConcurrencyAnalyzer) buildWorkerPoolPattern(file string, goroutines []metrics.GoroutineInstance, hasChannels, hasWaitGroup bool) *metrics.PatternInstance {
 	confidence := ca.calculateWorkerPoolConfidence(goroutines, hasChannels, hasWaitGroup)
 	return &metrics.PatternInstance{

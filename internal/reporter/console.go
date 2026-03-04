@@ -79,6 +79,7 @@ type sectionWriter struct {
 	write       func(io.Writer, *metrics.Report)
 }
 
+// writeReportSections iterates through all configured sections and writes those that should be included.
 func (cr *ConsoleReporter) writeReportSections(report *metrics.Report, output io.Writer) {
 	sections := []sectionWriter{
 		{cr.shouldWriteOverview, cr.writeOverview},
@@ -102,55 +103,67 @@ func (cr *ConsoleReporter) writeReportSections(report *metrics.Report, output io
 	}
 }
 
+// shouldWriteOverview returns true if the overview section should be included in the report.
 func (cr *ConsoleReporter) shouldWriteOverview(report *metrics.Report) bool {
 	return cr.config.IncludeOverview
 }
 
+// shouldWriteFunctionAnalysis returns true if function details should be included.
 func (cr *ConsoleReporter) shouldWriteFunctionAnalysis(report *metrics.Report) bool {
 	return cr.config.IncludeDetails && len(report.Functions) > 0
 }
 
+// shouldWriteComplexityAnalysis returns true if complexity analysis should be included.
 func (cr *ConsoleReporter) shouldWriteComplexityAnalysis(report *metrics.Report) bool {
 	return cr.config.IncludeDetails
 }
 
+// shouldWritePackageAnalysis returns true if package metrics should be included.
 func (cr *ConsoleReporter) shouldWritePackageAnalysis(report *metrics.Report) bool {
 	return cr.config.IncludeDetails && len(report.Packages) > 0
 }
 
+// shouldWriteCircularDependencies returns true if circular dependency analysis should be included.
 func (cr *ConsoleReporter) shouldWriteCircularDependencies(report *metrics.Report) bool {
 	return cr.config.IncludeDetails && len(report.Packages) > 0
 }
 
+// shouldWriteDuplicationAnalysis returns true if duplication metrics should be included.
 func (cr *ConsoleReporter) shouldWriteDuplicationAnalysis(report *metrics.Report) bool {
 	return cr.config.IncludeDetails && report.Duplication.ClonePairs > 0
 }
 
+// shouldWriteNamingAnalysis returns true if naming violation analysis should be included.
 func (cr *ConsoleReporter) shouldWriteNamingAnalysis(report *metrics.Report) bool {
 	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
 	return cr.config.IncludeDetails && totalNamingViolations > 0
 }
 
+// shouldWritePlacementAnalysis returns true if placement issue analysis should be included.
 func (cr *ConsoleReporter) shouldWritePlacementAnalysis(report *metrics.Report) bool {
 	totalPlacementIssues := report.Placement.MisplacedFunctions + report.Placement.MisplacedMethods + report.Placement.LowCohesionFiles
 	return cr.config.IncludeDetails && totalPlacementIssues > 0
 }
 
+// shouldWriteDocumentationAnalysis returns true if documentation coverage and annotation metrics should be included.
 func (cr *ConsoleReporter) shouldWriteDocumentationAnalysis(report *metrics.Report) bool {
 	totalAnnotations := len(report.Documentation.TODOComments) + len(report.Documentation.FIXMEComments) + len(report.Documentation.HACKComments) + len(report.Documentation.BUGComments)
 	return cr.config.IncludeDetails && (report.Documentation.Coverage.Overall > 0 || totalAnnotations > 0)
 }
 
+// shouldWriteBurdenAnalysis returns true if code burden metrics should be included.
 func (cr *ConsoleReporter) shouldWriteBurdenAnalysis(report *metrics.Report) bool {
 	totalBurdenIssues := len(report.Burden.MagicNumbers) + len(report.Burden.DeadCode.UnreferencedFunctions) + len(report.Burden.DeadCode.UnreachableCode) + len(report.Burden.ComplexSignatures) + len(report.Burden.DeeplyNestedFunctions) + len(report.Burden.FeatureEnvyMethods)
 	return cr.config.IncludeDetails && totalBurdenIssues > 0
 }
 
+// shouldWriteOrganizationAnalysis returns true if code organization metrics should be included.
 func (cr *ConsoleReporter) shouldWriteOrganizationAnalysis(report *metrics.Report) bool {
 	totalOrgIssues := len(report.Organization.OversizedFiles) + len(report.Organization.OversizedPackages) + len(report.Organization.DeepDirectories) + len(report.Organization.HighFanInPackages) + len(report.Organization.HighFanOutPackages)
 	return cr.config.IncludeDetails && totalOrgIssues > 0
 }
 
+// shouldWriteRefactoringSuggestions returns true if refactoring suggestions should be included.
 func (cr *ConsoleReporter) shouldWriteRefactoringSuggestions(report *metrics.Report) bool {
 	return cr.config.IncludeDetails && len(report.Suggestions) > 0
 }
@@ -416,6 +429,7 @@ func (cr *ConsoleReporter) calculateFunctionStats(functions []metrics.FunctionMe
 	return stats
 }
 
+// updateLongestFunction updates the longest function record if current function exceeds previous maximum.
 func updateLongestFunction(stats *functionStats, fn metrics.FunctionMetrics) {
 	if fn.Lines.Total > stats.LongestLength {
 		stats.LongestLength = fn.Lines.Total
@@ -423,6 +437,7 @@ func updateLongestFunction(stats *functionStats, fn metrics.FunctionMetrics) {
 	}
 }
 
+// incrementLengthCounters updates long and very-long function counters based on line count thresholds.
 func incrementLengthCounters(stats *functionStats, lines int) {
 	if lines > 50 {
 		stats.LongFunctions++
@@ -432,6 +447,7 @@ func incrementLengthCounters(stats *functionStats, lines int) {
 	}
 }
 
+// incrementComplexityCounters updates high complexity function counter based on cyclomatic complexity threshold.
 func incrementComplexityCounters(stats *functionStats, complexity int) {
 	if complexity > 10 {
 		stats.HighComplexity++
@@ -485,6 +501,7 @@ func (cr *ConsoleReporter) writeDiffRegressions(output io.Writer, regressions []
 	}
 }
 
+// writeRegressionEntry formats and outputs a single regression with icon, details, and suggestion.
 func (cr *ConsoleReporter) writeRegressionEntry(output io.Writer, regression metrics.Regression) {
 	icon := cr.getSeverityIcon(regression.Severity)
 	fmt.Fprintf(output, "%s %s: %s\n", icon, regression.Type, regression.Location)
@@ -494,6 +511,7 @@ func (cr *ConsoleReporter) writeRegressionEntry(output io.Writer, regression met
 	fmt.Fprintln(output, "")
 }
 
+// getSeverityIcon returns an emoji icon corresponding to the regression severity level.
 func (cr *ConsoleReporter) getSeverityIcon(severity metrics.SeverityLevel) string {
 	switch severity {
 	case metrics.SeverityLevelCritical:
@@ -507,6 +525,7 @@ func (cr *ConsoleReporter) getSeverityIcon(severity metrics.SeverityLevel) strin
 	}
 }
 
+// writeRegressionFile outputs the file and line number information for a regression.
 func (cr *ConsoleReporter) writeRegressionFile(output io.Writer, regression metrics.Regression) {
 	if regression.File == "" {
 		return
@@ -518,6 +537,7 @@ func (cr *ConsoleReporter) writeRegressionFile(output io.Writer, regression metr
 	fmt.Fprintln(output, "")
 }
 
+// writeRegressionChange displays the old and new values with percentage change for a regression.
 func (cr *ConsoleReporter) writeRegressionChange(output io.Writer, regression metrics.Regression) {
 	fmt.Fprintf(output, "   Change: %v → %v", regression.OldValue, regression.NewValue)
 	if regression.Delta.Percentage > 0 {
@@ -526,6 +546,7 @@ func (cr *ConsoleReporter) writeRegressionChange(output io.Writer, regression me
 	fmt.Fprintln(output, "")
 }
 
+// writeRegressionSuggestion outputs the remediation suggestion if available.
 func (cr *ConsoleReporter) writeRegressionSuggestion(output io.Writer, regression metrics.Regression) {
 	if regression.Suggestion != "" {
 		fmt.Fprintf(output, "   Suggestion: %s\n", regression.Suggestion)
@@ -541,6 +562,7 @@ func (cr *ConsoleReporter) writeDiffImprovements(output io.Writer, improvements 
 	}
 }
 
+// writeImprovementEntry formats and outputs a single improvement with file, change details, and benefit.
 func writeImprovementEntry(output io.Writer, improvement metrics.Improvement) {
 	fmt.Fprintf(output, "✅ %s: %s\n", improvement.Type, improvement.Location)
 	writeImprovementFile(output, improvement)
@@ -549,6 +571,7 @@ func writeImprovementEntry(output io.Writer, improvement metrics.Improvement) {
 	fmt.Fprintln(output, "")
 }
 
+// writeImprovementFile outputs the file and line number for an improvement.
 func writeImprovementFile(output io.Writer, improvement metrics.Improvement) {
 	if improvement.File == "" {
 		return
@@ -560,6 +583,7 @@ func writeImprovementFile(output io.Writer, improvement metrics.Improvement) {
 	fmt.Fprintln(output, "")
 }
 
+// writeImprovementChange displays the old and new values with improvement percentage.
 func writeImprovementChange(output io.Writer, improvement metrics.Improvement) {
 	fmt.Fprintf(output, "   Change: %v → %v", improvement.OldValue, improvement.NewValue)
 	if improvement.Delta.Percentage > 0 {
@@ -568,6 +592,7 @@ func writeImprovementChange(output io.Writer, improvement metrics.Improvement) {
 	fmt.Fprintln(output, "")
 }
 
+// writeImprovementBenefit outputs the benefit description if available.
 func writeImprovementBenefit(output io.Writer, improvement metrics.Improvement) {
 	if improvement.Benefit != "" {
 		fmt.Fprintf(output, "   Benefit: %s\n", improvement.Benefit)
@@ -589,6 +614,7 @@ func (cr *ConsoleReporter) writeDiffChanges(output io.Writer, changes []metrics.
 	}
 }
 
+// groupChangesByCategory organizes metric changes into a map indexed by category.
 func groupChangesByCategory(changes []metrics.MetricChange) map[string][]metrics.MetricChange {
 	changesByCategory := make(map[string][]metrics.MetricChange)
 	for _, change := range changes {
@@ -597,6 +623,7 @@ func groupChangesByCategory(changes []metrics.MetricChange) map[string][]metrics
 	return changesByCategory
 }
 
+// writeCategoryChanges outputs all changes in a category with values and percentage changes.
 func writeCategoryChanges(output io.Writer, changes []metrics.MetricChange) {
 	for _, change := range changes {
 		fmt.Fprintf(output, "- %s: %v → %v", change.Name, change.OldValue, change.NewValue)
@@ -607,6 +634,7 @@ func writeCategoryChanges(output io.Writer, changes []metrics.MetricChange) {
 	}
 }
 
+// writeChangePercentage formats and outputs the percentage change with direction indicator.
 func writeChangePercentage(output io.Writer, delta metrics.Delta) {
 	direction := "+"
 	if delta.Direction == metrics.ChangeDirectionDecrease {
