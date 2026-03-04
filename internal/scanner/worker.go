@@ -49,29 +49,43 @@ func NewWorkerPool(cfg *config.PerformanceConfig, discoverer *Discoverer) *Worke
 // ProcessFiles processes a list of files concurrently
 func (wp *WorkerPool) ProcessFiles(ctx context.Context, files []FileInfo, progressCb ProgressCallback) (<-chan Result, error) {
 	if len(files) == 0 {
-		resultChan := make(chan Result)
-		close(resultChan)
-		return resultChan, nil
+		return wp.createEmptyChannel(), nil
 	}
 
-	// Create job channel
-	jobChan := make(chan FileInfo, len(files))
-	resultChan := make(chan Result, len(files))
+	jobChan, resultChan := wp.createChannels(len(files))
+	wg := wp.startWorkers(ctx, jobChan, resultChan)
+	wp.distributeJobs(ctx, jobChan, files)
+	wp.closeResultOnCompletion(wg, resultChan)
 
-	// Start workers
+	return wp.applyProgressTracking(ctx, resultChan, len(files), progressCb), nil
+}
+
+// createEmptyChannel returns a closed channel for empty file lists
+func (wp *WorkerPool) createEmptyChannel() <-chan Result {
+	resultChan := make(chan Result)
+	close(resultChan)
+	return resultChan
+}
+
+// createChannels creates job and result channels with appropriate buffer sizes
+func (wp *WorkerPool) createChannels(fileCount int) (chan FileInfo, chan Result) {
+	jobChan := make(chan FileInfo, fileCount)
+	resultChan := make(chan Result, fileCount)
+	return jobChan, resultChan
+}
+
+// startWorkers launches worker goroutines and returns the WaitGroup
+func (wp *WorkerPool) startWorkers(ctx context.Context, jobChan <-chan FileInfo, resultChan chan<- Result) *sync.WaitGroup {
 	var wg sync.WaitGroup
 	for i := 0; i < wp.workerCount; i++ {
 		wg.Add(1)
 		go wp.worker(ctx, &wg, jobChan, resultChan)
 	}
+	return &wg
+}
 
-	// Start progress tracker if callback provided and return tracked channel
-	var finalResultChan <-chan Result = resultChan
-	if progressCb != nil {
-		finalResultChan = wp.trackProgress(ctx, resultChan, len(files), progressCb)
-	}
-
-	// Send jobs
+// distributeJobs sends files to the job channel asynchronously
+func (wp *WorkerPool) distributeJobs(ctx context.Context, jobChan chan<- FileInfo, files []FileInfo) {
 	go func() {
 		defer close(jobChan)
 		for _, file := range files {
@@ -82,14 +96,22 @@ func (wp *WorkerPool) ProcessFiles(ctx context.Context, files []FileInfo, progre
 			}
 		}
 	}()
+}
 
-	// Close result channel when all workers finish
+// closeResultOnCompletion closes the result channel after all workers finish
+func (wp *WorkerPool) closeResultOnCompletion(wg *sync.WaitGroup, resultChan chan Result) {
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
+}
 
-	return finalResultChan, nil
+// applyProgressTracking wraps the result channel with progress tracking if callback provided
+func (wp *WorkerPool) applyProgressTracking(ctx context.Context, resultChan <-chan Result, fileCount int, progressCb ProgressCallback) <-chan Result {
+	if progressCb != nil {
+		return wp.trackProgress(ctx, resultChan, fileCount, progressCb)
+	}
+	return resultChan
 }
 
 // worker processes jobs from the job channel
