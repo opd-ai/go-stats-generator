@@ -123,9 +123,19 @@ func (a *TestCoverageAnalyzer) AnalyzeCorrelation(functions []metrics.FunctionMe
 		CoverageGaps:      []metrics.CoverageGap{},
 	}
 
-	var totalFunctions, coveredFunctions int
-	var totalComplexity, coveredComplexity float64
+	totalFunctions, coveredFunctions, totalComplexity, coveredComplexity := a.aggregateFunctionMetrics(functions, &result)
 
+	result.FunctionCoverageRate = a.calculateCoverageRate(float64(coveredFunctions), float64(totalFunctions))
+	result.ComplexityCoverageRate = a.calculateCoverageRate(coveredComplexity, totalComplexity)
+
+	sort.Slice(result.HighRiskFunctions, func(i, j int) bool {
+		return result.HighRiskFunctions[i].RiskScore > result.HighRiskFunctions[j].RiskScore
+	})
+
+	return result
+}
+
+func (a *TestCoverageAnalyzer) aggregateFunctionMetrics(functions []metrics.FunctionMetrics, result *metrics.TestCoverageMetrics) (totalFunctions, coveredFunctions int, totalComplexity, coveredComplexity float64) {
 	for _, fn := range functions {
 		coverage := a.calculateFunctionCoverage(fn)
 		totalFunctions++
@@ -136,41 +146,43 @@ func (a *TestCoverageAnalyzer) AnalyzeCorrelation(functions []metrics.FunctionMe
 			coveredComplexity += fn.Complexity.Overall
 		}
 
-		if a.isHighRisk(fn, coverage) {
-			result.HighRiskFunctions = append(result.HighRiskFunctions, metrics.HighRiskFunction{
-				Name:       fn.Name,
-				File:       fn.File,
-				Line:       fn.Line,
-				Complexity: fn.Complexity.Cyclomatic,
-				Coverage:   coverage,
-				RiskScore:  a.calculateRiskScore(fn, coverage),
-			})
-		}
-
-		if a.isCoverageGap(fn, coverage) {
-			result.CoverageGaps = append(result.CoverageGaps, metrics.CoverageGap{
-				Name:        fn.Name,
-				File:        fn.File,
-				Line:        fn.Line,
-				Complexity:  fn.Complexity.Cyclomatic,
-				Coverage:    coverage,
-				GapSeverity: a.gapSeverity(fn, coverage),
-			})
-		}
+		a.collectHighRiskFunctions(fn, coverage, result)
+		a.collectCoverageGaps(fn, coverage, result)
 	}
+	return totalFunctions, coveredFunctions, totalComplexity, coveredComplexity
+}
 
-	if totalFunctions > 0 {
-		result.FunctionCoverageRate = float64(coveredFunctions) / float64(totalFunctions)
+func (a *TestCoverageAnalyzer) collectHighRiskFunctions(fn metrics.FunctionMetrics, coverage float64, result *metrics.TestCoverageMetrics) {
+	if a.isHighRisk(fn, coverage) {
+		result.HighRiskFunctions = append(result.HighRiskFunctions, metrics.HighRiskFunction{
+			Name:       fn.Name,
+			File:       fn.File,
+			Line:       fn.Line,
+			Complexity: fn.Complexity.Cyclomatic,
+			Coverage:   coverage,
+			RiskScore:  a.calculateRiskScore(fn, coverage),
+		})
 	}
-	if totalComplexity > 0 {
-		result.ComplexityCoverageRate = coveredComplexity / totalComplexity
+}
+
+func (a *TestCoverageAnalyzer) collectCoverageGaps(fn metrics.FunctionMetrics, coverage float64, result *metrics.TestCoverageMetrics) {
+	if a.isCoverageGap(fn, coverage) {
+		result.CoverageGaps = append(result.CoverageGaps, metrics.CoverageGap{
+			Name:        fn.Name,
+			File:        fn.File,
+			Line:        fn.Line,
+			Complexity:  fn.Complexity.Cyclomatic,
+			Coverage:    coverage,
+			GapSeverity: a.gapSeverity(fn, coverage),
+		})
 	}
+}
 
-	sort.Slice(result.HighRiskFunctions, func(i, j int) bool {
-		return result.HighRiskFunctions[i].RiskScore > result.HighRiskFunctions[j].RiskScore
-	})
-
-	return result
+func (a *TestCoverageAnalyzer) calculateCoverageRate(covered, total float64) float64 {
+	if total > 0 {
+		return covered / total
+	}
+	return 0.0
 }
 
 func (a *TestCoverageAnalyzer) calculateFunctionCoverage(fn metrics.FunctionMetrics) float64 {
