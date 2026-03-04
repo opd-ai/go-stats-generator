@@ -75,11 +75,12 @@
    - **Metric Justification**: Complexity 16.6; 56 lines; function nesting analysis
    - **Result**: Reduced complexity from 16.6 to 4.4 (73.5% improvement); lines reduced from 56 to 21 (62.5% reduction); extracted 9 helper functions (walkIfStmtNesting, walkForStmtNesting, walkRangeStmtNesting, walkSwitchStmtNesting, walkTypeSwitchStmtNesting, walkSelectStmtNesting, walkBlockStmtNesting, walkDefaultNodeNesting, updateMaxNestingDepth); all new functions ≤7 lines and complexity ≤3.1; primary function walkForNestingDepth at 4.4 complexity (well under 10.0 threshold)
 
-9. **Refactor `detectSingleton` — complexity 16.0 → target ≤10.0**
+9. **[COMPLETED] Refactor `detectSingleton` — complexity 16.0 → 6.2 ✓**
    - **File**: `internal/analyzer/pattern.go`
    - **Deliverable**: Extract singleton detection heuristics into named helper functions
    - **Dependencies**: None
    - **Metric Justification**: Complexity 16.0; 37 lines; design pattern detection
+   - **Result**: Reduced complexity from 16.0 to 6.2 (61.3% improvement); lines reduced from 41 to 16 (61.0% reduction); extracted 5 helper functions (inspectVarDeclForSyncOnce, checkValueSpecForSyncOnce, hasSyncOnceType, hasSyncOnceValue, addSingletonPattern); all functions ≤10 lines and complexity ≤6.2
 
 10. **Refactor `findCommentOutsideStrings` — complexity 15.8 → target ≤10.0**
     - **File**: `internal/analyzer/function.go`

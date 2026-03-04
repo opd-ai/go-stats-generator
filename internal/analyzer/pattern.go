@@ -44,42 +44,70 @@ func (pa *PatternAnalyzer) detectSingleton(file *ast.File, filePath string, patt
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		if genDecl, ok := n.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
-			for _, spec := range genDecl.Specs {
-				valueSpec, ok := spec.(*ast.ValueSpec)
-				if !ok {
-					continue
-				}
-
-				for i, name := range valueSpec.Names {
-					if valueSpec.Type != nil && pa.isSyncOnce(valueSpec.Type) {
-						hasSyncOnce = true
-						onceLine = pa.fset.Position(name.Pos()).Line
-					}
-
-					if i < len(valueSpec.Values) {
-						if compLit, ok := valueSpec.Values[i].(*ast.CompositeLit); ok {
-							if pa.isSyncOnce(compLit.Type) {
-								hasSyncOnce = true
-								onceLine = pa.fset.Position(name.Pos()).Line
-							}
-						}
-					}
-				}
+			if found, line := pa.inspectVarDeclForSyncOnce(genDecl); found {
+				hasSyncOnce = true
+				onceLine = line
 			}
 		}
 		return true
 	})
 
 	if hasSyncOnce {
-		patterns.Singleton = append(patterns.Singleton, metrics.PatternInstance{
-			Name:            "Singleton (sync.Once)",
-			File:            filePath,
-			Line:            onceLine,
-			ConfidenceScore: 0.95,
-			Description:     "Thread-safe singleton using sync.Once",
-			Example:         "sync.Once variable for singleton initialization",
-		})
+		pa.addSingletonPattern(patterns, filePath, onceLine)
 	}
+}
+
+// inspectVarDeclForSyncOnce checks if a variable declaration contains sync.Once
+func (pa *PatternAnalyzer) inspectVarDeclForSyncOnce(genDecl *ast.GenDecl) (bool, int) {
+	for _, spec := range genDecl.Specs {
+		valueSpec, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			continue
+		}
+		if found, line := pa.checkValueSpecForSyncOnce(valueSpec); found {
+			return true, line
+		}
+	}
+	return false, 0
+}
+
+// checkValueSpecForSyncOnce checks if a ValueSpec contains sync.Once
+func (pa *PatternAnalyzer) checkValueSpecForSyncOnce(valueSpec *ast.ValueSpec) (bool, int) {
+	for i, name := range valueSpec.Names {
+		if pa.hasSyncOnceType(valueSpec.Type) {
+			return true, pa.fset.Position(name.Pos()).Line
+		}
+		if pa.hasSyncOnceValue(valueSpec, i) {
+			return true, pa.fset.Position(name.Pos()).Line
+		}
+	}
+	return false, 0
+}
+
+// hasSyncOnceType checks if the type is sync.Once
+func (pa *PatternAnalyzer) hasSyncOnceType(typeExpr ast.Expr) bool {
+	return typeExpr != nil && pa.isSyncOnce(typeExpr)
+}
+
+// hasSyncOnceValue checks if the value at index i is a sync.Once composite literal
+func (pa *PatternAnalyzer) hasSyncOnceValue(valueSpec *ast.ValueSpec, i int) bool {
+	if i >= len(valueSpec.Values) {
+		return false
+	}
+	compLit, ok := valueSpec.Values[i].(*ast.CompositeLit)
+	return ok && pa.isSyncOnce(compLit.Type)
+}
+
+// addSingletonPattern appends a singleton pattern instance to the metrics
+func (pa *PatternAnalyzer) addSingletonPattern(patterns *metrics.DesignPatternMetrics, filePath string, line int) {
+	patterns.Singleton = append(patterns.Singleton, metrics.PatternInstance{
+		Name:            "Singleton (sync.Once)",
+		File:            filePath,
+		Line:            line,
+		ConfidenceScore: 0.95,
+		Description:     "Thread-safe singleton using sync.Once",
+		Example:         "sync.Once variable for singleton initialization",
+	})
 }
 
 // detectFactory identifies factory patterns via New* constructors
