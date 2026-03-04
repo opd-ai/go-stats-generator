@@ -128,26 +128,34 @@ func generateJSONOutput(report *metrics.Report) (string, error) {
 // buildConfig creates a Config from browser input
 func buildConfig(input *ConfigInput) *config.Config {
 	cfg := config.DefaultConfig()
-
 	if input != nil {
-		if input.MaxFunctionLength > 0 {
-			cfg.Analysis.MaxFunctionLength = input.MaxFunctionLength
-		}
-		if input.MaxCyclomaticComplexity > 0 {
-			cfg.Analysis.MaxCyclomaticComplexity = input.MaxCyclomaticComplexity
-		}
-		if input.MinDocumentationCoverage > 0 {
-			cfg.Analysis.MinDocumentationCoverage = input.MinDocumentationCoverage
-		}
-		if input.MinPackageDocCoverage > 0 {
-			cfg.Analysis.MinPackageDocCoverage = input.MinPackageDocCoverage
-		}
-		if input.SkipTestFiles {
-			cfg.Filters.SkipTestFiles = true
-		}
+		applyAnalysisSettings(cfg, input)
+		applyFilterSettings(cfg, input)
 	}
-
 	return cfg
+}
+
+// applyAnalysisSettings applies analysis configuration from input.
+func applyAnalysisSettings(cfg *config.Config, input *ConfigInput) {
+	if input.MaxFunctionLength > 0 {
+		cfg.Analysis.MaxFunctionLength = input.MaxFunctionLength
+	}
+	if input.MaxCyclomaticComplexity > 0 {
+		cfg.Analysis.MaxCyclomaticComplexity = input.MaxCyclomaticComplexity
+	}
+	if input.MinDocumentationCoverage > 0 {
+		cfg.Analysis.MinDocumentationCoverage = input.MinDocumentationCoverage
+	}
+	if input.MinPackageDocCoverage > 0 {
+		cfg.Analysis.MinPackageDocCoverage = input.MinPackageDocCoverage
+	}
+}
+
+// applyFilterSettings applies filter configuration from input.
+func applyFilterSettings(cfg *config.Config, input *ConfigInput) {
+	if input.SkipTestFiles {
+		cfg.Filters.SkipTestFiles = true
+	}
 }
 
 // analyzeFilesFromMemory performs analysis on in-memory files (WASM path)

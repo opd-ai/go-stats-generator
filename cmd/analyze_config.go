@@ -102,21 +102,29 @@ func loadAnalysisConfiguration(cfg *config.Config) {
 
 // loadBasicAnalysisSettings loads core analysis toggles from viper
 func loadBasicAnalysisSettings(cfg *config.Config) {
-	if viper.IsSet("analysis.include_patterns") {
-		cfg.Analysis.IncludePatterns = viper.GetBool("analysis.include_patterns")
+	loadBooleanAnalysisSettings(cfg)
+	loadStringAnalysisSettings(cfg)
+}
+
+// loadBooleanAnalysisSettings loads boolean analysis toggles.
+func loadBooleanAnalysisSettings(cfg *config.Config) {
+	boolSettings := map[string]*bool{
+		"analysis.include_patterns":      &cfg.Analysis.IncludePatterns,
+		"analysis.include_complexity":    &cfg.Analysis.IncludeComplexity,
+		"analysis.include_documentation": &cfg.Analysis.IncludeDocumentation,
+		"analysis.include_generics":      &cfg.Analysis.IncludeGenerics,
+		"analysis.enable_team_metrics":   &cfg.Analysis.EnableTeamMetrics,
 	}
-	if viper.IsSet("analysis.include_complexity") {
-		cfg.Analysis.IncludeComplexity = viper.GetBool("analysis.include_complexity")
+
+	for key, target := range boolSettings {
+		if viper.IsSet(key) {
+			*target = viper.GetBool(key)
+		}
 	}
-	if viper.IsSet("analysis.include_documentation") {
-		cfg.Analysis.IncludeDocumentation = viper.GetBool("analysis.include_documentation")
-	}
-	if viper.IsSet("analysis.include_generics") {
-		cfg.Analysis.IncludeGenerics = viper.GetBool("analysis.include_generics")
-	}
-	if viper.IsSet("analysis.enable_team_metrics") {
-		cfg.Analysis.EnableTeamMetrics = viper.GetBool("analysis.enable_team_metrics")
-	}
+}
+
+// loadStringAnalysisSettings loads string analysis settings.
+func loadStringAnalysisSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.coverage_profile") {
 		cfg.Analysis.CoverageProfile = viper.GetString("analysis.coverage_profile")
 	}

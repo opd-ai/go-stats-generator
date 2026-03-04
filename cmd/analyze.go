@@ -415,29 +415,41 @@ func checkQualityGates(report *metrics.Report, cfg *config.Config) error {
 
 // countUndocumentedExports counts exported symbols without documentation
 func countUndocumentedExports(report *metrics.Report) int {
-	count := 0
+	return countUndocumentedFunctions(report) +
+		countUndocumentedStructs(report) +
+		countUndocumentedInterfaces(report)
+}
 
-	// Count undocumented exported functions
+// countUndocumentedFunctions counts exported functions without documentation.
+func countUndocumentedFunctions(report *metrics.Report) int {
+	count := 0
 	for _, fn := range report.Functions {
 		if fn.IsExported && !fn.Documentation.HasComment {
 			count++
 		}
 	}
+	return count
+}
 
-	// Count undocumented exported structs
+// countUndocumentedStructs counts exported structs without documentation.
+func countUndocumentedStructs(report *metrics.Report) int {
+	count := 0
 	for _, st := range report.Structs {
 		if st.IsExported && !st.Documentation.HasComment {
 			count++
 		}
 	}
+	return count
+}
 
-	// Count undocumented exported interfaces
+// countUndocumentedInterfaces counts exported interfaces without documentation.
+func countUndocumentedInterfaces(report *metrics.Report) int {
+	count := 0
 	for _, iface := range report.Interfaces {
 		if iface.IsExported && !iface.Documentation.HasComment {
 			count++
 		}
 	}
-
 	return count
 }
 

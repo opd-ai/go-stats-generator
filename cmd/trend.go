@@ -573,28 +573,7 @@ func buildTimeSeriesFromSnapshots(snapshots []storage.SnapshotInfo, metricName s
 	}
 
 	for _, snap := range snapshots {
-		var value *float64
-
-		switch metricName {
-		case "mbi_score":
-			value = snap.MBIScoreAvg
-		case "duplication_ratio":
-			value = snap.DuplicationRatio
-		case "doc_coverage":
-			value = snap.DocCoverage
-		case "complexity_violations":
-			if snap.ComplexityViolations != nil {
-				floatVal := float64(*snap.ComplexityViolations)
-				value = &floatVal
-			}
-		case "naming_violations":
-			if snap.NamingViolations != nil {
-				floatVal := float64(*snap.NamingViolations)
-				value = &floatVal
-			}
-		}
-
-		if value != nil {
+		if value := extractMetricValue(snap, metricName); value != nil {
 			series.DataPoints = append(series.DataPoints, metrics.TimeSeriesPoint{
 				Timestamp: snap.Timestamp,
 				Value:     *value,
@@ -603,6 +582,32 @@ func buildTimeSeriesFromSnapshots(snapshots []storage.SnapshotInfo, metricName s
 	}
 
 	return series
+}
+
+// extractMetricValue extracts the specific metric value from a snapshot.
+func extractMetricValue(snap storage.SnapshotInfo, metricName string) *float64 {
+	switch metricName {
+	case "mbi_score":
+		return snap.MBIScoreAvg
+	case "duplication_ratio":
+		return snap.DuplicationRatio
+	case "doc_coverage":
+		return snap.DocCoverage
+	case "complexity_violations":
+		return convertIntToFloat(snap.ComplexityViolations)
+	case "naming_violations":
+		return convertIntToFloat(snap.NamingViolations)
+	}
+	return nil
+}
+
+// convertIntToFloat converts an int pointer to a float64 pointer.
+func convertIntToFloat(intVal *int) *float64 {
+	if intVal == nil {
+		return nil
+	}
+	floatVal := float64(*intVal)
+	return &floatVal
 }
 
 // getTrendDirection returns trend direction indicator based on delta

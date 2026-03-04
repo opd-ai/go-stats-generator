@@ -409,46 +409,70 @@ func (nopCloser) Close() error { return nil }
 func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 	baselineID := args[0]
 
-	// Initialize storage
 	storageBackend, err := initializeStorageBackend()
 	if err != nil {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
 	defer storageBackend.Close()
 
-	// Delete the snapshot
+	if err := deleteSnapshot(storageBackend, baselineID); err != nil {
+		return err
+	}
+
+	return outputDeleteSuccess(baselineID)
+}
+
+// deleteSnapshot removes a baseline snapshot from storage.
+func deleteSnapshot(storageBackend storage.MetricsStorage, baselineID string) error {
 	ctx := context.Background()
-	err = storageBackend.Delete(ctx, baselineID)
-	if err != nil {
+	if err := storageBackend.Delete(ctx, baselineID); err != nil {
 		return fmt.Errorf("failed to delete baseline snapshot: %w", err)
 	}
+	return nil
+}
 
+// outputDeleteSuccess writes success message for baseline deletion.
+func outputDeleteSuccess(baselineID string) error {
 	if outputFormat == "console" {
 		fmt.Printf("✓ Baseline snapshot '%s' deleted successfully\n", baselineID)
-	} else {
-		// JSON output
-		output := map[string]interface{}{
-			"status":     "success",
-			"message":    "Baseline snapshot deleted",
-			"baselineId": baselineID,
-		}
-
-		outputWriter := os.Stdout
-		if outputFile != "" {
-			file, err := os.Create(outputFile)
-			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
-			}
-			defer file.Close()
-			outputWriter = file
-		}
-
-		encoder := json.NewEncoder(outputWriter)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(output)
+		return nil
 	}
 
-	return nil
+	return writeDeleteJSON(baselineID)
+}
+
+// writeDeleteJSON writes JSON output for successful deletion.
+func writeDeleteJSON(baselineID string) error {
+	output := map[string]interface{}{
+		"status":     "success",
+		"message":    "Baseline snapshot deleted",
+		"baselineId": baselineID,
+	}
+
+	outputWriter, err := getOutputWriter()
+	if err != nil {
+		return err
+	}
+	if outputWriter != os.Stdout {
+		defer outputWriter.Close()
+	}
+
+	encoder := json.NewEncoder(outputWriter)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(output)
+}
+
+// getOutputWriter returns the appropriate output writer.
+func getOutputWriter() (*os.File, error) {
+	if outputFile == "" {
+		return os.Stdout, nil
+	}
+
+	file, err := os.Create(outputFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create output file: %w", err)
+	}
+	return file, nil
 }
 
 // Helper functions

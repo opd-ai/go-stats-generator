@@ -68,22 +68,36 @@ func init() {
 // performs differential analysis, applies change threshold filtering if requested,
 // and outputs the diff results in the specified format (console/JSON/CSV/Markdown).
 func runDiff(cmd *cobra.Command, args []string) error {
-	baselineFile := args[0]
-	comparisonFile := args[1]
+	baseline, comparison, err := loadBothReports(args[0], args[1])
+	if err != nil {
+		return err
+	}
 
-	// Load baseline report
+	diffReport, err := generateDiffReport(baseline, comparison)
+	if err != nil {
+		return err
+	}
+
+	return writeDiffOutput(diffReport)
+}
+
+// loadBothReports loads baseline and comparison reports.
+func loadBothReports(baselineFile, comparisonFile string) (*metrics.Report, *metrics.Report, error) {
 	baseline, err := loadReport(baselineFile)
 	if err != nil {
-		return fmt.Errorf("failed to load baseline report: %w", err)
+		return nil, nil, fmt.Errorf("failed to load baseline report: %w", err)
 	}
 
-	// Load comparison report
 	comparison, err := loadReport(comparisonFile)
 	if err != nil {
-		return fmt.Errorf("failed to load comparison report: %w", err)
+		return nil, nil, fmt.Errorf("failed to load comparison report: %w", err)
 	}
 
-	// Create snapshots from reports
+	return baseline, comparison, nil
+}
+
+// generateDiffReport creates snapshots and generates diff.
+func generateDiffReport(baseline, comparison *metrics.Report) (*metrics.ComplexityDiff, error) {
 	baselineSnapshot := metrics.MetricsSnapshot{
 		ID:       "baseline",
 		Report:   *baseline,
@@ -96,32 +110,47 @@ func runDiff(cmd *cobra.Command, args []string) error {
 		Metadata: metrics.SnapshotMetadata{Timestamp: comparison.Metadata.GeneratedAt},
 	}
 
-	// Use default configuration with custom threshold
 	config := metrics.DefaultThresholdConfig()
 	config.Global.SignificanceLevel = thresholdPercent
 
-	// Generate diff
 	diffReport, err := metrics.CompareSnapshots(baselineSnapshot, comparisonSnapshot, config)
 	if err != nil {
-		return fmt.Errorf("failed to generate diff: %w", err)
+		return nil, fmt.Errorf("failed to generate diff: %w", err)
 	}
 
-	// Create reporter and output results
+	return diffReport, nil
+}
+
+// writeDiffOutput creates reporter and writes diff to output.
+func writeDiffOutput(diffReport *metrics.ComplexityDiff) error {
 	rep, err := reporter.NewReporter(diffOutputFormat)
 	if err != nil {
 		return fmt.Errorf("failed to create reporter: %w", err)
 	}
 
-	var output *os.File = os.Stdout
-	if diffOutputFile != "" {
-		output, err = os.Create(diffOutputFile)
-		if err != nil {
-			return fmt.Errorf("failed to create output file: %w", err)
-		}
+	output, err := openOutputFile(diffOutputFile)
+	if err != nil {
+		return err
+	}
+	if output != os.Stdout {
 		defer output.Close()
 	}
 
 	return rep.WriteDiff(output, diffReport)
+}
+
+// openOutputFile opens output file or returns stdout.
+func openOutputFile(filename string) (*os.File, error) {
+	if filename == "" {
+		return os.Stdout, nil
+	}
+
+	output, err := os.Create(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create output file: %w", err)
+	}
+
+	return output, nil
 }
 
 // loadReport reads and parses a metrics report from a JSON file.

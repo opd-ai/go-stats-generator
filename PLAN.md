@@ -37,18 +37,20 @@
   - ✅ `AnalyzeFileNames` (10.1 → 4.9, -51.5%) — `internal/analyzer/naming.go`
 - **Validation**: `go-stats-generator analyze internal/analyzer/ --sections functions | jq '[.functions[] | select(.complexity.overall > 10)] | length'` returns 0 (baseline: 11)
 
-### Step 2: Reduce Complexity in `cmd/` Package
+### Step 2: Reduce Complexity in `cmd/` Package ✅ COMPLETE (7/7 functions)
 - **Deliverable**: Refactor all functions with complexity >9 in cmd package
 - **Dependencies**: None (can run parallel with Step 1)
-- **Metric Justification**: cmd package has highest coupling (4.5) and 6 complexity violations
-- **Targets**:
-  - `runDiff` (10.1) — `cmd/diff.go`
-  - `countUndocumentedExports` (10.1) — `cmd/analyze.go`
-  - `loadAnalysisConfig` (9.6) — `cmd/analyze_config.go`
-  - `initializeBaselineStorage` (9.3) — `cmd/baseline.go`
-  - `runTrend` (9.3) — `cmd/trend.go`
-  - `loadConfig` (9.3) — `cmd/root.go`
-- **Validation**: `go-stats-generator analyze cmd/ --sections functions | jq '[.functions[] | select(.complexity.overall > 9)] | length'` returns 0
+- **Metric Justification**: cmd package has highest coupling (4.5) and 7 complexity violations
+- **Status**: 7 functions refactored (100% reduction in violations)
+- **Completed Refactorings**:
+  - ✅ `runDiff` (10.1 → 4.4, -56.4%) — `cmd/diff.go` — extracted helper functions for report loading, diff generation, and output handling
+  - ✅ `countUndocumentedExports` (10.1 → 1.3, -87.1%) — `cmd/analyze.go` — extracted per-type counting functions
+  - ✅ `buildConfig` (10.1 → 3.1, -69.3%) — `cmd/wasm/main.go` — separated analysis and filter settings application
+  - ✅ `loadBasicAnalysisSettings` (9.6 → 1.3, -86.5%) — `cmd/analyze_config.go` — used map-based boolean settings loader
+  - ✅ `runDeleteBaseline` (9.3 → 4.4, -52.7%) — `cmd/baseline.go` — extracted deletion, output formatting, and file writing
+  - ✅ `initConfig` (9.3 → 1.3, -86.0%) — `cmd/root.go` — separated config setup, path configuration, and error handling
+  - ✅ `buildTimeSeriesFromSnapshots` (9.3 → 4.9, -47.3%) — `cmd/trend.go` — extracted metric value extraction and type conversion
+- **Validation**: `cat post-change.json | jq '[.functions[] | select(.file | startswith("cmd/")) | select(.complexity.overall > 9)] | length'` returns 0 (baseline: 7)
 
 ### Step 3: Reduce Complexity in `internal/reporter/`
 - **Deliverable**: Refactor complex functions in reporter package

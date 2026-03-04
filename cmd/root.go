@@ -63,38 +63,50 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+	setupConfigFile()
+	viper.AutomaticEnv()
+	handleConfigLoad()
+}
 
-		// Search config in home directory with name ".go-stats-generator" (without extension).
-		viper.AddConfigPath(home)
-		viper.AddConfigPath(".")
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".go-stats-generator")
+// setupConfigFile configures viper to use the correct config file.
+func setupConfigFile() {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+		return
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	setupDefaultConfigPaths()
+}
 
-	// If a config file is found, read it in.
+// setupDefaultConfigPaths sets up default config search paths.
+func setupDefaultConfigPaths() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+
+	viper.AddConfigPath(home)
+	viper.AddConfigPath(".")
+	viper.SetConfigType("yaml")
+	viper.SetConfigName(".go-stats-generator")
+}
+
+// handleConfigLoad reads config and handles errors appropriately.
+func handleConfigLoad() {
 	if err := viper.ReadInConfig(); err == nil {
 		if verbose {
 			fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 		}
+		return
 	} else {
-		// Check if a config file was explicitly provided or exists but failed to load
-		if cfgFile != "" {
-			// Explicit config file provided but failed to load
-			fmt.Fprintf(os.Stderr, "Warning: Failed to load config file '%s': %v\n", cfgFile, err)
-		} else if _, configNotFoundErr := err.(viper.ConfigFileNotFoundError); !configNotFoundErr {
-			// Config file exists but has errors (YAML syntax, permissions, etc.)
-			fmt.Fprintf(os.Stderr, "Warning: Config file found but failed to load: %v\n", err)
-			fmt.Fprintln(os.Stderr, "Proceeding with default configuration and command-line flags.")
-		}
-		// If config file simply doesn't exist, proceed silently with defaults
+		handleConfigError(err)
+	}
+}
+
+// handleConfigError processes config file load errors.
+func handleConfigError(err error) {
+	if cfgFile != "" {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to load config file '%s': %v\n", cfgFile, err)
+	} else if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		fmt.Fprintf(os.Stderr, "Warning: Config file found but failed to load: %v\n", err)
+		fmt.Fprintln(os.Stderr, "Proceeding with default configuration and command-line flags.")
 	}
 }
