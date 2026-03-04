@@ -82,7 +82,9 @@ class GitHubFetcher {
           'Consider providing a personal access token.'
         );
       }
-      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+      const err = new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+      err.status = response.status;
+      throw err;
     }
 
     return response;
@@ -126,6 +128,7 @@ class GitHubFetcher {
 
   /**
    * Try to resolve a ref as a branch name.
+   * Only swallows "not found" errors; rethrows rate-limit, abort, etc.
    * @returns {Promise<string|null>} Tree SHA or null.
    */
   async tryResolveBranch(owner, repo, ref) {
@@ -133,14 +136,16 @@ class GitHubFetcher {
       const response = await this.request(`/repos/${owner}/${repo}/git/ref/heads/${ref}`);
       const data = await response.json();
       return this.commitToTreeSHA(owner, repo, data.object.sha);
-    } catch {
-      return null;
+    } catch (error) {
+      if (this.isNotFoundError(error)) return null;
+      throw error;
     }
   }
 
   /**
    * Try to resolve a ref as a tag name, handling both lightweight and
    * annotated tags.
+   * Only swallows "not found" errors; rethrows rate-limit, abort, etc.
    * @returns {Promise<string|null>} Tree SHA or null.
    */
   async tryResolveTag(owner, repo, ref) {
@@ -158,21 +163,33 @@ class GitHubFetcher {
       }
 
       return this.commitToTreeSHA(owner, repo, commitSHA);
-    } catch {
-      return null;
+    } catch (error) {
+      if (this.isNotFoundError(error)) return null;
+      throw error;
     }
   }
 
   /**
    * Try to resolve a ref as a raw commit SHA.
+   * Only swallows "not found" errors; rethrows rate-limit, abort, etc.
    * @returns {Promise<string|null>} Tree SHA or null.
    */
   async tryResolveCommit(owner, repo, ref) {
     try {
       return this.commitToTreeSHA(owner, repo, ref);
-    } catch {
-      return null;
+    } catch (error) {
+      if (this.isNotFoundError(error)) return null;
+      throw error;
     }
+  }
+
+  /**
+   * Check whether an error represents a "not found" API response (404 or 422).
+   * @param {Error} error
+   * @returns {boolean}
+   */
+  isNotFoundError(error) {
+    return error && (error.status === 404 || error.status === 422);
   }
 
   /**
@@ -361,6 +378,10 @@ class GitHubFetcher {
             const content = await this.fetchBlob(owner, repo, file.sha);
             return { path: file.path, content };
           } catch (error) {
+            // Propagate cancellation so the caller can abort cleanly.
+            if (error && error.name === 'AbortError') throw error;
+            // Propagate fatal HTTP errors (rate-limit, server errors).
+            if (error && typeof error.status === 'number' && error.status !== 404) throw error;
             console.error(`Failed to fetch ${file.path}:`, error);
             return null;
           }
@@ -434,11 +455,13 @@ class GitHubFetcher {
 
   /**
    * Abort any in-flight fetch requests started by {@link fetchRepository}.
+   * The controller reference is kept (already aborted) so that any
+   * subsequent requests within the same cycle also receive the aborted
+   * signal.  Cleanup happens in the {@link fetchRepository} finally block.
    */
   abort() {
     if (this.abortController) {
       this.abortController.abort();
-      this.abortController = null;
     }
   }
 

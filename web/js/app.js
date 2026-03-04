@@ -187,14 +187,16 @@ class App {
     }
   }
 
-  /** Cancel in-flight fetch requests and reset the UI. */
+  /**
+   * Cancel in-flight fetch requests.  The abort signal causes
+   * {@link handleAnalyze} to reject with an AbortError, and its
+   * finally block resets `isAnalyzing` and re-enables the button.
+   */
   handleCancel() {
     if (this.fetcher) {
       this.fetcher.abort();
     }
     UI.hide('progress-area');
-    this.isAnalyzing = false;
-    UI.setAnalyzeButtonState(true);
   }
 
   // ---------------------------------------------------------------------------

@@ -34,7 +34,11 @@ class WASMLoader {
     this.instance = await this.instantiate(wasmPath);
 
     // Start the Go runtime (blocks via `select {}` in main).
-    this.go.run(this.instance);
+    // Capture the Promise to avoid unhandled rejections if the Go program exits or panics.
+    this.runtimePromise = this.go.run(this.instance);
+    this.runtimePromise.catch((err) => {
+      console.error('Go WASM runtime exited with error:', err);
+    });
 
     await this.waitForAPI();
     this.ready = true;
