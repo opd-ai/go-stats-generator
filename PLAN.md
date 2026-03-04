@@ -120,12 +120,14 @@
       - ✅ Refactored `getAuthorStats` (13.2 → 3.1, 76.5% improvement; cyclomatic 9 → 2, 77.8% improvement)
       - ✅ Refactored `checkNodeContext` (13.2 → 3.1, 76.5% improvement; cyclomatic 9 → 2, 77.8% improvement)
       - ✅ Refactored `AnalyzeFunctionAffinity` (13.2 → 4.9, 62.9% improvement; cyclomatic 9 → 3, 66.7% improvement)
-      - ⏳ 56 functions remaining above 10.0 threshold (13 completed, 56 remaining)
+      - ✅ Refactored `isTerminating` (12.9 → 5.7, 55.8% improvement; cyclomatic 8 → 4, 50.0% improvement)
+      - ✅ Refactored `getTerminationReason` (12.9 → 5.7, 55.8% improvement; cyclomatic 8 → 4, 50.0% improvement)
+      - ⏳ 54 functions remaining above 10.0 threshold (15 completed, 54 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ isTerminating (12.9) - internal/analyzer/burden.go [NEXT]
-      2. ⏳ getTerminationReason (12.9) - internal/analyzer/burden.go
-      3. ⏳ dfsCircular (12.9) - internal/analyzer/package.go
-      4. ⏳ analyzeQuality (12.9) - internal/analyzer/documentation.go
+      1. ⏳ analyzeQuality (12.9) - internal/analyzer/documentation.go [NEXT]
+      2. ⏳ dfsCircular (12.9) - internal/analyzer/package.go
+      3. ⏳ runFileAnalysis (12.7) - cmd/analyze_workflow.go
+      4. ⏳ detectBuilder (12.7) - internal/analyzer/pattern.go
       5. ⏳ writeNamingSection (12.7) - internal/reporter/csv.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12

@@ -402,51 +402,73 @@ func (ba *BurdenAnalyzer) checkSwitchCasesUnreachable(body *ast.BlockStmt, fn st
 // isTerminating checks if a statement unconditionally terminates execution,
 // detecting return statements, os.Exit calls, and panic calls.
 func (ba *BurdenAnalyzer) isTerminating(stmt ast.Stmt) bool {
-	switch s := stmt.(type) {
-	case *ast.ReturnStmt:
+	if ba.isReturnStmt(stmt) {
 		return true
-	case *ast.ExprStmt:
-		if call, ok := s.X.(*ast.CallExpr); ok {
-			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-				// Check for os.Exit
-				if ident, ok := sel.X.(*ast.Ident); ok {
-					if ident.Name == "os" && sel.Sel.Name == "Exit" {
-						return true
-					}
-				}
-			}
-			// Check for panic
-			if ident, ok := call.Fun.(*ast.Ident); ok {
-				if ident.Name == "panic" {
-					return true
-				}
-			}
-		}
+	}
+	if ba.isOsExitCall(stmt) {
+		return true
+	}
+	if ba.isPanicCall(stmt) {
+		return true
 	}
 	return false
+}
+
+// isReturnStmt checks if a statement is a return statement
+func (ba *BurdenAnalyzer) isReturnStmt(stmt ast.Stmt) bool {
+	_, ok := stmt.(*ast.ReturnStmt)
+	return ok
+}
+
+// isOsExitCall checks if a statement is an os.Exit call
+func (ba *BurdenAnalyzer) isOsExitCall(stmt ast.Stmt) bool {
+	exprStmt, ok := stmt.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	call, ok := exprStmt.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return ident.Name == "os" && sel.Sel.Name == "Exit"
+}
+
+// isPanicCall checks if a statement is a panic call
+func (ba *BurdenAnalyzer) isPanicCall(stmt ast.Stmt) bool {
+	exprStmt, ok := stmt.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	call, ok := exprStmt.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return ident.Name == "panic"
 }
 
 // getTerminationReason returns a human-readable description of why a statement
 // terminates execution (e.g., "return statement", "os.Exit call", "panic call").
 func (ba *BurdenAnalyzer) getTerminationReason(stmt ast.Stmt) string {
-	switch s := stmt.(type) {
-	case *ast.ReturnStmt:
+	if ba.isReturnStmt(stmt) {
 		return "return statement"
-	case *ast.ExprStmt:
-		if call, ok := s.X.(*ast.CallExpr); ok {
-			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-				if ident, ok := sel.X.(*ast.Ident); ok {
-					if ident.Name == "os" && sel.Sel.Name == "Exit" {
-						return "os.Exit call"
-					}
-				}
-			}
-			if ident, ok := call.Fun.(*ast.Ident); ok {
-				if ident.Name == "panic" {
-					return "panic call"
-				}
-			}
-		}
+	}
+	if ba.isOsExitCall(stmt) {
+		return "os.Exit call"
+	}
+	if ba.isPanicCall(stmt) {
+		return "panic call"
 	}
 	return "terminating statement"
 }
