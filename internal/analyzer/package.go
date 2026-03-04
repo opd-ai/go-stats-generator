@@ -328,6 +328,25 @@ func isInternalPackage(importPath string) bool {
 	}
 
 	// Consider paths starting with known internal prefixes as internal
+	if isKnownInternalPrefix(importPath) {
+		return true
+	}
+
+	// Skip standard library packages (no dots and not internal prefixes)
+	if !strings.Contains(importPath, ".") {
+		return false
+	}
+
+	// Skip common external packages
+	if isKnownExternalPackage(importPath) {
+		return false
+	}
+
+	return true
+}
+
+// isKnownInternalPrefix checks if the import path starts with known internal prefixes
+func isKnownInternalPrefix(importPath string) bool {
 	internalPrefixes := []string{
 		"internal/",
 		"pkg/",
@@ -338,13 +357,11 @@ func isInternalPackage(importPath string) bool {
 			return true
 		}
 	}
+	return false
+}
 
-	// Skip standard library packages (no dots and not internal prefixes)
-	if !strings.Contains(importPath, ".") {
-		return false
-	}
-
-	// Skip common external packages
+// isKnownExternalPackage checks if the import path is a known external package
+func isKnownExternalPackage(importPath string) bool {
 	external := []string{
 		"github.com/spf13/",
 		"github.com/stretchr/",
@@ -354,11 +371,10 @@ func isInternalPackage(importPath string) bool {
 
 	for _, ext := range external {
 		if strings.HasPrefix(importPath, ext) {
-			return false
+			return true
 		}
 	}
-
-	return true
+	return false
 }
 
 // mergeUniqueStrings merges two string slices, removing duplicates

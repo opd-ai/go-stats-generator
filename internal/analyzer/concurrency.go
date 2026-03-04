@@ -589,6 +589,22 @@ func (ca *ConcurrencyAnalyzer) calculatePipelineConfidence(channels []metrics.Ch
 	}
 
 	// Sequential channels (mostly unbuffered) are typical for pipelines
+	confidence += ca.calculateUnbufferedChannelBonus(channels)
+
+	// More stages increase confidence
+	if len(channels) >= 3 {
+		confidence += 0.2
+	}
+
+	return confidence
+}
+
+// calculateUnbufferedChannelBonus calculates confidence bonus based on unbuffered channel ratio
+func (ca *ConcurrencyAnalyzer) calculateUnbufferedChannelBonus(channels []metrics.ChannelInstance) float64 {
+	if len(channels) == 0 {
+		return 0.0
+	}
+
 	unbufferedCount := 0
 	for _, channel := range channels {
 		if !channel.IsBuffered {
@@ -597,15 +613,9 @@ func (ca *ConcurrencyAnalyzer) calculatePipelineConfidence(channels []metrics.Ch
 	}
 
 	if float64(unbufferedCount)/float64(len(channels)) > 0.7 {
-		confidence += 0.3
+		return 0.3
 	}
-
-	// More stages increase confidence
-	if len(channels) >= 3 {
-		confidence += 0.2
-	}
-
-	return confidence
+	return 0.0
 }
 
 // detectFanPatterns detects fan-out and fan-in concurrency patterns
@@ -785,17 +795,28 @@ func (ca *ConcurrencyAnalyzer) calculateFanInConfidence(channels []metrics.Chann
 	}
 
 	// Unbuffered channels are common in fan-in
+	confidence += ca.calculateFanInChannelBonus(channels)
+
+	return confidence
+}
+
+// calculateFanInChannelBonus calculates confidence bonus for fan-in based on unbuffered channel ratio
+func (ca *ConcurrencyAnalyzer) calculateFanInChannelBonus(channels []metrics.ChannelInstance) float64 {
+	if len(channels) == 0 {
+		return 0.0
+	}
+
 	unbufferedCount := 0
 	for _, channel := range channels {
 		if !channel.IsBuffered {
 			unbufferedCount++
 		}
 	}
-	if float64(unbufferedCount)/float64(len(channels)) > 0.5 {
-		confidence += 0.2
-	}
 
-	return confidence
+	if float64(unbufferedCount)/float64(len(channels)) > 0.5 {
+		return 0.2
+	}
+	return 0.0
 }
 
 // detectSemaphores identifies semaphore patterns using buffered channels for concurrency limiting

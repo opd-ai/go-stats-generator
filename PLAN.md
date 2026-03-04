@@ -19,19 +19,24 @@
 
 ## Implementation Steps
 
-### Step 1: Reduce High-Complexity Functions in `internal/analyzer/`
+### Step 1: Reduce High-Complexity Functions in `internal/analyzer/` ✅ PARTIALLY COMPLETE (3/11 functions)
 - **Deliverable**: Refactor all functions with complexity >10 in `internal/analyzer/` directory
 - **Dependencies**: None
-- **Metric Justification**: 15 functions above threshold in analyzer package (highest concentration)
-- **Targets**:
+- **Status**: 3 functions refactored (27% reduction in violations)
+- **Completed Refactorings**:
+  - ✅ `calculatePipelineConfidence` (10.1 → 5.7, -43.6%) — `internal/analyzer/concurrency.go`
+  - ✅ `calculateFanInConfidence` (10.1 → 5.7, -43.6%) — `internal/analyzer/concurrency.go`
+  - ✅ `isInternalPackage` (10.1 → 7.0, -30.7%) — `internal/analyzer/package.go`
+- **Remaining Targets** (8 functions):
   - `collectTypeDefinitions` (10.3) — `internal/analyzer/interface.go`
   - `extractEmbeddedInterfaceNamesWithPkg` (10.3) — `internal/analyzer/interface.go`
   - `AnalyzeCorrelation` (10.1) — `internal/analyzer/coverage.go`
   - `analyzeTestFile` (10.1) — `internal/analyzer/coverage.go`
-  - `calculatePipelineConfidence` (10.1) — `internal/analyzer/concurrency.go`
-  - `calculateFanInConfidence` (10.1) — `internal/analyzer/concurrency.go`
+  - `calculateEnhancedEmbeddingDepth` (10.1) — `internal/analyzer/interface.go`
   - `countLinesInRange` (10.1) — `internal/analyzer/function.go`
-- **Validation**: `go-stats-generator analyze internal/analyzer/ --sections functions | jq '[.functions[] | select(.complexity.overall > 9)] | length'` returns 0
+  - `ComputeLinearRegression` (10.1) — `internal/analyzer/statistics.go`
+  - `AnalyzeFileNames` (10.1) — `internal/analyzer/naming.go`
+- **Validation**: `go-stats-generator analyze internal/analyzer/ --sections functions | jq '[.functions[] | select(.complexity.overall > 9)] | length'` returns 8 (baseline: 11)
 
 ### Step 2: Reduce Complexity in `cmd/` Package
 - **Deliverable**: Refactor all functions with complexity >9 in cmd package
