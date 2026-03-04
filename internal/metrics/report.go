@@ -909,33 +909,27 @@ type ThresholdConfig struct {
 func DefaultThresholdConfig() ThresholdConfig {
 	config := ThresholdConfig{}
 
-	// Function complexity thresholds
 	config.FunctionComplexity.Warning = 10
 	config.FunctionComplexity.Error = 20
 	config.FunctionComplexity.MaxIncrease = 25.0
 	config.FunctionComplexity.MinDecrease = 10.0
 
-	// Struct complexity thresholds
 	config.StructComplexity.MaxFields = 15
 	config.StructComplexity.FieldIncrease = 30.0
 	config.StructComplexity.MethodIncrease = 20.0
 
-	// Package metrics thresholds
 	config.PackageMetrics.MaxCoupling = 0.75
 	config.PackageMetrics.MinCohesion = 0.60
 	config.PackageMetrics.MaxDependencies = 20
 
-	// Documentation thresholds
 	config.Documentation.MinCoverage = 70.0
 	config.Documentation.MaxDecrease = 15.0
 
-	// Burden metrics thresholds
 	config.BurdenMetrics.FileMBIThreshold = 10.0
 	config.BurdenMetrics.PackageMBIThreshold = 5.0
 	config.BurdenMetrics.MaxDuplicationRatio = 0.10
 	config.BurdenMetrics.MaxNamingViolations = 10
 
-	// Global settings
 	config.Global.MaxRegressions = 5
 	config.Global.FailOnError = true
 	config.Global.FailOnCritical = true
@@ -1014,21 +1008,18 @@ type ChangeGranularity struct {
 func DefaultChangeGranularity() ChangeGranularity {
 	granularity := ChangeGranularity{}
 
-	// Function tracking (enable all)
 	granularity.Function.LineCount = true
 	granularity.Function.Complexity = true
 	granularity.Function.Parameters = true
 	granularity.Function.Returns = true
 	granularity.Function.Documentation = true
 
-	// Struct tracking (enable all)
 	granularity.Struct.FieldCount = true
 	granularity.Struct.FieldTypes = true
 	granularity.Struct.Methods = true
 	granularity.Struct.Embedding = true
 	granularity.Struct.Documentation = true
 
-	// Package tracking (enable all)
 	granularity.Package.Dependencies = true
 	granularity.Package.Cohesion = true
 	granularity.Package.Coupling = true

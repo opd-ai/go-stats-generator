@@ -53,6 +53,19 @@ func NewConsoleReporter(cfg *config.OutputConfig) *ConsoleReporter {
 	}
 }
 
+// calculateDisplayLimit returns the effective limit for displaying items,
+// capped at both the configured limit and a maximum of 10 items
+func (cr *ConsoleReporter) calculateDisplayLimit(itemCount int) int {
+	limit := cr.config.Limit
+	if limit > itemCount {
+		limit = itemCount
+	}
+	if limit > 10 {
+		limit = 10
+	}
+	return limit
+}
+
 // Generate generates a console report
 func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) error {
 	cr.writeHeader(output, report)
@@ -245,10 +258,7 @@ func (cr *ConsoleReporter) writeComplexityAnalysis(output io.Writer, report *met
 	})
 
 	// Show top complex functions
-	limit := cr.config.Limit
-	if limit > len(sortedFunctions) {
-		limit = len(sortedFunctions)
-	}
+	limit := cr.calculateDisplayLimit(len(sortedFunctions))
 
 	fmt.Fprintf(output, "Top %d Most Complex Functions:\n", limit)
 	fmt.Fprintf(output, "%-30s %-20s %8s %10s %10s\n", "Function", "Package", "Lines", "Cyclomatic", "Overall")
@@ -819,7 +829,7 @@ func (cr *ConsoleReporter) writeDuplicationSummary(output io.Writer, dup metrics
 
 func (cr *ConsoleReporter) writeDuplicationTable(output io.Writer, clones []metrics.ClonePair) {
 	sortedClones := cr.getSortedClones(clones)
-	limit := cr.calculateCloneLimit(len(sortedClones))
+	limit := cr.calculateDisplayLimit(len(sortedClones))
 	cr.writeDuplicationHeader(output, limit)
 	cr.writeDuplicationRows(output, sortedClones, limit)
 }
@@ -831,17 +841,6 @@ func (cr *ConsoleReporter) getSortedClones(clones []metrics.ClonePair) []metrics
 		return sorted[i].LineCount > sorted[j].LineCount
 	})
 	return sorted
-}
-
-func (cr *ConsoleReporter) calculateCloneLimit(count int) int {
-	limit := cr.config.Limit
-	if limit > count {
-		limit = count
-	}
-	if limit > 10 {
-		limit = 10
-	}
-	return limit
 }
 
 func (cr *ConsoleReporter) writeDuplicationHeader(output io.Writer, limit int) {
@@ -921,13 +920,7 @@ func (cr *ConsoleReporter) writeIdentifierViolations(output io.Writer, violation
 		return sorted[i].File < sorted[j].File
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d Identifier Violations:\n", limit)
 	fmt.Fprintf(output, "%-25s %-10s %-12s %-40s\n", "Name", "Type", "Violation", "File:Line")
@@ -984,13 +977,7 @@ func (cr *ConsoleReporter) writeFileNameViolations(output io.Writer, violations 
 		return sorted[i].File < sorted[j].File
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d File Name Violations:\n", limit)
 	fmt.Fprintf(output, "%-40s %-20s %-30s\n", "File", "Violation", "Suggested Name")
@@ -1063,13 +1050,7 @@ func (cr *ConsoleReporter) writeMisplacedFunctions(output io.Writer, issues []me
 		return sorted[i].SuggestedAffinity > sorted[j].SuggestedAffinity
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d Misplaced Functions:\n", limit)
 	fmt.Fprintf(output, "%-30s %-25s %-25s %s\n", "Function", "Current File", "Suggested File", "Affinity Gain")
@@ -1104,13 +1085,7 @@ func (cr *ConsoleReporter) writeMisplacedMethods(output io.Writer, issues []metr
 		return sorted[i].MethodName < sorted[j].MethodName
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d Misplaced Methods:\n", limit)
 	fmt.Fprintf(output, "%-30s %-20s %-25s %-25s\n", "Method", "Receiver Type", "Current File", "Receiver File")
@@ -1131,7 +1106,7 @@ func (cr *ConsoleReporter) writeMisplacedMethods(output io.Writer, issues []metr
 // writeFileCohesionIssues displays file cohesion issues
 func (cr *ConsoleReporter) writeFileCohesionIssues(output io.Writer, issues []metrics.FileCohesionIssue) {
 	sorted := cr.sortCohesionIssues(issues)
-	limit := cr.calculateCohesionLimit(len(sorted))
+	limit := cr.calculateDisplayLimit(len(sorted))
 	cr.writeCohesionHeader(output, limit)
 	cr.writeCohesionRows(output, sorted, limit)
 }
@@ -1146,17 +1121,6 @@ func (cr *ConsoleReporter) sortCohesionIssues(issues []metrics.FileCohesionIssue
 		return sorted[i].CohesionScore < sorted[j].CohesionScore
 	})
 	return sorted
-}
-
-func (cr *ConsoleReporter) calculateCohesionLimit(count int) int {
-	limit := cr.config.Limit
-	if limit > count {
-		limit = count
-	}
-	if limit > 10 {
-		limit = 10
-	}
-	return limit
 }
 
 func (cr *ConsoleReporter) writeCohesionHeader(output io.Writer, limit int) {
@@ -1321,7 +1285,7 @@ func (cr *ConsoleReporter) writeTopComplexSignatures(output io.Writer, signature
 		return
 	}
 
-	limit := cr.getDisplayLimit(len(signatures))
+	limit := cr.calculateDisplayLimit(len(signatures))
 	fmt.Fprintf(output, "Top %d Complex Signatures:\n", limit)
 	fmt.Fprintf(output, "%-40s %-20s %8s %8s\n", "Function", "File", "Params", "Returns")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
@@ -1344,7 +1308,7 @@ func (cr *ConsoleReporter) writeTopDeeplyNestedFunctions(output io.Writer, nesti
 		return
 	}
 
-	limit := cr.getDisplayLimit(len(nesting))
+	limit := cr.calculateDisplayLimit(len(nesting))
 	fmt.Fprintf(output, "Top %d Deeply Nested Functions:\n", limit)
 	fmt.Fprintf(output, "%-40s %-20s %8s\n", "Function", "File", "Max Depth")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
@@ -1366,7 +1330,7 @@ func (cr *ConsoleReporter) writeTopMagicNumbers(output io.Writer, numbers []metr
 		return
 	}
 
-	limit := cr.getDisplayLimit(len(numbers))
+	limit := cr.calculateDisplayLimit(len(numbers))
 	fmt.Fprintf(output, "Top %d Magic Numbers:\n", limit)
 	fmt.Fprintf(output, "%-20s %-30s %8s %s\n", "Value", "File", "Line", "Context")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
@@ -1419,13 +1383,7 @@ func (cr *ConsoleReporter) writeOversizedFiles(output io.Writer, files []metrics
 		return sorted[i].MaintenanceBurden > sorted[j].MaintenanceBurden
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d Oversized Files:\n", limit)
 	fmt.Fprintf(output, "%-50s %8s %8s %8s %s\n", "File", "Lines", "Funcs", "Types", "Burden")
@@ -1457,7 +1415,7 @@ func (cr *ConsoleReporter) writeOversizedPackages(output io.Writer, pkgs []metri
 		return sorted[i].TotalFunctions > sorted[j].TotalFunctions
 	})
 
-	limit := cr.getDisplayLimit(len(sorted))
+	limit := cr.calculateDisplayLimit(len(sorted))
 	fmt.Fprintf(output, "Top %d Oversized Packages:\n", limit)
 	fmt.Fprintf(output, "%-30s %8s %8s %8s %s\n", "Package", "Files", "Exports", "Funcs", "Mega?")
 	fmt.Fprintln(output, "--------------------------------------------------------------------------------")
@@ -1479,18 +1437,6 @@ func (cr *ConsoleReporter) writeOversizedPackages(output io.Writer, pkgs []metri
 	fmt.Fprintln(output)
 }
 
-// getDisplayLimit returns the appropriate display limit for tables
-func (cr *ConsoleReporter) getDisplayLimit(itemCount int) int {
-	limit := cr.config.Limit
-	if limit > itemCount {
-		limit = itemCount
-	}
-	if limit > 10 {
-		limit = 10
-	}
-	return limit
-}
-
 // writeDeepDirectories displays directory structures exceeding depth thresholds
 func (cr *ConsoleReporter) writeDeepDirectories(output io.Writer, dirs []metrics.DeepDirectory) {
 	if len(dirs) == 0 {
@@ -1503,13 +1449,7 @@ func (cr *ConsoleReporter) writeDeepDirectories(output io.Writer, dirs []metrics
 		return sorted[i].Depth > sorted[j].Depth
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d Deep Directories:\n", limit)
 	fmt.Fprintf(output, "%-60s %8s %8s\n", "Path", "Depth", "Files")
@@ -1538,13 +1478,7 @@ func (cr *ConsoleReporter) writeHighFanInPackages(output io.Writer, pkgs []metri
 		return sorted[i].FanIn > sorted[j].FanIn
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d High Fan-In Packages (Bottlenecks):\n", limit)
 	fmt.Fprintf(output, "%-40s %8s %s\n", "Package", "Fan-In", "Risk Level")
@@ -1573,13 +1507,7 @@ func (cr *ConsoleReporter) writeHighFanOutPackages(output io.Writer, pkgs []metr
 		return sorted[i].FanOut > sorted[j].FanOut
 	})
 
-	limit := cr.config.Limit
-	if limit > len(sorted) {
-		limit = len(sorted)
-	}
-	if limit > 10 {
-		limit = 10
-	}
+	limit := cr.calculateDisplayLimit(len(sorted))
 
 	fmt.Fprintf(output, "Top %d High Fan-Out Packages (Authority):\n", limit)
 	fmt.Fprintf(output, "%-40s %8s %12s %s\n", "Package", "Fan-Out", "Instability", "Risk")
