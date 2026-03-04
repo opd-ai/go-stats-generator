@@ -37,6 +37,29 @@ build-wasm:
 	@echo "WASM build complete: $(BUILD_DIR)/wasm/$(BINARY_NAME).wasm"
 	@echo "JavaScript loader: $(BUILD_DIR)/wasm/wasm_exec.js"
 
+# Build deployable site directory (mirrors GitHub Actions workflow)
+.PHONY: build-dist
+build-dist:
+	@echo "Building deployment site in dist/..."
+	@mkdir -p dist/wasm dist/js dist/css
+	@echo "Building WASM binary..."
+	GOOS=js GOARCH=wasm go build -ldflags "-s -w" -o dist/wasm/$(BINARY_NAME).wasm ./cmd/wasm/
+	@echo "Content-hashing WASM binary..."
+	@HASH=$$(sha256sum dist/wasm/$(BINARY_NAME).wasm | head -c 8); \
+	HASHED_NAME="$(BINARY_NAME).$${HASH}.wasm"; \
+	mv dist/wasm/$(BINARY_NAME).wasm "dist/wasm/$${HASHED_NAME}"; \
+	echo "{\"wasmFile\": \"$${HASHED_NAME}\"}" > dist/wasm/wasm-manifest.json; \
+	echo "Created dist/wasm/$${HASHED_NAME}"
+	@echo "Copying static assets..."
+	cp web/index.html dist/
+	cp web/404.html dist/
+	cp web/_headers dist/
+	cp -r web/css/* dist/css/
+	cp -r web/js/* dist/js/
+	cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" dist/js/
+	@echo "Build complete: dist/"
+	@echo "To test locally: cd dist && python3 -m http.server 8080"
+
 # Install the application
 .PHONY: install
 install: build
@@ -98,7 +121,7 @@ tidy:
 .PHONY: clean
 clean:
 	@echo "Cleaning..."
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) dist
 	rm -f coverage.out coverage.html
 
 # Run the application on test data
@@ -163,6 +186,7 @@ help:
 	@echo "  build          Build the application"
 	@echo "  build-all      Build for multiple platforms"
 	@echo "  build-wasm     Build WASM binary for browser deployment"
+	@echo "  build-dist     Build deployable site (WASM + static assets in dist/)"
 	@echo "  install        Install the application"
 	@echo "  test           Run tests"
 	@echo "  test-coverage      Run tests with coverage report"

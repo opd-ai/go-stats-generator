@@ -11,6 +11,7 @@ class GitHubFetcher {
     this.baseURL = 'https://api.github.com';
     this.rateLimitRemaining = null;
     this.rateLimitReset = null;
+    this.cacheEnabled = true;
   }
 
   /**
@@ -29,9 +30,10 @@ class GitHubFetcher {
   /**
    * Make an authenticated request to the GitHub API
    * @param {string} endpoint - API endpoint path
+   * @param {string} etag - Optional ETag for conditional requests
    * @returns {Promise<Response>} - Fetch response
    */
-  async request(endpoint) {
+  async request(endpoint, etag = null) {
     const headers = {
       'Accept': 'application/vnd.github.v3+json'
     };
@@ -39,12 +41,21 @@ class GitHubFetcher {
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
+    
+    if (etag && this.cacheEnabled) {
+      headers['If-None-Match'] = etag;
+    }
 
     const response = await fetch(`${this.baseURL}${endpoint}`, { headers });
     
     // Update rate limit tracking
     this.rateLimitRemaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '0');
     this.rateLimitReset = parseInt(response.headers.get('X-RateLimit-Reset') || '0');
+    
+    if (response.status === 304) {
+      // Not modified - return cached response marker
+      return response;
+    }
     
     if (!response.ok) {
       if (response.status === 403 && this.rateLimitRemaining === 0) {
@@ -148,6 +159,58 @@ class GitHubFetcher {
   }
 
   /**
+   * Get cache key for a blob
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {string} sha - Blob SHA
+   * @returns {string} - Cache key
+   */
+  getBlobCacheKey(owner, repo, sha) {
+    return `gh-blob:${owner}/${repo}:${sha}`;
+  }
+
+  /**
+   * Get cached blob data from localStorage
+   * @param {string} cacheKey - Cache key
+   * @returns {Object|null} - Cached data or null
+   */
+  getCachedBlob(cacheKey) {
+    if (!this.cacheEnabled) return null;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return null;
+      const data = JSON.parse(cached);
+      if (data.expiresAt && Date.now() > data.expiresAt) {
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Set cached blob data in localStorage
+   * @param {string} cacheKey - Cache key
+   * @param {string} content - Blob content
+   * @param {string} etag - ETag from response
+   */
+  setCachedBlob(cacheKey, content, etag) {
+    if (!this.cacheEnabled) return;
+    try {
+      const data = {
+        content,
+        etag,
+        expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+      };
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+    } catch (e) {
+      console.warn('Failed to cache blob:', e);
+    }
+  }
+
+  /**
    * Fetch blob content for a single file
    * @param {string} owner - Repository owner
    * @param {string} repo - Repository name
@@ -155,11 +218,26 @@ class GitHubFetcher {
    * @returns {Promise<string>} - File content as UTF-8 string
    */
   async fetchBlob(owner, repo, sha) {
+    const cacheKey = this.getBlobCacheKey(owner, repo, sha);
+    const cached = this.getCachedBlob(cacheKey);
+    
+    if (cached) {
+      const response = await this.request(`/repos/${owner}/${repo}/git/blobs/${sha}`, cached.etag);
+      if (response.status === 304) {
+        return cached.content;
+      }
+    }
+    
     const response = await this.request(`/repos/${owner}/${repo}/git/blobs/${sha}`);
     const data = await response.json();
+    const content = atob(data.content);
+    const etag = response.headers.get('ETag');
     
-    // GitHub returns blobs base64-encoded
-    return atob(data.content);
+    if (etag) {
+      this.setCachedBlob(cacheKey, content, etag);
+    }
+    
+    return content;
   }
 
   /**
@@ -266,6 +344,30 @@ class GitHubFetcher {
    */
   setToken(token) {
     this.token = token;
+  }
+
+  /**
+   * Enable or disable localStorage caching
+   * @param {boolean} enabled - Whether to enable caching
+   */
+  setCacheEnabled(enabled) {
+    this.cacheEnabled = enabled;
+  }
+
+  /**
+   * Clear all cached repository data
+   */
+  clearCache() {
+    try {
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (key.startsWith('gh-blob:')) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to clear cache:', e);
+    }
   }
 }
 

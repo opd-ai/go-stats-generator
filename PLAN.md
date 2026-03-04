@@ -4,7 +4,7 @@ A step-by-step implementation plan for deploying `go-stats-generator` as a clien
 
 ---
 
-## Phase 1: WASM Build Target
+## Phase 1: WASM Build Target ✅ COMPLETE
 
 ### Goal
 
@@ -88,8 +88,8 @@ Fetch the contents of a remote Go repository entirely in the browser, without an
    - On `403` rate-limit responses, show a clear message prompting the user to supply a token.
    - **Status:** Complete (2026-03-04). Token support implemented in `GitHubFetcher` constructor and `setToken()` method. Rate limit tracking via `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers. UI displays rate limit status in footer via `UI.updateRateLimit()`. Clear error messages for rate limit exceeded (403) responses.
 
-6. **⚠️ Optimize with conditional requests** — Use `localStorage` to cache the tree SHA and blob contents with ETags. On repeat analysis of the same repository, send `If-None-Match` headers to avoid re-downloading unchanged files.
-   - **Status:** Deferred to Phase 3 or future enhancement. Current implementation fetches fresh on every analysis. Caching can be added without breaking existing functionality.
+6. **✅ Optimize with conditional requests** — Use `localStorage` to cache the tree SHA and blob contents with ETags. On repeat analysis of the same repository, send `If-None-Match` headers to avoid re-downloading unchanged files.
+   - **Status:** Complete (2026-03-04). Implemented localStorage caching with ETag-based conditional requests in `web/js/github-fetcher.js`. Features include: blob content caching with 7-day TTL, If-None-Match headers for 304 responses, getBlobCacheKey/getCachedBlob/setCachedBlob helper methods, setCacheEnabled() to toggle caching, clearCache() to purge cached data. Caching reduces API requests on repeat analysis and improves load times. Zero Go code changes, zero complexity regressions.
 
 7. **✅ Support non-GitHub hosts (future)** — Initially, only GitHub-hosted repositories are supported. Document this limitation and note that GitLab/Bitbucket API adapters could be added later using the same `{path, content}` interface.
    - **Status:** Documented. GitHub-only support confirmed in code comments and UI. Extension point designed with pluggable fetcher interface (`{path, content}` array format).
@@ -176,7 +176,7 @@ Build a single-page application that lets users input a repository URL, select a
 
 ---
 
-## Phase 4: GitHub Pages Deployment
+## Phase 4: GitHub Pages Deployment ✅ COMPLETE
 
 ### Goal
 
@@ -305,7 +305,7 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
 
 ---
 
-## Phase 5: Constraints and Limitations
+## Phase 5: Constraints and Limitations ✅ COMPLETE
 
 ### Goal
 

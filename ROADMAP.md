@@ -75,7 +75,7 @@ Implemented features:
 
 ---
 
-## Phase 2: Naming Convention Analysis
+## Phase 2: Naming Convention Analysis ✅ COMPLETE
 
 Flag identifiers that violate Go conventions or harm readability.
 
@@ -244,7 +244,7 @@ Detect structural issues that make a codebase hard to navigate and maintain.
 
 ---
 
-## Phase 6: Additional Maintenance Burden Indicators
+## Phase 6: Additional Maintenance Burden Indicators ✅ COMPLETE
 
 Catch common patterns that increase the cost of understanding and changing code.
 
@@ -326,7 +326,7 @@ Implemented features:
 
 ---
 
-## Phase 7: Composite Scoring & Actionable Output
+## Phase 7: Composite Scoring & Actionable Output ✅ COMPLETE
 
 Combine all maintenance burden signals into a unified, prioritized report.
 
