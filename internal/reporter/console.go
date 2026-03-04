@@ -36,78 +36,91 @@ func NewConsoleReporter(cfg *config.OutputConfig) *ConsoleReporter {
 
 // Generate generates a console report
 func (cr *ConsoleReporter) Generate(report *metrics.Report, output io.Writer) error {
-	// Header
 	cr.writeHeader(output, report)
-
-	// Overview section
-	if cr.config.IncludeOverview {
-		cr.writeOverview(output, report)
-	}
-
-	// Function analysis section
-	if cr.config.IncludeDetails && len(report.Functions) > 0 {
-		cr.writeFunctionAnalysis(output, report)
-	}
-
-	// Complexity analysis
-	if cr.config.IncludeDetails {
-		cr.writeComplexityAnalysis(output, report)
-	}
-
-	// Package analysis section
-	if cr.config.IncludeDetails && len(report.Packages) > 0 {
-		cr.writePackageAnalysis(output, report)
-	}
-
-	// Circular dependencies section (always show, even if none found, for transparency)
-	if cr.config.IncludeDetails && len(report.Packages) > 0 {
-		cr.writeCircularDependencies(output, report)
-	}
-
-	// Duplication analysis section
-	if cr.config.IncludeDetails && report.Duplication.ClonePairs > 0 {
-		cr.writeDuplicationAnalysis(output, report)
-	}
-
-	// Naming analysis section
-	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
-	if cr.config.IncludeDetails && totalNamingViolations > 0 {
-		cr.writeNamingAnalysis(output, report)
-	}
-
-	// Placement analysis section
-	totalPlacementIssues := report.Placement.MisplacedFunctions + report.Placement.MisplacedMethods + report.Placement.LowCohesionFiles
-	if cr.config.IncludeDetails && totalPlacementIssues > 0 {
-		cr.writePlacementAnalysis(output, report)
-	}
-
-	// Documentation analysis section
-	totalAnnotations := len(report.Documentation.TODOComments) + len(report.Documentation.FIXMEComments) + len(report.Documentation.HACKComments) + len(report.Documentation.BUGComments)
-	if cr.config.IncludeDetails && (report.Documentation.Coverage.Overall > 0 || totalAnnotations > 0) {
-		cr.writeDocumentationAnalysis(output, report)
-	}
-
-	// Maintenance burden analysis section
-	totalBurdenIssues := len(report.Burden.MagicNumbers) + len(report.Burden.DeadCode.UnreferencedFunctions) + len(report.Burden.DeadCode.UnreachableCode) + len(report.Burden.ComplexSignatures) + len(report.Burden.DeeplyNestedFunctions) + len(report.Burden.FeatureEnvyMethods)
-	if cr.config.IncludeDetails && totalBurdenIssues > 0 {
-		cr.writeBurdenAnalysis(output, report)
-	}
-
-	// Organization analysis section
-	totalOrgIssues := len(report.Organization.OversizedFiles) + len(report.Organization.OversizedPackages) + len(report.Organization.DeepDirectories) + len(report.Organization.HighFanInPackages) + len(report.Organization.HighFanOutPackages)
-	if cr.config.IncludeDetails && totalOrgIssues > 0 {
-		cr.writeOrganizationAnalysis(output, report)
-	}
-
-	// Refactoring suggestions section
-	if cr.config.IncludeDetails && len(report.Suggestions) > 0 {
-		cr.writeRefactoringSuggestions(output, report)
-	}
-
-	// Footer
+	cr.writeReportSections(report, output)
 	cr.writeFooter(output, report)
-
 	return nil
+}
+
+type sectionWriter struct {
+	shouldWrite func(*metrics.Report) bool
+	write       func(io.Writer, *metrics.Report)
+}
+
+func (cr *ConsoleReporter) writeReportSections(report *metrics.Report, output io.Writer) {
+	sections := []sectionWriter{
+		{cr.shouldWriteOverview, cr.writeOverview},
+		{cr.shouldWriteFunctionAnalysis, cr.writeFunctionAnalysis},
+		{cr.shouldWriteComplexityAnalysis, cr.writeComplexityAnalysis},
+		{cr.shouldWritePackageAnalysis, cr.writePackageAnalysis},
+		{cr.shouldWriteCircularDependencies, cr.writeCircularDependencies},
+		{cr.shouldWriteDuplicationAnalysis, cr.writeDuplicationAnalysis},
+		{cr.shouldWriteNamingAnalysis, cr.writeNamingAnalysis},
+		{cr.shouldWritePlacementAnalysis, cr.writePlacementAnalysis},
+		{cr.shouldWriteDocumentationAnalysis, cr.writeDocumentationAnalysis},
+		{cr.shouldWriteBurdenAnalysis, cr.writeBurdenAnalysis},
+		{cr.shouldWriteOrganizationAnalysis, cr.writeOrganizationAnalysis},
+		{cr.shouldWriteRefactoringSuggestions, cr.writeRefactoringSuggestions},
+	}
+
+	for _, section := range sections {
+		if section.shouldWrite(report) {
+			section.write(output, report)
+		}
+	}
+}
+
+func (cr *ConsoleReporter) shouldWriteOverview(report *metrics.Report) bool {
+	return cr.config.IncludeOverview
+}
+
+func (cr *ConsoleReporter) shouldWriteFunctionAnalysis(report *metrics.Report) bool {
+	return cr.config.IncludeDetails && len(report.Functions) > 0
+}
+
+func (cr *ConsoleReporter) shouldWriteComplexityAnalysis(report *metrics.Report) bool {
+	return cr.config.IncludeDetails
+}
+
+func (cr *ConsoleReporter) shouldWritePackageAnalysis(report *metrics.Report) bool {
+	return cr.config.IncludeDetails && len(report.Packages) > 0
+}
+
+func (cr *ConsoleReporter) shouldWriteCircularDependencies(report *metrics.Report) bool {
+	return cr.config.IncludeDetails && len(report.Packages) > 0
+}
+
+func (cr *ConsoleReporter) shouldWriteDuplicationAnalysis(report *metrics.Report) bool {
+	return cr.config.IncludeDetails && report.Duplication.ClonePairs > 0
+}
+
+func (cr *ConsoleReporter) shouldWriteNamingAnalysis(report *metrics.Report) bool {
+	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
+	return cr.config.IncludeDetails && totalNamingViolations > 0
+}
+
+func (cr *ConsoleReporter) shouldWritePlacementAnalysis(report *metrics.Report) bool {
+	totalPlacementIssues := report.Placement.MisplacedFunctions + report.Placement.MisplacedMethods + report.Placement.LowCohesionFiles
+	return cr.config.IncludeDetails && totalPlacementIssues > 0
+}
+
+func (cr *ConsoleReporter) shouldWriteDocumentationAnalysis(report *metrics.Report) bool {
+	totalAnnotations := len(report.Documentation.TODOComments) + len(report.Documentation.FIXMEComments) + len(report.Documentation.HACKComments) + len(report.Documentation.BUGComments)
+	return cr.config.IncludeDetails && (report.Documentation.Coverage.Overall > 0 || totalAnnotations > 0)
+}
+
+func (cr *ConsoleReporter) shouldWriteBurdenAnalysis(report *metrics.Report) bool {
+	totalBurdenIssues := len(report.Burden.MagicNumbers) + len(report.Burden.DeadCode.UnreferencedFunctions) + len(report.Burden.DeadCode.UnreachableCode) + len(report.Burden.ComplexSignatures) + len(report.Burden.DeeplyNestedFunctions) + len(report.Burden.FeatureEnvyMethods)
+	return cr.config.IncludeDetails && totalBurdenIssues > 0
+}
+
+func (cr *ConsoleReporter) shouldWriteOrganizationAnalysis(report *metrics.Report) bool {
+	totalOrgIssues := len(report.Organization.OversizedFiles) + len(report.Organization.OversizedPackages) + len(report.Organization.DeepDirectories) + len(report.Organization.HighFanInPackages) + len(report.Organization.HighFanOutPackages)
+	return cr.config.IncludeDetails && totalOrgIssues > 0
+}
+
+func (cr *ConsoleReporter) shouldWriteRefactoringSuggestions(report *metrics.Report) bool {
+	return cr.config.IncludeDetails && len(report.Suggestions) > 0
 }
 
 // WriteDiff generates a console diff report

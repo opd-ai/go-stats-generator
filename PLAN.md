@@ -61,11 +61,12 @@
    - **Metric Justification**: Complexity 18.9; 40 lines; unreachable code detection
    - **Result**: Reduced complexity from 18.9 to 3.1 (83.6% improvement); cyclomatic reduced from 13 to 2 (84.6% improvement); extracted 4 helper functions (checkIfStmtUnreachable, checkElseClauseUnreachable, checkLoopBodyUnreachable, checkSwitchCasesUnreachable); all new functions ≤10 lines and complexity ≤6.2; primary function checkStmtForUnreachable at 3.1 complexity (well under 10.0 threshold)
 
-7. **Refactor `Generate` (console.go) — complexity 17.4 → target ≤10.0**
+7. **[COMPLETED] Refactor `Generate` (console.go) — complexity 17.4 → 1.3 ✓**
    - **File**: `internal/reporter/console.go`
    - **Deliverable**: Extract per-section generation into separate methods; use strategy pattern for section rendering
    - **Dependencies**: None
    - **Metric Justification**: Complexity 17.4; 44 lines; console report generation entry point
+   - **Result**: Reduced complexity from 17.4 to 1.3 (92.5% improvement); cyclomatic from 13 to 1 (92.3% improvement); extracted 13 helper functions (writeReportSections at 4.9, 12 shouldWrite* functions at 1.0 each); primary function Generate at 1.3 complexity (well under 10.0 threshold)
 
 8. **Refactor `walkForNestingDepth` (function.go) — complexity 16.6 → target ≤10.0**
    - **File**: `internal/analyzer/function.go`
