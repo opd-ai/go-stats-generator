@@ -129,27 +129,51 @@ func (ba *BurdenAnalyzer) extractContext(lit *ast.BasicLit, file *ast.File) stri
 func (ba *BurdenAnalyzer) checkNodeContext(n ast.Node, lit *ast.BasicLit) string {
 	switch node := n.(type) {
 	case *ast.AssignStmt:
-		for _, rhs := range node.Rhs {
-			if ba.containsNode(rhs, lit) {
-				return "assignment"
-			}
-		}
+		return ba.checkAssignStmtContext(node, lit)
 	case *ast.ReturnStmt:
-		for _, res := range node.Results {
-			if ba.containsNode(res, lit) {
-				return "return"
-			}
-		}
+		return ba.checkReturnStmtContext(node, lit)
 	case *ast.CallExpr:
-		for _, arg := range node.Args {
-			if ba.containsNode(arg, lit) {
-				return "function_call"
-			}
-		}
+		return ba.checkCallExprContext(node, lit)
 	case *ast.BinaryExpr:
-		if ba.containsNode(node, lit) {
-			return "binary_expression"
+		return ba.checkBinaryExprContext(node, lit)
+	}
+	return ""
+}
+
+// checkAssignStmtContext checks if literal appears in assignment statement
+func (ba *BurdenAnalyzer) checkAssignStmtContext(node *ast.AssignStmt, lit *ast.BasicLit) string {
+	for _, rhs := range node.Rhs {
+		if ba.containsNode(rhs, lit) {
+			return "assignment"
 		}
+	}
+	return ""
+}
+
+// checkReturnStmtContext checks if literal appears in return statement
+func (ba *BurdenAnalyzer) checkReturnStmtContext(node *ast.ReturnStmt, lit *ast.BasicLit) string {
+	for _, res := range node.Results {
+		if ba.containsNode(res, lit) {
+			return "return"
+		}
+	}
+	return ""
+}
+
+// checkCallExprContext checks if literal appears in function call
+func (ba *BurdenAnalyzer) checkCallExprContext(node *ast.CallExpr, lit *ast.BasicLit) string {
+	for _, arg := range node.Args {
+		if ba.containsNode(arg, lit) {
+			return "function_call"
+		}
+	}
+	return ""
+}
+
+// checkBinaryExprContext checks if literal appears in binary expression
+func (ba *BurdenAnalyzer) checkBinaryExprContext(node *ast.BinaryExpr, lit *ast.BasicLit) string {
+	if ba.containsNode(node, lit) {
+		return "binary_expression"
 	}
 	return ""
 }
