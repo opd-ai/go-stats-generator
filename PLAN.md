@@ -195,7 +195,7 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
 
 2. **Content-hash the WASM binary** — In the build script, compute the SHA-256 hash of the `.wasm` file and rename it to `go-stats-generator.<first-8-chars-of-hash>.wasm`. Update a generated `wasm-manifest.json` file that the JavaScript loader reads to discover the current filename. This ensures browsers cache the WASM blob aggressively and only re-download when it changes.
 
-3. **Create the GitHub Actions workflow** — Add `.github/workflows/deploy-pages.yml`:
+3. **✅ Create the GitHub Actions workflow** — Add `.github/workflows/deploy-pages.yml`:
    ```yaml
    name: Deploy to GitHub Pages
 
@@ -261,6 +261,7 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
            id: deployment
            uses: actions/deploy-pages@v4
    ```
+   - **Status:** Complete (2026-03-04). Created `.github/workflows/deploy-pages.yml` with WASM binary build, content-hashing, static asset copying, optional wasm-opt optimization, and GitHub Pages deployment. Workflow follows GitHub Actions best practices with proper permissions, concurrency control, and artifact upload. Successfully builds both native and WASM binaries. Zero complexity regressions in codebase.
 
 4. **Enable GitHub Pages** — In repository Settings → Pages, select "GitHub Actions" as the source (not branch-based). The workflow handles deployment via the `actions/deploy-pages` action.
 
