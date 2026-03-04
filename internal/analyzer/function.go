@@ -195,45 +195,12 @@ func (fa *FunctionAnalyzer) countLinesInRange(file *token.File, startLine, endLi
 		return metrics.LineMetrics{}
 	}
 
-	// Read the source file
-	src, err := os.ReadFile(file.Name())
-	if err != nil {
+	lines, ok := fa.readFileLines(file.Name(), startLine, endLine)
+	if !ok {
 		return metrics.LineMetrics{}
 	}
 
-	lines := strings.Split(string(src), "\n")
-	if startLine < 1 || endLine > len(lines) {
-		return metrics.LineMetrics{}
-	}
-
-	var codeLines, commentLines, blankLines int
-
-	// Track if we're inside a multi-line comment
-	inBlockComment := false
-
-	for i := startLine - 1; i < endLine && i < len(lines); i++ {
-		line := strings.TrimSpace(lines[i])
-
-		// Check for blank lines first
-		if line == "" {
-			blankLines++
-			continue
-		}
-
-		// Parse the line character by character to handle complex cases
-		lineType := fa.classifyLine(line, &inBlockComment)
-
-		switch lineType {
-		case "code":
-			codeLines++
-		case "comment":
-			commentLines++
-		case "mixed":
-			// Line has both code and comment - count as code
-			codeLines++
-		}
-	}
-
+	codeLines, commentLines, blankLines := fa.classifyLines(lines, startLine, endLine)
 	totalLines := codeLines + commentLines + blankLines
 
 	return metrics.LineMetrics{
@@ -242,6 +209,46 @@ func (fa *FunctionAnalyzer) countLinesInRange(file *token.File, startLine, endLi
 		Comments: commentLines,
 		Blank:    blankLines,
 	}
+}
+
+func (fa *FunctionAnalyzer) readFileLines(fileName string, startLine, endLine int) ([]string, bool) {
+	src, err := os.ReadFile(fileName)
+	if err != nil {
+		return nil, false
+	}
+
+	lines := strings.Split(string(src), "\n")
+	if startLine < 1 || endLine > len(lines) {
+		return nil, false
+	}
+
+	return lines, true
+}
+
+func (fa *FunctionAnalyzer) classifyLines(lines []string, startLine, endLine int) (codeLines, commentLines, blankLines int) {
+	inBlockComment := false
+
+	for i := startLine - 1; i < endLine && i < len(lines); i++ {
+		line := strings.TrimSpace(lines[i])
+
+		if line == "" {
+			blankLines++
+			continue
+		}
+
+		lineType := fa.classifyLine(line, &inBlockComment)
+
+		switch lineType {
+		case "code":
+			codeLines++
+		case "comment":
+			commentLines++
+		case "mixed":
+			codeLines++
+		}
+	}
+
+	return codeLines, commentLines, blankLines
 }
 
 // findCommentOutsideStrings finds the index of a comment marker (// or /*)

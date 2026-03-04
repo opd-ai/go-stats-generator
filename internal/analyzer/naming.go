@@ -121,31 +121,31 @@ func (na *NamingAnalyzer) AnalyzeFileNames(filePaths []string) []metrics.FileNam
 	var violations []metrics.FileNameViolation
 
 	for _, filePath := range filePaths {
-		// Skip non-Go files
 		if !strings.HasSuffix(filePath, ".go") {
 			continue
 		}
 
-		fileName := filepath.Base(filePath)
-		dirName := filepath.Base(filepath.Dir(filePath))
+		fileViolations := na.checkFileViolations(filePath)
+		violations = append(violations, fileViolations...)
+	}
 
-		// Check snake_case
-		if violation := na.checkSnakeCase(filePath, fileName); violation != nil {
-			violations = append(violations, *violation)
-		}
+	return violations
+}
 
-		// Check stuttering
-		if violation := na.checkStuttering(filePath, fileName, dirName); violation != nil {
-			violations = append(violations, *violation)
-		}
+func (na *NamingAnalyzer) checkFileViolations(filePath string) []metrics.FileNameViolation {
+	var violations []metrics.FileNameViolation
+	fileName := filepath.Base(filePath)
+	dirName := filepath.Base(filepath.Dir(filePath))
 
-		// Check generic names
-		if violation := na.checkGenericName(filePath, fileName); violation != nil {
-			violations = append(violations, *violation)
-		}
+	checks := []func(string, string, string) *metrics.FileNameViolation{
+		func(fp, fn, dn string) *metrics.FileNameViolation { return na.checkSnakeCase(fp, fn) },
+		func(fp, fn, dn string) *metrics.FileNameViolation { return na.checkStuttering(fp, fn, dn) },
+		func(fp, fn, dn string) *metrics.FileNameViolation { return na.checkGenericName(fp, fn) },
+		func(fp, fn, dn string) *metrics.FileNameViolation { return na.checkTestSuffix(fp, fn) },
+	}
 
-		// Check test suffix
-		if violation := na.checkTestSuffix(filePath, fileName); violation != nil {
+	for _, check := range checks {
+		if violation := check(filePath, fileName, dirName); violation != nil {
 			violations = append(violations, *violation)
 		}
 	}

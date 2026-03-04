@@ -286,6 +286,13 @@ func analyzeTestFile(path, relPath string) metrics.TestFileInfo {
 	}
 
 	lines := strings.Split(string(content), "\n")
+	countTestMetrics(lines, &info)
+	calculateAssertionRatio(&info)
+
+	return info
+}
+
+func countTestMetrics(lines []string, info *metrics.TestFileInfo) {
 	for _, line := range lines {
 		if strings.Contains(line, "func Test") {
 			info.TestCount++
@@ -297,12 +304,12 @@ func analyzeTestFile(path, relPath string) metrics.TestFileInfo {
 			info.AssertionCount++
 		}
 	}
+}
 
+func calculateAssertionRatio(info *metrics.TestFileInfo) {
 	if info.TestCount > 0 {
 		info.AssertionRatio = float64(info.AssertionCount) / float64(info.TestCount)
 	}
-
-	return info
 }
 
 func containsAssertion(line string) bool {

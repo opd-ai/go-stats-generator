@@ -289,28 +289,30 @@ func (ia *InterfaceAnalyzer) updateEnhancedImplementationMetrics(interfaceMetric
 // calculateEnhancedEmbeddingDepth calculates embedding depth using graph traversal to detect cycles
 func (ia *InterfaceAnalyzer) calculateEnhancedEmbeddingDepth(interfaceName string, visited map[string]bool) int {
 	if visited[interfaceName] {
-		// Cycle detected, return 0 to prevent infinite recursion
 		return 0
 	}
 
 	embedded, exists := ia.embeddingGraph[interfaceName]
 
-	// Interface not in our graph - it's external
 	if !exists {
-		// Check if it looks like an external interface (has package selector)
-		if strings.Contains(interfaceName, ".") {
-			// External interfaces are treated as having base depth 1
-			// to maintain compatibility with the basic calculation heuristic
-			return 1
-		}
-		return 0
+		return ia.getExternalInterfaceDepth(interfaceName)
 	}
 
-	// No embeddings
 	if len(embedded) == 0 {
 		return 0
 	}
 
+	return ia.calculateMaxEmbeddingDepth(interfaceName, embedded, visited)
+}
+
+func (ia *InterfaceAnalyzer) getExternalInterfaceDepth(interfaceName string) int {
+	if strings.Contains(interfaceName, ".") {
+		return 1
+	}
+	return 0
+}
+
+func (ia *InterfaceAnalyzer) calculateMaxEmbeddingDepth(interfaceName string, embedded []string, visited map[string]bool) int {
 	visited[interfaceName] = true
 	maxDepth := 0
 
@@ -321,7 +323,7 @@ func (ia *InterfaceAnalyzer) calculateEnhancedEmbeddingDepth(interfaceName strin
 		}
 	}
 
-	delete(visited, interfaceName) // Clean up for other paths
+	delete(visited, interfaceName)
 	return maxDepth
 }
 

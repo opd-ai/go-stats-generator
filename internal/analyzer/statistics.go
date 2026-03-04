@@ -14,42 +14,10 @@ func ComputeLinearRegression(series metrics.MetricTimeSeries) metrics.TrendStati
 		return metrics.TrendStatistics{DataPoints: n}
 	}
 
-	// Convert timestamps to days since first observation
-	var x, y []float64
-	firstTime := series.DataPoints[0].Timestamp
-	for _, pt := range series.DataPoints {
-		days := pt.Timestamp.Sub(firstTime).Hours() / 24.0
-		x = append(x, days)
-		y = append(y, pt.Value)
-	}
-
-	// Compute means
-	meanX, meanY := mean(x), mean(y)
-
-	// Compute slope and intercept using least squares
-	var numerator, denominator float64
-	for i := range x {
-		numerator += (x[i] - meanX) * (y[i] - meanY)
-		denominator += (x[i] - meanX) * (x[i] - meanX)
-	}
-
-	slope := 0.0
-	if denominator != 0 {
-		slope = numerator / denominator
-	}
-	intercept := meanY - slope*meanX
-
-	// Compute R² (coefficient of determination)
-	rSquared := computeRSquared(x, y, slope, intercept, meanY)
-
-	// Compute Pearson correlation coefficient
-	correlation := 0.0
-	if rSquared >= 0 {
-		correlation = math.Sqrt(rSquared)
-		if slope < 0 {
-			correlation = -correlation
-		}
-	}
+	x, y := convertToTimeSeries(series)
+	slope, intercept := computeLeastSquares(x, y)
+	rSquared := computeRSquared(x, y, slope, intercept, mean(y))
+	correlation := computeCorrelation(rSquared, slope)
 
 	return metrics.TrendStatistics{
 		Slope:       slope,
@@ -60,6 +28,44 @@ func ComputeLinearRegression(series metrics.MetricTimeSeries) metrics.TrendStati
 		EndDate:     series.DataPoints[n-1].Timestamp.Format("2006-01-02"),
 		Correlation: correlation,
 	}
+}
+
+func convertToTimeSeries(series metrics.MetricTimeSeries) (x, y []float64) {
+	firstTime := series.DataPoints[0].Timestamp
+	for _, pt := range series.DataPoints {
+		days := pt.Timestamp.Sub(firstTime).Hours() / 24.0
+		x = append(x, days)
+		y = append(y, pt.Value)
+	}
+	return x, y
+}
+
+func computeLeastSquares(x, y []float64) (slope, intercept float64) {
+	meanX, meanY := mean(x), mean(y)
+
+	var numerator, denominator float64
+	for i := range x {
+		numerator += (x[i] - meanX) * (y[i] - meanY)
+		denominator += (x[i] - meanX) * (x[i] - meanX)
+	}
+
+	slope = 0.0
+	if denominator != 0 {
+		slope = numerator / denominator
+	}
+	intercept = meanY - slope*meanX
+	return slope, intercept
+}
+
+func computeCorrelation(rSquared, slope float64) float64 {
+	correlation := 0.0
+	if rSquared >= 0 {
+		correlation = math.Sqrt(rSquared)
+		if slope < 0 {
+			correlation = -correlation
+		}
+	}
+	return correlation
 }
 
 // computeRSquared calculates coefficient of determination (R²).
