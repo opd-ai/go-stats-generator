@@ -73,6 +73,7 @@ class WASMLoader {
 
   /**
    * Poll until the Go runtime exposes `globalThis.analyzeCode`.
+   * Also waits for `globalThis.cloneAndAnalyze` (git clone support).
    */
   async waitForAPI() {
     let elapsed = 0;
@@ -85,7 +86,10 @@ class WASMLoader {
       throw new Error('WASM API did not initialize within timeout');
     }
 
-    this.analysisAPI = { analyzeCode: globalThis.analyzeCode };
+    this.analysisAPI = {
+      analyzeCode: globalThis.analyzeCode,
+      cloneAndAnalyze: globalThis.cloneAndAnalyze || null,
+    };
   }
 
   /**
