@@ -446,8 +446,9 @@ class GitHubFetcher {
   async fetchFiles(owner, repo, files, onProgress = null) {
     const results = [];
     let batchSize = BLOB_BATCH_SIZE;
+    let i = 0;
 
-    for (let i = 0; i < files.length; i += batchSize) {
+    while (i < files.length) {
       const batch = files.slice(i, i + batchSize);
       const batchResults = await Promise.all(
         batch.map(async (file) => {
@@ -464,6 +465,10 @@ class GitHubFetcher {
           }
         }),
       );
+
+      // Advance by the number of files actually in this batch, not the
+      // (potentially changed) batchSize for the next iteration.
+      i += batch.length;
 
       for (const r of batchResults) {
         if (r) results.push(r);
@@ -485,7 +490,7 @@ class GitHubFetcher {
       }
 
       // Wait between batches to avoid burst-triggered secondary rate limits.
-      if (i + batchSize < files.length) {
+      if (i < files.length) {
         await this.sleep(delay);
       }
     }
