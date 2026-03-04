@@ -13,12 +13,18 @@ type GenericAnalyzer struct {
 	fset *token.FileSet
 }
 
-// NewGenericAnalyzer creates a new generic code analyzer
+// NewGenericAnalyzer creates a new analyzer for Go 1.18+ generic code constructs including type
+// parameters, constraints, instantiations, and variance analysis. It detects generic functions,
+// generic types, constraint usage patterns, and calculates complexity scores for generic code.
+// Essential for understanding and assessing the adoption and complexity of generics in codebases.
 func NewGenericAnalyzer(fset *token.FileSet) *GenericAnalyzer {
 	return &GenericAnalyzer{fset: fset}
 }
 
-// AnalyzeGenerics analyzes generic types and functions in a Go file
+// AnalyzeGenerics analyzes generic types and functions in a Go source file, detecting type parameters,
+// constraints (any, comparable, custom interfaces), generic instantiations, and constraint usage patterns.
+// It calculates a complexity score based on the number and complexity of type parameters and constraints.
+// Returns comprehensive metrics for assessing generic code usage and complexity in Go 1.18+ codebases.
 func (ga *GenericAnalyzer) AnalyzeGenerics(file *ast.File, pkgName, filePath string) (metrics.GenericMetrics, error) {
 	result := metrics.GenericMetrics{
 		TypeParameters: metrics.GenericTypeParameters{

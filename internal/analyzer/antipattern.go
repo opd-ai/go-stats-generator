@@ -13,12 +13,18 @@ type AntipatternAnalyzer struct {
 	fset *token.FileSet
 }
 
-// NewAntipatternAnalyzer creates a new performance anti-pattern analyzer
+// NewAntipatternAnalyzer creates a new performance anti-pattern analyzer for detecting
+// inefficient code patterns in Go source code. The analyzer identifies common performance
+// issues including excessive memory allocations, string concatenation in loops, goroutine leaks,
+// and improper resource management. Essential for code quality assessment and optimization.
 func NewAntipatternAnalyzer(fset *token.FileSet) *AntipatternAnalyzer {
 	return &AntipatternAnalyzer{fset: fset}
 }
 
-// Analyze detects performance anti-patterns in a file
+// Analyze detects performance anti-patterns in a Go source file by inspecting the AST for
+// common inefficiencies. It checks for memory allocation issues (append without capacity),
+// string concatenation in loops, goroutine leaks (missing channel closes), and resource
+// management problems (defer in loops, unclosed resources). Returns a list of detected patterns.
 func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntipattern {
 	var patterns []metrics.PerformanceAntipattern
 

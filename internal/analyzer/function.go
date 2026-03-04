@@ -14,8 +14,10 @@ type FunctionAnalyzer struct {
 	fset *token.FileSet
 }
 
-// NewFunctionAnalyzer creates a new function analyzer for computing metrics
-// NewFunctionAnalyzer analyzes function declarations including complexity, size, and signature analysis.
+// NewFunctionAnalyzer creates a new function analyzer for computing comprehensive function-level
+// metrics including cyclomatic complexity, cognitive complexity, line counts (code vs. comments),
+// parameter/return counts, and signature analysis. Essential for identifying complex functions
+// that exceed maintainability thresholds and require refactoring.
 func NewFunctionAnalyzer(fset *token.FileSet) *FunctionAnalyzer {
 	return &FunctionAnalyzer{
 		fset: fset,
@@ -27,8 +29,10 @@ func (fa *FunctionAnalyzer) AnalyzeFunctions(file *ast.File, pkgName string) ([]
 	return fa.AnalyzeFunctionsWithPath(file, pkgName, file.Name.Name)
 }
 
-// AnalyzeFunctionsWithPath analyzes all functions in an AST file with explicit
-// AnalyzeFunctionsWithPath uses the file path for accurate file location reporting in the metrics output.
+// AnalyzeFunctionsWithPath analyzes all functions in an AST file with explicit file path for
+// accurate source location reporting. It computes comprehensive metrics for each function including
+// complexity (cyclomatic, cognitive), line counts (excluding comments/blanks), parameter/return counts,
+// and documentation presence. Returns a slice of function metrics used for threshold enforcement.
 func (fa *FunctionAnalyzer) AnalyzeFunctionsWithPath(file *ast.File, pkgName, filePath string) ([]metrics.FunctionMetrics, error) {
 	var functions []metrics.FunctionMetrics
 

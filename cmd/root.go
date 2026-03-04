@@ -40,8 +40,10 @@ Performance:
 	Version: "1.0.0",
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// Execute is called by main.main() and only needs to happen once to the rootCmd.
+// Execute adds all child commands to the root command and sets flags appropriately, then
+// executes the command tree. This is the main entry point for the CLI application, called by
+// main.main(). It handles command parsing, flag validation, and error reporting. Any execution
+// errors result in a non-zero exit code, enabling CI/CD integration and scripting automation.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {

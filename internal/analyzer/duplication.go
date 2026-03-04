@@ -30,7 +30,10 @@ func NewDuplicationAnalyzer(fset *token.FileSet) *DuplicationAnalyzer {
 	}
 }
 
-// FileSet returns the token.FileSet used by this analyzer for position mapping.
+// FileSet returns the token.FileSet used by this analyzer for accurate source position mapping
+// and line number tracking. Essential for reporting duplication locations in code clone detection,
+// enabling developers to locate and refactor duplicated code blocks. Used throughout block extraction
+// and fingerprinting operations.
 func (da *DuplicationAnalyzer) FileSet() *token.FileSet {
 	return da.fset
 }
@@ -60,8 +63,10 @@ type BlockFingerprint struct {
 	Original  StatementBlock
 }
 
-// ExtractBlocks walks function and method bodies to extract statement-level sub-trees.
-// ExtractBlocks respects the minimum block size threshold for duplication analysis.
+// ExtractBlocks walks function and method bodies to extract statement-level sub-trees for
+// duplication analysis. It uses a sliding window approach to generate blocks of various sizes,
+// respecting the minimum block size threshold. Extracted blocks are used for structural comparison
+// to detect code clones (exact, renamed, and near-duplicates). Returns all candidate blocks.
 func (da *DuplicationAnalyzer) ExtractBlocks(file *ast.File, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 

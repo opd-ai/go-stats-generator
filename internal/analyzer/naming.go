@@ -32,8 +32,10 @@ type identifierContext struct {
 	validSingleLetters map[string]bool
 }
 
-// NewNamingAnalyzer creates a new naming analyzer for detecting file name,
-// NewNamingAnalyzer identifies identifier and package name convention violations in Go code.
+// NewNamingAnalyzer creates a new naming convention analyzer for detecting violations of Go naming
+// best practices. It identifies generic file names (utils.go), improper package names (lib, common),
+// incorrect identifier casing (snake_case vs. camelCase), misused acronyms (Id vs. ID), and
+// overly abbreviated names. Essential for code readability and Go style compliance assessment.
 func NewNamingAnalyzer() *NamingAnalyzer {
 	return &NamingAnalyzer{
 		genericFileNames: map[string]bool{

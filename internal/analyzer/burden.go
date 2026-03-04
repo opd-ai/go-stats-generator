@@ -12,21 +12,27 @@ type BurdenAnalyzer struct {
 	fset *token.FileSet
 }
 
-// NewBurdenAnalyzer creates a new maintenance burden analyzer for detecting
-// NewBurdenAnalyzer identifies code smells like magic numbers, dead code, deep nesting, and feature envy.
+// NewBurdenAnalyzer creates a new maintenance burden analyzer for detecting code quality issues
+// that increase maintenance costs. The analyzer identifies magic numbers (unexplained literals),
+// dead code (unreachable statements), complex function signatures, deep nesting patterns, and
+// feature envy (excessive coupling to other types). Essential for technical debt assessment.
 func NewBurdenAnalyzer(fset *token.FileSet) *BurdenAnalyzer {
 	return &BurdenAnalyzer{
 		fset: fset,
 	}
 }
 
-// FileSet returns the token.FileSet used by this analyzer for position mapping.
+// FileSet returns the token.FileSet used by this analyzer for mapping AST node positions
+// to source file locations. This enables accurate line number reporting for detected
+// maintenance burden indicators, magic numbers, and code smells. Required for position-aware analysis.
 func (ba *BurdenAnalyzer) FileSet() *token.FileSet {
 	return ba.fset
 }
 
-// DetectMagicNumbers identifies numeric and string literals used as magic numbers.
-// DetectMagicNumbers excludes benign values: 0, 1, -1, and empty strings.
+// DetectMagicNumbers identifies numeric and string literals that lack meaningful names,
+// making code harder to understand and maintain. It excludes benign values (0, 1, -1, empty strings)
+// and constants declared in const blocks. Magic numbers increase cognitive burden and risk of bugs
+// when values need to change. Returns a list of detected magic numbers with file locations.
 func (ba *BurdenAnalyzer) DetectMagicNumbers(file *ast.File, pkg string) []metrics.MagicNumber {
 	var magicNumbers []metrics.MagicNumber
 	var currentFunc string
@@ -191,8 +197,10 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 	return found
 }
 
-// DetectDeadCode identifies unreferenced unexported symbols and unreachable code.
-// DetectDeadCode returns detailed metrics about dead code locations within the package.
+// DetectDeadCode identifies unreferenced unexported symbols and unreachable code blocks that
+// waste maintenance effort and increase cognitive burden. It analyzes all files in a package
+// to find unused functions, types, and variables, as well as code paths that can never execute
+// (after return/break/continue). Returns detailed metrics about dead code locations for cleanup.
 func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
 	// Build symbol references across all files in package
 	refs := ba.buildReferenceMap(files)
@@ -473,7 +481,10 @@ func (ba *BurdenAnalyzer) getTerminationReason(stmt ast.Stmt) string {
 	return "terminating statement"
 }
 
-// AnalyzeSignatureComplexity flags functions with excessive parameters or returns
+// AnalyzeSignatureComplexity flags functions with excessive parameters or return values that
+// increase cognitive load and error risk. It also detects boolean parameters which often indicate
+// control-flow coupling. Functions exceeding the parameter/return thresholds or using boolean flags
+// are harder to test, understand, and maintain. Returns signature complexity metrics with severity.
 func (ba *BurdenAnalyzer) AnalyzeSignatureComplexity(fn *ast.FuncDecl, maxParams, maxReturns int) *metrics.SignatureIssue {
 	if fn == nil || fn.Type == nil {
 		return nil
@@ -565,8 +576,10 @@ func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, 
 	return "low"
 }
 
-// DetectDeepNesting identifies functions exceeding the nesting depth threshold.
-// DetectDeepNesting returns nil if the function does not exceed the maximum allowed nesting.
+// DetectDeepNesting identifies functions with excessive nesting levels that harm readability
+// and increase cognitive complexity. Deep nesting (>3-4 levels) makes code harder to understand,
+// test, and debug. It often indicates opportunities for refactoring into smaller functions or
+// using early returns. Returns nesting issue details if threshold is exceeded, nil otherwise.
 func (ba *BurdenAnalyzer) DetectDeepNesting(fn *ast.FuncDecl, maxNesting int) *metrics.NestingIssue {
 	if fn == nil || fn.Body == nil {
 		return nil
@@ -699,8 +712,10 @@ func (ba *BurdenAnalyzer) updateMaxDepth(newDepth int, pos token.Pos, maxDepth *
 	}
 }
 
-// DetectFeatureEnvy identifies methods with excessive external type references.
-// DetectFeatureEnvy compares references to receiver type versus external types, suggesting misplaced logic.
+// DetectFeatureEnvy identifies methods that reference external types more than their own receiver,
+// suggesting the method may belong to a different type. Feature envy is a code smell indicating
+// poor cohesion and potential design issues. When a method uses another object's data/methods
+// extensively, it often should be moved to that object's type. Returns issue details if ratio exceeded.
 func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ratio float64) *metrics.FeatureEnvyIssue {
 	if fn == nil || fn.Body == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return nil

@@ -22,8 +22,10 @@ type PackageAnalyzer struct {
 	packageLines     map[string]int      // package -> total lines of code
 }
 
-// NewPackageAnalyzer creates a new package analyzer for tracking dependencies,
-// NewPackageAnalyzer supports cohesion, coupling, and circular dependency detection across packages.
+// NewPackageAnalyzer creates a new package analyzer for architectural analysis including dependency
+// tracking, cohesion and coupling metrics, circular dependency detection, and package organization
+// assessment. Analyzes package-level structure to identify architectural issues, high coupling, and
+// design patterns. Essential for large codebase refactoring and architecture review.
 func NewPackageAnalyzer(fset *token.FileSet) *PackageAnalyzer {
 	return &PackageAnalyzer{
 		fset:             fset,
@@ -35,8 +37,10 @@ func NewPackageAnalyzer(fset *token.FileSet) *PackageAnalyzer {
 	}
 }
 
-// AnalyzePackage analyzes a single package file and collects dependency,
-// AnalyzePackage gathers function count and type count metrics for cohesion and coupling analysis.
+// AnalyzePackage analyzes a single source file within a package, collecting dependency imports,
+// function counts, type definitions, and lines of code for cohesion/coupling analysis. Multiple
+// files per package are aggregated to compute package-level metrics. Returns error if the file
+// lacks a package name declaration (malformed Go file).
 func (pa *PackageAnalyzer) AnalyzePackage(file *ast.File, filePath string) error {
 	if file.Name == nil {
 		return fmt.Errorf("file has no package name: %s", filePath)

@@ -25,8 +25,10 @@ type DocumentationConfig struct {
 	MinCommentWords     int
 }
 
-// NewDocumentationAnalyzer creates a new documentation analyzer with the given
-// NewDocumentationAnalyzer uses sensible defaults if cfg is nil.
+// NewDocumentationAnalyzer creates a new documentation quality analyzer for comprehensive doc
+// coverage assessment. It analyzes GoDoc comments, package documentation, annotation markers
+// (TODO/FIXME/BUG/HACK), documentation quality scores, and identifies undocumented exported symbols.
+// Uses sensible defaults if cfg is nil. Essential for enforcing documentation standards.
 func NewDocumentationAnalyzer(fset *token.FileSet, cfg *DocumentationConfig) *DocumentationAnalyzer {
 	if cfg == nil {
 		cfg = &DocumentationConfig{
@@ -53,8 +55,10 @@ func NewDocumentationAnalyzer(fset *token.FileSet, cfg *DocumentationConfig) *Do
 	}
 }
 
-// Analyze performs comprehensive documentation analysis including coverage,
-// Analyze tracks quality and annotations for all provided AST files and packages.
+// Analyze performs comprehensive documentation analysis across all provided files and packages,
+// calculating coverage percentages for functions, types, methods, and packages. It also extracts
+// annotation markers (TODO/FIXME/BUG/HACK/DEPRECATED), computes quality scores based on comment
+// length and content, and identifies undocumented exported symbols. Returns complete documentation metrics.
 func (d *DocumentationAnalyzer) Analyze(files []*ast.File, pkgs map[string]*ast.Package) *metrics.DocumentationMetrics {
 	m := &metrics.DocumentationMetrics{
 		Coverage:              metrics.DocumentationCoverage{},
