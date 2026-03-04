@@ -89,6 +89,9 @@ func compareFunctionMetrics(baseline, current []FunctionMetrics, config Threshol
 	return compareFunctionsByKey(baselineMap, currentMap, allKeys, config)
 }
 
+// buildFunctionMaps creates lookup maps keyed by "package.function" for baseline and current function
+// metrics. These maps enable efficient O(1) lookup during differential analysis to match functions
+// across snapshots and identify additions, removals, and modifications.
 func buildFunctionMaps(baseline, current []FunctionMetrics) (map[string]FunctionMetrics, map[string]FunctionMetrics) {
 	baselineMap := make(map[string]FunctionMetrics)
 	currentMap := make(map[string]FunctionMetrics)
@@ -138,6 +141,9 @@ func compareSingleFunction(baseFunc, currFunc FunctionMetrics, hasBaseline, hasC
 	return nil
 }
 
+// buildFunctionRemovedChange constructs a MetricChange entry for a function that was removed between
+// baseline and current snapshots. The change is marked as a warning-level event requiring verification
+// to ensure the removal was intentional and not an accidental deletion.
 func buildFunctionRemovedChange(baseFunc FunctionMetrics) MetricChange {
 	return MetricChange{
 		Category:    "function",
@@ -155,6 +161,9 @@ func buildFunctionRemovedChange(baseFunc FunctionMetrics) MetricChange {
 	}
 }
 
+// buildFunctionAddedChange constructs a MetricChange entry for a newly added function between baseline
+// and current snapshots. The change is marked as an informational event with a suggestion to review
+// the new function's complexity to ensure it adheres to quality standards.
 func buildFunctionAddedChange(currFunc FunctionMetrics) MetricChange {
 	return MetricChange{
 		Category:    "function",

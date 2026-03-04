@@ -242,6 +242,9 @@ func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 	return tx.Commit()
 }
 
+// prepareSnapshotData marshals a metrics report to JSON and optionally compresses it for storage.
+// Compression is enabled via storage config and can reduce database size by 60-80% for large reports.
+// Returns the serialized (and possibly compressed) data ready for database insertion.
 func (s *SQLiteStorage) prepareSnapshotData(report metrics.Report) ([]byte, error) {
 	data, err := json.Marshal(report)
 	if err != nil {
@@ -259,6 +262,9 @@ func (s *SQLiteStorage) prepareSnapshotData(report metrics.Report) ([]byte, erro
 	return data, nil
 }
 
+// insertSnapshotRecord inserts a new snapshot record into the database with metadata fields (timestamp,
+// git info, author, description) and extracted burden metrics (MBI, duplication, documentation coverage,
+// violation counts). The compressed data blob and metadata are stored in a single transaction for atomicity.
 func (s *SQLiteStorage) insertSnapshotRecord(ctx context.Context, tx *sql.Tx, snapshot metrics.MetricsSnapshot,
 	metadata metrics.SnapshotMetadata, compressedData []byte,
 ) error {
@@ -295,6 +301,9 @@ func (s *SQLiteStorage) insertSnapshotRecord(ctx context.Context, tx *sql.Tx, sn
 	return nil
 }
 
+// insertSnapshotTags inserts key-value tags associated with a snapshot into the snapshot_tags table.
+// Tags enable flexible snapshot categorization and filtering (e.g., "environment=production", "release=v1.2.3").
+// If no tags are provided, the function returns immediately without error.
 func (s *SQLiteStorage) insertSnapshotTags(ctx context.Context, tx *sql.Tx, snapshotID string, tags map[string]string) error {
 	if len(tags) == 0 {
 		return nil

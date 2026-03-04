@@ -124,6 +124,9 @@ func (a *TeamAnalyzer) fetchGitLogOutput(author string) ([]byte, error) {
 	return cmd.Output()
 }
 
+// parseGitLogOutput parses git log output to extract commit timestamps and file change statistics
+// (lines added/deleted) for an author. It processes the numstat format to accumulate contribution
+// metrics and returns all commit timestamps for commit frequency analysis.
 func (a *TeamAnalyzer) parseGitLogOutput(out []byte, stats *authorStats) []time.Time {
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 	var timestamps []time.Time

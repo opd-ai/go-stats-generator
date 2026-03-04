@@ -228,6 +228,9 @@ func writeNamingHeader(writer *csv.Writer) error {
 	return nil
 }
 
+// writeNamingSummaryRows writes naming convention summary statistics to CSV including file name
+// violations, identifier violations, package name violations, and overall naming score. This provides
+// a high-level overview of naming convention compliance before detailed violation listings.
 func writeNamingSummaryRows(writer *csv.Writer, report *metrics.Report) error {
 	namingSummary := [][]string{
 		{"File Name Violations", strconv.Itoa(report.Naming.FileNameViolations)},
@@ -392,6 +395,9 @@ func writeDiffSectionHeader(writer *csv.Writer, title string) error {
 	return nil
 }
 
+// writeRegressionRows writes regression details to CSV including function location, old/new metric
+// values, absolute delta, and severity classification. Each regression is output as a separate row
+// with formatted numeric values for analysis and filtering in spreadsheet tools.
 func writeRegressionRows(writer *csv.Writer, regressions []metrics.Regression) error {
 	for _, reg := range regressions {
 		row := []string{
@@ -428,6 +434,9 @@ func (r *CSVReporter) writeDiffImprovements(writer *csv.Writer, diff *metrics.Co
 	return writeImprovementRows(writer, diff.Improvements)
 }
 
+// writeImprovementRows writes improvement details to CSV including function location, old/new metric
+// values, absolute delta, and impact classification. Each improvement is output as a separate row
+// with formatted numeric values for tracking code quality gains over time.
 func writeImprovementRows(writer *csv.Writer, improvements []metrics.Improvement) error {
 	for _, imp := range improvements {
 		row := []string{

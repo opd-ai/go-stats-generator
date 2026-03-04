@@ -297,6 +297,9 @@ func AnalyzeTestQuality(repoPath string) (metrics.TestQualityMetrics, error) {
 	return result, nil
 }
 
+// analyzeTestFile examines a test file to extract test quality metrics including test count,
+// table-driven test detection, assertion patterns, and helper function usage. This analysis
+// provides insights into test design patterns and quality indicators within the test suite.
 func analyzeTestFile(path, relPath string) metrics.TestFileInfo {
 	info := metrics.TestFileInfo{
 		File: relPath,

@@ -134,6 +134,9 @@ func (na *NamingAnalyzer) AnalyzeFileNames(filePaths []string) []metrics.FileNam
 	return violations
 }
 
+// checkFileViolations scans a file path for naming convention violations including snake_case usage,
+// package-name stuttering (e.g., user/user.go), overly generic names (util.go), and incorrect test
+// file suffixes. Returns a list of violations with suggested corrections for each issue found.
 func (na *NamingAnalyzer) checkFileViolations(filePath string) []metrics.FileNameViolation {
 	var violations []metrics.FileNameViolation
 	fileName := filepath.Base(filePath)
