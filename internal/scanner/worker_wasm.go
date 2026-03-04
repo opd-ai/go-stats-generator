@@ -31,7 +31,9 @@ type Result struct {
 // ProgressCallback is called to report progress
 type ProgressCallback func(completed, total int)
 
-// NewWorkerPool creates a worker pool for WASM
+// NewWorkerPool creates a worker pool for WASM environments where OS-level concurrency is not available.
+// This implementation processes files sequentially rather than in parallel, as WASM runtimes typically execute in
+// a single-threaded JavaScript environment. The cfg parameter is accepted for API compatibility but worker count is ignored.
 func NewWorkerPool(cfg *config.PerformanceConfig, discoverer *Discoverer) *WorkerPool {
 	return &WorkerPool{
 		discoverer: discoverer,

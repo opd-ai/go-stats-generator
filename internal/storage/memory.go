@@ -26,7 +26,9 @@ type storedSnapshot struct {
 	stored   time.Time
 }
 
-// NewMemoryStorage creates a new in-memory storage instance
+// NewMemoryStorage creates a new in-memory storage instance for temporary baseline retention without persistent storage.
+// Ideal for CI/CD pipelines, ephemeral environments, or testing where baseline history doesn't need to survive restarts.
+// Provides fast reads/writes with RWMutex synchronization for concurrent access, but all data is lost on process termination.
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		snapshots: make(map[string]*storedSnapshot),

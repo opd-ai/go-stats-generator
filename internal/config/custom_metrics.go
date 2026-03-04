@@ -22,7 +22,9 @@ type CustomMetricDefinition struct {
 	Property    string `mapstructure:"property" json:"property,omitempty"`
 }
 
-// DefaultCustomMetricsConfig returns default configuration for custom metrics
+// DefaultCustomMetricsConfig returns default configuration for custom metrics collection, enabling all standard analyzers.
+// Custom metrics allow extending the tool with project-specific measurements (e.g., framework-specific patterns, domain metrics).
+// The default config provides a baseline that can be augmented with organization-specific rules and thresholds.
 func DefaultCustomMetricsConfig() CustomMetricsConfig {
 	return CustomMetricsConfig{
 		Enabled: false,

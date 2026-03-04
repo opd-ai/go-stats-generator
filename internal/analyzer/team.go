@@ -17,7 +17,9 @@ type TeamAnalyzer struct {
 	repoPath string
 }
 
-// NewTeamAnalyzer creates a team analyzer instance
+// NewTeamAnalyzer creates a team analyzer instance for extracting developer metrics from Git repository history.
+// Analyzes authorship patterns, commit frequency, and code ownership to identify knowledge silos and team dynamics.
+// Requires Git to be installed and the repoPath to point to a valid Git repository root directory.
 func NewTeamAnalyzer(repoPath string) *TeamAnalyzer {
 	return &TeamAnalyzer{
 		repoPath: repoPath,

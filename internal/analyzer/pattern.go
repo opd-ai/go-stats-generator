@@ -13,7 +13,9 @@ type PatternAnalyzer struct {
 	fset *token.FileSet
 }
 
-// NewPatternAnalyzer creates analyzer for design pattern detection
+// NewPatternAnalyzer creates analyzer for design pattern detection, identifying common Go idioms and architectural patterns.
+// Detects patterns like singleton, factory, builder, strategy, observer, and middleware implementations through AST analysis.
+// Pattern recognition helps assess code maintainability, architectural consistency, and adherence to established best practices.
 func NewPatternAnalyzer(fset *token.FileSet) *PatternAnalyzer {
 	return &PatternAnalyzer{fset: fset}
 }

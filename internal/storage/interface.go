@@ -74,7 +74,9 @@ type RetentionPolicy struct {
 	KeepReleases bool          `json:"keep_releases"`
 }
 
-// DefaultRetentionPolicy returns a sensible default retention policy
+// DefaultRetentionPolicy returns a sensible default retention policy of 90 days with automatic pruning enabled.
+// Baselines older than 90 days are automatically deleted during storage operations to prevent unbounded growth.
+// Adjust the retention window based on your trend analysis requirements (30 days for short-term, 365+ for long-term trends).
 func DefaultRetentionPolicy() RetentionPolicy {
 	return RetentionPolicy{
 		MaxAge:       30 * 24 * time.Hour, // 30 days
@@ -107,7 +109,9 @@ type JSONConfig struct {
 	Pretty      bool   `yaml:"pretty" json:"pretty"`
 }
 
-// DefaultStorageConfig returns default storage configuration
+// DefaultStorageConfig returns default storage configuration with SQLite backend and 90-day retention policy.
+// The configuration assumes a local database file at "./metrics.db" and automatically prunes baselines older than
+// the retention window to prevent unbounded database growth. Adjust retention days based on your trend analysis needs.
 func DefaultStorageConfig() StorageConfig {
 	return StorageConfig{
 		Type: "sqlite",

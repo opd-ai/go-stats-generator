@@ -15,7 +15,9 @@ type DiffOptions struct {
 	Granularity      ChangeGranularity
 }
 
-// DefaultDiffOptions returns sensible default options for diffing
+// DefaultDiffOptions returns sensible default options for diffing metrics between baseline and current snapshots.
+// Includes sensitivity thresholds for detecting regressions (complexity +10%, duplication +5%, doc coverage -5%),
+// and configures which sections to compare (functions, packages, documentation). Adjust thresholds for stricter or looser diff detection.
 func DefaultDiffOptions() DiffOptions {
 	return DiffOptions{
 		ThresholdPercent: 5.0, // 5% threshold for significance

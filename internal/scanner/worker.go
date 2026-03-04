@@ -33,7 +33,9 @@ type Result struct {
 // ProgressCallback is called to report progress
 type ProgressCallback func(completed, total int)
 
-// NewWorkerPool creates a new worker pool
+// NewWorkerPool creates a new worker pool for concurrent file processing with configurable parallelism.
+// The worker count is determined by cfg.WorkerCount (defaults to 1 if <= 0). Each worker processes Go source files
+// independently, enabling high-throughput analysis of large codebases. Uses the provided discoverer for file discovery.
 func NewWorkerPool(cfg *config.PerformanceConfig, discoverer *Discoverer) *WorkerPool {
 	workerCount := cfg.WorkerCount
 	if workerCount <= 0 {

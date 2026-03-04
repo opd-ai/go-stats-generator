@@ -22,7 +22,9 @@ type HTMLReporterImpl struct {
 	config *config.OutputConfig
 }
 
-// NewHTMLReporterWithConfig creates a new HTML reporter with config
+// NewHTMLReporterWithConfig creates a new HTML reporter with custom configuration for template and chart customization.
+// If cfg is nil, uses defaults (overview included, details included, 50-item limit per section).
+// Enables fine-grained control over which sections to render and display limits for large codebases.
 func NewHTMLReporterWithConfig(cfg *config.OutputConfig) *HTMLReporterImpl {
 	if cfg == nil {
 		cfg = &config.OutputConfig{

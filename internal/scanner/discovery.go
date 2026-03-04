@@ -22,7 +22,9 @@ type Discoverer struct {
 	fset   *token.FileSet
 }
 
-// NewDiscoverer creates a new file discoverer
+// NewDiscoverer creates a new file discoverer for locating Go source files within directory trees.
+// Respects the exclude patterns in cfg to skip vendor directories, build artifacts, or other non-source paths.
+// The discoverer maintains a token.FileSet for AST parsing, enabling position tracking across multiple files.
 func NewDiscoverer(cfg *config.FilterConfig) *Discoverer {
 	return &Discoverer{
 		config: cfg,

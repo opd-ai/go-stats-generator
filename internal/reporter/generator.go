@@ -24,7 +24,9 @@ const (
 	TypeMarkdown ReporterType = "markdown"
 )
 
-// NewReporter creates a new reporter of the specified type
+// NewReporter creates a new reporter of the specified type (console, JSON, CSV, HTML, or Markdown).
+// Returns an error if the reporterType is unsupported or invalid. Console reporter uses default configuration
+// (colors enabled, overview included). For custom configuration, create reporters directly with their New*WithConfig constructors.
 func NewReporter(reporterType string) (Reporter, error) {
 	switch ReporterType(reporterType) {
 	case TypeJSON:
@@ -42,7 +44,9 @@ func NewReporter(reporterType string) (Reporter, error) {
 	}
 }
 
-// CreateReporter creates a new reporter of the specified type (legacy)
+// CreateReporter creates a new reporter of the specified type using typed ReporterType enum (legacy function).
+// The options parameter is ignored in the current implementation for backward compatibility.
+// Prefer using NewReporter with string type or individual New*Reporter constructors for new code.
 func CreateReporter(reporterType ReporterType, options interface{}) Reporter {
 	switch reporterType {
 	case TypeJSON:

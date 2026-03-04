@@ -7,7 +7,9 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
-// AnalyzeDocumentation analyzes documentation quality from AST comment group
+// AnalyzeDocumentation analyzes documentation quality from AST comment group, extracting presence, length, and quality metrics.
+// Evaluates whether comments exist, their character count, presence of code examples (heuristic-based detection),
+// and overall quality score using the provided qualityScoreFunc. Returns structured DocumentationInfo for coverage tracking.
 func AnalyzeDocumentation(doc *ast.CommentGroup, qualityScoreFunc func(string) float64) metrics.DocumentationInfo {
 	docInfo := metrics.DocumentationInfo{}
 
@@ -40,7 +42,9 @@ func AnalyzeDocumentation(doc *ast.CommentGroup, qualityScoreFunc func(string) f
 	return docInfo
 }
 
-// CalculateDocQualityScore calculates documentation quality score with optional domain-specific keywords
+// CalculateDocQualityScore calculates documentation quality score using length, keywords, and structural heuristics.
+// Base score (0.3) is awarded for non-empty documentation. Additional points for length (>50 chars), domain keyword usage,
+// and presence of examples or explanatory phrases. Score ranges from 0.0 (no doc) to ~1.0 (excellent documentation).
 func CalculateDocQualityScore(docText string, domainKeywords []string) float64 {
 	if len(docText) == 0 {
 		return 0.0

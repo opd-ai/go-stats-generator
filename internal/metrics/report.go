@@ -905,7 +905,9 @@ type ThresholdConfig struct {
 	} `yaml:"global" json:"global"`
 }
 
-// DefaultThresholdConfig returns sensible default thresholds
+// DefaultThresholdConfig returns sensible default thresholds for code quality assessment based on industry best practices.
+// Includes cyclomatic complexity <= 10, function length <= 30 lines, documentation coverage >= 70%, and duplication ratio < 5%.
+// These thresholds represent a balanced approach between strict quality enforcement and practical development workflows.
 func DefaultThresholdConfig() ThresholdConfig {
 	config := ThresholdConfig{}
 
@@ -1004,7 +1006,9 @@ type ChangeGranularity struct {
 	} `json:"package"`
 }
 
-// DefaultChangeGranularity returns default tracking settings
+// DefaultChangeGranularity returns default tracking settings for differential analysis and change detection.
+// Determines the sensitivity thresholds for flagging complexity increases, duplication growth, and documentation decreases.
+// Lower granularity values make the diff engine more sensitive to minor changes, higher values focus on significant regressions.
 func DefaultChangeGranularity() ChangeGranularity {
 	granularity := ChangeGranularity{}
 

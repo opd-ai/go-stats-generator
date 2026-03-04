@@ -1,6 +1,8 @@
 package metrics
 
-// MergeGenericsData merges a single generic metric into the target
+// MergeGenericsData merges a single generic metric into the target aggregation, combining type parameter statistics.
+// Accumulates counts, constraint usages, and instantiation lists from gen into merged for cross-file generic analysis.
+// Used during multi-file analysis to build comprehensive metrics about Go 1.18+ generics usage patterns.
 func MergeGenericsData(merged *GenericMetrics, gen GenericMetrics) {
 	merged.TypeParameters.Count += gen.TypeParameters.Count
 	merged.TypeParameters.Complexity = append(

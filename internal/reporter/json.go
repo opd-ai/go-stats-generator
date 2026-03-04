@@ -49,7 +49,9 @@ func (jr *JSONReporter) WriteDiff(output io.Writer, diff *metrics.ComplexityDiff
 	return encoder.Encode(diff)
 }
 
-// NewHTMLReporter creates a new HTML reporter
+// NewHTMLReporter creates a new HTML reporter for generating interactive, visually-rich analysis reports.
+// HTML output includes embedded charts (via Chart.js), sortable tables, and collapsible sections for
+// easy navigation. Best suited for human consumption and sharing with stakeholders via web browsers.
 func NewHTMLReporter() Reporter {
 	return NewHTMLReporterWithConfig(nil)
 }

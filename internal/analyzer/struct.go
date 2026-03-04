@@ -17,7 +17,9 @@ type StructAnalyzer struct {
 	functionAnalyzer *FunctionAnalyzer
 }
 
-// NewStructAnalyzer creates a new struct analyzer
+// NewStructAnalyzer creates a new struct analyzer for examining Go struct definitions and their characteristics.
+// It analyzes field types, tags (JSON, XML, etc.), embedded types, and methods to generate comprehensive metrics
+// about struct complexity, maintainability, and usage patterns across the codebase.
 func NewStructAnalyzer(fset *token.FileSet) *StructAnalyzer {
 	return &StructAnalyzer{
 		fset:             fset,

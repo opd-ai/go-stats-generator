@@ -36,7 +36,9 @@ func (cr *ConsoleReporter) writeSectionWithDetails(output io.Writer, content sec
 	}
 }
 
-// NewConsoleReporter creates a new console reporter
+// NewConsoleReporter creates a new console reporter for generating rich terminal output with tables and colors.
+// If cfg is nil, uses sensible defaults (colors enabled, overview included, 20-item limit per section).
+// The reporter formats metrics using ANSI escape codes and Unicode box-drawing characters for enhanced readability.
 func NewConsoleReporter(cfg *config.OutputConfig) *ConsoleReporter {
 	if cfg == nil {
 		cfg = &config.OutputConfig{

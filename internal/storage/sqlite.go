@@ -24,7 +24,9 @@ type SQLiteStorage struct {
 	config SQLiteConfig
 }
 
-// NewSQLiteStorageImpl creates a new SQLite storage instance
+// NewSQLiteStorageImpl creates a new SQLite storage instance with persistent database file for baseline retention.
+// Automatically creates the database directory if it doesn't exist and initializes schema with compression enabled.
+// Provides ACID guarantees for metric snapshots, making it suitable for production trend analysis and baseline management.
 func NewSQLiteStorageImpl(config SQLiteConfig) (*SQLiteStorage, error) {
 	// Create directory if it doesn't exist
 	if err := createDirIfNotExists(config.Path); err != nil {

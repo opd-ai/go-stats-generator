@@ -16,12 +16,16 @@ type Server struct {
 	version string
 }
 
-// NewServer creates a new API server with in-memory storage.
+// NewServer creates a new API server with in-memory storage for handling HTTP-based analysis requests.
+// Exposes RESTful endpoints for triggering code analysis, retrieving results, and health checks.
+// Uses non-persistent storage by default; for baseline retention across restarts, use NewServerWithStorage with SQLite/JSON backend.
 func NewServer(version string) *Server {
 	return NewServerWithStorage(version, storage.NewMemory())
 }
 
-// NewServerWithStorage creates a new API server with custom storage.
+// NewServerWithStorage creates a new API server with custom storage backend for durable result persistence.
+// Accepts any storage.ResultStore implementation (Memory, SQLite, PostgreSQL, MongoDB) to control data retention strategy.
+// Use this when analysis results must survive server restarts or be shared across multiple server instances.
 func NewServerWithStorage(version string, store storage.ResultStore) *Server {
 	return &Server{
 		storage: store,

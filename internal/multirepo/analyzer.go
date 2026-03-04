@@ -11,7 +11,9 @@ type Analyzer struct {
 	config *Config
 }
 
-// NewAnalyzer creates a new multi-repository analyzer
+// NewAnalyzer creates a new multi-repository analyzer for coordinated analysis across multiple Git repositories.
+// Enables cross-project comparisons, aggregated metrics, and organization-wide trend tracking for microservices or monorepos.
+// Each repository is analyzed independently, then combined for comparative reporting and benchmarking.
 func NewAnalyzer(cfg *Config) *Analyzer {
 	return &Analyzer{config: cfg}
 }

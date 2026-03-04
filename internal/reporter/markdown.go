@@ -24,7 +24,9 @@ type MarkdownReporter struct {
 	maxItems        int
 }
 
-// NewMarkdownReporter creates a new Markdown reporter with default settings
+// NewMarkdownReporter creates a new Markdown reporter with default settings for generating GitHub-flavored Markdown reports.
+// Output includes tables, code blocks, and checkboxes formatted for optimal rendering in README files, pull requests,
+// and documentation sites. Ideal for CI/CD integrations and embedding analysis results directly into version control.
 func NewMarkdownReporter() Reporter {
 	return &MarkdownReporter{
 		includeOverview: true,

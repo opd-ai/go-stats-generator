@@ -12,7 +12,9 @@ import (
 // CSVReporter generates analysis reports in CSV format.
 type CSVReporter struct{}
 
-// NewCSVReporter creates a new CSV reporter
+// NewCSVReporter creates a new CSV reporter for generating analysis reports in comma-separated values format.
+// CSV output is ideal for importing into spreadsheet applications, business intelligence tools, or data pipelines.
+// Each section (functions, structs, packages) is written as a separate CSV table with appropriate headers.
 func NewCSVReporter() Reporter {
 	return &CSVReporter{}
 }

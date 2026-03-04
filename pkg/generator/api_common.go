@@ -17,14 +17,18 @@ type Analyzer struct {
 	config *config.Config
 }
 
-// NewAnalyzer creates a new analyzer
+// NewAnalyzer creates a new analyzer with default configuration settings for comprehensive Go codebase analysis.
+// It initializes all internal analyzers (complexity, documentation, naming, etc.) and uses default thresholds.
+// Returns an Analyzer ready for immediate use with Analyze() or AnalyzeWithContext() methods.
 func NewAnalyzer() *Analyzer {
 	return &Analyzer{
 		config: config.DefaultConfig(),
 	}
 }
 
-// NewAnalyzerWithConfig creates analyzer with config
+// NewAnalyzerWithConfig creates analyzer with custom configuration, allowing fine-grained control over
+// analysis thresholds (complexity, function length, documentation coverage), performance settings (worker count),
+// and feature toggles. Use this when default settings don't match your project's requirements.
 func NewAnalyzerWithConfig(cfg *config.Config) *Analyzer {
 	return &Analyzer{
 		config: cfg,

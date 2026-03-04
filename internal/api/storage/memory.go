@@ -8,7 +8,9 @@ type Memory struct {
 	results map[string]*AnalysisResult
 }
 
-// NewMemory creates a new in-memory storage instance.
+// NewMemory creates a new in-memory storage instance for thread-safe temporary caching of analysis results.
+// Uses sync.RWMutex for concurrent access protection, making it safe for multi-threaded API server environments.
+// All data is lost when the process terminates, making this unsuitable for long-term persistence.
 func NewMemory() *Memory {
 	return &Memory{
 		results: make(map[string]*AnalysisResult),
