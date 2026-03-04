@@ -670,55 +670,63 @@ func aggregateGenericsMetrics(report *metrics.Report, collected *CollectedMetric
 
 // finalizeTestCoverageMetrics analyzes test coverage if provided
 func finalizeTestCoverageMetrics(report *metrics.Report, cfg *config.Config) {
-	coveragePath := cfg.Analysis.CoverageProfile
-	if coveragePath == "" {
+	if cfg.Analysis.CoverageProfile == "" {
 		return
 	}
+	loadAndAnalyzeCoverage(report, cfg)
+	analyzeTestQualityMetrics(report, cfg)
+}
 
-	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Loading coverage profile from: %s\n", coveragePath)
-	}
+// loadAndAnalyzeCoverage loads coverage profile and analyzes correlation
+func loadAndAnalyzeCoverage(report *metrics.Report, cfg *config.Config) {
+	coveragePath := resolveCoveragePath(cfg.Analysis.CoverageProfile)
+	logVerbose(cfg, "Loading coverage profile from: %s\n", coveragePath)
 
-	// Resolve coverage profile path
-	if !filepath.IsAbs(coveragePath) {
-		wd, _ := os.Getwd()
-		coveragePath = filepath.Join(wd, coveragePath)
-	}
-
-	// Load coverage data
 	covAnalyzer := analyzer.NewTestCoverageAnalyzer()
 	if err := covAnalyzer.LoadCoverageProfile(coveragePath); err != nil {
-		if cfg.Output.Verbose {
-			fmt.Fprintf(os.Stderr, "Warning: failed to load coverage profile: %v\n", err)
-		}
+		logVerbose(cfg, "Warning: failed to load coverage profile: %v\n", err)
 		return
 	}
 
-	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Analyzing test coverage correlation for %d functions...\n", len(report.Functions))
-	}
-
-	// Analyze coverage correlation
+	logVerbose(cfg, "Analyzing test coverage correlation for %d functions...\n", len(report.Functions))
 	report.TestCoverage = covAnalyzer.AnalyzeCorrelation(report.Functions)
+	logCoverageResults(report, cfg)
+}
 
-	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Coverage analysis: %.2f%% function coverage, %d high-risk functions, %d coverage gaps\n",
-			report.TestCoverage.FunctionCoverageRate*100,
-			len(report.TestCoverage.HighRiskFunctions),
-			len(report.TestCoverage.CoverageGaps))
+// resolveCoveragePath returns absolute path for coverage profile
+func resolveCoveragePath(path string) string {
+	if filepath.IsAbs(path) {
+		return path
 	}
+	wd, _ := os.Getwd()
+	return filepath.Join(wd, path)
+}
 
-	// Analyze test quality - use current working directory
+// logCoverageResults outputs coverage analysis summary
+func logCoverageResults(report *metrics.Report, cfg *config.Config) {
+	logVerbose(cfg, "Coverage analysis: %.2f%% function coverage, %d high-risk functions, %d coverage gaps\n",
+		report.TestCoverage.FunctionCoverageRate*100,
+		len(report.TestCoverage.HighRiskFunctions),
+		len(report.TestCoverage.CoverageGaps))
+}
+
+// analyzeTestQualityMetrics performs test quality analysis
+func analyzeTestQualityMetrics(report *metrics.Report, cfg *config.Config) {
 	repoPath, _ := os.Getwd()
 	testQuality, err := analyzer.AnalyzeTestQuality(repoPath)
-	if err == nil {
-		report.TestQuality = testQuality
-		if cfg.Output.Verbose {
-			fmt.Fprintf(os.Stderr, "Test quality analysis: %d tests in %d files\n",
-				testQuality.TotalTests, len(testQuality.TestFiles))
-		}
-	} else if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Warning: failed to analyze test quality: %v\n", err)
+	if err != nil {
+		logVerbose(cfg, "Warning: failed to analyze test quality: %v\n", err)
+		return
+	}
+	report.TestQuality = testQuality
+	logVerbose(cfg, "Test quality analysis: %d tests in %d files\n",
+		testQuality.TotalTests, len(testQuality.TestFiles))
+}
+
+// logVerbose prints message if verbose mode is enabled
+func logVerbose(cfg *config.Config, format string, args ...interface{}) {
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, format, args...)
 	}
 }
 
