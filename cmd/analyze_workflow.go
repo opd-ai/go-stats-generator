@@ -29,73 +29,98 @@ func runDirectoryAnalysis(ctx context.Context, targetDir string, cfg *config.Con
 func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (*metrics.Report, error) {
 	startTime := time.Now()
 
-	// Validate the file is a Go source file
 	if !isGoSourceFile(filePath) {
 		return nil, fmt.Errorf("file %s is not a Go source file", filePath)
 	}
 
+	logVerboseFileAnalysis(filePath, cfg)
+
+	projectRoot := findProjectRoot(filePath)
+	result, discoverer, err := parseAndPrepareFile(filePath, projectRoot, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	report, collectedMetrics, analyzers := runSingleFileAnalysis(result, discoverer, filePath, startTime, cfg)
+	finalizeAllMetrics(report, collectedMetrics, analyzers, projectRoot, cfg)
+
+	logVerboseFileResults(collectedMetrics, cfg)
+
+	return report, nil
+}
+
+func logVerboseFileAnalysis(filePath string, cfg *config.Config) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Analyzing file: %s\n", filePath)
 	}
+}
 
-	// Find project root for relative path calculation
-	projectRoot := findProjectRoot(filePath)
-
-	// Create discoverer and parse the file
+func parseAndPrepareFile(filePath, projectRoot string, cfg *config.Config) (scanner.Result, *scanner.Discoverer, error) {
 	discoverer := scanner.NewDiscoverer(&cfg.Filters)
 
-	// Parse the single file
 	file, err := discoverer.ParseFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse file %s: %w", filePath, err)
+		return scanner.Result{}, nil, fmt.Errorf("failed to parse file %s: %w", filePath, err)
 	}
 
-	// Get file info for the single file
+	fileInfo, err := createFileInfoForSingleFile(filePath, projectRoot, file)
+	if err != nil {
+		return scanner.Result{}, nil, err
+	}
+
+	result := scanner.Result{
+		FileInfo: fileInfo,
+		File:     file,
+		Error:    nil,
+	}
+
+	return result, discoverer, nil
+}
+
+func createFileInfoForSingleFile(filePath, projectRoot string, file *ast.File) (scanner.FileInfo, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get file info: %w", err)
+		return scanner.FileInfo{}, fmt.Errorf("failed to get file info: %w", err)
 	}
 
-	// Calculate relative path from project root
-	relPath := filePath
-	if projectRoot != "" {
-		if rel, err := filepath.Rel(projectRoot, filePath); err == nil {
-			relPath = rel
-		}
-	} else {
-		relPath = filepath.Base(filePath)
-	}
+	relPath := calculateRelativePath(filePath, projectRoot)
 
-	// Create a FileInfo struct for the file
 	scannerFileInfo := scanner.FileInfo{
 		Path:        filePath,
 		RelPath:     relPath,
 		Size:        fileInfo.Size(),
 		IsTestFile:  strings.HasSuffix(filePath, "_test.go"),
-		IsGenerated: false, // Will be determined during analysis
+		IsGenerated: false,
 	}
 
-	// Get package name from the parsed file
 	if file.Name != nil {
 		scannerFileInfo.Package = file.Name.Name
 	}
 
-	// Create result for worker-like processing
-	result := scanner.Result{
-		FileInfo: scannerFileInfo,
-		File:     file,
-		Error:    nil,
-	}
+	return scannerFileInfo, nil
+}
 
-	// Create analyzers
+func calculateRelativePath(filePath, projectRoot string) string {
+	if projectRoot != "" {
+		if rel, err := filepath.Rel(projectRoot, filePath); err == nil {
+			return rel
+		}
+	}
+	return filepath.Base(filePath)
+}
+
+func runSingleFileAnalysis(result scanner.Result, discoverer *scanner.Discoverer, filePath string, startTime time.Time, cfg *config.Config) (*metrics.Report, *CollectedMetrics, *AnalyzerSet) {
 	analyzers := createAnalyzers(discoverer.GetFileSet(), cfg)
 	report := createInitialReport(filepath.Dir(filePath), startTime, 1)
-
-	// Process the single file
 	collectedMetrics := &CollectedMetrics{}
-	processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
 
-	// Finalize report
+	processFileAnalysis(result, analyzers, collectedMetrics, report, cfg)
+	report.Metadata.AnalysisTime = time.Since(startTime)
+
+	return report, collectedMetrics, analyzers
+}
+
+func finalizeAllMetrics(report *metrics.Report, collectedMetrics *CollectedMetrics, analyzers *AnalyzerSet, projectRoot string, cfg *config.Config) {
 	finalizeReport(report, collectedMetrics, analyzers.Package, cfg)
 	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
 	finalizeNamingMetrics(report, analyzers, collectedMetrics, cfg)
@@ -103,18 +128,14 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	finalizeDocumentationMetrics(report, analyzers, collectedMetrics, cfg)
 	finalizeOrganizationMetrics(report, analyzers, collectedMetrics, cfg, projectRoot)
 	finalizeTeamMetrics(report, projectRoot, cfg)
-
-	// Generate refactoring suggestions after all metrics are finalized
 	finalizeRefactoringSuggestions(report, cfg)
+}
 
-	report.Metadata.AnalysisTime = time.Since(startTime)
-
+func logVerboseFileResults(collectedMetrics *CollectedMetrics, cfg *config.Config) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Analyzed 1 file, found %d functions, %d structs, %d interfaces\n",
 			len(collectedMetrics.Functions), len(collectedMetrics.Structs), len(collectedMetrics.Interfaces))
 	}
-
-	return report, nil
 }
 
 // isGoSourceFile checks if a file is a Go source file

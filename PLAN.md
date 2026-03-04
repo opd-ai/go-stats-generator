@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 52 production functions remain above complexity 10.0 (17 completed, 52 remaining out of 69 total)
+    - **Status**: 51 production functions remain above complexity 10.0 (18 completed, 51 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -124,12 +124,13 @@
       - ✅ Refactored `getTerminationReason` (12.9 → 5.7, 55.8% improvement; cyclomatic 8 → 4, 50.0% improvement)
       - ✅ Refactored `analyzeQuality` (12.9 → 1.3, 89.9% improvement; cyclomatic 8 → 1, 87.5% improvement)
       - ✅ Refactored `dfsCircular` (12.9 → 4.9, 62.0% improvement; cyclomatic 8 → 3, 62.5% improvement)
-      - ⏳ 52 functions remaining above 10.0 threshold (17 completed, 52 remaining out of 69 total)
+      - ✅ Refactored `runFileAnalysis` (12.7 → 4.4, 65.4% improvement; cyclomatic 9 → 3, 66.7% improvement)
+      - ⏳ 51 functions remaining above 10.0 threshold (18 completed, 51 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ runFileAnalysis (12.7) - cmd/analyze_workflow.go [NEXT]
-      2. ⏳ detectBuilder (12.7) - internal/analyzer/pattern.go
-      3. ⏳ writeNamingSection (12.7) - internal/reporter/csv.go
-      4. ⏳ AnalyzeTestCoverage (12.7) - internal/analyzer/test_coverage.go
+      1. ⏳ detectBuilder (12.7) - internal/analyzer/pattern.go [NEXT]
+      2. ⏳ writeNamingSection (12.7) - internal/reporter/csv.go
+      3. ⏳ AnalyzeTestCoverage (12.7) - internal/analyzer/test_coverage.go
+      4. ⏳ (additional functions to be identified)
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
