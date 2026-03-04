@@ -203,30 +203,43 @@ func (ca *ConcurrencyAnalyzer) analyzeMakeChannel(call *ast.CallExpr, concurrenc
 		return
 	}
 
+	isBuffered, bufferSize := ca.extractBufferSize(call)
+	direction, isDirectional := ca.determineChannelDirection(chanType)
+	instance := ca.createChannelInstance(fileName, line, functionName, chanType, isBuffered, bufferSize, direction, isDirectional)
+
+	concurrency.Channels.Instances = append(concurrency.Channels.Instances, instance)
+}
+
+// extractBufferSize extracts buffer size from make(chan) call arguments
+func (ca *ConcurrencyAnalyzer) extractBufferSize(call *ast.CallExpr) (bool, int) {
 	isBuffered := len(call.Args) > 1
 	bufferSize := 0
 
 	if isBuffered {
 		if basicLit, ok := call.Args[1].(*ast.BasicLit); ok && basicLit.Kind == token.INT {
-			// Parse buffer size (simplified)
 			if size := ca.parseIntLiteral(basicLit.Value); size > 0 {
 				bufferSize = size
 			}
 		}
 	}
 
-	direction := "bidirectional"
-	isDirectional := false
+	return isBuffered, bufferSize
+}
 
+// determineChannelDirection determines if channel is send-only, receive-only, or bidirectional
+func (ca *ConcurrencyAnalyzer) determineChannelDirection(chanType *ast.ChanType) (string, bool) {
 	if chanType.Dir == ast.SEND {
-		direction = "send-only"
-		isDirectional = true
-	} else if chanType.Dir == ast.RECV {
-		direction = "receive-only"
-		isDirectional = true
+		return "send-only", true
 	}
+	if chanType.Dir == ast.RECV {
+		return "receive-only", true
+	}
+	return "bidirectional", false
+}
 
-	instance := metrics.ChannelInstance{
+// createChannelInstance builds a ChannelInstance from analyzed channel properties
+func (ca *ConcurrencyAnalyzer) createChannelInstance(fileName string, line int, functionName string, chanType *ast.ChanType, isBuffered bool, bufferSize int, direction string, isDirectional bool) metrics.ChannelInstance {
+	return metrics.ChannelInstance{
 		File:          fileName,
 		Line:          line,
 		Function:      functionName,
@@ -236,8 +249,6 @@ func (ca *ConcurrencyAnalyzer) analyzeMakeChannel(call *ast.CallExpr, concurrenc
 		IsDirectional: isDirectional,
 		Direction:     direction,
 	}
-
-	concurrency.Channels.Instances = append(concurrency.Channels.Instances, instance)
 }
 
 // analyzeSyncCall analyzes calls to sync package functions
