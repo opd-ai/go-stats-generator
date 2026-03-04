@@ -17,6 +17,25 @@ type ConsoleReporter struct {
 	useColors bool
 }
 
+// sectionContent holds information for printing a standardized analysis section.
+type sectionContent struct {
+	header        string
+	summaryLines  []string
+	detailWriters []func()
+}
+
+// writeSectionWithDetails prints a section header, summary lines, and optional detail subsections.
+func (cr *ConsoleReporter) writeSectionWithDetails(output io.Writer, content sectionContent) {
+	fmt.Fprintln(output, content.header)
+	for _, line := range content.summaryLines {
+		fmt.Fprintln(output, line)
+	}
+	fmt.Fprintln(output)
+	for _, writer := range content.detailWriters {
+		writer()
+	}
+}
+
 // NewConsoleReporter creates a new console reporter
 func NewConsoleReporter(cfg *config.OutputConfig) *ConsoleReporter {
 	if cfg == nil {
@@ -831,29 +850,32 @@ func (cr *ConsoleReporter) formatCloneLocations(clone metrics.ClonePair) string 
 
 // writeNamingAnalysis generates naming convention analysis output
 func (cr *ConsoleReporter) writeNamingAnalysis(output io.Writer, report *metrics.Report) {
-	fmt.Fprintln(output, "=== NAMING CONVENTION ANALYSIS ===")
-
 	naming := report.Naming
-	fmt.Fprintf(output, "File Name Violations: %d\n", naming.FileNameViolations)
-	fmt.Fprintf(output, "Identifier Violations: %d\n", naming.IdentifierViolations)
-	fmt.Fprintf(output, "Package Name Violations: %d\n", naming.PackageNameViolations)
-	fmt.Fprintf(output, "Overall Naming Score: %.2f\n", naming.OverallNamingScore)
-	fmt.Fprintln(output)
-
-	// Display identifier violations (most common)
+	content := sectionContent{
+		header: "=== NAMING CONVENTION ANALYSIS ===",
+		summaryLines: []string{
+			fmt.Sprintf("File Name Violations: %d", naming.FileNameViolations),
+			fmt.Sprintf("Identifier Violations: %d", naming.IdentifierViolations),
+			fmt.Sprintf("Package Name Violations: %d", naming.PackageNameViolations),
+			fmt.Sprintf("Overall Naming Score: %.2f", naming.OverallNamingScore),
+		},
+	}
 	if len(naming.IdentifierIssues) > 0 {
-		cr.writeIdentifierViolations(output, naming.IdentifierIssues)
+		content.detailWriters = append(content.detailWriters, func() {
+			cr.writeIdentifierViolations(output, naming.IdentifierIssues)
+		})
 	}
-
-	// Display package name violations
 	if len(naming.PackageNameIssues) > 0 {
-		cr.writePackageNameViolations(output, naming.PackageNameIssues)
+		content.detailWriters = append(content.detailWriters, func() {
+			cr.writePackageNameViolations(output, naming.PackageNameIssues)
+		})
 	}
-
-	// Display file name violations
 	if len(naming.FileNameIssues) > 0 {
-		cr.writeFileNameViolations(output, naming.FileNameIssues)
+		content.detailWriters = append(content.detailWriters, func() {
+			cr.writeFileNameViolations(output, naming.FileNameIssues)
+		})
 	}
+	cr.writeSectionWithDetails(output, content)
 }
 
 // writeIdentifierViolations displays identifier naming violations
@@ -970,29 +992,32 @@ func severityWeight(severity string) int {
 
 // writePlacementAnalysis generates placement analysis output
 func (cr *ConsoleReporter) writePlacementAnalysis(output io.Writer, report *metrics.Report) {
-	fmt.Fprintln(output, "=== PLACEMENT ANALYSIS ===")
-
 	placement := report.Placement
-	fmt.Fprintf(output, "Misplaced Functions: %d\n", placement.MisplacedFunctions)
-	fmt.Fprintf(output, "Misplaced Methods: %d\n", placement.MisplacedMethods)
-	fmt.Fprintf(output, "Low Cohesion Files: %d\n", placement.LowCohesionFiles)
-	fmt.Fprintf(output, "Average File Cohesion: %.2f\n", placement.AvgFileCohesion)
-	fmt.Fprintln(output)
-
-	// Display misplaced function issues
+	content := sectionContent{
+		header: "=== PLACEMENT ANALYSIS ===",
+		summaryLines: []string{
+			fmt.Sprintf("Misplaced Functions: %d", placement.MisplacedFunctions),
+			fmt.Sprintf("Misplaced Methods: %d", placement.MisplacedMethods),
+			fmt.Sprintf("Low Cohesion Files: %d", placement.LowCohesionFiles),
+			fmt.Sprintf("Average File Cohesion: %.2f", placement.AvgFileCohesion),
+		},
+	}
 	if len(placement.FunctionIssues) > 0 {
-		cr.writeMisplacedFunctions(output, placement.FunctionIssues)
+		content.detailWriters = append(content.detailWriters, func() {
+			cr.writeMisplacedFunctions(output, placement.FunctionIssues)
+		})
 	}
-
-	// Display misplaced method issues
 	if len(placement.MethodIssues) > 0 {
-		cr.writeMisplacedMethods(output, placement.MethodIssues)
+		content.detailWriters = append(content.detailWriters, func() {
+			cr.writeMisplacedMethods(output, placement.MethodIssues)
+		})
 	}
-
-	// Display file cohesion issues
 	if len(placement.CohesionIssues) > 0 {
-		cr.writeFileCohesionIssues(output, placement.CohesionIssues)
+		content.detailWriters = append(content.detailWriters, func() {
+			cr.writeFileCohesionIssues(output, placement.CohesionIssues)
+		})
 	}
+	cr.writeSectionWithDetails(output, content)
 }
 
 // writeMisplacedFunctions displays misplaced function issues
@@ -1329,24 +1354,26 @@ func (cr *ConsoleReporter) writeTopMagicNumbers(output io.Writer, numbers []metr
 
 // writeOrganizationAnalysis generates organization health analysis output
 func (cr *ConsoleReporter) writeOrganizationAnalysis(output io.Writer, report *metrics.Report) {
-	fmt.Fprintln(output, "=== ORGANIZATION HEALTH ===")
-
 	org := report.Organization
-
-	// Summary metrics
-	fmt.Fprintf(output, "Oversized Files: %d\n", len(org.OversizedFiles))
-	fmt.Fprintf(output, "Oversized Packages: %d\n", len(org.OversizedPackages))
-	fmt.Fprintf(output, "Deep Directories: %d\n", len(org.DeepDirectories))
-	fmt.Fprintf(output, "High Fan-In Packages: %d\n", len(org.HighFanInPackages))
-	fmt.Fprintf(output, "High Fan-Out Packages: %d\n", len(org.HighFanOutPackages))
-	fmt.Fprintf(output, "Avg Package Instability: %.2f\n", org.AvgPackageStability)
-	fmt.Fprintln(output)
-
-	cr.writeOversizedFiles(output, org.OversizedFiles)
-	cr.writeOversizedPackages(output, org.OversizedPackages)
-	cr.writeDeepDirectories(output, org.DeepDirectories)
-	cr.writeHighFanInPackages(output, org.HighFanInPackages)
-	cr.writeHighFanOutPackages(output, org.HighFanOutPackages)
+	content := sectionContent{
+		header: "=== ORGANIZATION HEALTH ===",
+		summaryLines: []string{
+			fmt.Sprintf("Oversized Files: %d", len(org.OversizedFiles)),
+			fmt.Sprintf("Oversized Packages: %d", len(org.OversizedPackages)),
+			fmt.Sprintf("Deep Directories: %d", len(org.DeepDirectories)),
+			fmt.Sprintf("High Fan-In Packages: %d", len(org.HighFanInPackages)),
+			fmt.Sprintf("High Fan-Out Packages: %d", len(org.HighFanOutPackages)),
+			fmt.Sprintf("Avg Package Instability: %.2f", org.AvgPackageStability),
+		},
+		detailWriters: []func(){
+			func() { cr.writeOversizedFiles(output, org.OversizedFiles) },
+			func() { cr.writeOversizedPackages(output, org.OversizedPackages) },
+			func() { cr.writeDeepDirectories(output, org.DeepDirectories) },
+			func() { cr.writeHighFanInPackages(output, org.HighFanInPackages) },
+			func() { cr.writeHighFanOutPackages(output, org.HighFanOutPackages) },
+		},
+	}
+	cr.writeSectionWithDetails(output, content)
 }
 
 // writeOversizedFiles displays files exceeding size thresholds
