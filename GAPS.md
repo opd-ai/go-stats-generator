@@ -1,8 +1,42 @@
-# Implementation Gaps: Production Readiness — Complexity Remediation Phase
+# Implementation Gaps: Production Readiness — Code Quality Remediation Phase
 
-Generated: 2026-03-04T06:50:00Z
+Generated: 2026-03-04T15:36:00Z
 Analysis Tool: go-stats-generator v1.0.0
 Source: ROADMAP.md (Production Readiness Assessment), metrics.json
+
+---
+
+## Gap 8: Naming Violations Deferred (338 Total)
+
+- **Description**: ROADMAP.md documents 338 naming violations (18 production code, 311 test files, 14 package, 13 file). These include acronym casing issues (`countIdentifiers`, `AnalyzeIdentifiers`), package stuttering (`MultiRepoReport`, `MetricsSnapshot`), and single-letter names (`x`, `y` in statistics.go).
+
+- **Impact**: Code readability and Go idiom compliance. However, many "violations" may be false positives (e.g., "Identifier" spelled out is correct Go style, not an acronym).
+
+- **Metrics Context**:
+  ```
+  Production code: 18 violations
+  Test files: 311 violations (acceptable Go test naming `Test_*`)
+  Package names: 14 violations (11 testdata directory mismatches)
+  ```
+
+- **Resolution**: Deferred to separate phase after complexity/documentation remediation. Requires manual review to distinguish true violations from false positives.
+
+---
+
+## Gap 9: Low Cohesion Packages Require Architectural Review
+
+- **Description**: Three packages have low cohesion scores indicating potential organizational issues: `api` (0.8), `multirepo` (0.47), `generator` (1.13).
+
+- **Impact**: May indicate code that should be reorganized or split into more focused packages. Affects maintainability.
+
+- **Metrics Context**:
+  ```json
+  {"name": "api", "coupling_score": 2.5, "cohesion_score": 0.8}
+  {"name": "multirepo", "coupling_score": 0.5, "cohesion_score": 0.47}
+  {"name": "generator", "coupling_score": 2.0, "cohesion_score": 1.13}
+  ```
+
+- **Resolution**: Architectural review after code quality remediation. Consider consolidating `api` and `generator` packages.
 
 ---
 

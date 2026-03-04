@@ -206,24 +206,26 @@ func (d *DocumentationAnalyzer) getSeverity(category string) string {
 // analyzePackageDocs checks for package-level documentation
 func (d *DocumentationAnalyzer) analyzePackageDocs(files []*ast.File, pkgs map[string]*ast.Package, m *metrics.DocumentationMetrics) {
 	pkgDocs := make(map[string]bool)
-	totalPkgs := 0
+	pkgSeen := make(map[string]bool)
 
 	for _, file := range files {
 		pkgName := file.Name.Name
-		if _, seen := pkgDocs[pkgName]; !seen {
-			totalPkgs++
-			pkgDocs[pkgName] = d.hasPackageDoc(file)
+		if !pkgSeen[pkgName] {
+			pkgSeen[pkgName] = true
+		}
+		if d.hasPackageDoc(file) {
+			pkgDocs[pkgName] = true
 		}
 	}
 
 	documented := 0
-	for _, hasDoc := range pkgDocs {
-		if hasDoc {
+	for pkgName := range pkgSeen {
+		if pkgDocs[pkgName] {
 			documented++
 		}
 	}
 
-	m.Coverage.Packages = calculatePercentage(documented, totalPkgs)
+	m.Coverage.Packages = calculatePercentage(documented, len(pkgSeen))
 }
 
 // hasPackageDoc checks if a file has package-level documentation
