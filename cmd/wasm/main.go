@@ -34,6 +34,7 @@ type ConfigInput struct {
 	MaxFunctionLength        int     `json:"maxFunctionLength,omitempty"`
 	MaxCyclomaticComplexity  int     `json:"maxCyclomaticComplexity,omitempty"`
 	MinDocumentationCoverage float64 `json:"minDocumentationCoverage,omitempty"`
+	MinPackageDocCoverage    float64 `json:"minPackageDocCoverage,omitempty"`
 	SkipTestFiles            bool    `json:"skipTestFiles,omitempty"`
 }
 
@@ -137,6 +138,9 @@ func buildConfig(input *ConfigInput) *config.Config {
 		}
 		if input.MinDocumentationCoverage > 0 {
 			cfg.Analysis.MinDocumentationCoverage = input.MinDocumentationCoverage
+		}
+		if input.MinPackageDocCoverage > 0 {
+			cfg.Analysis.MinPackageDocCoverage = input.MinPackageDocCoverage
 		}
 		if input.SkipTestFiles {
 			cfg.Filters.SkipTestFiles = true

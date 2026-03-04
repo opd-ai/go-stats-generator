@@ -133,6 +133,9 @@ func loadThresholdSettings(cfg *config.Config) {
 	if viper.IsSet("analysis.min_documentation_coverage") {
 		cfg.Analysis.MinDocumentationCoverage = viper.GetFloat64("analysis.min_documentation_coverage")
 	}
+	if viper.IsSet("analysis.min_package_doc_coverage") {
+		cfg.Analysis.MinPackageDocCoverage = viper.GetFloat64("analysis.min_package_doc_coverage")
+	}
 	if viper.IsSet("analysis.enforce_thresholds") {
 		cfg.Analysis.EnforceThresholds = viper.GetBool("analysis.enforce_thresholds")
 	}

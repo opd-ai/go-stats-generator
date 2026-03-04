@@ -148,6 +148,8 @@ func registerThresholdFlags() {
 		"maximum cyclomatic complexity warning threshold")
 	analyzeCmd.Flags().Float64("min-doc-coverage", 0.7,
 		"minimum documentation coverage warning threshold")
+	analyzeCmd.Flags().Float64("min-package-doc-coverage", 0.4,
+		"minimum package-level documentation coverage warning threshold")
 	analyzeCmd.Flags().Float64("max-duplication-ratio", 0.10,
 		"maximum code duplication ratio allowed (0.0-1.0, default 0.10 = 10%)")
 	analyzeCmd.Flags().Int("max-undocumented-exports", 10,
@@ -250,6 +252,7 @@ func bindAnalysisFlags() {
 		{"max-function-length", "analysis.max_function_length"},
 		{"max-complexity", "analysis.max_cyclomatic_complexity"},
 		{"min-doc-coverage", "analysis.min_documentation_coverage"},
+		{"min-package-doc-coverage", "analysis.min_package_doc_coverage"},
 		{"max-duplication-ratio", "analysis.max_duplication_ratio"},
 		{"max-undocumented-exports", "analysis.max_undocumented_exports"},
 		{"enforce-thresholds", "analysis.enforce_thresholds"},
@@ -438,7 +441,7 @@ func countUndocumentedExports(report *metrics.Report) int {
 	return count
 }
 
-// checkDocumentationCoverage validates documentation coverage threshold
+// checkDocumentationCoverage validates documentation coverage thresholds
 func checkDocumentationCoverage(report *metrics.Report, cfg *config.Config, violations *[]string) {
 	thresholdPercent := cfg.Analysis.MinDocumentationCoverage * 100
 	if report.Documentation.Coverage.Overall < thresholdPercent {
@@ -446,6 +449,15 @@ func checkDocumentationCoverage(report *metrics.Report, cfg *config.Config, viol
 			"Documentation coverage (%.2f%%) is below threshold (%.2f%%)",
 			report.Documentation.Coverage.Overall,
 			thresholdPercent,
+		))
+	}
+
+	packageThresholdPercent := cfg.Analysis.MinPackageDocCoverage * 100
+	if packageThresholdPercent > 0 && report.Documentation.Coverage.Packages < packageThresholdPercent {
+		*violations = append(*violations, fmt.Sprintf(
+			"Package documentation coverage (%.2f%%) is below threshold (%.2f%%)",
+			report.Documentation.Coverage.Packages,
+			packageThresholdPercent,
 		))
 	}
 }

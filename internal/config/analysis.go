@@ -35,6 +35,7 @@ type AnalysisConfig struct {
 	MaxCyclomaticComplexity  int     `mapstructure:"max_cyclomatic_complexity" json:"max_cyclomatic_complexity"`
 	MaxStructFields          int     `mapstructure:"max_struct_fields" json:"max_struct_fields"`
 	MinDocumentationCoverage float64 `mapstructure:"min_documentation_coverage" json:"min_documentation_coverage"`
+	MinPackageDocCoverage    float64 `mapstructure:"min_package_doc_coverage" json:"min_package_doc_coverage"`
 	MaxDuplicationRatio      float64 `mapstructure:"max_duplication_ratio" json:"max_duplication_ratio"`
 	MaxUndocumentedExports   int     `mapstructure:"max_undocumented_exports" json:"max_undocumented_exports"`
 	EnforceThresholds        bool    `mapstructure:"enforce_thresholds" json:"enforce_thresholds"`
@@ -218,6 +219,7 @@ func DefaultConfig() *Config {
 			MaxCyclomaticComplexity:  10,
 			MaxStructFields:          20,
 			MinDocumentationCoverage: 0.7,
+			MinPackageDocCoverage:    0.4,
 			Duplication: DuplicationConfig{
 				MinBlockLines:       6,
 				SimilarityThreshold: 0.80,

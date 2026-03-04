@@ -34,15 +34,11 @@
 - **Multiple Output Formats**: Console, JSON, HTML, CSV, and Markdown with rich reporting
 - **Enterprise Scale**: Designed for large codebases with concurrent processing
 - **Configurable Analysis**: Flexible filtering, thresholds, and analysis options
-
-### Beta/Experimental Features
-
-> ⚠️ **Note:** Features in this section provide basic functionality but are under active development. Advanced capabilities and statistical analysis are planned for future releases. For production use, rely on the production-ready features above.
-
-- **Trend Analysis** _(BETA)_: Basic trend commands available for time-series analysis
-  - Current: Basic snapshot aggregation and simple metric comparison
-  - Planned: Advanced statistical analysis (linear regression, ARIMA forecasting, hypothesis testing)
-  - Recommendation: For production regression detection, use the `diff` command to compare specific baseline snapshots
+- **Trend Analysis**: Statistical analysis of code metrics over time
+  - Linear regression trend lines with R² coefficients for measuring trend strength
+  - Statistical forecasting (7/14/30-day predictions) with 95% confidence intervals
+  - Regression detection with hypothesis testing and p-values for significance assessment
+  - Future enhancements: ARIMA forecasting, exponential smoothing (see [Planned Features](#planned-features))
 
 ## Installation
 
