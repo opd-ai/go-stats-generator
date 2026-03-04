@@ -359,39 +359,50 @@ func (pa *PlacementAnalyzer) AnalyzeFileCohesion() []metrics.FileCohesionIssue {
 		cohesion := pa.calculateCohesion(file)
 
 		if cohesion < pa.minCohesion {
-			intraRefs := 0
-			totalRefs := 0
-
-			for symbol, count := range pa.fileRefs[file] {
-				totalRefs += count
-				if pa.symbolDefs[symbol] == file {
-					intraRefs += count
-				}
-			}
-
-			// Suggest splits based on symbol clustering (simplified)
-			suggestedSplits := pa.suggestSplits(file)
-
-			severity := "low"
-			if cohesion < pa.minCohesion/2 {
-				severity = "medium"
-			}
-			if cohesion < pa.minCohesion/3 {
-				severity = "high"
-			}
-
-			issues = append(issues, metrics.FileCohesionIssue{
-				File:            file,
-				CohesionScore:   cohesion,
-				IntraFileRefs:   intraRefs,
-				TotalRefs:       totalRefs,
-				SuggestedSplits: suggestedSplits,
-				Severity:        severity,
-			})
+			issue := pa.buildCohesionIssue(file, cohesion)
+			issues = append(issues, issue)
 		}
 	}
 
 	return issues
+}
+
+// buildCohesionIssue creates a FileCohesionIssue for a file with low cohesion
+func (pa *PlacementAnalyzer) buildCohesionIssue(file string, cohesion float64) metrics.FileCohesionIssue {
+	intraRefs, totalRefs := pa.countFileReferences(file)
+	suggestedSplits := pa.suggestSplits(file)
+	severity := pa.determineCohesionSeverity(cohesion)
+
+	return metrics.FileCohesionIssue{
+		File:            file,
+		CohesionScore:   cohesion,
+		IntraFileRefs:   intraRefs,
+		TotalRefs:       totalRefs,
+		SuggestedSplits: suggestedSplits,
+		Severity:        severity,
+	}
+}
+
+// countFileReferences counts intra-file and total references for a file
+func (pa *PlacementAnalyzer) countFileReferences(file string) (intraRefs, totalRefs int) {
+	for symbol, count := range pa.fileRefs[file] {
+		totalRefs += count
+		if pa.symbolDefs[symbol] == file {
+			intraRefs += count
+		}
+	}
+	return intraRefs, totalRefs
+}
+
+// determineCohesionSeverity calculates severity based on cohesion score
+func (pa *PlacementAnalyzer) determineCohesionSeverity(cohesion float64) string {
+	if cohesion < pa.minCohesion/3 {
+		return "high"
+	}
+	if cohesion < pa.minCohesion/2 {
+		return "medium"
+	}
+	return "low"
 }
 
 // calculateCohesion computes the cohesion score for a file

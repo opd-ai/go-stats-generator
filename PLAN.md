@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 36 production functions remain above complexity 10.0 (33 completed, 36 remaining out of 69 total)
+    - **Status**: 33 production functions remain above complexity 10.0 (36 completed, 33 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -142,10 +142,10 @@
       - ✅ Refactored `checkAcronymCasing` (11.1 → 6.2, 44.1% improvement; cyclomatic 7 → 4, 42.9% improvement; lines 47 → 15, 68.1% reduction; extracted 2 helper functions: checkAcronymAtStart at 4.4 complexity, checkAcronymInMiddle at 6.7 complexity)
       - ✅ Refactored `generateDiffSummary` (11.4 → 1.3, 88.6% improvement; cyclomatic 8 → 1, 87.5% improvement; lines 31 → 11, 64.5% reduction; extracted 4 helper functions: countSignificantChanges at 4.9 complexity, countCriticalIssues at 4.9 complexity, determineOverallTrend at 4.9 complexity, calculateQualityScore at 3.1 complexity)
       - ✅ Refactored `detectWorkerPools` (11.1 → 4.9, 55.9% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 41 → 6, 85.4% reduction; extracted 4 helper functions: groupGoroutinesByFile at 3.1 complexity, detectWorkerPoolInFile at 4.4 complexity, countAnonymousGoroutines at 4.9 complexity, buildWorkerPoolPattern at 1.3 complexity)
-      - ⏳ 34 functions remaining above 10.0 threshold (35 completed, 34 remaining out of 69 total)
+      - ✅ Refactored `AnalyzeFileCohesion` (11.1 → 4.9, 55.9% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 39 → 12, 69.2% reduction; extracted 3 helper functions: buildCohesionIssue at 1.3 complexity, countFileReferences at 4.9 complexity, determineCohesionSeverity at 4.4 complexity)
+      - ⏳ 33 functions remaining above 10.0 threshold (36 completed, 33 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ AnalyzeFileCohesion (11.1) - internal/analyzer/cohesion.go [NEXT]
-      2. ⏳ (next highest complexity function)
+      1. ⏳ (next highest complexity function)
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
