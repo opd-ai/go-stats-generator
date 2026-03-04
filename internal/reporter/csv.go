@@ -22,28 +22,19 @@ func (r *CSVReporter) Generate(report *metrics.Report, output io.Writer) error {
 	writer := csv.NewWriter(output)
 	defer writer.Flush()
 
-	if err := r.writeMetadataSection(writer, report); err != nil {
-		return err
+	sections := []func(*csv.Writer, *metrics.Report) error{
+		r.writeMetadataSection,
+		r.writeOverviewSection,
+		r.writeFunctionsSection,
+		r.writeStructsSection,
+		r.writePackagesSection,
+		r.writeNamingSection,
 	}
 
-	if err := r.writeOverviewSection(writer, report); err != nil {
-		return err
-	}
-
-	if err := r.writeFunctionsSection(writer, report); err != nil {
-		return err
-	}
-
-	if err := r.writeStructsSection(writer, report); err != nil {
-		return err
-	}
-
-	if err := r.writePackagesSection(writer, report); err != nil {
-		return err
-	}
-
-	if err := r.writeNamingSection(writer, report); err != nil {
-		return err
+	for _, writeSection := range sections {
+		if err := writeSection(writer, report); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -377,19 +368,30 @@ func (r *CSVReporter) writeDiffRegressions(writer *csv.Writer, diff *metrics.Com
 		return nil
 	}
 
-	if err := writer.Write([]string{""}); err != nil {
+	if err := writeDiffSectionHeader(writer, "# REGRESSIONS"); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"# REGRESSIONS"}); err != nil {
-		return fmt.Errorf("failed to write regressions header: %w", err)
-	}
 
-	regressionHeaders := []string{"Location", "Function", "Old Value", "New Value", "Change", "Severity"}
-	if err := writer.Write(regressionHeaders); err != nil {
+	headers := []string{"Location", "Function", "Old Value", "New Value", "Change", "Severity"}
+	if err := writer.Write(headers); err != nil {
 		return fmt.Errorf("failed to write regression headers: %w", err)
 	}
 
-	for _, reg := range diff.Regressions {
+	return writeRegressionRows(writer, diff.Regressions)
+}
+
+func writeDiffSectionHeader(writer *csv.Writer, title string) error {
+	if err := writer.Write([]string{""}); err != nil {
+		return err
+	}
+	if err := writer.Write([]string{title}); err != nil {
+		return fmt.Errorf("failed to write section header: %w", err)
+	}
+	return nil
+}
+
+func writeRegressionRows(writer *csv.Writer, regressions []metrics.Regression) error {
+	for _, reg := range regressions {
 		row := []string{
 			reg.Location,
 			reg.Function,
@@ -403,7 +405,6 @@ func (r *CSVReporter) writeDiffRegressions(writer *csv.Writer, diff *metrics.Com
 			return fmt.Errorf("failed to write regression row: %w", err)
 		}
 	}
-
 	return nil
 }
 
@@ -413,19 +414,20 @@ func (r *CSVReporter) writeDiffImprovements(writer *csv.Writer, diff *metrics.Co
 		return nil
 	}
 
-	if err := writer.Write([]string{""}); err != nil {
+	if err := writeDiffSectionHeader(writer, "# IMPROVEMENTS"); err != nil {
 		return err
 	}
-	if err := writer.Write([]string{"# IMPROVEMENTS"}); err != nil {
-		return fmt.Errorf("failed to write improvements header: %w", err)
-	}
 
-	improvementHeaders := []string{"Location", "Function", "Old Value", "New Value", "Change", "Impact"}
-	if err := writer.Write(improvementHeaders); err != nil {
+	headers := []string{"Location", "Function", "Old Value", "New Value", "Change", "Impact"}
+	if err := writer.Write(headers); err != nil {
 		return fmt.Errorf("failed to write improvement headers: %w", err)
 	}
 
-	for _, imp := range diff.Improvements {
+	return writeImprovementRows(writer, diff.Improvements)
+}
+
+func writeImprovementRows(writer *csv.Writer, improvements []metrics.Improvement) error {
+	for _, imp := range improvements {
 		row := []string{
 			imp.Location,
 			imp.Function,
@@ -439,7 +441,6 @@ func (r *CSVReporter) writeDiffImprovements(writer *csv.Writer, diff *metrics.Co
 			return fmt.Errorf("failed to write improvement row: %w", err)
 		}
 	}
-
 	return nil
 }
 
@@ -456,24 +457,34 @@ func writeSectionData[T any](
 		return nil
 	}
 
-	if err := writer.Write([]string{""}); err != nil {
+	if err := writeCSVSectionHeader(writer, sectionTitle); err != nil {
 		return err
-	}
-	if err := writer.Write([]string{sectionTitle}); err != nil {
-		return fmt.Errorf("failed to write section header: %w", err)
 	}
 
 	if err := writer.Write(headers); err != nil {
 		return fmt.Errorf("failed to write column headers: %w", err)
 	}
 
+	return writeCSVDataRows(writer, data, rowFormatter)
+}
+
+func writeCSVSectionHeader(writer *csv.Writer, title string) error {
+	if err := writer.Write([]string{""}); err != nil {
+		return err
+	}
+	if err := writer.Write([]string{title}); err != nil {
+		return fmt.Errorf("failed to write section header: %w", err)
+	}
+	return nil
+}
+
+func writeCSVDataRows[T any](writer *csv.Writer, data []T, rowFormatter func(T) []string) error {
 	for _, item := range data {
 		row := rowFormatter(item)
 		if err := writer.Write(row); err != nil {
 			return fmt.Errorf("failed to write data row: %w", err)
 		}
 	}
-
 	return nil
 }
 

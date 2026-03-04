@@ -380,47 +380,51 @@ func (cr *ConsoleReporter) calculateFunctionStats(functions []metrics.FunctionMe
 		return functionStats{}
 	}
 
+	stats := functionStats{
+		LongestName:   functions[0].Name,
+		LongestLength: functions[0].Lines.Total,
+	}
+
 	var totalLength int
 	var totalComplexity float64
-	var longFunctions int
-	var veryLongFunctions int
-	var highComplexity int
-
-	longestName := functions[0].Name
-	longestLength := functions[0].Lines.Total
 
 	for _, fn := range functions {
 		totalLength += fn.Lines.Total
 		totalComplexity += fn.Complexity.Overall
 
-		if fn.Lines.Total > longestLength {
-			longestLength = fn.Lines.Total
-			longestName = fn.Name
-		}
-
-		if fn.Lines.Total > 50 {
-			longFunctions++
-		}
-		if fn.Lines.Total > 100 {
-			veryLongFunctions++
-		}
-		if fn.Complexity.Cyclomatic > 10 {
-			highComplexity++
-		}
+		updateLongestFunction(&stats, fn)
+		incrementLengthCounters(&stats, fn.Lines.Total)
+		incrementComplexityCounters(&stats, fn.Complexity.Cyclomatic)
 	}
 
 	count := float64(len(functions))
+	stats.AvgLength = float64(totalLength) / count
+	stats.LongFunctionsPct = float64(stats.LongFunctions) / count * 100
+	stats.VeryLongFunctionsPct = float64(stats.VeryLongFunctions) / count * 100
+	stats.AvgComplexity = totalComplexity / count
 
-	return functionStats{
-		AvgLength:            float64(totalLength) / count,
-		LongestName:          longestName,
-		LongestLength:        longestLength,
-		LongFunctions:        longFunctions,
-		LongFunctionsPct:     float64(longFunctions) / count * 100,
-		VeryLongFunctions:    veryLongFunctions,
-		VeryLongFunctionsPct: float64(veryLongFunctions) / count * 100,
-		AvgComplexity:        totalComplexity / count,
-		HighComplexity:       highComplexity,
+	return stats
+}
+
+func updateLongestFunction(stats *functionStats, fn metrics.FunctionMetrics) {
+	if fn.Lines.Total > stats.LongestLength {
+		stats.LongestLength = fn.Lines.Total
+		stats.LongestName = fn.Name
+	}
+}
+
+func incrementLengthCounters(stats *functionStats, lines int) {
+	if lines > 50 {
+		stats.LongFunctions++
+	}
+	if lines > 100 {
+		stats.VeryLongFunctions++
+	}
+}
+
+func incrementComplexityCounters(stats *functionStats, complexity int) {
+	if complexity > 10 {
+		stats.HighComplexity++
 	}
 }
 
@@ -523,24 +527,40 @@ func (cr *ConsoleReporter) writeDiffImprovements(output io.Writer, improvements 
 	fmt.Fprintln(output, "=== IMPROVEMENTS ===")
 
 	for _, improvement := range improvements {
-		fmt.Fprintf(output, "✅ %s: %s\n", improvement.Type, improvement.Location)
-		if improvement.File != "" {
-			fmt.Fprintf(output, "   File: %s", improvement.File)
-			if improvement.Line > 0 {
-				fmt.Fprintf(output, ":%d", improvement.Line)
-			}
-			fmt.Fprintln(output, "")
-		}
-		fmt.Fprintf(output, "   Change: %v → %v", improvement.OldValue, improvement.NewValue)
-		if improvement.Delta.Percentage > 0 {
-			fmt.Fprintf(output, " (%.1f%% improvement)", improvement.Delta.Percentage)
-		}
-		fmt.Fprintln(output, "")
+		writeImprovementEntry(output, improvement)
+	}
+}
 
-		if improvement.Benefit != "" {
-			fmt.Fprintf(output, "   Benefit: %s\n", improvement.Benefit)
-		}
-		fmt.Fprintln(output, "")
+func writeImprovementEntry(output io.Writer, improvement metrics.Improvement) {
+	fmt.Fprintf(output, "✅ %s: %s\n", improvement.Type, improvement.Location)
+	writeImprovementFile(output, improvement)
+	writeImprovementChange(output, improvement)
+	writeImprovementBenefit(output, improvement)
+	fmt.Fprintln(output, "")
+}
+
+func writeImprovementFile(output io.Writer, improvement metrics.Improvement) {
+	if improvement.File == "" {
+		return
+	}
+	fmt.Fprintf(output, "   File: %s", improvement.File)
+	if improvement.Line > 0 {
+		fmt.Fprintf(output, ":%d", improvement.Line)
+	}
+	fmt.Fprintln(output, "")
+}
+
+func writeImprovementChange(output io.Writer, improvement metrics.Improvement) {
+	fmt.Fprintf(output, "   Change: %v → %v", improvement.OldValue, improvement.NewValue)
+	if improvement.Delta.Percentage > 0 {
+		fmt.Fprintf(output, " (%.1f%% improvement)", improvement.Delta.Percentage)
+	}
+	fmt.Fprintln(output, "")
+}
+
+func writeImprovementBenefit(output io.Writer, improvement metrics.Improvement) {
+	if improvement.Benefit != "" {
+		fmt.Fprintf(output, "   Benefit: %s\n", improvement.Benefit)
 	}
 }
 
@@ -550,28 +570,39 @@ func (cr *ConsoleReporter) writeDiffImprovements(output io.Writer, improvements 
 func (cr *ConsoleReporter) writeDiffChanges(output io.Writer, changes []metrics.MetricChange) {
 	fmt.Fprintln(output, "=== DETAILED CHANGES ===")
 
-	// Group changes by category
+	changesByCategory := groupChangesByCategory(changes)
+
+	for category, categoryChanges := range changesByCategory {
+		fmt.Fprintf(output, "## %s\n", category)
+		writeCategoryChanges(output, categoryChanges)
+		fmt.Fprintln(output, "")
+	}
+}
+
+func groupChangesByCategory(changes []metrics.MetricChange) map[string][]metrics.MetricChange {
 	changesByCategory := make(map[string][]metrics.MetricChange)
 	for _, change := range changes {
 		changesByCategory[change.Category] = append(changesByCategory[change.Category], change)
 	}
+	return changesByCategory
+}
 
-	for category, categoryChanges := range changesByCategory {
-		fmt.Fprintf(output, "## %s\n", category)
-
-		for _, change := range categoryChanges {
-			fmt.Fprintf(output, "- %s: %v → %v", change.Name, change.OldValue, change.NewValue)
-			if change.Delta.Percentage > 0 {
-				direction := "+"
-				if change.Delta.Direction == metrics.ChangeDirectionDecrease {
-					direction = "-"
-				}
-				fmt.Fprintf(output, " (%s%.1f%%)", direction, change.Delta.Percentage)
-			}
-			fmt.Fprintln(output, "")
+func writeCategoryChanges(output io.Writer, changes []metrics.MetricChange) {
+	for _, change := range changes {
+		fmt.Fprintf(output, "- %s: %v → %v", change.Name, change.OldValue, change.NewValue)
+		if change.Delta.Percentage > 0 {
+			writeChangePercentage(output, change.Delta)
 		}
 		fmt.Fprintln(output, "")
 	}
+}
+
+func writeChangePercentage(output io.Writer, delta metrics.Delta) {
+	direction := "+"
+	if delta.Direction == metrics.ChangeDirectionDecrease {
+		direction = "-"
+	}
+	fmt.Fprintf(output, " (%s%.1f%%)", direction, delta.Percentage)
 }
 
 // writePackageAnalysis generates comprehensive package analysis output

@@ -52,14 +52,21 @@
   - ✅ `buildTimeSeriesFromSnapshots` (9.3 → 4.9, -47.3%) — `cmd/trend.go` — extracted metric value extraction and type conversion
 - **Validation**: `cat post-change.json | jq '[.functions[] | select(.file | startswith("cmd/")) | select(.complexity.overall > 9)] | length'` returns 0 (baseline: 7)
 
-### Step 3: Reduce Complexity in `internal/reporter/`
+### Step 3: Reduce Complexity in `internal/reporter/` ✅ COMPLETE (7/7 functions)
 - **Deliverable**: Refactor complex functions in reporter package
 - **Dependencies**: None (can run parallel with Steps 1-2)
 - **Metric Justification**: 7 functions above threshold in reporter package
-- **Targets**:
-  - 3 functions in `internal/reporter/console.go` (max 10.1)
-  - 4 functions in `internal/reporter/csv.go` (max 10.1)
-- **Validation**: `go-stats-generator analyze internal/reporter/ --sections functions | jq '[.functions[] | select(.complexity.overall > 9)] | length'` returns 0
+- **Status**: 7 functions refactored (100% reduction in violations)
+- **Completed Refactorings**:
+  - ✅ `calculateFunctionStats` (10.1 → 4.4, -56.4%) — `internal/reporter/console.go` — extracted counter logic for length/complexity tracking
+  - ✅ `writeDiffChanges` (9.8 → 3.1, -68.4%) — `internal/reporter/console.go` — extracted grouping and category output
+  - ✅ `writeDiffImprovements` (9.3 → 3.1, -66.7%) — `internal/reporter/console.go` — extracted improvement entry writing helpers
+  - ✅ `writeDiffRegressions` (10.1 → 5.7, -43.6%) — `internal/reporter/csv.go` — extracted header and row writing logic
+  - ✅ `writeDiffImprovements` (10.1 → 5.7, -43.6%) — `internal/reporter/csv.go` — extracted header and row writing logic
+  - ✅ `writeSectionData` (10.1 → 5.7, -43.6%) — `internal/reporter/csv.go` — extracted CSV section header and data row helpers
+  - ✅ `Generate` (9.6 → 4.4, -54.2%) — `internal/reporter/csv.go` — used function slice pattern for section writers
+- **New Helper Functions**: 15 helpers added (all ≤4.9 complexity, ≤15 lines)
+- **Validation**: `cat post-change.json | jq '[.functions[] | select(.file | startswith("internal/reporter/")) | select(.complexity.overall > 9)] | length'` returns 0 (baseline: 7)
 
 ### Step 4: Improve Package Documentation Coverage
 - **Deliverable**: Add GoDoc package comments to all packages missing documentation
