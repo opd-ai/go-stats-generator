@@ -82,9 +82,12 @@ func generateMetricChanges(baseline, current Report, config ThresholdConfig) []M
 
 // compareFunctionMetrics compares function metrics between reports
 func compareFunctionMetrics(baseline, current []FunctionMetrics, config ThresholdConfig) []MetricChange {
-	var changes []MetricChange
+	baselineMap, currentMap := buildFunctionMaps(baseline, current)
+	allKeys := collectAllFunctionKeys(baselineMap, currentMap)
+	return compareFunctionsByKey(baselineMap, currentMap, allKeys, config)
+}
 
-	// Create maps for efficient lookup
+func buildFunctionMaps(baseline, current []FunctionMetrics) (map[string]FunctionMetrics, map[string]FunctionMetrics) {
 	baselineMap := make(map[string]FunctionMetrics)
 	currentMap := make(map[string]FunctionMetrics)
 
@@ -98,7 +101,10 @@ func compareFunctionMetrics(baseline, current []FunctionMetrics, config Threshol
 		currentMap[key] = f
 	}
 
-	// Find all unique functions
+	return baselineMap, currentMap
+}
+
+func collectAllFunctionKeys(baselineMap, currentMap map[string]FunctionMetrics) map[string]bool {
 	allKeys := make(map[string]bool)
 	for key := range baselineMap {
 		allKeys[key] = true
@@ -106,50 +112,62 @@ func compareFunctionMetrics(baseline, current []FunctionMetrics, config Threshol
 	for key := range currentMap {
 		allKeys[key] = true
 	}
+	return allKeys
+}
 
+func compareFunctionsByKey(baselineMap, currentMap map[string]FunctionMetrics, allKeys map[string]bool, config ThresholdConfig) []MetricChange {
+	var changes []MetricChange
 	for key := range allKeys {
 		baseFunc, hasBaseline := baselineMap[key]
 		currFunc, hasCurrent := currentMap[key]
-
-		if hasBaseline && hasCurrent {
-			// Function exists in both - compare complexity
-			changes = append(changes, compareFunctionComplexity(baseFunc, currFunc, config)...)
-		} else if hasBaseline && !hasCurrent {
-			// Function was removed
-			changes = append(changes, MetricChange{
-				Category:    "function",
-				Name:        baseFunc.Name,
-				Path:        fmt.Sprintf("%s.%s", baseFunc.Package, baseFunc.Name),
-				File:        baseFunc.File,
-				Line:        baseFunc.Line,
-				OldValue:    baseFunc.Complexity.Overall,
-				NewValue:    nil,
-				Delta:       Delta{Direction: ChangeDirectionDecrease, Significant: true, Magnitude: ChangeMagnitudeMajor},
-				Impact:      ImpactLevelMedium,
-				Severity:    SeverityLevelWarning,
-				Description: "Function removed",
-				Suggestion:  "Verify function removal was intentional",
-			})
-		} else if !hasBaseline && hasCurrent {
-			// Function was added
-			changes = append(changes, MetricChange{
-				Category:    "function",
-				Name:        currFunc.Name,
-				Path:        fmt.Sprintf("%s.%s", currFunc.Package, currFunc.Name),
-				File:        currFunc.File,
-				Line:        currFunc.Line,
-				OldValue:    nil,
-				NewValue:    currFunc.Complexity.Overall,
-				Delta:       Delta{Direction: ChangeDirectionIncrease, Significant: true, Magnitude: ChangeMagnitudeModerate},
-				Impact:      ImpactLevelLow,
-				Severity:    SeverityLevelInfo,
-				Description: "Function added",
-				Suggestion:  "Review new function complexity",
-			})
-		}
+		changes = append(changes, compareSingleFunction(baseFunc, currFunc, hasBaseline, hasCurrent, config)...)
 	}
-
 	return changes
+}
+
+func compareSingleFunction(baseFunc, currFunc FunctionMetrics, hasBaseline, hasCurrent bool, config ThresholdConfig) []MetricChange {
+	if hasBaseline && hasCurrent {
+		return compareFunctionComplexity(baseFunc, currFunc, config)
+	} else if hasBaseline && !hasCurrent {
+		return []MetricChange{buildFunctionRemovedChange(baseFunc)}
+	} else if !hasBaseline && hasCurrent {
+		return []MetricChange{buildFunctionAddedChange(currFunc)}
+	}
+	return nil
+}
+
+func buildFunctionRemovedChange(baseFunc FunctionMetrics) MetricChange {
+	return MetricChange{
+		Category:    "function",
+		Name:        baseFunc.Name,
+		Path:        fmt.Sprintf("%s.%s", baseFunc.Package, baseFunc.Name),
+		File:        baseFunc.File,
+		Line:        baseFunc.Line,
+		OldValue:    baseFunc.Complexity.Overall,
+		NewValue:    nil,
+		Delta:       Delta{Direction: ChangeDirectionDecrease, Significant: true, Magnitude: ChangeMagnitudeMajor},
+		Impact:      ImpactLevelMedium,
+		Severity:    SeverityLevelWarning,
+		Description: "Function removed",
+		Suggestion:  "Verify function removal was intentional",
+	}
+}
+
+func buildFunctionAddedChange(currFunc FunctionMetrics) MetricChange {
+	return MetricChange{
+		Category:    "function",
+		Name:        currFunc.Name,
+		Path:        fmt.Sprintf("%s.%s", currFunc.Package, currFunc.Name),
+		File:        currFunc.File,
+		Line:        currFunc.Line,
+		OldValue:    nil,
+		NewValue:    currFunc.Complexity.Overall,
+		Delta:       Delta{Direction: ChangeDirectionIncrease, Significant: true, Magnitude: ChangeMagnitudeModerate},
+		Impact:      ImpactLevelLow,
+		Severity:    SeverityLevelInfo,
+		Description: "Function added",
+		Suggestion:  "Review new function complexity",
+	}
 }
 
 // compareFunctionComplexity compares complexity between two function versions
@@ -597,31 +615,9 @@ func generateDiffSummary(changes []MetricChange, regressions []Regression, impro
 // (critical ≥50%, major ≥25%, moderate ≥10%, minor <10%) based on percentage threshold.
 func calculateDelta(oldValue, newValue, threshold float64) Delta {
 	absolute := newValue - oldValue
-	var percentage float64
-
-	if oldValue != 0 {
-		percentage = math.Abs(absolute) / math.Abs(oldValue) * 100
-	} else if newValue != 0 {
-		percentage = 100.0 // New value from zero
-	}
-
-	direction := ChangeDirectionNeutral
-	if absolute > 0 {
-		direction = ChangeDirectionIncrease
-	} else if absolute < 0 {
-		direction = ChangeDirectionDecrease
-	}
-
-	magnitude := ChangeMagnitudeMinor
-	if percentage >= 50 {
-		magnitude = ChangeMagnitudeCritical
-	} else if percentage >= 25 {
-		magnitude = ChangeMagnitudeMajor
-	} else if percentage >= 10 {
-		magnitude = ChangeMagnitudeSignificant
-	} else if percentage >= 5 {
-		magnitude = ChangeMagnitudeModerate
-	}
+	percentage := calculatePercentageChange(oldValue, newValue)
+	direction := determineChangeDirection(absolute)
+	magnitude := determineMagnitude(percentage)
 
 	return Delta{
 		Absolute:    absolute,
@@ -630,6 +626,38 @@ func calculateDelta(oldValue, newValue, threshold float64) Delta {
 		Significant: percentage >= threshold,
 		Magnitude:   magnitude,
 	}
+}
+
+func calculatePercentageChange(oldValue, newValue float64) float64 {
+	absolute := math.Abs(newValue - oldValue)
+	if oldValue != 0 {
+		return absolute / math.Abs(oldValue) * 100
+	} else if newValue != 0 {
+		return 100.0
+	}
+	return 0.0
+}
+
+func determineChangeDirection(absolute float64) ChangeDirection {
+	if absolute > 0 {
+		return ChangeDirectionIncrease
+	} else if absolute < 0 {
+		return ChangeDirectionDecrease
+	}
+	return ChangeDirectionNeutral
+}
+
+func determineMagnitude(percentage float64) ChangeMagnitude {
+	if percentage >= 50 {
+		return ChangeMagnitudeCritical
+	} else if percentage >= 25 {
+		return ChangeMagnitudeMajor
+	} else if percentage >= 10 {
+		return ChangeMagnitudeSignificant
+	} else if percentage >= 5 {
+		return ChangeMagnitudeModerate
+	}
+	return ChangeMagnitudeMinor
 }
 
 // determineImpactLevel maps a delta's magnitude to an impact level.

@@ -218,34 +218,50 @@ func extractBurdenMetrics(report metrics.Report) (mbiAvg, dupRatio, docCov float
 
 // Store saves a metrics snapshot with metadata
 func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnapshot, metadata metrics.SnapshotMetadata) error {
-	// Serialize the snapshot data
-	data, err := json.Marshal(snapshot.Report)
+	compressedData, err := s.prepareSnapshotData(snapshot.Report)
 	if err != nil {
-		return fmt.Errorf("failed to marshal snapshot data: %w", err)
+		return err
 	}
 
-	// Compress if enabled
-	var compressedData []byte
-	if s.config.EnableCompression {
-		compressedData, err = compress(data)
-		if err != nil {
-			return fmt.Errorf("failed to compress data: %w", err)
-		}
-	} else {
-		compressedData = data
-	}
-
-	// Extract burden metrics for denormalized storage
-	mbiAvg, dupRatio, docCov, complexViolations, namingViolations := extractBurdenMetrics(snapshot.Report)
-
-	// Start transaction
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Insert snapshot with burden metrics
+	if err := s.insertSnapshotRecord(ctx, tx, snapshot, metadata, compressedData); err != nil {
+		return err
+	}
+
+	if err := s.insertSnapshotTags(ctx, tx, snapshot.ID, metadata.Tags); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *SQLiteStorage) prepareSnapshotData(report metrics.Report) ([]byte, error) {
+	data, err := json.Marshal(report)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal snapshot data: %w", err)
+	}
+
+	if s.config.EnableCompression {
+		compressedData, err := compress(data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compress data: %w", err)
+		}
+		return compressedData, nil
+	}
+
+	return data, nil
+}
+
+func (s *SQLiteStorage) insertSnapshotRecord(ctx context.Context, tx *sql.Tx, snapshot metrics.MetricsSnapshot,
+	metadata metrics.SnapshotMetadata, compressedData []byte,
+) error {
+	mbiAvg, dupRatio, docCov, complexViolations, namingViolations := extractBurdenMetrics(snapshot.Report)
+
 	insertSnapshot := `
 	INSERT INTO snapshots (
 		id, timestamp, git_commit, git_branch, git_tag, version, 
@@ -254,7 +270,7 @@ func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 		complexity_violations, naming_violations
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err = tx.ExecContext(ctx, insertSnapshot,
+	_, err := tx.ExecContext(ctx, insertSnapshot,
 		snapshot.ID,
 		metadata.Timestamp,
 		metadata.GitCommit,
@@ -274,19 +290,22 @@ func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 	if err != nil {
 		return fmt.Errorf("failed to insert snapshot: %w", err)
 	}
+	return nil
+}
 
-	// Insert tags
-	if len(metadata.Tags) > 0 {
-		insertTag := "INSERT INTO snapshot_tags (snapshot_id, key, value) VALUES (?, ?, ?)"
-		for key, value := range metadata.Tags {
-			_, err = tx.ExecContext(ctx, insertTag, snapshot.ID, key, value)
-			if err != nil {
-				return fmt.Errorf("failed to insert tag %s: %w", key, err)
-			}
-		}
+func (s *SQLiteStorage) insertSnapshotTags(ctx context.Context, tx *sql.Tx, snapshotID string, tags map[string]string) error {
+	if len(tags) == 0 {
+		return nil
 	}
 
-	return tx.Commit()
+	insertTag := "INSERT INTO snapshot_tags (snapshot_id, key, value) VALUES (?, ?, ?)"
+	for key, value := range tags {
+		_, err := tx.ExecContext(ctx, insertTag, snapshotID, key, value)
+		if err != nil {
+			return fmt.Errorf("failed to insert tag %s: %w", key, err)
+		}
+	}
+	return nil
 }
 
 // Retrieve gets a specific snapshot by ID

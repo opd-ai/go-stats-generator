@@ -121,34 +121,52 @@ func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *ana
 
 // finalizeNamingMetrics performs naming convention analysis on all collected files
 func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
-	// Get all file paths from collected metrics
+	filePaths := extractFilePaths(collectedMetrics)
+	if len(filePaths) == 0 {
+		report.Naming = createEmptyNamingMetrics()
+		return
+	}
+
+	logNamingStart(cfg, len(filePaths))
+
+	fileNameViolations := analyzers.Naming.AnalyzeFileNames(filePaths)
+	identifierViolations, totalIdentifiers := analyzeAllIdentifiers(analyzers, collectedMetrics)
+	packageNameViolations, uniquePackages := analyzeAllPackageNames(analyzers, collectedMetrics)
+
+	report.Naming = buildNamingMetrics(
+		analyzers, fileNameViolations, identifierViolations, packageNameViolations,
+		len(filePaths), totalIdentifiers, len(uniquePackages))
+
+	logNamingResults(cfg, report.Naming)
+}
+
+func extractFilePaths(collectedMetrics *CollectedMetrics) []string {
 	var filePaths []string
 	for filePath := range collectedMetrics.Files {
 		filePaths = append(filePaths, filePath)
 	}
+	return filePaths
+}
 
-	// Skip if no files
-	if len(filePaths) == 0 {
-		report.Naming = metrics.NamingMetrics{
-			FileNameViolations:    0,
-			IdentifierViolations:  0,
-			PackageNameViolations: 0,
-			OverallNamingScore:    1.0,
-			FileNameIssues:        []metrics.FileNameViolation{},
-			IdentifierIssues:      []metrics.IdentifierViolation{},
-			PackageNameIssues:     []metrics.PackageNameViolation{},
-		}
-		return
+func createEmptyNamingMetrics() metrics.NamingMetrics {
+	return metrics.NamingMetrics{
+		FileNameViolations:    0,
+		IdentifierViolations:  0,
+		PackageNameViolations: 0,
+		OverallNamingScore:    1.0,
+		FileNameIssues:        []metrics.FileNameViolation{},
+		IdentifierIssues:      []metrics.IdentifierViolation{},
+		PackageNameIssues:     []metrics.PackageNameViolation{},
 	}
+}
 
+func logNamingStart(cfg *config.Config, fileCount int) {
 	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Running naming convention analysis on %d files...\n", len(filePaths))
+		fmt.Fprintf(os.Stderr, "Running naming convention analysis on %d files...\n", fileCount)
 	}
+}
 
-	// Analyze file names
-	fileNameViolations := analyzers.Naming.AnalyzeFileNames(filePaths)
-
-	// Analyze identifiers in each file
+func analyzeAllIdentifiers(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics) ([]metrics.IdentifierViolation, int) {
 	var identifierViolations []metrics.IdentifierViolation
 	totalIdentifiers := 0
 	for filePath, astFile := range collectedMetrics.Files {
@@ -156,9 +174,27 @@ func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, colle
 		identifierViolations = append(identifierViolations, violations...)
 		totalIdentifiers += countIdentifiers(astFile)
 	}
+	return identifierViolations, totalIdentifiers
+}
 
-	// Analyze package names (track unique packages)
+func analyzeAllPackageNames(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics) ([]metrics.PackageNameViolation, map[string]struct {
+	dirName  string
+	filePath string
+},
+) {
+	uniquePackages := collectUniquePackages(collectedMetrics)
 	var packageNameViolations []metrics.PackageNameViolation
+	for pkgName, info := range uniquePackages {
+		violations := analyzers.Naming.AnalyzePackageName(pkgName, info.dirName, info.filePath)
+		packageNameViolations = append(packageNameViolations, violations...)
+	}
+	return packageNameViolations, uniquePackages
+}
+
+func collectUniquePackages(collectedMetrics *CollectedMetrics) map[string]struct {
+	dirName  string
+	filePath string
+} {
 	uniquePackages := make(map[string]struct {
 		dirName  string
 		filePath string
@@ -167,7 +203,6 @@ func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, colle
 		if astFile.Name != nil {
 			pkgName := astFile.Name.Name
 			dirName := filepath.Base(filepath.Dir(filePath))
-			// Only analyze each unique package once
 			if _, exists := uniquePackages[pkgName]; !exists {
 				uniquePackages[pkgName] = struct {
 					dirName  string
@@ -176,22 +211,19 @@ func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, colle
 			}
 		}
 	}
+	return uniquePackages
+}
 
-	for pkgName, info := range uniquePackages {
-		violations := analyzers.Naming.AnalyzePackageName(pkgName, info.dirName, info.filePath)
-		packageNameViolations = append(packageNameViolations, violations...)
-	}
-
-	// Calculate naming scores
-	fileNamingScore := analyzers.Naming.ComputeFileNamingScore(fileNameViolations, len(filePaths))
+func buildNamingMetrics(analyzers *AnalyzerSet, fileNameViolations []metrics.FileNameViolation,
+	identifierViolations []metrics.IdentifierViolation, packageNameViolations []metrics.PackageNameViolation,
+	fileCount, totalIdentifiers, packageCount int,
+) metrics.NamingMetrics {
+	fileNamingScore := analyzers.Naming.ComputeFileNamingScore(fileNameViolations, fileCount)
 	identifierScore := analyzers.Naming.ComputeIdentifierQualityScore(identifierViolations, totalIdentifiers)
-	packageScore := analyzers.Naming.ComputePackageNamingScore(packageNameViolations, len(uniquePackages))
-
-	// Calculate overall naming score (weighted average)
+	packageScore := analyzers.Naming.ComputePackageNamingScore(packageNameViolations, packageCount)
 	overallScore := (fileNamingScore + identifierScore + packageScore) / 3.0
 
-	// Populate naming metrics
-	report.Naming = metrics.NamingMetrics{
+	return metrics.NamingMetrics{
 		FileNameViolations:    len(fileNameViolations),
 		IdentifierViolations:  len(identifierViolations),
 		PackageNameViolations: len(packageNameViolations),
@@ -200,13 +232,15 @@ func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, colle
 		IdentifierIssues:      identifierViolations,
 		PackageNameIssues:     packageNameViolations,
 	}
+}
 
+func logNamingResults(cfg *config.Config, naming metrics.NamingMetrics) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Found %d file, %d identifier, %d package naming violations (score: %.2f)\n",
-			len(fileNameViolations),
-			len(identifierViolations),
-			len(packageNameViolations),
-			overallScore)
+			naming.FileNameViolations,
+			naming.IdentifierViolations,
+			naming.PackageNameViolations,
+			naming.OverallNamingScore)
 	}
 }
 

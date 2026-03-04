@@ -45,38 +45,47 @@ func (ia *InterfaceAnalyzer) AnalyzeInterfaces(file *ast.File, pkgName string) (
 
 // AnalyzeInterfacesWithPath analyzes all interface declarations in an AST file with explicit file path
 func (ia *InterfaceAnalyzer) AnalyzeInterfacesWithPath(file *ast.File, pkgName, filePath string) ([]metrics.InterfaceMetrics, error) {
-	var interfaces []metrics.InterfaceMetrics
-
-	// First pass: collect all type definitions and method definitions for implementation analysis
 	ia.collectTypeDefinitions(file, pkgName)
 	ia.collectMethodDefinitions(file, pkgName)
 
-	// Second pass: analyze interfaces
+	interfaces := ia.extractInterfacesFromDeclarations(file, pkgName, filePath)
+
+	ia.analyzeEnhancedImplementations(pkgName)
+	ia.updateAllImplementationMetrics(interfaces)
+
+	return interfaces, nil
+}
+
+func (ia *InterfaceAnalyzer) extractInterfacesFromDeclarations(file *ast.File, pkgName, filePath string) []metrics.InterfaceMetrics {
+	var interfaces []metrics.InterfaceMetrics
 	for _, decl := range file.Decls {
 		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
-			for _, spec := range genDecl.Specs {
-				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
-					if interfaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-						interfaceMetric, err := ia.analyzeInterface(typeSpec, interfaceType, filePath, pkgName, genDecl.Doc)
-						if err != nil {
-							continue // Log warning and continue
-						}
-						interfaces = append(interfaces, interfaceMetric)
-					}
+			interfaceMetrics := ia.extractInterfacesFromTypeDecl(genDecl, pkgName, filePath)
+			interfaces = append(interfaces, interfaceMetrics...)
+		}
+	}
+	return interfaces
+}
+
+func (ia *InterfaceAnalyzer) extractInterfacesFromTypeDecl(genDecl *ast.GenDecl, pkgName, filePath string) []metrics.InterfaceMetrics {
+	var interfaces []metrics.InterfaceMetrics
+	for _, spec := range genDecl.Specs {
+		if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+			if interfaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+				interfaceMetric, err := ia.analyzeInterface(typeSpec, interfaceType, filePath, pkgName, genDecl.Doc)
+				if err == nil {
+					interfaces = append(interfaces, interfaceMetric)
 				}
 			}
 		}
 	}
+	return interfaces
+}
 
-	// Third pass: analyze method implementations and calculate ratios using enhanced cross-file data
-	ia.analyzeEnhancedImplementations(pkgName)
-
-	// Update interface metrics with enhanced implementation data
+func (ia *InterfaceAnalyzer) updateAllImplementationMetrics(interfaces []metrics.InterfaceMetrics) {
 	for i := range interfaces {
 		ia.updateEnhancedImplementationMetrics(&interfaces[i])
 	}
-
-	return interfaces, nil
 }
 
 // collectTypeDefinitions collects all type definitions for implementation analysis
