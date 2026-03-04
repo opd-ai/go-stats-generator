@@ -333,26 +333,39 @@ func (ia *InterfaceAnalyzer) extractEmbeddedInterfaceNames(interfaceType *ast.In
 // extractEmbeddedInterfaceNamesWithPkg extracts all embedded interface names from an interface type
 // and qualifies local interface names with the given package name
 func (ia *InterfaceAnalyzer) extractEmbeddedInterfaceNamesWithPkg(interfaceType *ast.InterfaceType, pkgName string) []string {
-	var embedded []string
-
-	if interfaceType.Methods != nil {
-		for _, field := range interfaceType.Methods.List {
-			if field.Names == nil {
-				// Embedded interface
-				embeddedName := ia.extractEmbeddedInterfaceName(field.Type)
-				if embeddedName != "" {
-					// If it's a simple name (no package qualifier) and we have a package name,
-					// qualify it with the package
-					if !strings.Contains(embeddedName, ".") && pkgName != "" {
-						embeddedName = pkgName + "." + embeddedName
-					}
-					embedded = append(embedded, embeddedName)
-				}
-			}
-		}
+	if interfaceType.Methods == nil {
+		return nil
 	}
 
+	var embedded []string
+	for _, field := range interfaceType.Methods.List {
+		if embeddedName := ia.processEmbeddedField(field, pkgName); embeddedName != "" {
+			embedded = append(embedded, embeddedName)
+		}
+	}
 	return embedded
+}
+
+// processEmbeddedField processes a single field and returns the qualified embedded interface name
+func (ia *InterfaceAnalyzer) processEmbeddedField(field *ast.Field, pkgName string) string {
+	if field.Names != nil {
+		return ""
+	}
+
+	embeddedName := ia.extractEmbeddedInterfaceName(field.Type)
+	if embeddedName == "" {
+		return ""
+	}
+
+	return ia.qualifyInterfaceName(embeddedName, pkgName)
+}
+
+// qualifyInterfaceName qualifies a local interface name with the package name if needed
+func (ia *InterfaceAnalyzer) qualifyInterfaceName(name, pkgName string) string {
+	if strings.Contains(name, ".") || pkgName == "" {
+		return name
+	}
+	return pkgName + "." + name
 }
 
 // updateImplementationMetrics updates interface metrics with implementation data

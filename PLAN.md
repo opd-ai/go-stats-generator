@@ -19,25 +19,26 @@
 
 ## Implementation Steps
 
-### Step 1: Reduce High-Complexity Functions in `internal/analyzer/` ✅ PARTIALLY COMPLETE (4/11 functions)
+### Step 1: Reduce High-Complexity Functions in `internal/analyzer/` ✅ PARTIALLY COMPLETE (5/11 functions)
 - **Deliverable**: Refactor all functions with complexity >10 in `internal/analyzer/` directory
 - **Dependencies**: None
-- **Status**: 4 functions refactored (36% reduction in violations)
+- **Status**: 5 functions refactored (45% reduction in violations)
 - **Completed Refactorings**:
   - ✅ `calculatePipelineConfidence` (10.1 → 5.7, -43.6%) — `internal/analyzer/concurrency.go`
   - ✅ `calculateFanInConfidence` (10.1 → 5.7, -43.6%) — `internal/analyzer/concurrency.go`
   - ✅ `isInternalPackage` (10.1 → 7.0, -30.7%) — `internal/analyzer/package.go`
   - ✅ `collectTypeDefinitions` (10.3 → 4.9, -52.4%) — `internal/analyzer/interface.go`
-- **Remaining Targets** (7 functions):
+  - ✅ `extractEmbeddedInterfaceNamesWithPkg` (10.3 → 6.2, -39.8%) — `internal/analyzer/interface.go`
+- **Remaining Targets** (6 functions):
   - ✅ `collectTypeDefinitions` (10.3 → 4.9, -52.4%) — `internal/analyzer/interface.go`
-  - `extractEmbeddedInterfaceNamesWithPkg` (10.3) — `internal/analyzer/interface.go`
+  - ✅ `extractEmbeddedInterfaceNamesWithPkg` (10.3 → 6.2, -39.8%) — `internal/analyzer/interface.go`
   - `AnalyzeCorrelation` (10.1) — `internal/analyzer/coverage.go`
   - `analyzeTestFile` (10.1) — `internal/analyzer/coverage.go`
   - `calculateEnhancedEmbeddingDepth` (10.1) — `internal/analyzer/interface.go`
   - `countLinesInRange` (10.1) — `internal/analyzer/function.go`
   - `ComputeLinearRegression` (10.1) — `internal/analyzer/statistics.go`
   - `AnalyzeFileNames` (10.1) — `internal/analyzer/naming.go`
-- **Validation**: `go-stats-generator analyze internal/analyzer/ --sections functions | jq '[.functions[] | select(.complexity.overall > 9)] | length'` returns 8 (baseline: 11)
+- **Validation**: `go-stats-generator analyze internal/analyzer/ --sections functions | jq '[.functions[] | select(.complexity.overall > 9)] | length'` returns 7 (baseline: 11)
 
 ### Step 2: Reduce Complexity in `cmd/` Package
 - **Deliverable**: Refactor all functions with complexity >9 in cmd package
