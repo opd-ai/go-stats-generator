@@ -99,79 +99,119 @@ func (j *JSONStorage) Retrieve(ctx context.Context, id string) (metrics.MetricsS
 
 // List returns available snapshots with optional filtering
 func (j *JSONStorage) List(ctx context.Context, filter SnapshotFilter) ([]SnapshotInfo, error) {
+	files, err := j.readStorageDirectory()
+	if err != nil {
+		return nil, err
+	}
+
+	snapshots := j.collectSnapshots(files, filter)
+	j.sortSnapshotsByTimestamp(snapshots)
+	return j.applyPagination(snapshots, filter), nil
+}
+
+// readStorageDirectory reads snapshot files from the storage directory
+func (j *JSONStorage) readStorageDirectory() ([]os.DirEntry, error) {
 	files, err := os.ReadDir(j.config.Directory)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []SnapshotInfo{}, nil
+			return []os.DirEntry{}, nil
 		}
 		return nil, fmt.Errorf("failed to read storage directory: %w", err)
 	}
+	return files, nil
+}
 
+// collectSnapshots processes directory entries and builds the snapshot list
+func (j *JSONStorage) collectSnapshots(files []os.DirEntry, filter SnapshotFilter) []SnapshotInfo {
 	var snapshots []SnapshotInfo
+
 	for _, file := range files {
-		if file.IsDir() {
-			continue
+		if snapshot, ok := j.processSnapshotFile(file, filter); ok {
+			snapshots = append(snapshots, snapshot)
 		}
+	}
+	return snapshots
+}
 
-		// Check if it's a snapshot file
-		name := file.Name()
-		if !strings.HasSuffix(name, ".json") && !strings.HasSuffix(name, ".json.gz") {
-			continue
-		}
-
-		// Extract snapshot ID from filename
-		id := j.extractIDFromFilename(name)
-		if id == "" {
-			continue
-		}
-
-		// Read snapshot metadata
-		filepath := filepath.Join(j.config.Directory, name)
-		data, err := j.readFile(filepath)
-		if err != nil {
-			continue // Skip corrupted files
-		}
-
-		var fileData snapshotFile
-		if err := json.Unmarshal(data, &fileData); err != nil {
-			continue // Skip corrupted files
-		}
-
-		// Apply filters
-		if !j.matchesFilter(fileData, filter) {
-			continue
-		}
-
-		// Get file size
-		fileInfo, err := os.Stat(filepath)
-		var size int64
-		if err == nil {
-			size = fileInfo.Size()
-		}
-
-		snapshots = append(snapshots, SnapshotInfo{
-			ID:          fileData.ID,
-			Timestamp:   fileData.Metadata.Timestamp,
-			GitCommit:   fileData.Metadata.GitCommit,
-			GitBranch:   fileData.Metadata.GitBranch,
-			GitTag:      fileData.Metadata.GitTag,
-			Version:     fileData.Metadata.Version,
-			Author:      fileData.Metadata.Author,
-			Description: fileData.Metadata.Description,
-			Tags:        fileData.Metadata.Tags,
-			Size:        size,
-		})
+// processSnapshotFile processes a single file and returns snapshot info if valid
+func (j *JSONStorage) processSnapshotFile(file os.DirEntry, filter SnapshotFilter) (SnapshotInfo, bool) {
+	if file.IsDir() || !j.isSnapshotFile(file.Name()) {
+		return SnapshotInfo{}, false
 	}
 
-	// Sort by timestamp descending (newest first)
+	id := j.extractIDFromFilename(file.Name())
+	if id == "" {
+		return SnapshotInfo{}, false
+	}
+
+	fileData, err := j.loadSnapshotMetadata(file.Name())
+	if err != nil {
+		return SnapshotInfo{}, false
+	}
+
+	if !j.matchesFilter(fileData, filter) {
+		return SnapshotInfo{}, false
+	}
+
+	return j.buildSnapshotInfo(fileData, file.Name()), true
+}
+
+// isSnapshotFile checks if a filename represents a snapshot file
+func (j *JSONStorage) isSnapshotFile(name string) bool {
+	return strings.HasSuffix(name, ".json") || strings.HasSuffix(name, ".json.gz")
+}
+
+// loadSnapshotMetadata reads and parses snapshot metadata from file
+func (j *JSONStorage) loadSnapshotMetadata(filename string) (snapshotFile, error) {
+	filepath := filepath.Join(j.config.Directory, filename)
+	data, err := j.readFile(filepath)
+	if err != nil {
+		return snapshotFile{}, err
+	}
+
+	var fileData snapshotFile
+	if err := json.Unmarshal(data, &fileData); err != nil {
+		return snapshotFile{}, err
+	}
+	return fileData, nil
+}
+
+// buildSnapshotInfo constructs a SnapshotInfo from file data
+func (j *JSONStorage) buildSnapshotInfo(fileData snapshotFile, filename string) SnapshotInfo {
+	filepath := filepath.Join(j.config.Directory, filename)
+	fileInfo, _ := os.Stat(filepath)
+
+	var size int64
+	if fileInfo != nil {
+		size = fileInfo.Size()
+	}
+
+	return SnapshotInfo{
+		ID:          fileData.ID,
+		Timestamp:   fileData.Metadata.Timestamp,
+		GitCommit:   fileData.Metadata.GitCommit,
+		GitBranch:   fileData.Metadata.GitBranch,
+		GitTag:      fileData.Metadata.GitTag,
+		Version:     fileData.Metadata.Version,
+		Author:      fileData.Metadata.Author,
+		Description: fileData.Metadata.Description,
+		Tags:        fileData.Metadata.Tags,
+		Size:        size,
+	}
+}
+
+// sortSnapshotsByTimestamp sorts snapshots by timestamp descending (newest first)
+func (j *JSONStorage) sortSnapshotsByTimestamp(snapshots []SnapshotInfo) {
 	sort.Slice(snapshots, func(i, j int) bool {
 		return snapshots[i].Timestamp.After(snapshots[j].Timestamp)
 	})
+}
 
-	// Apply offset and limit
+// applyPagination applies offset and limit to snapshot list
+func (j *JSONStorage) applyPagination(snapshots []SnapshotInfo, filter SnapshotFilter) []SnapshotInfo {
 	if filter.Offset > 0 {
 		if filter.Offset >= len(snapshots) {
-			return []SnapshotInfo{}, nil
+			return []SnapshotInfo{}
 		}
 		snapshots = snapshots[filter.Offset:]
 	}
@@ -180,7 +220,7 @@ func (j *JSONStorage) List(ctx context.Context, filter SnapshotFilter) ([]Snapsh
 		snapshots = snapshots[:filter.Limit]
 	}
 
-	return snapshots, nil
+	return snapshots
 }
 
 // Delete removes a snapshot file

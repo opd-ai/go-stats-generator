@@ -47,11 +47,12 @@
    - **Metric Justification**: Complexity 19.2; 64 lines; burden analysis core function
    - **Result**: Reduced complexity from 19.2 to 4.4 (77.1% improvement); lines reduced from 64 to 23 (64.1% reduction); extracted 10 helper functions (walkIfStmtNesting, walkForStmtNesting, walkRangeStmtNesting, walkSwitchStmtNesting, walkTypeSwitchStmtNesting, walkSelectStmtNesting, walkCaseClauseNesting, walkCommClauseNesting, walkBlockStmtNesting, updateMaxDepth); all new functions ≤6 lines; primary function walkForNestingDepth at 4.4 complexity (well under 10.0 threshold)
 
-5. **Refactor `List` — complexity 19.2 → target ≤10.0**
+5. **[COMPLETED] Refactor `List` — complexity 19.2 → 3.1 ✓**
    - **File**: `internal/storage/json.go`
    - **Deliverable**: Separate filter, sort, and pagination logic into distinct helper functions
    - **Dependencies**: None
    - **Metric Justification**: Complexity 19.2; 63 lines; JSON storage list operation
+   - **Result**: Reduced complexity from 19.2 to 3.1 (83.9% improvement); lines reduced from 63 to 7 (88.9% reduction); extracted 8 helper functions (readStorageDirectory, collectSnapshots, processSnapshotFile, isSnapshotFile, loadSnapshotMetadata, buildSnapshotInfo, sortSnapshotsByTimestamp, applyPagination); all functions ≤18 lines and complexity ≤7.0
 
 6. **Refactor `checkStmtForUnreachable` — complexity 18.9 → target ≤10.0**
    - **File**: `internal/analyzer/burden.go`
