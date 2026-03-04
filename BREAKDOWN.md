@@ -5,7 +5,7 @@ When results are ambiguous, such as a tie between complexity scores or if one th
 
 ## CONSTRAINT:
 
-Use only `go-stats-generator` and existing tests for your analysis. You are absolutely forbidden from writing new code of any kind or using any other code analysis tools.
+Use only `go-stats-generator` and existing tests for your analysis. You **must not** introduce new application logic, new features, or change existing behavior. Code **may** be moved into new functions (private/unexported if possible, public/exported if necessary), but the logic itself must remain identical — refactoring means restructuring, not rewriting. Do not use any other code analysis tools.
 
 ## PREREQUISITES:
 **Minimum Required Version:** `go-stats-generator` v1.0.0 or higher  
