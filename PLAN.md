@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 39 production functions remain above complexity 10.0 (30 completed, 39 remaining out of 69 total)
+    - **Status**: 38 production functions remain above complexity 10.0 (31 completed, 38 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -137,9 +137,10 @@
       - ✅ Refactored `AnalyzePackage` (11.9 → 3.1, 73.9% improvement; cyclomatic 8 → 2, 75.0% improvement; lines 51 → 11, 78.4% reduction; extracted 7 helper functions: trackPackageFile at 1.3 complexity, analyzePackageImports at 1.3 complexity, extractInternalImports at 6.7 complexity, countDeclarations at 1.3 complexity, extractDeclCounts at 6.7 complexity, trackFileLines at 1.3 complexity, calculateFileLines at 1.3 complexity)
       - ✅ Refactored `analyzeMakeChannel` (11.9 → 4.4, 63.0% improvement; cyclomatic 8 → 3, 62.5% improvement; lines 36 → 11, 69.4% reduction; extracted 3 helper functions: extractBufferSize at 6.7 complexity, determineChannelDirection at 4.4 complexity, createChannelInstance at 1.3 complexity)
       - ✅ Refactored `finalizeOrganizationMetrics` (11.4 → 3.1, 72.8% improvement; cyclomatic 8 → 2, 75.0% improvement; lines 44 → 19, 56.8% reduction; extracted 7 helper functions: logOrganizationStart at 3.1 complexity, analyzeOversizedFiles at 4.9 complexity, analyzeOversizedPackages at 1.3 complexity, analyzeDeepDirectories at 1.3 complexity, analyzeImportGraph at 1.3 complexity, extractOrgImportMetrics at 3.1 complexity, logOrganizationResults at 3.1 complexity)
-      - ⏳ 39 functions remaining above 10.0 threshold (30 completed, 39 remaining out of 69 total)
+      - ✅ Refactored `New` (11.4 → 4.4, 61.4% improvement; cyclomatic 8 → 3, 62.5% improvement; lines 26 → 9, 65.4% reduction; extracted 4 helper functions: shouldUseMemory at 1.3 complexity, getBackendCreator at 3.1 complexity, createPostgresBackend at 4.4 complexity, createMongoBackend at 4.4 complexity)
+      - ⏳ 38 functions remaining above 10.0 threshold (31 completed, 38 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ New (11.4) - internal/api/storage/factory.go [NEXT]
+      1. ⏳ checkAcronymCasing (11.1) - internal/analyzer/naming.go [NEXT]
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"
