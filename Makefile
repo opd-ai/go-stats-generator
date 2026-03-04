@@ -33,7 +33,13 @@ build-wasm:
 	@echo "Building WASM binary..."
 	@mkdir -p $(BUILD_DIR)/wasm
 	GOOS=js GOARCH=wasm go build $(LDFLAGS) -o $(BUILD_DIR)/wasm/$(BINARY_NAME).wasm ./cmd/wasm/
-	cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" $(BUILD_DIR)/wasm/
+	@if [ -f "$$(go env GOROOT)/misc/wasm/wasm_exec.js" ]; then \
+		cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" $(BUILD_DIR)/wasm/; \
+	elif [ -f "$$(go env GOROOT)/lib/wasm/wasm_exec.js" ]; then \
+		cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" $(BUILD_DIR)/wasm/; \
+	else \
+		echo "ERROR: wasm_exec.js not found in GOROOT"; exit 1; \
+	fi
 	@echo "WASM build complete: $(BUILD_DIR)/wasm/$(BINARY_NAME).wasm"
 	@echo "JavaScript loader: $(BUILD_DIR)/wasm/wasm_exec.js"
 
@@ -56,7 +62,13 @@ build-dist:
 	cp web/_headers dist/
 	cp -r web/css/* dist/css/
 	cp -r web/js/* dist/js/
-	cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" dist/js/
+	@if [ -f "$$(go env GOROOT)/misc/wasm/wasm_exec.js" ]; then \
+		cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" dist/js/; \
+	elif [ -f "$$(go env GOROOT)/lib/wasm/wasm_exec.js" ]; then \
+		cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" dist/js/; \
+	else \
+		echo "ERROR: wasm_exec.js not found in GOROOT"; exit 1; \
+	fi
 	@echo "Build complete: dist/"
 	@echo "To test locally: cd dist && python3 -m http.server 8080"
 

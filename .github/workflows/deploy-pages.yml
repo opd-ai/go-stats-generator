@@ -44,7 +44,14 @@ jobs:
           cp web/_headers dist/
           cp -r web/css dist/
           cp -r web/js dist/
-          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" dist/js/
+          if [ -f "$(go env GOROOT)/misc/wasm/wasm_exec.js" ]; then
+            cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" dist/js/
+          elif [ -f "$(go env GOROOT)/lib/wasm/wasm_exec.js" ]; then
+            cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" dist/js/
+          else
+            echo "ERROR: wasm_exec.js not found in GOROOT"
+            exit 1
+          fi
 
       - name: Optimize WASM (optional)
         run: |

@@ -45,6 +45,9 @@ class WASMLoader {
     // Fallback: buffer-based instantiation
     if (!this.instance) {
       const response = await fetch(wasmPath);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch WASM binary: HTTP ${response.status} for ${wasmPath}`);
+      }
       wasmBytes = await response.arrayBuffer();
       const result = await WebAssembly.instantiate(wasmBytes, this.go.importObject);
       this.instance = result.instance;
@@ -68,19 +71,17 @@ class WASMLoader {
     const pollIntervalMs = 50;
     let elapsed = 0;
 
-    while (!globalThis.goStatsAnalyze && elapsed < maxWaitMs) {
+    while (!globalThis.analyzeCode && elapsed < maxWaitMs) {
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
       elapsed += pollIntervalMs;
     }
 
-    if (!globalThis.goStatsAnalyze) {
+    if (!globalThis.analyzeCode) {
       throw new Error('WASM API did not initialize within timeout');
     }
 
     this.analysisAPI = {
-      analyze: globalThis.goStatsAnalyze,
-      analyzeHTML: globalThis.goStatsAnalyzeHTML,
-      analyzeJSON: globalThis.goStatsAnalyzeJSON
+      analyzeCode: globalThis.analyzeCode
     };
   }
 
@@ -100,28 +101,28 @@ class WASMLoader {
       maxFunctionLength = 30,
       maxComplexity = 10,
       minDocCoverage = 0.7,
-      skipTests = true,
-      sections = 'functions,structs,interfaces,packages,patterns,duplication,documentation'
+      skipTests = true
     } = options;
 
-    const config = {
-      files: JSON.stringify(files),
-      maxFunctionLength,
-      maxComplexity,
-      minDocCoverage,
-      skipTests,
-      sections
+    // Build the AnalysisRequest matching Go's expected JSON structure
+    const request = {
+      files: files,
+      outputFormat: format,
+      config: {
+        maxFunctionLength,
+        maxCyclomaticComplexity: maxComplexity,
+        minDocumentationCoverage: minDocCoverage,
+        skipTestFiles: skipTests
+      }
     };
 
-    let result;
-    
-    if (format === 'html') {
-      result = await this.analysisAPI.analyzeHTML(config);
-    } else {
-      result = await this.analysisAPI.analyzeJSON(config);
+    const result = this.analysisAPI.analyzeCode(JSON.stringify(request));
+
+    if (!result.success) {
+      throw new Error(result.error || 'Analysis failed');
     }
 
-    return result;
+    return result.data;
   }
 
   /**
