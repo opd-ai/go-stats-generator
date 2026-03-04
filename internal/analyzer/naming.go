@@ -705,29 +705,28 @@ func (na *NamingAnalyzer) toMixedCaps(s string) string {
 // acronyms (e.g., "Url" instead of "URL", "Id" instead of "ID"), enforcing
 // Go naming conventions where acronyms should be all uppercase or all lowercase.
 func isWrongAcronymCasing(actual, correct string) bool {
-	// If it matches correct form, it's fine
-	if actual == correct {
+	if actual == correct || !isCaseMismatch(actual, correct) {
 		return false
 	}
+	return hasWrongAcronymPattern(actual)
+}
 
-	// If it's all lowercase and should be all uppercase, it's wrong
-	if strings.ToLower(actual) == strings.ToLower(correct) {
-		// Check if it's improperly cased
-		// Wrong: "Url", "url" (in exported position), "Id"
-		// Correct: "URL", "ID"
+// isCaseMismatch checks if two strings match ignoring case
+func isCaseMismatch(actual, correct string) bool {
+	return strings.ToLower(actual) == strings.ToLower(correct)
+}
 
-		// If first letter is uppercase and rest is lowercase, it's wrong
-		if len(actual) > 0 && unicode.IsUpper(rune(actual[0])) {
-			for i := 1; i < len(actual); i++ {
-				if unicode.IsUpper(rune(actual[i])) {
-					return false // Has other uppercase, might be okay
-				}
-			}
-			return true // Only first letter uppercase
+// hasWrongAcronymPattern checks if a string follows the wrong acronym casing pattern
+func hasWrongAcronymPattern(s string) bool {
+	if len(s) == 0 || !unicode.IsUpper(rune(s[0])) {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		if unicode.IsUpper(rune(s[i])) {
+			return false
 		}
 	}
-
-	return false
+	return true
 }
 
 // AnalyzePackageName validates package names against Go naming conventions

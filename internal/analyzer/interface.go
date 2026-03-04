@@ -226,27 +226,37 @@ func (ia *InterfaceAnalyzer) implementsInterface(typeMethods, requiredMethods []
 
 // analyzeEnhancedImplementations performs enhanced cross-file implementation analysis
 func (ia *InterfaceAnalyzer) analyzeEnhancedImplementations(pkgName string) {
-	// Check which types implement which interfaces using collected method data
+	ia.findInterfaceImplementations()
+	ia.buildEmbeddingGraph()
+}
+
+// findInterfaceImplementations checks which types implement which interfaces
+func (ia *InterfaceAnalyzer) findInterfaceImplementations() {
 	for interfaceName, interfaceType := range ia.interfaceDefinitions {
 		requiredMethods := ia.extractInterfaceMethods(interfaceType)
-
 		for typeName, methods := range ia.methodDefinitions {
 			if ia.implementsInterfaceEnhanced(methods, requiredMethods) {
 				ia.typeImplementations[interfaceName] = append(ia.typeImplementations[interfaceName], typeName)
 			}
 		}
 	}
+}
 
-	// Build embedding graph for depth calculation
+// buildEmbeddingGraph constructs the interface embedding graph for depth calculation
+func (ia *InterfaceAnalyzer) buildEmbeddingGraph() {
 	for interfaceName, interfaceType := range ia.interfaceDefinitions {
-		// Extract package from fully qualified name (e.g., "test.Level1" -> "test")
-		pkgName := ""
-		if idx := strings.Index(interfaceName, "."); idx > 0 {
-			pkgName = interfaceName[:idx]
-		}
+		pkgName := ia.extractPackageFromQualifiedName(interfaceName)
 		embedded := ia.extractEmbeddedInterfaceNamesWithPkg(interfaceType, pkgName)
 		ia.embeddingGraph[interfaceName] = embedded
 	}
+}
+
+// extractPackageFromQualifiedName extracts package name from fully qualified interface name
+func (ia *InterfaceAnalyzer) extractPackageFromQualifiedName(qualifiedName string) string {
+	if idx := strings.Index(qualifiedName, "."); idx > 0 {
+		return qualifiedName[:idx]
+	}
+	return ""
 }
 
 // implementsInterfaceEnhanced checks if a type implements all methods of an interface with enhanced analysis
@@ -389,9 +399,16 @@ func (ia *InterfaceAnalyzer) updateImplementationMetrics(interfaceMetric *metric
 
 // analyzeInterface analyzes a single interface declaration
 func (ia *InterfaceAnalyzer) analyzeInterface(typeSpec *ast.TypeSpec, interfaceType *ast.InterfaceType, fileName, pkgName string, doc *ast.CommentGroup) (metrics.InterfaceMetrics, error) {
-	pos := ia.fset.Position(typeSpec.Pos())
+	interfaceMetric := ia.createBaseInterfaceMetric(typeSpec, fileName, pkgName)
+	ia.extractInterfaceMembers(interfaceType, &interfaceMetric)
+	ia.finalizeInterfaceMetrics(&interfaceMetric, doc)
+	return interfaceMetric, nil
+}
 
-	interfaceMetric := metrics.InterfaceMetrics{
+// createBaseInterfaceMetric initializes the base interface metrics structure
+func (ia *InterfaceAnalyzer) createBaseInterfaceMetric(typeSpec *ast.TypeSpec, fileName, pkgName string) metrics.InterfaceMetrics {
+	pos := ia.fset.Position(typeSpec.Pos())
+	return metrics.InterfaceMetrics{
 		Name:               typeSpec.Name.Name,
 		Package:            pkgName,
 		File:               fileName,
@@ -400,46 +417,47 @@ func (ia *InterfaceAnalyzer) analyzeInterface(typeSpec *ast.TypeSpec, interfaceT
 		Methods:            make([]metrics.InterfaceMethod, 0),
 		EmbeddedInterfaces: make([]string, 0),
 	}
+}
 
-	// Analyze methods
-	if interfaceType.Methods != nil {
-		for _, field := range interfaceType.Methods.List {
-			if field.Names != nil {
-				// Regular method
-				for _, name := range field.Names {
-					methodInfo := metrics.InterfaceMethod{
-						Name: name.Name,
-						// Signature and complexity will be filled during function analysis
-					}
-
-					// Analyze function signature for complexity metrics
-					ifaceFunc := ia.analyzeFunctionSignature(field.Type)
-					methodInfo.Signature = ifaceFunc
-
-					// Add method information to the interface metric
-					interfaceMetric.Methods = append(interfaceMetric.Methods, methodInfo)
-				}
-			} else {
-				// Embedded interface
-				embeddedName := ia.extractEmbeddedInterfaceName(field.Type)
-				if embeddedName != "" {
-					interfaceMetric.EmbeddedInterfaces = append(interfaceMetric.EmbeddedInterfaces, embeddedName)
-				}
-			}
+// extractInterfaceMembers extracts methods and embedded interfaces
+func (ia *InterfaceAnalyzer) extractInterfaceMembers(interfaceType *ast.InterfaceType, metric *metrics.InterfaceMetrics) {
+	if interfaceType.Methods == nil {
+		return
+	}
+	for _, field := range interfaceType.Methods.List {
+		if field.Names != nil {
+			ia.addInterfaceMethods(field, metric)
+		} else {
+			ia.addEmbeddedInterface(field, metric)
 		}
 	}
+}
 
-	// Calculate totals
-	interfaceMetric.MethodCount = len(interfaceMetric.Methods)
-	interfaceMetric.EmbeddingDepth = ia.calculateEmbeddingDepth(interfaceMetric.EmbeddedInterfaces)
+// addInterfaceMethods adds regular methods to the interface metric
+func (ia *InterfaceAnalyzer) addInterfaceMethods(field *ast.Field, metric *metrics.InterfaceMetrics) {
+	for _, name := range field.Names {
+		methodInfo := metrics.InterfaceMethod{
+			Name:      name.Name,
+			Signature: ia.analyzeFunctionSignature(field.Type),
+		}
+		metric.Methods = append(metric.Methods, methodInfo)
+	}
+}
 
-	// Documentation analysis
-	interfaceMetric.Documentation = ia.analyzeDocumentation(doc)
+// addEmbeddedInterface adds an embedded interface to the metric
+func (ia *InterfaceAnalyzer) addEmbeddedInterface(field *ast.Field, metric *metrics.InterfaceMetrics) {
+	embeddedName := ia.extractEmbeddedInterfaceName(field.Type)
+	if embeddedName != "" {
+		metric.EmbeddedInterfaces = append(metric.EmbeddedInterfaces, embeddedName)
+	}
+}
 
-	// Calculate overall complexity based on method complexities
-	interfaceMetric.ComplexityScore = ia.calculateInterfaceComplexity(interfaceMetric)
-
-	return interfaceMetric, nil
+// finalizeInterfaceMetrics calculates final metrics for the interface
+func (ia *InterfaceAnalyzer) finalizeInterfaceMetrics(metric *metrics.InterfaceMetrics, doc *ast.CommentGroup) {
+	metric.MethodCount = len(metric.Methods)
+	metric.EmbeddingDepth = ia.calculateEmbeddingDepth(metric.EmbeddedInterfaces)
+	metric.Documentation = ia.analyzeDocumentation(doc)
+	metric.ComplexityScore = ia.calculateInterfaceComplexity(*metric)
 }
 
 // analyzeFunctionSignature analyzes a function signature for complexity metrics

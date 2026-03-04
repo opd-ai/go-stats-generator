@@ -173,64 +173,69 @@ func buildFunctionAddedChange(currFunc FunctionMetrics) MetricChange {
 // compareFunctionComplexity compares complexity between two function versions
 func compareFunctionComplexity(baseline, current FunctionMetrics, config ThresholdConfig) []MetricChange {
 	var changes []MetricChange
-
-	// Compare cyclomatic complexity
 	if baseline.Complexity.Cyclomatic != current.Complexity.Cyclomatic {
-		delta := calculateDelta(float64(baseline.Complexity.Cyclomatic), float64(current.Complexity.Cyclomatic), config.Global.SignificanceLevel)
-
-		change := MetricChange{
-			Category:    "function_complexity",
-			Name:        current.Name,
-			Path:        fmt.Sprintf("%s.%s", current.Package, current.Name),
-			File:        current.File,
-			Line:        current.Line,
-			OldValue:    baseline.Complexity.Cyclomatic,
-			NewValue:    current.Complexity.Cyclomatic,
-			Delta:       delta,
-			Description: "Cyclomatic complexity changed",
-		}
-
-		// Determine impact and severity
-		if current.Complexity.Cyclomatic > config.FunctionComplexity.Error {
-			change.Impact = ImpactLevelCritical
-			change.Severity = SeverityLevelCritical
-			change.Suggestion = "Critical: Function complexity exceeds error threshold, refactoring required"
-		} else if current.Complexity.Cyclomatic > config.FunctionComplexity.Warning {
-			change.Impact = ImpactLevelHigh
-			change.Severity = SeverityLevelWarning
-			change.Suggestion = "Warning: Function complexity exceeds warning threshold"
-		} else if delta.Direction == ChangeDirectionIncrease && delta.Percentage > config.FunctionComplexity.MaxIncrease {
-			change.Impact = ImpactLevelMedium
-			change.Severity = SeverityLevelWarning
-			change.Suggestion = "Complexity increase exceeds threshold"
-		} else {
-			change.Impact = ImpactLevelLow
-			change.Severity = SeverityLevelInfo
-		}
-
-		changes = append(changes, change)
+		changes = append(changes, createCyclomaticChange(baseline, current, config))
 	}
-
-	// Compare overall complexity
 	if baseline.Complexity.Overall != current.Complexity.Overall {
-		delta := calculateDelta(baseline.Complexity.Overall, current.Complexity.Overall, config.Global.SignificanceLevel)
-
-		changes = append(changes, MetricChange{
-			Category:    "function_overall_complexity",
-			Name:        current.Name,
-			Path:        fmt.Sprintf("%s.%s", current.Package, current.Name),
-			File:        current.File,
-			Line:        current.Line,
-			OldValue:    baseline.Complexity.Overall,
-			NewValue:    current.Complexity.Overall,
-			Delta:       delta,
-			Impact:      determineImpactLevel(delta),
-			Severity:    determineSeverityLevel(delta),
-			Description: "Overall function complexity changed",
-		})
+		changes = append(changes, createOverallComplexityChange(baseline, current, config))
 	}
-
 	return changes
+}
+
+// createCyclomaticChange creates a metric change for cyclomatic complexity
+func createCyclomaticChange(baseline, current FunctionMetrics, config ThresholdConfig) MetricChange {
+	delta := calculateDelta(float64(baseline.Complexity.Cyclomatic), float64(current.Complexity.Cyclomatic), config.Global.SignificanceLevel)
+	change := MetricChange{
+		Category:    "function_complexity",
+		Name:        current.Name,
+		Path:        fmt.Sprintf("%s.%s", current.Package, current.Name),
+		File:        current.File,
+		Line:        current.Line,
+		OldValue:    baseline.Complexity.Cyclomatic,
+		NewValue:    current.Complexity.Cyclomatic,
+		Delta:       delta,
+		Description: "Cyclomatic complexity changed",
+	}
+	setCyclomaticImpact(&change, current.Complexity.Cyclomatic, delta, config)
+	return change
+}
+
+// setCyclomaticImpact sets impact and severity based on complexity thresholds
+func setCyclomaticImpact(change *MetricChange, complexity int, delta Delta, config ThresholdConfig) {
+	if complexity > config.FunctionComplexity.Error {
+		change.Impact = ImpactLevelCritical
+		change.Severity = SeverityLevelCritical
+		change.Suggestion = "Critical: Function complexity exceeds error threshold, refactoring required"
+	} else if complexity > config.FunctionComplexity.Warning {
+		change.Impact = ImpactLevelHigh
+		change.Severity = SeverityLevelWarning
+		change.Suggestion = "Warning: Function complexity exceeds warning threshold"
+	} else if delta.Direction == ChangeDirectionIncrease && delta.Percentage > config.FunctionComplexity.MaxIncrease {
+		change.Impact = ImpactLevelMedium
+		change.Severity = SeverityLevelWarning
+		change.Suggestion = "Complexity increase exceeds threshold"
+	} else {
+		change.Impact = ImpactLevelLow
+		change.Severity = SeverityLevelInfo
+	}
+}
+
+// createOverallComplexityChange creates a metric change for overall complexity
+func createOverallComplexityChange(baseline, current FunctionMetrics, config ThresholdConfig) MetricChange {
+	delta := calculateDelta(baseline.Complexity.Overall, current.Complexity.Overall, config.Global.SignificanceLevel)
+	return MetricChange{
+		Category:    "function_overall_complexity",
+		Name:        current.Name,
+		Path:        fmt.Sprintf("%s.%s", current.Package, current.Name),
+		File:        current.File,
+		Line:        current.Line,
+		OldValue:    baseline.Complexity.Overall,
+		NewValue:    current.Complexity.Overall,
+		Delta:       delta,
+		Impact:      determineImpactLevel(delta),
+		Severity:    determineSeverityLevel(delta),
+		Description: "Overall function complexity changed",
+	}
 }
 
 // compareStructMetrics compares struct metrics between reports

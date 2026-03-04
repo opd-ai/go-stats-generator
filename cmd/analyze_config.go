@@ -19,26 +19,30 @@ func loadConfiguration() *config.Config {
 
 // loadOutputConfiguration loads output-related settings from viper
 func loadOutputConfiguration(cfg *config.Config) {
+	applyOutputSettings(cfg)
+	applyVerboseDefaults(cfg)
+	cfg.Output.Sections = mergeSectionFlags()
+}
+
+// applyOutputSettings applies all output configuration settings
+func applyOutputSettings(cfg *config.Config) {
 	if viper.IsSet("output.format") {
 		cfg.Output.Format = config.OutputFormat(viper.GetString("output.format"))
 	}
 	if viper.IsSet("output.destination") {
 		cfg.Output.Destination = viper.GetString("output.destination")
 	}
-	if viper.IsSet("output.verbose") {
-		cfg.Output.Verbose = viper.GetBool("output.verbose")
+	setBoolIfSet("output.verbose", &cfg.Output.Verbose)
+	setBoolIfSet("output.show_progress", &cfg.Output.ShowProgress)
+	setBoolIfSet("output.use_colors", &cfg.Output.UseColors)
+	setBoolIfSet("output.include_examples", &cfg.Output.IncludeExamples)
+}
+
+// setBoolIfSet sets a boolean pointer if the viper key is set
+func setBoolIfSet(key string, target *bool) {
+	if viper.IsSet(key) {
+		*target = viper.GetBool(key)
 	}
-	if viper.IsSet("output.show_progress") {
-		cfg.Output.ShowProgress = viper.GetBool("output.show_progress")
-	}
-	if viper.IsSet("output.use_colors") {
-		cfg.Output.UseColors = viper.GetBool("output.use_colors")
-	}
-	if viper.IsSet("output.include_examples") {
-		cfg.Output.IncludeExamples = viper.GetBool("output.include_examples")
-	}
-	applyVerboseDefaults(cfg)
-	cfg.Output.Sections = mergeSectionFlags()
 }
 
 // applyVerboseDefaults enables progress display when verbose mode is active

@@ -202,16 +202,28 @@ func (a *TeamAnalyzer) getFileOwnership(author string) ([]string, error) {
 
 // isPrimaryOwner checks if author owns most lines
 func (a *TeamAnalyzer) isPrimaryOwner(file, author string) bool {
-	cmd := exec.Command("git", "blame", "--line-porcelain", file)
-	out, err := cmd.Output()
+	out, err := a.getGitBlame(file)
 	if err != nil {
 		return false
 	}
+	authorLines, totalLines := a.countAuthorLines(out, author)
+	if totalLines == 0 {
+		return false
+	}
+	return float64(authorLines)/float64(totalLines) > 0.5
+}
 
+// getGitBlame executes git blame for a file
+func (a *TeamAnalyzer) getGitBlame(file string) ([]byte, error) {
+	cmd := exec.Command("git", "blame", "--line-porcelain", file)
+	return cmd.Output()
+}
+
+// countAuthorLines counts lines authored by a specific author
+func (a *TeamAnalyzer) countAuthorLines(blameOutput []byte, author string) (int, int) {
 	authorLines := 0
 	totalLines := 0
-
-	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	scanner := bufio.NewScanner(strings.NewReader(string(blameOutput)))
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "author ") {
@@ -221,11 +233,7 @@ func (a *TeamAnalyzer) isPrimaryOwner(file, author string) bool {
 			}
 		}
 	}
-
-	if totalLines == 0 {
-		return false
-	}
-	return float64(authorLines)/float64(totalLines) > 0.5
+	return authorLines, totalLines
 }
 
 // countUniqueDays returns unique calendar days

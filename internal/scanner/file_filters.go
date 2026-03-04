@@ -71,21 +71,29 @@ func (d *Discoverer) matchesExcludePatterns(fileInfo FileInfo) bool {
 // passesPackageFilter checks package inclusion/exclusion rules
 func (d *Discoverer) passesPackageFilter(fileInfo FileInfo) bool {
 	if len(d.config.IncludePackages) > 0 {
-		for _, pkg := range d.config.IncludePackages {
-			if fileInfo.Package == pkg {
-				return true
-			}
-		}
-		return false
+		return d.isPackageIncluded(fileInfo.Package)
 	}
+	return !d.isPackageExcluded(fileInfo.Package)
+}
 
-	for _, pkg := range d.config.ExcludePackages {
-		if fileInfo.Package == pkg {
-			return false
+// isPackageIncluded checks if package is in the include list
+func (d *Discoverer) isPackageIncluded(pkg string) bool {
+	for _, includePkg := range d.config.IncludePackages {
+		if pkg == includePkg {
+			return true
 		}
 	}
+	return false
+}
 
-	return true
+// isPackageExcluded checks if package is in the exclude list
+func (d *Discoverer) isPackageExcluded(pkg string) bool {
+	for _, excludePkg := range d.config.ExcludePackages {
+		if pkg == excludePkg {
+			return true
+		}
+	}
+	return false
 }
 
 // patternMatches checks if a file path matches a given pattern

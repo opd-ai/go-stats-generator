@@ -313,41 +313,45 @@ func (pa *PlacementAnalyzer) calculateSeverity(bestAffinity, currentAffinity flo
 // AnalyzeMethodPlacement checks if methods are defined in the same file as their receiver
 func (pa *PlacementAnalyzer) AnalyzeMethodPlacement() []metrics.MisplacedMethodIssue {
 	var issues []metrics.MisplacedMethodIssue
-
 	for methodName, info := range pa.methods {
-		receiverFile, exists := pa.receiverFiles[info.receiverType]
-		if !exists {
-			// Receiver type not found (possibly from another package)
-			continue
-		}
-
-		if info.file != receiverFile {
-			// Method is in a different file from its receiver
-			distance := "same_package"
-			// Simple heuristic: if files don't share directory, assume different package
-			methodDir := filepath.Dir(info.file)
-			receiverDir := filepath.Dir(receiverFile)
-			if methodDir != receiverDir {
-				distance = "different_package"
-			}
-
-			severity := "medium"
-			if distance == "different_package" {
-				severity = "high"
-			}
-
-			issues = append(issues, metrics.MisplacedMethodIssue{
-				MethodName:   methodName,
-				ReceiverType: info.receiverType,
-				CurrentFile:  info.file,
-				ReceiverFile: receiverFile,
-				Distance:     distance,
-				Severity:     severity,
-			})
+		if issue := pa.checkMethodPlacement(methodName, info); issue != nil {
+			issues = append(issues, *issue)
 		}
 	}
-
 	return issues
+}
+
+// checkMethodPlacement checks if a single method is misplaced
+func (pa *PlacementAnalyzer) checkMethodPlacement(methodName string, info methodInfo) *metrics.MisplacedMethodIssue {
+	receiverFile, exists := pa.receiverFiles[info.receiverType]
+	if !exists || info.file == receiverFile {
+		return nil
+	}
+	distance := pa.calculateMethodDistance(info.file, receiverFile)
+	return &metrics.MisplacedMethodIssue{
+		MethodName:   methodName,
+		ReceiverType: info.receiverType,
+		CurrentFile:  info.file,
+		ReceiverFile: receiverFile,
+		Distance:     distance,
+		Severity:     pa.determinePlacementSeverity(distance),
+	}
+}
+
+// calculateMethodDistance determines the distance between method and receiver
+func (pa *PlacementAnalyzer) calculateMethodDistance(methodFile, receiverFile string) string {
+	if filepath.Dir(methodFile) != filepath.Dir(receiverFile) {
+		return "different_package"
+	}
+	return "same_package"
+}
+
+// determinePlacementSeverity determines severity based on distance
+func (pa *PlacementAnalyzer) determinePlacementSeverity(distance string) string {
+	if distance == "different_package" {
+		return "high"
+	}
+	return "medium"
 }
 
 // AnalyzeFileCohesion identifies files with low internal cohesion based on

@@ -317,15 +317,28 @@ func (bp *BatchProcessor) processSingleBatch(ctx context.Context, batch []FileIn
 // collectBatchResults collects results from a single batch and forwards them
 func (bp *BatchProcessor) collectBatchResults(ctx context.Context, batchResults <-chan Result, processed *int, totalFiles int, progressCb ProgressCallback, resultChan chan<- Result) error {
 	for result := range batchResults {
-		select {
-		case resultChan <- result:
-			*processed++
-			if progressCb != nil {
-				progressCb(*processed, totalFiles)
-			}
-		case <-ctx.Done():
-			return ctx.Err()
+		if err := bp.forwardResult(ctx, result, resultChan); err != nil {
+			return err
 		}
+		bp.updateProgress(processed, totalFiles, progressCb)
 	}
 	return nil
+}
+
+// forwardResult forwards a result to the output channel with context cancellation
+func (bp *BatchProcessor) forwardResult(ctx context.Context, result Result, resultChan chan<- Result) error {
+	select {
+	case resultChan <- result:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// updateProgress updates the progress counter and calls the progress callback
+func (bp *BatchProcessor) updateProgress(processed *int, totalFiles int, progressCb ProgressCallback) {
+	*processed++
+	if progressCb != nil {
+		progressCb(*processed, totalFiles)
+	}
 }

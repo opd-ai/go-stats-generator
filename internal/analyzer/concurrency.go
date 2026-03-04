@@ -539,41 +539,52 @@ func (ca *ConcurrencyAnalyzer) buildWorkerPoolPattern(file string, goroutines []
 
 // detectPipelines identifies pipeline patterns based on sequential channel chaining between goroutines
 func (ca *ConcurrencyAnalyzer) detectPipelines(concurrency *metrics.ConcurrencyPatternMetrics) {
-	// Detect pipeline patterns based on channel chaining
-	// Pattern: Sequential goroutines connected by channels (stage1 -> channel -> stage2 -> channel -> stage3)
+	fileChannels := ca.groupChannelsByFile(concurrency.Channels.Instances)
+	fileGoroutines := ca.groupGoroutinesByFile(concurrency.Goroutines.Instances)
+	ca.findPipelinePatterns(fileChannels, fileGoroutines, concurrency)
+}
 
-	// Group channels by file to analyze potential pipelines
+// groupChannelsByFile groups channels by their source file
+func (ca *ConcurrencyAnalyzer) groupChannelsByFile(channels []metrics.ChannelInstance) map[string][]metrics.ChannelInstance {
 	fileChannels := make(map[string][]metrics.ChannelInstance)
-	for _, channel := range concurrency.Channels.Instances {
+	for _, channel := range channels {
 		fileChannels[channel.File] = append(fileChannels[channel.File], channel)
 	}
+	return fileChannels
+}
 
-	// Group goroutines by file
+// groupGoroutinesByFile groups goroutines by their source file
+func (ca *ConcurrencyAnalyzer) groupGoroutinesByFile(goroutines []metrics.GoroutineInstance) map[string][]metrics.GoroutineInstance {
 	fileGoroutines := make(map[string][]metrics.GoroutineInstance)
-	for _, goroutine := range concurrency.Goroutines.Instances {
+	for _, goroutine := range goroutines {
 		fileGoroutines[goroutine.File] = append(fileGoroutines[goroutine.File], goroutine)
 	}
+	return fileGoroutines
+}
 
-	// Look for files with multiple channels and goroutines (potential pipelines)
+// findPipelinePatterns finds pipeline patterns in files with multiple channels and goroutines
+func (ca *ConcurrencyAnalyzer) findPipelinePatterns(fileChannels map[string][]metrics.ChannelInstance, fileGoroutines map[string][]metrics.GoroutineInstance, concurrency *metrics.ConcurrencyPatternMetrics) {
 	for file, channels := range fileChannels {
 		goroutines := fileGoroutines[file]
-
 		if len(channels) >= 2 && len(goroutines) >= 2 {
-			// This could be a pipeline pattern
-			confidence := ca.calculatePipelineConfidence(channels, goroutines)
-
-			if confidence > 0.6 { // Higher threshold for pipelines as they're more complex to detect
-				pattern := metrics.PatternInstance{
-					Name:            "Pipeline",
-					File:            file,
-					Line:            goroutines[0].Line, // Use first goroutine line
-					ConfidenceScore: confidence,
-					Description:     fmt.Sprintf("Pipeline with %d stages and %d channels", len(goroutines), len(channels)),
-					Example:         fmt.Sprintf("File '%s' implements pipeline pattern", file),
-				}
-				concurrency.Pipelines = append(concurrency.Pipelines, pattern)
-			}
+			ca.addPipelinePattern(file, channels, goroutines, concurrency)
 		}
+	}
+}
+
+// addPipelinePattern adds a pipeline pattern if confidence is high enough
+func (ca *ConcurrencyAnalyzer) addPipelinePattern(file string, channels []metrics.ChannelInstance, goroutines []metrics.GoroutineInstance, concurrency *metrics.ConcurrencyPatternMetrics) {
+	confidence := ca.calculatePipelineConfidence(channels, goroutines)
+	if confidence > 0.6 {
+		pattern := metrics.PatternInstance{
+			Name:            "Pipeline",
+			File:            file,
+			Line:            goroutines[0].Line,
+			ConfidenceScore: confidence,
+			Description:     fmt.Sprintf("Pipeline with %d stages and %d channels", len(goroutines), len(channels)),
+			Example:         fmt.Sprintf("File '%s' implements pipeline pattern", file),
+		}
+		concurrency.Pipelines = append(concurrency.Pipelines, pattern)
 	}
 }
 

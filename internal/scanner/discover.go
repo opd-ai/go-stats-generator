@@ -14,39 +14,39 @@ import (
 // DiscoverFiles finds all Go source files in the given root directory
 func (d *Discoverer) DiscoverFiles(rootDir string) ([]FileInfo, error) {
 	var files []FileInfo
-
-	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Skip directories
-		if info.IsDir() {
-			return d.shouldSkipDirectory(path, rootDir)
-		}
-
-		// Only process .go files
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-
-		fileInfo, err := d.analyzeFile(path, rootDir, info)
-		if err != nil {
-			// Log warning but continue processing
-			return nil
-		}
-
-		if d.shouldIncludeFile(fileInfo) {
-			files = append(files, fileInfo)
-		}
-
-		return nil
-	})
+	walkFunc := d.createWalkFunction(rootDir, &files)
+	err := filepath.Walk(rootDir, walkFunc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover files in %s: %w", rootDir, err)
 	}
-
 	return files, nil
+}
+
+// createWalkFunction creates the filepath.WalkFunc for discovering Go files
+func (d *Discoverer) createWalkFunction(rootDir string, files *[]FileInfo) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return d.shouldSkipDirectory(path, rootDir)
+		}
+		if strings.HasSuffix(path, ".go") {
+			d.processGoFile(path, rootDir, info, files)
+		}
+		return nil
+	}
+}
+
+// processGoFile analyzes and adds a Go file to the file list if it should be included
+func (d *Discoverer) processGoFile(path, rootDir string, info os.FileInfo, files *[]FileInfo) {
+	fileInfo, err := d.analyzeFile(path, rootDir, info)
+	if err != nil {
+		return
+	}
+	if d.shouldIncludeFile(fileInfo) {
+		*files = append(*files, fileInfo)
+	}
 }
 
 // analyzeFile extracts information about a Go source file

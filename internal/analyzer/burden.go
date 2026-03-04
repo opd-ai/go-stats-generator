@@ -504,29 +504,36 @@ func (ba *BurdenAnalyzer) AnalyzeSignatureComplexity(fn *ast.FuncDecl, maxParams
 // identifies boolean parameters by name, returning the count and a list of
 // boolean parameter names for complexity analysis.
 func (ba *BurdenAnalyzer) countParameters(fnType *ast.FuncType) (int, []string) {
-	paramCount := 0
-	var boolParams []string
-
 	if fnType.Params == nil {
 		return 0, nil
 	}
-
+	paramCount := 0
+	var boolParams []string
 	for _, field := range fnType.Params.List {
-		numNames := len(field.Names)
-		if numNames == 0 {
-			numNames = 1
-		}
-		paramCount += numNames
-
-		// Check for bool parameters (flag arguments)
-		if ident, ok := field.Type.(*ast.Ident); ok && ident.Name == "bool" {
-			for _, name := range field.Names {
-				boolParams = append(boolParams, name.Name)
-			}
-		}
+		paramCount += ba.countFieldParameters(field)
+		boolParams = append(boolParams, ba.extractBoolParameters(field)...)
 	}
-
 	return paramCount, boolParams
+}
+
+// countFieldParameters counts parameters in a single field
+func (ba *BurdenAnalyzer) countFieldParameters(field *ast.Field) int {
+	if len(field.Names) == 0 {
+		return 1
+	}
+	return len(field.Names)
+}
+
+// extractBoolParameters extracts boolean parameter names from a field
+func (ba *BurdenAnalyzer) extractBoolParameters(field *ast.Field) []string {
+	if ident, ok := field.Type.(*ast.Ident); ok && ident.Name == "bool" {
+		var boolParams []string
+		for _, name := range field.Names {
+			boolParams = append(boolParams, name.Name)
+		}
+		return boolParams
+	}
+	return nil
 }
 
 // countReturns calculates the number of return values in a function signature

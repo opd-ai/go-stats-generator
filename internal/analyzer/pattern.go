@@ -430,18 +430,23 @@ func (pa *PatternAnalyzer) returnsSelf(funcDecl *ast.FuncDecl, recvType string) 
 	if funcDecl.Type.Results == nil || len(funcDecl.Type.Results.List) == 0 {
 		return false
 	}
-
 	for _, result := range funcDecl.Type.Results.List {
-		switch t := result.Type.(type) {
-		case *ast.StarExpr:
-			if ident, ok := t.X.(*ast.Ident); ok && ident.Name == recvType {
-				return true
-			}
-		case *ast.Ident:
-			if t.Name == recvType {
-				return true
-			}
+		if pa.resultMatchesReceiverType(result.Type, recvType) {
+			return true
 		}
+	}
+	return false
+}
+
+// resultMatchesReceiverType checks if a result type matches the receiver type
+func (pa *PatternAnalyzer) resultMatchesReceiverType(expr ast.Expr, recvType string) bool {
+	switch t := expr.(type) {
+	case *ast.StarExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name == recvType
+		}
+	case *ast.Ident:
+		return t.Name == recvType
 	}
 	return false
 }
@@ -451,18 +456,23 @@ func (pa *PatternAnalyzer) hasCallbackParam(funcDecl *ast.FuncDecl) bool {
 	if funcDecl.Type.Params == nil {
 		return false
 	}
-
 	for _, param := range funcDecl.Type.Params.List {
-		if _, ok := param.Type.(*ast.FuncType); ok {
+		if pa.isCallbackType(param.Type) {
 			return true
 		}
-		if ident, ok := param.Type.(*ast.Ident); ok {
-			name := ident.Name
-			if strings.Contains(name, "Handler") || strings.Contains(name, "Callback") ||
-				strings.Contains(name, "Listener") || strings.Contains(name, "Func") {
-				return true
-			}
-		}
+	}
+	return false
+}
+
+// isCallbackType checks if a type is a callback type
+func (pa *PatternAnalyzer) isCallbackType(expr ast.Expr) bool {
+	if _, ok := expr.(*ast.FuncType); ok {
+		return true
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		name := ident.Name
+		return strings.Contains(name, "Handler") || strings.Contains(name, "Callback") ||
+			strings.Contains(name, "Listener") || strings.Contains(name, "Func")
 	}
 	return false
 }
