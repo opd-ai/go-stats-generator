@@ -145,10 +145,10 @@
       - ✅ Refactored `AnalyzeFileCohesion` (11.1 → 4.9, 55.9% improvement; cyclomatic 7 → 3, 57.1% improvement; lines 39 → 12, 69.2% reduction; extracted 3 helper functions: buildCohesionIssue at 1.3 complexity, countFileReferences at 4.9 complexity, determineCohesionSeverity at 4.4 complexity)
       - ✅ Refactored `loadOrganizationSettings` (10.9 → 1.3, 88.1% improvement; cyclomatic 8 → 1, 87.5% improvement; lines 21 → 7, 66.7% reduction; extracted 7 helper functions: loadMaxFileLines, loadMaxFileFunctions, loadMaxFileTypes, loadMaxPackageFiles, loadMaxExportedSymbols, loadMaxDirectoryDepth, loadMaxFileImports - all at 3.1 complexity)
       - ✅ Refactored `runAnalyze` (10.9 → 4.4, 59.6% improvement; cyclomatic 8 → 3, 62.5% improvement; lines 33 → 10, 69.7% reduction; extracted 3 helper functions: validateAndResolvePath at 5.7 complexity, executeAnalysis at 4.4 complexity, processResults at 4.4 complexity)
-      - ⏳ 31 functions remaining above 10.0 threshold (38 completed, 31 remaining out of 69 total)
+      - ⏳ 29 functions remaining above 10.0 threshold (40 completed, 29 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ runTrendAnalyze (cmd/trend.go) - complexity 10.6
-      2. ⏳ runTrendForecast (cmd/trend.go) - complexity 10.6
+      1. ✅ runTrendAnalyze (cmd/trend.go) - complexity 10.6 → 5.7 (46.2% improvement)
+      2. ✅ runTrendForecast (cmd/trend.go) - complexity 10.6 → 5.7 (46.2% improvement)
       3. ⏳ processAnalysisResults (cmd/analyze_workflow.go) - complexity 10.6
       4. ⏳ analyzeImplementations (internal/analyzer/interface.go) - complexity 10.6
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0

@@ -164,29 +164,8 @@ func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("insufficient snapshots for trend analysis (need at least 2, found %d)", len(snapshots))
 	}
 
-	// Analyze trends
 	trendAnalysis := analyzeTrends(snapshots, trendMetric, trendEntity, trendThreshold)
-
-	// Output results
-	if outputFormat == "console" {
-		outputTrendAnalysisConsole(trendAnalysis)
-	} else {
-		outputWriter := os.Stdout
-		if outputFile != "" {
-			file, err := os.Create(outputFile)
-			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
-			}
-			defer file.Close()
-			outputWriter = file
-		}
-
-		encoder := json.NewEncoder(outputWriter)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(trendAnalysis)
-	}
-
-	return nil
+	return writeTrendOutput(trendAnalysis, outputTrendAnalysisConsole)
 }
 
 // runTrendForecast generates future trend predictions based on historical data
@@ -206,29 +185,8 @@ func runTrendForecast(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("insufficient snapshots for forecasting (need at least 3, found %d)", len(snapshots))
 	}
 
-	// Generate forecasts
 	forecasts := generateForecasts(snapshots, trendMetric, trendEntity)
-
-	// Output results
-	if outputFormat == "console" {
-		outputForecastsConsole(forecasts)
-	} else {
-		outputWriter := os.Stdout
-		if outputFile != "" {
-			file, err := os.Create(outputFile)
-			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
-			}
-			defer file.Close()
-			outputWriter = file
-		}
-
-		encoder := json.NewEncoder(outputWriter)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(forecasts)
-	}
-
-	return nil
+	return writeTrendOutput(forecasts, outputForecastsConsole)
 }
 
 // runTrendRegressions detects quality regressions by comparing recent snapshots
@@ -252,6 +210,27 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 
 	regressions := detectRegressions(historicalSnapshots, recentSnapshots, trendThreshold)
 	return outputRegressionResults(regressions)
+}
+
+// writeTrendOutput handles writing trend analysis results to console or JSON format.
+// It manages output file creation, JSON encoding setup, and cleanup operations.
+func writeTrendOutput(data interface{}, consoleWriter func(map[string]interface{})) error {
+	if outputFormat == "console" {
+		if analysisData, ok := data.(map[string]interface{}); ok {
+			consoleWriter(analysisData)
+		}
+		return nil
+	}
+
+	writer, err := createOutputWriter()
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+
+	encoder := json.NewEncoder(writer)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
 }
 
 // initializeRegressionStorage sets up SQLite storage for regression detection.
