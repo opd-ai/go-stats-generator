@@ -104,49 +104,76 @@ type authorStats struct {
 
 // getAuthorStats returns commit statistics
 func (a *TeamAnalyzer) getAuthorStats(author string) (*authorStats, error) {
-	cmd := exec.Command("git", "-C", a.repoPath, "log",
-		"--author="+author, "--numstat", "--format=%at",
-		"--all")
-	out, err := cmd.Output()
+	out, err := a.fetchGitLogOutput(author)
 	if err != nil {
 		return nil, err
 	}
 
 	stats := &authorStats{}
-	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	timestamps := a.parseGitLogOutput(out, stats)
+	a.finalizeAuthorStats(stats, timestamps)
 
+	return stats, nil
+}
+
+func (a *TeamAnalyzer) fetchGitLogOutput(author string) ([]byte, error) {
+	cmd := exec.Command("git", "-C", a.repoPath, "log",
+		"--author="+author, "--numstat", "--format=%at",
+		"--all")
+	return cmd.Output()
+}
+
+func (a *TeamAnalyzer) parseGitLogOutput(out []byte, stats *authorStats) []time.Time {
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 	var timestamps []time.Time
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
 
-		if ts, err := strconv.ParseInt(line, 10, 64); err == nil {
-			t := time.Unix(ts, 0)
-			timestamps = append(timestamps, t)
+		if ts := a.tryParseTimestamp(line); ts != nil {
+			timestamps = append(timestamps, *ts)
 			stats.commits++
 			continue
 		}
 
-		parts := strings.Fields(line)
-		if len(parts) >= 2 {
-			if add, err := strconv.Atoi(parts[0]); err == nil {
-				stats.additions += add
-			}
-			if del, err := strconv.Atoi(parts[1]); err == nil {
-				stats.deletions += del
-			}
-		}
+		a.parseNumstatLine(line, stats)
 	}
 
-	if len(timestamps) > 0 {
-		stats.lastCommit = timestamps[0]
-		stats.firstCommit = timestamps[len(timestamps)-1]
-		stats.activeDays = countUniqueDays(timestamps)
+	return timestamps
+}
+
+func (a *TeamAnalyzer) tryParseTimestamp(line string) *time.Time {
+	if ts, err := strconv.ParseInt(line, 10, 64); err == nil {
+		t := time.Unix(ts, 0)
+		return &t
+	}
+	return nil
+}
+
+func (a *TeamAnalyzer) parseNumstatLine(line string, stats *authorStats) {
+	parts := strings.Fields(line)
+	if len(parts) < 2 {
+		return
 	}
 
-	return stats, scanner.Err()
+	if add, err := strconv.Atoi(parts[0]); err == nil {
+		stats.additions += add
+	}
+	if del, err := strconv.Atoi(parts[1]); err == nil {
+		stats.deletions += del
+	}
+}
+
+func (a *TeamAnalyzer) finalizeAuthorStats(stats *authorStats, timestamps []time.Time) {
+	if len(timestamps) == 0 {
+		return
+	}
+	stats.lastCommit = timestamps[0]
+	stats.firstCommit = timestamps[len(timestamps)-1]
+	stats.activeDays = countUniqueDays(timestamps)
 }
 
 // getFileOwnership returns files primarily owned
