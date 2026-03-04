@@ -1090,3 +1090,269 @@ func TestNormalizeBlock_LargeBlockProtection(t *testing.T) {
 		})
 	}
 }
+
+func TestDeduplicateOverlappingFingerprints(t *testing.T) {
+	tests := []struct {
+		name  string
+		group []BlockFingerprint
+		want  int // expected number of fingerprints after dedup
+	}{
+		{
+			name: "no overlap different files",
+			group: []BlockFingerprint{
+				{Hash: "abc", File: "a.go", StartLine: 1, EndLine: 6},
+				{Hash: "abc", File: "b.go", StartLine: 1, EndLine: 6},
+			},
+			want: 2,
+		},
+		{
+			name: "overlapping same file",
+			group: []BlockFingerprint{
+				{Hash: "abc", File: "a.go", StartLine: 1, EndLine: 6},
+				{Hash: "abc", File: "a.go", StartLine: 2, EndLine: 7},
+				{Hash: "abc", File: "a.go", StartLine: 3, EndLine: 8},
+			},
+			want: 1, // all three overlap → merged into one
+		},
+		{
+			name: "overlapping same file with different file",
+			group: []BlockFingerprint{
+				{Hash: "abc", File: "a.go", StartLine: 1, EndLine: 6},
+				{Hash: "abc", File: "a.go", StartLine: 2, EndLine: 7},
+				{Hash: "abc", File: "b.go", StartLine: 10, EndLine: 15},
+			},
+			want: 2, // a.go entries merge, b.go stays separate
+		},
+		{
+			name: "non-overlapping same file",
+			group: []BlockFingerprint{
+				{Hash: "abc", File: "a.go", StartLine: 1, EndLine: 6},
+				{Hash: "abc", File: "a.go", StartLine: 20, EndLine: 25},
+			},
+			want: 2, // different regions of the same file
+		},
+		{
+			name: "contained block",
+			group: []BlockFingerprint{
+				{Hash: "abc", File: "a.go", StartLine: 1, EndLine: 10},
+				{Hash: "abc", File: "a.go", StartLine: 3, EndLine: 7},
+			},
+			want: 1, // second is contained within first
+		},
+		{
+			name: "single entry",
+			group: []BlockFingerprint{
+				{Hash: "abc", File: "a.go", StartLine: 1, EndLine: 6},
+			},
+			want: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := deduplicateOverlappingFingerprints(tt.group)
+			assert.Equal(t, tt.want, len(result),
+				"Expected %d fingerprints after dedup, got %d", tt.want, len(result))
+		})
+	}
+}
+
+func TestFilterSubsumedClonePairs(t *testing.T) {
+	tests := []struct {
+		name  string
+		pairs []metrics.ClonePair
+		want  int
+	}{
+		{
+			name:  "empty input",
+			pairs: nil,
+			want:  0,
+		},
+		{
+			name: "single pair",
+			pairs: []metrics.ClonePair{
+				{Hash: "a", LineCount: 8, Instances: []metrics.CloneInstance{
+					{File: "x.go", StartLine: 1, EndLine: 8},
+					{File: "y.go", StartLine: 1, EndLine: 8},
+				}},
+			},
+			want: 1,
+		},
+		{
+			name: "larger pair subsumes smaller",
+			pairs: []metrics.ClonePair{
+				{Hash: "a", LineCount: 10, Instances: []metrics.CloneInstance{
+					{File: "x.go", StartLine: 1, EndLine: 10},
+					{File: "y.go", StartLine: 1, EndLine: 10},
+				}},
+				{Hash: "b", LineCount: 6, Instances: []metrics.CloneInstance{
+					{File: "x.go", StartLine: 2, EndLine: 7},
+					{File: "y.go", StartLine: 2, EndLine: 7},
+				}},
+			},
+			want: 1, // smaller is subsumed by larger
+		},
+		{
+			name: "non-overlapping pairs both kept",
+			pairs: []metrics.ClonePair{
+				{Hash: "a", LineCount: 6, Instances: []metrics.CloneInstance{
+					{File: "x.go", StartLine: 1, EndLine: 6},
+					{File: "y.go", StartLine: 1, EndLine: 6},
+				}},
+				{Hash: "b", LineCount: 6, Instances: []metrics.CloneInstance{
+					{File: "x.go", StartLine: 20, EndLine: 25},
+					{File: "y.go", StartLine: 20, EndLine: 25},
+				}},
+			},
+			want: 2,
+		},
+		{
+			name: "partially overlapping pair not subsumed",
+			pairs: []metrics.ClonePair{
+				{Hash: "a", LineCount: 8, Instances: []metrics.CloneInstance{
+					{File: "x.go", StartLine: 1, EndLine: 8},
+					{File: "y.go", StartLine: 1, EndLine: 8},
+				}},
+				{Hash: "b", LineCount: 8, Instances: []metrics.CloneInstance{
+					{File: "x.go", StartLine: 5, EndLine: 12},
+					{File: "z.go", StartLine: 1, EndLine: 8},
+				}},
+			},
+			want: 2, // second pair has an instance in z.go not covered
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := filterSubsumedClonePairs(tt.pairs)
+			assert.Equal(t, tt.want, len(result),
+				"Expected %d pairs after filtering, got %d", tt.want, len(result))
+		})
+	}
+}
+
+func TestDetectClonePairs_OverlappingWindowsReduced(t *testing.T) {
+	// Two identical 8-statement functions should produce exactly 1 clone pair,
+	// not 3+ pairs from overlapping sliding windows.
+	code := `package test
+func foo() {
+	a := 1
+	b := 2
+	c := 3
+	d := 4
+	e := 5
+	f := 6
+	g := 7
+	h := 8
+}
+func bar() {
+	a := 1
+	b := 2
+	c := 3
+	d := 4
+	e := 5
+	f := 6
+	g := 7
+	h := 8
+}
+`
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "test.go", code, 0)
+	require.NoError(t, err)
+
+	da := NewDuplicationAnalyzer(fset)
+	result := da.AnalyzeDuplication(map[string]*ast.File{"test.go": file}, 6, 0.80)
+
+	assert.Equal(t, 1, result.ClonePairs,
+		"Two identical functions should produce exactly 1 clone pair, not multiple overlapping pairs")
+	require.Len(t, result.Clones, 1)
+	assert.Equal(t, 2, len(result.Clones[0].Instances),
+		"The single clone pair should have exactly 2 instances")
+	assert.Equal(t, 8, result.Clones[0].LineCount,
+		"Clone should report the full 8-line block, not a smaller window")
+}
+
+func TestDetectClonePairs_TruePositivesPreserved(t *testing.T) {
+	// Ensure that real duplicates across different files are still detected.
+	fset := token.NewFileSet()
+	da := NewDuplicationAnalyzer(fset)
+
+	src1 := `package test
+func processA(id int) error {
+	if id <= 0 {
+		return nil
+	}
+	a := validate(id)
+	b := transform(a)
+	c := store(b)
+	d := notify(c)
+	e := log(d)
+	return e
+}
+`
+	src2 := `package test
+func processB(id int) error {
+	if id <= 0 {
+		return nil
+	}
+	a := validate(id)
+	b := transform(a)
+	c := store(b)
+	d := notify(c)
+	e := log(d)
+	return e
+}
+`
+	file1, err := parser.ParseFile(fset, "a.go", src1, 0)
+	require.NoError(t, err)
+	file2, err := parser.ParseFile(fset, "b.go", src2, 0)
+	require.NoError(t, err)
+
+	result := da.AnalyzeDuplication(
+		map[string]*ast.File{"a.go": file1, "b.go": file2}, 6, 0.80)
+
+	assert.Greater(t, result.ClonePairs, 0, "True duplicate across files should be detected")
+	assert.Greater(t, result.DuplicatedLines, 0, "Should report duplicated lines")
+}
+
+func TestDetectClonePairs_ThreeInstancesStillDetected(t *testing.T) {
+	// Three identical functions should produce 1 clone pair with 3 instances.
+	fset := token.NewFileSet()
+	da := NewDuplicationAnalyzer(fset)
+
+	src := `package test
+func a() {
+	x := 1
+	y := 2
+	z := 3
+	w := 4
+	v := 5
+	u := 6
+}
+func b() {
+	x := 1
+	y := 2
+	z := 3
+	w := 4
+	v := 5
+	u := 6
+}
+func c() {
+	x := 1
+	y := 2
+	z := 3
+	w := 4
+	v := 5
+	u := 6
+}
+`
+	file, err := parser.ParseFile(fset, "test.go", src, 0)
+	require.NoError(t, err)
+
+	result := da.AnalyzeDuplication(map[string]*ast.File{"test.go": file}, 6, 0.80)
+
+	assert.Equal(t, 1, result.ClonePairs, "Three identical functions = 1 clone pair")
+	require.Len(t, result.Clones, 1)
+	assert.Equal(t, 3, len(result.Clones[0].Instances),
+		"Clone pair should have 3 instances")
+}
