@@ -56,6 +56,7 @@ func (ia *InterfaceAnalyzer) AnalyzeInterfacesWithPath(file *ast.File, pkgName, 
 	return interfaces, nil
 }
 
+// extractInterfacesFromDeclarations extracts interface metrics from file declarations.
 func (ia *InterfaceAnalyzer) extractInterfacesFromDeclarations(file *ast.File, pkgName, filePath string) []metrics.InterfaceMetrics {
 	var interfaces []metrics.InterfaceMetrics
 	for _, decl := range file.Decls {
@@ -67,6 +68,7 @@ func (ia *InterfaceAnalyzer) extractInterfacesFromDeclarations(file *ast.File, p
 	return interfaces
 }
 
+// extractInterfacesFromTypeDecl extracts interface metrics from type declaration specifications.
 func (ia *InterfaceAnalyzer) extractInterfacesFromTypeDecl(genDecl *ast.GenDecl, pkgName, filePath string) []metrics.InterfaceMetrics {
 	var interfaces []metrics.InterfaceMetrics
 	for _, spec := range genDecl.Specs {

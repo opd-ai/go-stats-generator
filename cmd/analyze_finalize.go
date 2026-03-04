@@ -154,6 +154,7 @@ func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, colle
 	logNamingResults(cfg, report.Naming)
 }
 
+// extractFilePaths extracts sorted file paths from collected metrics for analysis.
 func extractFilePaths(collectedMetrics *CollectedMetrics) []string {
 	var filePaths []string
 	for filePath := range collectedMetrics.Files {

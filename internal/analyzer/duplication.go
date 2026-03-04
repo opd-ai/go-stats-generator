@@ -147,6 +147,7 @@ func (da *DuplicationAnalyzer) extractNestedBlocks(stmt ast.Stmt, filePath strin
 	return blocks
 }
 
+// extractFromIfStmt extracts statement blocks from if statement body and else clause.
 func (da *DuplicationAnalyzer) extractFromIfStmt(s *ast.IfStmt, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 	if s.Body != nil {
@@ -158,6 +159,7 @@ func (da *DuplicationAnalyzer) extractFromIfStmt(s *ast.IfStmt, filePath string,
 	return blocks
 }
 
+// extractFromLoopBody extracts statement blocks from loop body statements.
 func (da *DuplicationAnalyzer) extractFromLoopBody(body *ast.BlockStmt, filePath string, minBlockLines int) []StatementBlock {
 	if body == nil {
 		return nil
@@ -165,6 +167,7 @@ func (da *DuplicationAnalyzer) extractFromLoopBody(body *ast.BlockStmt, filePath
 	return da.extractBlocksFromStmtList(body.List, filePath, minBlockLines)
 }
 
+// extractFromSwitchStmt extracts statement blocks from switch statement case clauses.
 func (da *DuplicationAnalyzer) extractFromSwitchStmt(s *ast.SwitchStmt, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 	if s.Body == nil {
@@ -178,6 +181,7 @@ func (da *DuplicationAnalyzer) extractFromSwitchStmt(s *ast.SwitchStmt, filePath
 	return blocks
 }
 
+// extractFromTypeSwitchStmt extracts statement blocks from type switch statement case clauses.
 func (da *DuplicationAnalyzer) extractFromTypeSwitchStmt(s *ast.TypeSwitchStmt, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 	if s.Body == nil {
@@ -191,6 +195,7 @@ func (da *DuplicationAnalyzer) extractFromTypeSwitchStmt(s *ast.TypeSwitchStmt, 
 	return blocks
 }
 
+// extractFromSelectStmt extracts statement blocks from select statement communication clauses.
 func (da *DuplicationAnalyzer) extractFromSelectStmt(s *ast.SelectStmt, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 	if s.Body == nil {
