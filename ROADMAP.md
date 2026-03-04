@@ -176,14 +176,14 @@ Key actions:
 #### 1E. Naming — 338 total violations (target: 0)
 
 Production-code violations (18 items):
-1. **Acronym casing** (10 violations) — `countIdentifiers`, `AnalyzeIdentifiers`, `checkIdentifier`, `checkIdentifierWithSingleLetter`, `checkIdentifierStuttering`, `ComputeIdentifierQualityScore`, `writeIdentifierIssues`, `processIdentRef`, `writeIdentifierViolations`, `IdentifierViolation` — Go convention: `ID` not `Id`, use `Ident` abbreviation or fully spell out
+1. **Acronym casing** (10 violations) — `countIdentifiers`, `AnalyzeIdentifiers`, `checkIdentifier`, `checkIdentifierWithSingleLetter`, `checkIdentifierStuttering`, `ComputeIdentifierQualityScore`, `writeIdentifierIssues`, `processIdentRef`, `writeIdentifierViolations`, `IdentifierViolation` — Note: these are flagged by go-stats-generator's acronym casing rule because they contain the substring "Id". However, "Identifier" spelled out in full is idiomatic Go and these names are likely correct as-is. Review each to determine if the tool's flag is a false positive or if the name genuinely misuses an acronym
 2. **Package stuttering** (4 violations) — `MultiRepoReport`, `MetricsSnapshot`, `ReporterType`, `StorageConfig` — remove package-name prefix from type names
 3. **Stuttering** (2 violations) — `analyzeResults`, `analyzerSet` in `pkg/go-stats-generator/api_common.go` — rename to avoid repeating the analyzer context
 4. **Single letter names** (2 violations) — `x`, `y` in `internal/analyzer/statistics.go` — rename to descriptive names (e.g., `values`, `predictions`)
 
 Package naming violations (14 items):
 - 11 directory mismatches (testdata packages — likely acceptable for test fixtures)
-- 2 non-conventional names with underscores (`go_stats_generator`, `go_stats_generator_test`)
+- 2 non-conventional names with underscores (`go_stats_generator`, `go_stats_generator_test`) — the project name is `go-stats-generator` (with hyphens); Go package names cannot contain hyphens, so a shortened form without underscores should be chosen (note: the name `gostats` is explicitly prohibited per project conventions)
 - 1 generic package name (`util`)
 
 File naming violations (13 items):
