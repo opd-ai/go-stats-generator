@@ -117,6 +117,9 @@ func (a *TeamAnalyzer) getAuthorStats(author string) (*authorStats, error) {
 	return stats, nil
 }
 
+// fetchGitLogOutput executes git log command to retrieve all commits for a specific author
+// with numstat output format (file change statistics) and Unix timestamp format (%at).
+// Returns raw git log output containing timestamps and file modification statistics.
 func (a *TeamAnalyzer) fetchGitLogOutput(author string) ([]byte, error) {
 	cmd := exec.Command("git", "-C", a.repoPath, "log",
 		"--author="+author, "--numstat", "--format=%at",
@@ -149,6 +152,9 @@ func (a *TeamAnalyzer) parseGitLogOutput(out []byte, stats *authorStats) []time.
 	return timestamps
 }
 
+// tryParseTimestamp attempts to parse a line as a Unix timestamp (seconds since epoch).
+// Returns a pointer to time.Time if parsing succeeds, or nil if the line is not a valid
+// timestamp. Used to identify commit timestamp lines in git log --format=%at output.
 func (a *TeamAnalyzer) tryParseTimestamp(line string) *time.Time {
 	if ts, err := strconv.ParseInt(line, 10, 64); err == nil {
 		t := time.Unix(ts, 0)
@@ -157,6 +163,9 @@ func (a *TeamAnalyzer) tryParseTimestamp(line string) *time.Time {
 	return nil
 }
 
+// parseNumstatLine parses a git log --numstat line containing file change statistics
+// in the format "additions deletions filename". Extracts the numeric additions and
+// deletions values and accumulates them into the author's contribution statistics.
 func (a *TeamAnalyzer) parseNumstatLine(line string, stats *authorStats) {
 	parts := strings.Fields(line)
 	if len(parts) < 2 {
@@ -171,6 +180,9 @@ func (a *TeamAnalyzer) parseNumstatLine(line string, stats *authorStats) {
 	}
 }
 
+// finalizeAuthorStats computes derived metrics from commit timestamps including first/last
+// commit dates and active day count (number of unique calendar days with commits). Requires
+// at least one timestamp; timestamps must be sorted newest-first from git log output.
 func (a *TeamAnalyzer) finalizeAuthorStats(stats *authorStats, timestamps []time.Time) {
 	if len(timestamps) == 0 {
 		return
