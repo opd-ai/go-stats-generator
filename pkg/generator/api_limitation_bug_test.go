@@ -1,4 +1,4 @@
-package go_stats_generator_test
+package generator_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	go_stats_generator "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
+	"github.com/opd-ai/go-stats-generator/pkg/generator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +86,7 @@ func SimpleFunction() {
 	assert.True(t, hasConcurrency, "Sample code should contain concurrency patterns")
 
 	// Now test the current API limitation
-	analyzer := go_stats_generator.NewAnalyzer()
+	analyzer := generator.NewAnalyzer()
 
 	// Create a temporary file
 	tempFile := "/tmp/test_api_limitation.go"

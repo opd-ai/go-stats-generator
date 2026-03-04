@@ -1,6 +1,6 @@
 //go:build js && wasm
 
-package go_stats_generator
+package generator
 
 import (
 	"context"

@@ -7,7 +7,7 @@ import (
 
 	"github.com/opd-ai/go-stats-generator/internal/config"
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
-	gostats "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
+	"github.com/opd-ai/go-stats-generator/pkg/generator"
 )
 
 // executeAnalysisWithPath runs the analysis on the specified path.
@@ -15,7 +15,7 @@ func executeAnalysisWithPath(cfg *config.Config, path string) (*metrics.Report, 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Performance.Timeout)
 	defer cancel()
 
-	analyzer := gostats.NewAnalyzerWithConfig(cfg)
+	analyzer := generator.NewAnalyzerWithConfig(cfg)
 
 	fileInfo, err := os.Stat(path)
 	if err != nil {

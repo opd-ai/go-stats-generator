@@ -12,7 +12,7 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/config"
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/opd-ai/go-stats-generator/internal/storage"
-	go_stats_generator "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
+	"github.com/opd-ai/go-stats-generator/pkg/generator"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -456,7 +456,7 @@ func runDeleteBaseline(cmd *cobra.Command, args []string) error {
 // analyzeCodebase performs code analysis on the target directory using the public API.
 func analyzeCodebase(targetPath string) (*metrics.Report, error) {
 	// Use the public API to analyze the project
-	api := go_stats_generator.NewAnalyzer()
+	api := generator.NewAnalyzer()
 	report, err := api.AnalyzeDirectory(context.Background(), targetPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to analyze project: %w", err)

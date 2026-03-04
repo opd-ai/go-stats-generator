@@ -1,4 +1,4 @@
-package go_stats_generator
+package generator
 
 import "github.com/opd-ai/go-stats-generator/internal/metrics"
 

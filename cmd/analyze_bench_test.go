@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/opd-ai/go-stats-generator/internal/config"
-	gostats "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
+	"github.com/opd-ai/go-stats-generator/pkg/generator"
 )
 
 // BenchmarkFullAnalysis_CurrentCodebase benchmarks the analyze command on the current codebase
@@ -38,7 +38,7 @@ func BenchmarkFullAnalysis_CurrentCodebase(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		analyzer := gostats.NewAnalyzerWithConfig(cfg)
+		analyzer := generator.NewAnalyzerWithConfig(cfg)
 		_, err := analyzer.AnalyzeDirectory(context.Background(), rootDir)
 		if err != nil {
 			b.Fatalf("Analysis failed: %v", err)
@@ -81,7 +81,7 @@ func BenchmarkFullAnalysis_WithMemoryTracking(b *testing.B) {
 
 		start := time.Now()
 
-		analyzer := gostats.NewAnalyzerWithConfig(cfg)
+		analyzer := generator.NewAnalyzerWithConfig(cfg)
 		_, err := analyzer.AnalyzeDirectory(context.Background(), rootDir)
 		if err != nil {
 			b.Fatalf("Analysis failed: %v", err)

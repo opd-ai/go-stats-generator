@@ -13,7 +13,7 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/config"
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/opd-ai/go-stats-generator/internal/reporter"
-	go_stats_generator "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
+	"github.com/opd-ai/go-stats-generator/pkg/generator"
 )
 
 // FileInput represents a single file from the browser
@@ -60,7 +60,7 @@ func analyzeCodeWrapper() js.Func {
 
 		// Build configuration and create analyzer
 		cfg := buildConfig(request.Config)
-		analyzer := go_stats_generator.NewAnalyzerWithConfig(cfg)
+		analyzer := generator.NewAnalyzerWithConfig(cfg)
 
 		// Analyze files from memory
 		report, err := analyzeFilesFromMemory(analyzer, request.Files)
@@ -147,16 +147,16 @@ func buildConfig(input *ConfigInput) *config.Config {
 }
 
 // analyzeFilesFromMemory performs analysis on in-memory files (WASM path)
-func analyzeFilesFromMemory(analyzer *go_stats_generator.Analyzer, files []FileInput) (*metrics.Report, error) {
+func analyzeFilesFromMemory(analyzer *generator.Analyzer, files []FileInput) (*metrics.Report, error) {
 	memFiles := convertToMemoryFiles(files)
 	return analyzer.AnalyzeMemoryFiles(context.Background(), memFiles, "/")
 }
 
 // convertToMemoryFiles converts FileInput to MemoryFile
-func convertToMemoryFiles(files []FileInput) []go_stats_generator.MemoryFile {
-	result := make([]go_stats_generator.MemoryFile, len(files))
+func convertToMemoryFiles(files []FileInput) []generator.MemoryFile {
+	result := make([]generator.MemoryFile, len(files))
 	for i, f := range files {
-		result[i] = go_stats_generator.MemoryFile{
+		result[i] = generator.MemoryFile{
 			Path:    f.Path,
 			Content: f.Content,
 		}

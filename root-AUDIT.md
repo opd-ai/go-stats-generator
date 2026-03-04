@@ -14,7 +14,7 @@ The root package serves as the CLI entry point, delegating to the cmd package. A
 | Test Coverage        | 0.0%    | ≥65%      | ✗      |
 | Duplication Ratio    | 47.1%   | ≤5%       | ✗      |
 | File Name Violations | 0       | 0         | ✓      |
-| Naming Violations    | 36      | 0         | ✗      |
+| Naming Violations    | 35      | 0         | ✗      |
 
 ## Issues Found
 
@@ -29,8 +29,8 @@ The root package serves as the CLI entry point, delegating to the cmd package. A
 
 ### Medium Priority
 - [x] med naming — 11 file name violations (generic names like types.go) (COMPLETED: all 11 files renamed to descriptive names, violations reduced to 0)
-- [ ] med naming — 25 identifier violations (non-idiomatic names)
-- [ ] med naming — 11 package name violations
+- [ ] med naming — 25 identifier violations (non-idiomatic names) (26 violations currently detected, mostly acronym casing issues)
+- [x] med naming — 11 package name violations (COMPLETED: renamed pkg/go-stats-generator to pkg/generator, eliminated underscore and directory mismatch violations; reduced to 9 violations, remaining are in testdata)
 - [x] med documentation — 1 TODO comment (verified: false positive, type name `TODOComment` detected as annotation)
 - [x] med documentation — 1 FIXME comment (verified: false positive, type name `FIXMEComment` detected as annotation)
 - [x] med documentation — 1 HACK comment (verified: false positive, type name `HACKComment` detected as annotation)

@@ -1,7 +1,7 @@
 //go:build !js || !wasm
 
 // Package go-stats-generator provides a programmatic API for analyzing Go source code.
-package go_stats_generator
+package generator
 
 import (
 	"context"
