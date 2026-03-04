@@ -24,7 +24,7 @@ Compile the Go analysis engine to `GOOS=js GOARCH=wasm`, producing a `.wasm` bin
    - Returns the `metrics.Report` serialized as JSON (or the rendered HTML string from `internal/reporter`).
    - Blocks with `select {}` to keep the Go runtime alive.
 
-3. **Create a WASM-compatible scanner shim** — Add `internal/scanner/discover_wasm.go` (build-tagged `js,wasm`) that replaces `filepath.Walk` and `os` calls with a `DiscoverFilesFromMemory(files []MemoryFile)` function. The existing `discover.go` keeps the build tag `//go:build !js || !wasm` so native builds are unchanged.
+3. **Create a WASM-compatible scanner shim** — Add `internal/scanner/discover_wasm.go` (with build tag `//go:build js && wasm`) that replaces `filepath.Walk` and `os` calls with a `DiscoverFilesFromMemory(files []MemoryFile)` function. The existing `discover.go` keeps the build tag `//go:build !js || !wasm` so native builds are unchanged.
 
 4. **Create a WASM-compatible worker shim** — Add `internal/scanner/worker_wasm.go` that provides a single-threaded `ProcessFiles` implementation. The WASM target does not support OS-level concurrency, so files are processed sequentially in a simple loop. The native `worker.go` retains the `//go:build !js || !wasm` tag.
 
