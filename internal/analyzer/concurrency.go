@@ -483,46 +483,54 @@ func (ca *ConcurrencyAnalyzer) hasInfiniteLoop(call *ast.CallExpr) bool {
 // goroutines by file and detects pools with multiple workers, shared channels,
 // and synchronization primitives.
 func (ca *ConcurrencyAnalyzer) detectWorkerPools(concurrency *metrics.ConcurrencyPatternMetrics) {
-	// Detect worker pool patterns based on goroutine and channel usage
-	// Pattern: Multiple goroutines reading from the same channel + WaitGroup for synchronization
+	fileGoroutines := groupGoroutinesByFile(concurrency.Goroutines.Instances)
+	for file, goroutines := range fileGoroutines {
+		if pattern := ca.detectWorkerPoolInFile(file, goroutines, concurrency); pattern != nil {
+			concurrency.WorkerPools = append(concurrency.WorkerPools, *pattern)
+		}
+	}
+}
 
-	// Group goroutines by file to analyze potential worker pools at file level
+func groupGoroutinesByFile(goroutines []metrics.GoroutineInstance) map[string][]metrics.GoroutineInstance {
 	fileGoroutines := make(map[string][]metrics.GoroutineInstance)
-	for _, goroutine := range concurrency.Goroutines.Instances {
+	for _, goroutine := range goroutines {
 		fileGoroutines[goroutine.File] = append(fileGoroutines[goroutine.File], goroutine)
 	}
+	return fileGoroutines
+}
 
-	// Analyze each file for worker pool patterns
-	for file, goroutines := range fileGoroutines {
-		if len(goroutines) >= 1 { // Even 1 goroutine can be part of a worker pool in loops
-			// Check if there are channels and WaitGroups in the same context
-			hasChannels := ca.hasChannelsInContext(goroutines, concurrency.Channels.Instances)
-			hasWaitGroup := ca.hasWaitGroupInContext(goroutines, concurrency.SyncPrims.WaitGroups)
+func (ca *ConcurrencyAnalyzer) detectWorkerPoolInFile(file string, goroutines []metrics.GoroutineInstance, concurrency *metrics.ConcurrencyPatternMetrics) *metrics.PatternInstance {
+	if len(goroutines) < 1 {
+		return nil
+	}
+	hasChannels := ca.hasChannelsInContext(goroutines, concurrency.Channels.Instances)
+	hasWaitGroup := ca.hasWaitGroupInContext(goroutines, concurrency.SyncPrims.WaitGroups)
+	anonymousCount := countAnonymousGoroutines(goroutines)
+	if hasChannels && hasWaitGroup && anonymousCount >= 1 {
+		return ca.buildWorkerPoolPattern(file, goroutines, hasChannels, hasWaitGroup)
+	}
+	return nil
+}
 
-			// Worker pools often have multiple anonymous goroutines
-			anonymousCount := 0
-			for _, g := range goroutines {
-				if g.IsAnonymous {
-					anonymousCount++
-				}
-			}
-
-			// Worker pool pattern: channels + waitgroup + anonymous goroutines
-			if hasChannels && hasWaitGroup && anonymousCount >= 1 {
-				confidence := ca.calculateWorkerPoolConfidence(goroutines, hasChannels, hasWaitGroup)
-
-				// This looks like a worker pool pattern
-				pattern := metrics.PatternInstance{
-					Name:            "Worker Pool",
-					File:            file,
-					Line:            goroutines[0].Line,
-					ConfidenceScore: confidence,
-					Description:     fmt.Sprintf("Worker pool pattern with %d goroutine(s), channels, and WaitGroup", len(goroutines)),
-					Example:         ca.extractWorkerPoolExample(file, len(goroutines)),
-				}
-				concurrency.WorkerPools = append(concurrency.WorkerPools, pattern)
-			}
+func countAnonymousGoroutines(goroutines []metrics.GoroutineInstance) int {
+	count := 0
+	for _, g := range goroutines {
+		if g.IsAnonymous {
+			count++
 		}
+	}
+	return count
+}
+
+func (ca *ConcurrencyAnalyzer) buildWorkerPoolPattern(file string, goroutines []metrics.GoroutineInstance, hasChannels, hasWaitGroup bool) *metrics.PatternInstance {
+	confidence := ca.calculateWorkerPoolConfidence(goroutines, hasChannels, hasWaitGroup)
+	return &metrics.PatternInstance{
+		Name:            "Worker Pool",
+		File:            file,
+		Line:            goroutines[0].Line,
+		ConfidenceScore: confidence,
+		Description:     fmt.Sprintf("Worker pool pattern with %d goroutine(s), channels, and WaitGroup", len(goroutines)),
+		Example:         ca.extractWorkerPoolExample(file, len(goroutines)),
 	}
 }
 
