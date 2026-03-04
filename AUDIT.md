@@ -22,6 +22,7 @@ This document tracks the audit status of all Go sub-packages in the `go-stats-ge
 - [x] **testdata/naming** — Needs Work — 13 issues (5 high, 6 med, 2 low) — doc:18.8% complexity:3 test:N/A duplication:0.0% naming:7
 - [x] **testdata/placement** — Needs Work — 23 issues (6 high, 11 med, 6 low) — doc:36.8% complexity:3 test:0.0% duplication:0.0% naming:1
 - [x] **testdata/placement/high_cohesion** — Needs Work — 7 issues (2 high, 2 med, 3 low) — doc:42.9% complexity:2 test:0.0% duplication:0.0% naming:1
+- [x] **testdata/placement/low_cohesion** — Needs Work — 10 issues (5 high, 4 med, 1 low) — doc:18.8% complexity:1 test:0.0% duplication:0.0% naming:1
 
 ## Audit Quality Gates
 
