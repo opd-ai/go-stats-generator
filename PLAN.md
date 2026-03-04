@@ -106,7 +106,7 @@
 ### Priority 3: Validation and Documentation
 
 13. **[IN PROGRESS ⏳] Reduce remaining production functions to complexity ≤10.0**
-    - **Status**: 50 production functions remain above complexity 10.0 (19 completed, 50 remaining out of 69 total)
+    - **Status**: 49 production functions remain above complexity 10.0 (20 completed, 49 remaining out of 69 total)
     - **Progress**: 
       - ✅ Refactored `finalizeNamingMetrics` (14.5 → 3.1, 78.6% improvement)
       - ✅ Refactored `compareFunctionMetrics` (13.7 → 1.3, 90.5% improvement)
@@ -126,13 +126,14 @@
       - ✅ Refactored `dfsCircular` (12.9 → 4.9, 62.0% improvement; cyclomatic 8 → 3, 62.5% improvement)
       - ✅ Refactored `runFileAnalysis` (12.7 → 4.4, 65.4% improvement; cyclomatic 9 → 3, 66.7% improvement)
       - ✅ Refactored `detectBuilder` (12.7 → 1.3, 89.8% improvement; cyclomatic 9 → 1, 88.9% improvement)
-      - ⏳ 50 functions remaining above 10.0 threshold (19 completed, 50 remaining out of 69 total)
+      - ✅ Refactored `writeNamingSection` (12.7 → 5.7, 55.1% improvement; cyclomatic 9 → 4, 55.6% improvement)
+      - ⏳ 49 functions remaining above 10.0 threshold (20 completed, 49 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ writeNamingSection (12.7) - internal/reporter/csv.go [NEXT]
-      2. ⏳ Retrieve (12.7) - internal/storage/sqlite.go
-      3. ⏳ checkIdentifierStuttering (12.4) - internal/analyzer/naming.go
-      4. ⏳ parseCoverageLine (12.2) - internal/analyzer/coverage.go
-      5. ⏳ AnalyzeStructsWithPath (12.1) - internal/analyzer/struct.go
+      1. ⏳ Retrieve (12.7) - internal/storage/sqlite.go [NEXT]
+      2. ⏳ checkIdentifierStuttering (12.4) - internal/analyzer/naming.go
+      3. ⏳ parseCoverageLine (12.2) - internal/analyzer/coverage.go
+      4. ⏳ AnalyzeStructsWithPath (12.1) - internal/analyzer/struct.go
+      5. ⏳ writeDocumentationSection (12.1) - internal/reporter/csv.go
     - **Deliverable**: `go-stats-generator analyze . --skip-tests` shows 0 functions above complexity 10.0
     - **Dependencies**: Steps 1-12
     - **Metric Justification**: ROADMAP.md Gate: "All functions ≤ 10 cyclomatic"

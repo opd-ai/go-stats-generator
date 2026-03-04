@@ -262,18 +262,37 @@ func (r *CSVReporter) writePackagesSection(writer *csv.Writer, report *metrics.R
 // including file name violations, identifier violations, package name violations,
 // and overall naming score with detailed violation listings.
 func (r *CSVReporter) writeNamingSection(writer *csv.Writer, report *metrics.Report) error {
-	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
-	if totalNamingViolations == 0 {
+	if !hasNamingViolations(report) {
 		return nil
 	}
 
+	if err := writeNamingHeader(writer); err != nil {
+		return err
+	}
+
+	if err := writeNamingSummaryRows(writer, report); err != nil {
+		return err
+	}
+
+	return writeNamingSubsections(r, writer, report)
+}
+
+func hasNamingViolations(report *metrics.Report) bool {
+	totalNamingViolations := report.Naming.FileNameViolations + report.Naming.IdentifierViolations + report.Naming.PackageNameViolations
+	return totalNamingViolations > 0
+}
+
+func writeNamingHeader(writer *csv.Writer) error {
 	if err := writer.Write([]string{""}); err != nil {
 		return err
 	}
 	if err := writer.Write([]string{"# NAMING CONVENTION ANALYSIS"}); err != nil {
 		return fmt.Errorf("failed to write naming header: %w", err)
 	}
+	return nil
+}
 
+func writeNamingSummaryRows(writer *csv.Writer, report *metrics.Report) error {
 	namingSummary := [][]string{
 		{"File Name Violations", strconv.Itoa(report.Naming.FileNameViolations)},
 		{"Identifier Violations", strconv.Itoa(report.Naming.IdentifierViolations)},
@@ -286,20 +305,17 @@ func (r *CSVReporter) writeNamingSection(writer *csv.Writer, report *metrics.Rep
 			return fmt.Errorf("failed to write naming summary row: %w", err)
 		}
 	}
+	return nil
+}
 
+func writeNamingSubsections(r *CSVReporter, writer *csv.Writer, report *metrics.Report) error {
 	if err := r.writeFileNameIssues(writer, report); err != nil {
 		return err
 	}
-
 	if err := r.writeIdentifierIssues(writer, report); err != nil {
 		return err
 	}
-
-	if err := r.writePackageNameIssues(writer, report); err != nil {
-		return err
-	}
-
-	return nil
+	return r.writePackageNameIssues(writer, report)
 }
 
 // writeFileNameIssues outputs file naming violations to CSV format, listing
