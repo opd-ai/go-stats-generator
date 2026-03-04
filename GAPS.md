@@ -1,4 +1,54 @@
-# Implementation Gaps: Statistical Trend Analysis Phase
+# Implementation Gaps: Production Readiness — Complexity Remediation Phase
+
+Generated: 2026-03-04T06:50:00Z
+Analysis Tool: go-stats-generator v1.0.0
+Source: ROADMAP.md (Production Readiness Assessment), metrics.json
+
+---
+
+## Gap 6: Two Identical Functions Named `walkForNestingDepth`
+
+- **Description**: Both `internal/analyzer/burden.go` and `internal/analyzer/function.go` contain functions named `walkForNestingDepth` with similar complexity violations (19.2 and 16.6 respectively).
+
+- **Impact**: Refactoring these independently may result in duplicated helper code. Consolidation opportunity exists but requires investigation of whether the implementations can be unified.
+
+- **Metrics Context**:
+  ```
+  burden.go:walkForNestingDepth — complexity 19.2, 64 lines
+  function.go:walkForNestingDepth — complexity 16.6, 56 lines
+  ```
+
+- **Resolution**:
+  1. Compare implementations to identify shared logic
+  2. If >70% similar, extract to shared `internal/analyzer/nesting.go`
+  3. If divergent purposes, rename for clarity (e.g., `walkBurdenNestingDepth`)
+
+---
+
+## Gap 7: cmd Package High Coupling May Complicate Refactoring
+
+- **Description**: The `cmd` package has a coupling score of 4.5 (9 dependencies), meaning refactoring functions like `runWatch`, `loadOutputConfiguration`, and `finalizeTestCoverageMetrics` may have cascading impacts.
+
+- **Impact**: Changes to CLI-related functions may require updates across multiple cmd files. Test coverage for cmd package functions may be incomplete.
+
+- **Metrics Context**:
+  ```json
+  {
+    "name": "cmd",
+    "coupling_score": 4.5,
+    "cohesion_score": 2.55,
+    "dependencies": 9
+  }
+  ```
+
+- **Resolution**:
+  1. Run `go test ./cmd/...` before and after each cmd refactor
+  2. Consider extracting shared utilities to reduce coupling
+  3. Document any cross-file dependencies discovered during refactoring
+
+---
+
+# Previous Phase: Statistical Trend Analysis
 
 Generated: 2026-03-03T19:26:00Z
 Analysis Tool: go-stats-generator v1.0.0
