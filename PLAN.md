@@ -127,10 +127,11 @@
       - ✅ Refactored `runFileAnalysis` (12.7 → 4.4, 65.4% improvement; cyclomatic 9 → 3, 66.7% improvement)
       - ✅ Refactored `detectBuilder` (12.7 → 1.3, 89.8% improvement; cyclomatic 9 → 1, 88.9% improvement)
       - ✅ Refactored `writeNamingSection` (12.7 → 5.7, 55.1% improvement; cyclomatic 9 → 4, 55.6% improvement)
-      - ⏳ 49 functions remaining above 10.0 threshold (20 completed, 49 remaining out of 69 total)
+      - ✅ Refactored `Retrieve` (12.7 → 7.0, 44.9% improvement; cyclomatic 9 → 5, 44.4% improvement)
+      - ⏳ 48 functions remaining above 10.0 threshold (21 completed, 48 remaining out of 69 total)
     - **Next Targets** (highest complexity first):
-      1. ⏳ Retrieve (12.7) - internal/storage/sqlite.go [NEXT]
-      2. ⏳ checkIdentifierStuttering (12.4) - internal/analyzer/naming.go
+      1. ⏳ checkIdentifierStuttering (12.4) - internal/analyzer/naming.go [NEXT]
+      2. ⏳ parseCoverageLine (12.2) - internal/analyzer/coverage.go
       3. ⏳ parseCoverageLine (12.2) - internal/analyzer/coverage.go
       4. ⏳ AnalyzeStructsWithPath (12.1) - internal/analyzer/struct.go
       5. ⏳ writeDocumentationSection (12.1) - internal/reporter/csv.go

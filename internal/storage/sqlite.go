@@ -311,11 +311,35 @@ func (s *SQLiteStorage) insertSnapshotTags(ctx context.Context, tx *sql.Tx, snap
 // Retrieve gets a specific snapshot by ID
 func (s *SQLiteStorage) Retrieve(ctx context.Context, id string) (metrics.MetricsSnapshot, error) {
 	var snapshot metrics.MetricsSnapshot
+
+	compressedData, metadata, err := s.fetchSnapshotData(ctx, id, &snapshot)
+	if err != nil {
+		return snapshot, err
+	}
+
+	if err := s.loadSnapshotTags(ctx, id, &metadata); err != nil {
+		return snapshot, err
+	}
+
+	data, err := s.decompressIfNeeded(compressedData)
+	if err != nil {
+		return snapshot, err
+	}
+
+	if err := json.Unmarshal(data, &snapshot.Report); err != nil {
+		return snapshot, fmt.Errorf("failed to unmarshal report data: %w", err)
+	}
+
+	snapshot.Metadata = metadata
+	return snapshot, nil
+}
+
+// fetchSnapshotData retrieves snapshot data and metadata from the database
+func (s *SQLiteStorage) fetchSnapshotData(ctx context.Context, id string, snapshot *metrics.MetricsSnapshot) ([]byte, metrics.SnapshotMetadata, error) {
 	var metadata metrics.SnapshotMetadata
 	var compressedData []byte
 	var gitCommit, gitBranch, gitTag, version, author, description sql.NullString
 
-	// Get snapshot data
 	query := `
 	SELECT id, timestamp, git_commit, git_branch, git_tag, version, 
 		   author, description, data_compressed
@@ -335,55 +359,56 @@ func (s *SQLiteStorage) Retrieve(ctx context.Context, id string) (metrics.Metric
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return snapshot, fmt.Errorf("snapshot not found: %s", id)
+			return nil, metadata, fmt.Errorf("snapshot not found: %s", id)
 		}
-		return snapshot, fmt.Errorf("failed to retrieve snapshot: %w", err)
+		return nil, metadata, fmt.Errorf("failed to retrieve snapshot: %w", err)
 	}
 
-	// Handle nullable fields
+	s.populateNullableFields(&metadata, gitCommit, gitBranch, gitTag, version, author, description)
+	return compressedData, metadata, nil
+}
+
+// populateNullableFields converts SQL nullable fields to metadata fields
+func (s *SQLiteStorage) populateNullableFields(metadata *metrics.SnapshotMetadata, gitCommit, gitBranch, gitTag, version, author, description sql.NullString) {
 	metadata.GitCommit = gitCommit.String
 	metadata.GitBranch = gitBranch.String
 	metadata.GitTag = gitTag.String
 	metadata.Version = version.String
 	metadata.Author = author.String
 	metadata.Description = description.String
+}
 
-	// Get tags
+// loadSnapshotTags retrieves tags associated with the snapshot
+func (s *SQLiteStorage) loadSnapshotTags(ctx context.Context, id string, metadata *metrics.SnapshotMetadata) error {
 	tags := make(map[string]string)
 	tagQuery := "SELECT key, value FROM snapshot_tags WHERE snapshot_id = ?"
 	rows, err := s.db.QueryContext(ctx, tagQuery, id)
 	if err != nil {
-		return snapshot, fmt.Errorf("failed to retrieve tags: %w", err)
+		return fmt.Errorf("failed to retrieve tags: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var key, value string
 		if err := rows.Scan(&key, &value); err != nil {
-			return snapshot, fmt.Errorf("failed to scan tag: %w", err)
+			return fmt.Errorf("failed to scan tag: %w", err)
 		}
 		tags[key] = value
 	}
 	metadata.Tags = tags
+	return nil
+}
 
-	// Decompress data
-	var data []byte
+// decompressIfNeeded decompresses data if compression is enabled
+func (s *SQLiteStorage) decompressIfNeeded(compressedData []byte) ([]byte, error) {
 	if s.config.EnableCompression {
-		data, err = decompress(compressedData)
+		data, err := decompress(compressedData)
 		if err != nil {
-			return snapshot, fmt.Errorf("failed to decompress data: %w", err)
+			return nil, fmt.Errorf("failed to decompress data: %w", err)
 		}
-	} else {
-		data = compressedData
+		return data, nil
 	}
-
-	// Unmarshal report data
-	if err := json.Unmarshal(data, &snapshot.Report); err != nil {
-		return snapshot, fmt.Errorf("failed to unmarshal report data: %w", err)
-	}
-
-	snapshot.Metadata = metadata
-	return snapshot, nil
+	return compressedData, nil
 }
 
 // List returns available snapshots with optional filtering
