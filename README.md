@@ -561,6 +561,79 @@ func main() {
 }
 ```
 
+## WebAssembly Browser Version
+
+In addition to the CLI tool, `go-stats-generator` is available as a browser-based WebAssembly application hosted on GitHub Pages. This allows you to analyze public GitHub repositories entirely in your browser without installing anything.
+
+### Live Demo
+
+Visit the hosted application at: **https://opd-ai.github.io/go-stats-generator/**
+
+### Features
+
+- **Zero Installation**: No CLI installation required - runs entirely in your browser
+- **Client-Side Analysis**: All processing happens locally in your browser for privacy and speed
+- **GitHub Repository Support**: Analyze any public GitHub repository by URL
+- **Multiple Output Formats**: View results as interactive HTML reports or downloadable JSON
+- **Branch/Tag/Commit Support**: Analyze any git ref (branch, tag, or specific commit SHA)
+- **Rate Limit Management**: Optional GitHub Personal Access Token support for increased API limits
+
+### How to Use
+
+1. Visit the GitHub Pages site
+2. Enter a GitHub repository URL (e.g., `https://github.com/golang/example`)
+3. (Optional) Specify a branch, tag, or commit SHA
+4. (Optional) Add a GitHub Personal Access Token to increase rate limits
+5. Click "Analyze" and view the results
+
+### GitHub Pages Deployment
+
+The WebAssembly application is automatically deployed to GitHub Pages via GitHub Actions on every push to the `main` branch.
+
+#### Enabling GitHub Pages (One-Time Setup)
+
+To enable GitHub Pages for this repository:
+
+1. Navigate to **Settings** → **Pages** in the GitHub repository
+2. Under **Source**, select **GitHub Actions** (not "Deploy from a branch")
+3. The workflow will automatically deploy on the next push to `main`
+
+The deployment workflow (`.github/workflows/deploy-pages.yml`) handles:
+- Compiling the Go code to WebAssembly (`GOOS=js GOARCH=wasm`)
+- Content-hashing the WASM binary for aggressive browser caching
+- Copying static assets (HTML, CSS, JavaScript)
+- Deploying to GitHub Pages
+
+#### Local Development
+
+To test the WebAssembly version locally:
+
+```bash
+# Build the WASM binary and assemble the site
+make build-dist
+
+# Serve locally (requires Python 3)
+cd dist && python3 -m http.server 8080
+
+# Visit http://localhost:8080 in your browser
+```
+
+The `build-dist` target creates a production-ready `dist/` directory with:
+- Content-hashed WASM binary (`go-stats-generator.<hash>.wasm`)
+- Static assets (HTML, CSS, JavaScript)
+- Manifest file for dynamic WASM loading
+- Cache headers configuration
+
+#### WASM Build Details
+
+The WebAssembly build uses platform-specific implementations:
+- `cmd/wasm/main.go` - WASM entry point with JavaScript API
+- `internal/scanner/discover_wasm.go` - In-memory file processing
+- `internal/scanner/worker_wasm.go` - Sequential processing (no OS threads)
+- `internal/storage/storage_wasm.go` - Storage stubs (analysis is one-shot)
+
+All core analyzers (functions, structs, interfaces, packages, patterns, concurrency, duplication, naming, documentation) work identically in both CLI and WASM builds.
+
 ## Planned Features
 
 The following features are under development and will be included in future releases:

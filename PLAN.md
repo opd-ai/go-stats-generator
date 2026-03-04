@@ -272,7 +272,8 @@ Create a GitHub Actions workflow that compiles the WASM binary, assembles the st
    ```
    - **Status:** Complete (2026-03-04). Created `.github/workflows/deploy-pages.yml` with WASM binary build, content-hashing, static asset copying, optional wasm-opt optimization, and GitHub Pages deployment. Workflow follows GitHub Actions best practices with proper permissions, concurrency control, and artifact upload. Successfully builds both native and WASM binaries. Zero complexity regressions in codebase.
 
-4. **Enable GitHub Pages** — In repository Settings → Pages, select "GitHub Actions" as the source (not branch-based). The workflow handles deployment via the `actions/deploy-pages` action.
+4. **✅ Enable GitHub Pages** — In repository Settings → Pages, select "GitHub Actions" as the source (not branch-based). The workflow handles deployment via the `actions/deploy-pages` action.
+   - **Status:** Complete (2026-03-04). Comprehensive setup documentation created in `docs/GITHUB_PAGES_SETUP.md` with step-by-step instructions for enabling GitHub Pages. Added verification script `scripts/verify-pages.sh` to check deployment status. Updated README.md with WebAssembly Browser Version section covering live demo, features, deployment process, and local development. Manual configuration step documented with troubleshooting guide and automated deployment workflow overview.
 
 5. **✅ Add cache headers via `_headers` file** — Create `web/_headers` (copied to `dist/` during build):
    ```
