@@ -97,23 +97,39 @@ func (wp *WorkerPool) worker(ctx context.Context, wg *sync.WaitGroup, jobChan <-
 	defer wg.Done()
 
 	for {
-		select {
-		case fileInfo, ok := <-jobChan:
-			if !ok {
-				return
-			}
-
-			result := wp.processFile(fileInfo)
-
-			select {
-			case resultChan <- result:
-			case <-ctx.Done():
-				return
-			}
-
-		case <-ctx.Done():
+		if wp.shouldStopWorker(ctx, jobChan, resultChan) {
 			return
 		}
+	}
+}
+
+// shouldStopWorker processes one job or checks for cancellation; returns true if worker should stop
+func (wp *WorkerPool) shouldStopWorker(ctx context.Context, jobChan <-chan FileInfo, resultChan chan<- Result) bool {
+	select {
+	case fileInfo, ok := <-jobChan:
+		if !ok {
+			return true
+		}
+		return wp.processAndSendResult(ctx, fileInfo, resultChan)
+
+	case <-ctx.Done():
+		return true
+	}
+}
+
+// processAndSendResult processes a file and sends the result; returns true if worker should stop
+func (wp *WorkerPool) processAndSendResult(ctx context.Context, fileInfo FileInfo, resultChan chan<- Result) bool {
+	result := wp.processFile(fileInfo)
+	return wp.sendResultOrCancel(ctx, result, resultChan)
+}
+
+// sendResultOrCancel sends a result or stops on context cancellation; returns true if worker should stop
+func (wp *WorkerPool) sendResultOrCancel(ctx context.Context, result Result, resultChan chan<- Result) bool {
+	select {
+	case resultChan <- result:
+		return false
+	case <-ctx.Done():
+		return true
 	}
 }
 
