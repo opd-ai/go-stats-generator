@@ -12,18 +12,46 @@ class App {
   }
 
   /**
+   * Resolve the base path for the deployed site.
+   * GitHub Pages may serve from a subpath (e.g. /go-stats-generator/).
+   * @returns {string} base path with trailing slash
+   */
+  getBasePath() {
+    // Use <base> href if set, otherwise derive from document location
+    const baseEl = document.querySelector('base[href]');
+    if (baseEl) {
+      return baseEl.getAttribute('href');
+    }
+    // Fallback: current directory of the page
+    const path = window.location.pathname || '/';
+    return path.endsWith('/') ? path : path.substring(0, path.lastIndexOf('/') + 1) || '/';
+  }
+
+  /**
    * Initialize the application
    */
   async init() {
     try {
       UI.updateProgress(10, 'Loading WebAssembly...');
       UI.show('progress-area');
-      
+
+      const basePath = this.getBasePath();
+      let wasmPath;
+
       // Load WASM manifest to get content-hashed filename
-      const manifestResponse = await fetch('/wasm/wasm-manifest.json');
-      const manifest = await manifestResponse.json();
-      const wasmPath = `/wasm/${manifest.wasmFile}`;
-      
+      try {
+        const manifestResponse = await fetch(`${basePath}wasm/wasm-manifest.json`);
+        if (!manifestResponse.ok) {
+          throw new Error(`manifest returned HTTP ${manifestResponse.status}`);
+        }
+        const manifest = await manifestResponse.json();
+        wasmPath = `${basePath}wasm/${manifest.wasmFile}`;
+      } catch (manifestError) {
+        // Fallback: try the default non-hashed filename
+        console.warn('Could not load WASM manifest, using default filename:', manifestError);
+        wasmPath = `${basePath}wasm/go-stats-generator.wasm`;
+      }
+
       await this.wasmLoader.load(wasmPath);
       
       UI.updateProgress(100, 'Ready');
