@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -238,7 +239,23 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Detecting regressions in the last %d days\n", trendDays)
 	}
 
-	// Initialize storage
+	storageBackend, err := initializeRegressionStorage()
+	if err != nil {
+		return err
+	}
+	defer storageBackend.Close()
+
+	recentSnapshots, historicalSnapshots, err := retrieveRegressionSnapshots(storageBackend)
+	if err != nil {
+		return err
+	}
+
+	regressions := detectRegressions(historicalSnapshots, recentSnapshots, trendThreshold)
+	return outputRegressionResults(regressions)
+}
+
+// initializeRegressionStorage sets up SQLite storage for regression detection.
+func initializeRegressionStorage() (storage.MetricsStorage, error) {
 	cfg := config.DefaultConfig()
 	sqliteConfig := storage.SQLiteConfig{
 		Path:              cfg.Storage.Path,
@@ -249,26 +266,48 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 
 	storageBackend, err := storage.NewSQLiteStorage(sqliteConfig)
 	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
+		return nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
-	defer storageBackend.Close()
+	return storageBackend, nil
+}
 
-	// Get recent snapshots
+// retrieveRegressionSnapshots fetches recent and historical snapshots for comparison.
+func retrieveRegressionSnapshots(storageBackend storage.MetricsStorage) ([]storage.SnapshotInfo, []storage.SnapshotInfo, error) {
 	ctx := context.Background()
+
+	recentSnapshots, err := getRecentSnapshots(ctx, storageBackend)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	historicalSnapshots, err := getHistoricalSnapshots(ctx, storageBackend)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return recentSnapshots, historicalSnapshots, nil
+}
+
+// getRecentSnapshots retrieves the most recent snapshots for regression analysis.
+func getRecentSnapshots(ctx context.Context, storageBackend storage.MetricsStorage) ([]storage.SnapshotInfo, error) {
 	recentFilter := storage.SnapshotFilter{
-		Limit: 10, // Get last 10 snapshots
+		Limit: 10,
 	}
 
 	recentSnapshots, err := storageBackend.List(ctx, recentFilter)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve recent snapshots: %w", err)
+		return nil, fmt.Errorf("failed to retrieve recent snapshots: %w", err)
 	}
 
 	if len(recentSnapshots) < 2 {
-		return fmt.Errorf("insufficient snapshots for regression detection (need at least 2, found %d)", len(recentSnapshots))
+		return nil, fmt.Errorf("insufficient snapshots for regression detection (need at least 2, found %d)", len(recentSnapshots))
 	}
 
-	// Get historical baseline
+	return recentSnapshots, nil
+}
+
+// getHistoricalSnapshots retrieves snapshots from before the trend cutoff period.
+func getHistoricalSnapshots(ctx context.Context, storageBackend storage.MetricsStorage) ([]storage.SnapshotInfo, error) {
 	cutoffTime := time.Now().AddDate(0, 0, -trendDays)
 	historicalFilter := storage.SnapshotFilter{
 		Before: &cutoffTime,
@@ -277,32 +316,44 @@ func runTrendRegressions(cmd *cobra.Command, args []string) error {
 
 	historicalSnapshots, err := storageBackend.List(ctx, historicalFilter)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve historical snapshots: %w", err)
+		return nil, fmt.Errorf("failed to retrieve historical snapshots: %w", err)
 	}
 
-	// Detect regressions
-	regressions := detectRegressions(historicalSnapshots, recentSnapshots, trendThreshold)
+	return historicalSnapshots, nil
+}
 
-	// Output results
+// outputRegressionResults writes regression data to console or JSON.
+func outputRegressionResults(regressions map[string]interface{}) error {
 	if outputFormat == "console" {
 		outputRegressionsConsole(regressions)
-	} else {
-		outputWriter := os.Stdout
-		if outputFile != "" {
-			file, err := os.Create(outputFile)
-			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
-			}
-			defer file.Close()
-			outputWriter = file
-		}
-
-		encoder := json.NewEncoder(outputWriter)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(regressions)
+		return nil
 	}
 
-	return nil
+	outputWriter, closer, err := createRegressionOutputWriter()
+	if err != nil {
+		return err
+	}
+	if closer != nil {
+		defer closer()
+	}
+
+	encoder := json.NewEncoder(outputWriter)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(regressions)
+}
+
+// createRegressionOutputWriter sets up the output destination for regressions.
+func createRegressionOutputWriter() (io.Writer, func(), error) {
+	if outputFile == "" {
+		return os.Stdout, nil, nil
+	}
+
+	file, err := os.Create(outputFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create output file: %w", err)
+	}
+
+	return file, func() { file.Close() }, nil
 }
 
 // Helper functions for trend analysis
