@@ -43,31 +43,49 @@ func (pa *PackageAnalyzer) AnalyzePackage(file *ast.File, filePath string) error
 	}
 
 	pkgName := file.Name.Name
+	pa.trackPackageFile(pkgName, filePath)
+	pa.analyzePackageImports(file, pkgName)
+	pa.countDeclarations(file, pkgName)
+	pa.trackFileLines(file, pkgName)
 
-	// Track file for this package
+	return nil
+}
+
+// trackPackageFile records a file as belonging to the specified package.
+func (pa *PackageAnalyzer) trackPackageFile(pkgName, filePath string) {
 	pa.packageFiles[pkgName] = append(pa.packageFiles[pkgName], filePath)
+}
 
-	// Analyze imports (dependencies)
+// analyzePackageImports extracts internal dependencies from file imports.
+func (pa *PackageAnalyzer) analyzePackageImports(file *ast.File, pkgName string) {
+	imports := pa.extractInternalImports(file)
+	existing := pa.packageDeps[pkgName]
+	pa.packageDeps[pkgName] = mergeUniqueStrings(existing, imports)
+}
+
+// extractInternalImports collects internal package imports, excluding stdlib and external packages.
+func (pa *PackageAnalyzer) extractInternalImports(file *ast.File) []string {
 	var imports []string
 	for _, imp := range file.Imports {
 		if imp.Path != nil {
-			// Remove quotes and get clean import path
 			importPath := strings.Trim(imp.Path.Value, `"`)
-			// Skip stdlib and external packages, focus on internal dependencies
 			if isInternalPackage(importPath) {
 				imports = append(imports, importPath)
 			}
 		}
 	}
+	return imports
+}
 
-	// Merge imports with existing dependencies
-	existing := pa.packageDeps[pkgName]
-	pa.packageDeps[pkgName] = mergeUniqueStrings(existing, imports)
+// countDeclarations counts functions and type declarations in the file.
+func (pa *PackageAnalyzer) countDeclarations(file *ast.File, pkgName string) {
+	functionCount, typeCount := pa.extractDeclCounts(file)
+	pa.packageFunctions[pkgName] += functionCount
+	pa.packageTypes[pkgName] += typeCount
+}
 
-	// Count functions and types
-	functionCount := 0
-	typeCount := 0
-
+// extractDeclCounts extracts function and type declaration counts from file.
+func (pa *PackageAnalyzer) extractDeclCounts(file *ast.File) (functionCount, typeCount int) {
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.FuncDecl:
@@ -78,17 +96,20 @@ func (pa *PackageAnalyzer) AnalyzePackage(file *ast.File, filePath string) error
 			}
 		}
 	}
+	return functionCount, typeCount
+}
 
-	pa.packageFunctions[pkgName] += functionCount
-	pa.packageTypes[pkgName] += typeCount
+// trackFileLines calculates and records the line count for the file.
+func (pa *PackageAnalyzer) trackFileLines(file *ast.File, pkgName string) {
+	linesInFile := pa.calculateFileLines(file)
+	pa.packageLines[pkgName] += linesInFile
+}
 
-	// Calculate lines of code for this file
+// calculateFileLines computes the total line count for a file.
+func (pa *PackageAnalyzer) calculateFileLines(file *ast.File) int {
 	start := pa.fset.Position(file.Pos())
 	end := pa.fset.Position(file.End())
-	linesInFile := end.Line - start.Line + 1
-	pa.packageLines[pkgName] += linesInFile
-
-	return nil
+	return end.Line - start.Line + 1
 }
 
 // GenerateReport generates comprehensive package metrics report including
