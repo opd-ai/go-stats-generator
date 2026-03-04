@@ -502,7 +502,7 @@ github.com/opd-ai/go-stats-generator/
 │   ├── reporter/          # Output formatters
 │   ├── scanner/           # File discovery and processing
 │   └── config/            # Configuration management
-├── pkg/go-stats-generator/          # Public API
+├── pkg/generator/          # Public API
 └── testdata/             # Test data
 ```
 
@@ -544,11 +544,11 @@ import (
     "fmt"
     "os"
     
-    "github.com/opd-ai/go-stats-generator/pkg/go-stats-generator"
+    "github.com/opd-ai/go-stats-generator/pkg/generator"
 )
 
 func main() {
-    analyzer := go_stats_generator.NewAnalyzer()
+    analyzer := generator.NewAnalyzer()
     
     report, err := analyzer.AnalyzeDirectory(context.Background(), "./src")
     if err != nil {
