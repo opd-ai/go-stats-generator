@@ -346,39 +346,12 @@ func finalizeOrganizationMetrics(report *metrics.Report, analyzers *AnalyzerSet,
 	}
 
 	orgConfig := getOrganizationConfig(cfg)
+	logOrganizationStart(cfg, len(collectedMetrics.Files))
 
-	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Running organization analysis on %d files...\n", len(collectedMetrics.Files))
-	}
-
-	var oversizedFiles []metrics.OversizedFile
-	for filePath, astFile := range collectedMetrics.Files {
-		result, err := analyzers.Organization.AnalyzeFileSizes(astFile, filePath, orgConfig)
-		if err == nil && result != nil {
-			oversizedFiles = append(oversizedFiles, *result)
-		}
-	}
-
-	pkgInfo := buildPackageInfo(collectedMetrics, report)
-	oversizedPackages := analyzers.Organization.AnalyzePackageSizes(pkgInfo, orgConfig)
-
-	var filePaths []string
-	for filePath := range collectedMetrics.Files {
-		filePaths = append(filePaths, filePath)
-	}
-	deepDirs := analyzers.Organization.AnalyzeDirectoryDepth(filePaths, targetPath, orgConfig)
-
-	graphData := buildImportGraphData(collectedMetrics)
-	importMetrics, _ := analyzers.Organization.AnalyzeImportGraph(graphData, orgConfig)
-
-	var highFanIn []metrics.FanInPackage
-	var highFanOut []metrics.FanOutPackage
-	avgStability := 0.0
-	if importMetrics != nil {
-		highFanIn = importMetrics.HighFanInPackages
-		highFanOut = importMetrics.HighFanOutPackages
-		avgStability = importMetrics.AvgInstability
-	}
+	oversizedFiles := analyzeOversizedFiles(analyzers, collectedMetrics, orgConfig)
+	oversizedPackages := analyzeOversizedPackages(analyzers, collectedMetrics, report, orgConfig)
+	deepDirs := analyzeDeepDirectories(analyzers, collectedMetrics, targetPath, orgConfig)
+	highFanIn, highFanOut, avgStability := analyzeImportGraph(analyzers, collectedMetrics, orgConfig)
 
 	report.Organization = metrics.OrganizationMetrics{
 		OversizedFiles:      oversizedFiles,
@@ -389,9 +362,65 @@ func finalizeOrganizationMetrics(report *metrics.Report, analyzers *AnalyzerSet,
 		AvgPackageStability: avgStability,
 	}
 
+	logOrganizationResults(cfg, len(oversizedFiles), len(oversizedPackages), len(deepDirs))
+}
+
+// logOrganizationStart prints verbose logging for organization analysis start
+func logOrganizationStart(cfg *config.Config, fileCount int) {
+	if cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Running organization analysis on %d files...\n", fileCount)
+	}
+}
+
+// analyzeOversizedFiles analyzes all files for size violations
+func analyzeOversizedFiles(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, orgConfig analyzer.OrganizationConfig) []metrics.OversizedFile {
+	var oversizedFiles []metrics.OversizedFile
+	for filePath, astFile := range collectedMetrics.Files {
+		result, err := analyzers.Organization.AnalyzeFileSizes(astFile, filePath, orgConfig)
+		if err == nil && result != nil {
+			oversizedFiles = append(oversizedFiles, *result)
+		}
+	}
+	return oversizedFiles
+}
+
+// analyzeOversizedPackages analyzes all packages for size violations
+func analyzeOversizedPackages(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, report *metrics.Report, orgConfig analyzer.OrganizationConfig) []metrics.OversizedPackage {
+	pkgInfo := buildPackageInfo(collectedMetrics, report)
+	return analyzers.Organization.AnalyzePackageSizes(pkgInfo, orgConfig)
+}
+
+// analyzeDeepDirectories analyzes directory structure for excessive nesting
+func analyzeDeepDirectories(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, targetPath string, orgConfig analyzer.OrganizationConfig) []metrics.DeepDirectory {
+	filePaths := extractFilePaths(collectedMetrics)
+	return analyzers.Organization.AnalyzeDirectoryDepth(filePaths, targetPath, orgConfig)
+}
+
+// analyzeImportGraph analyzes import relationships and returns fan-in, fan-out, and stability metrics
+func analyzeImportGraph(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, orgConfig analyzer.OrganizationConfig) ([]metrics.FanInPackage, []metrics.FanOutPackage, float64) {
+	graphData := buildImportGraphData(collectedMetrics)
+	importMetrics, _ := analyzers.Organization.AnalyzeImportGraph(graphData, orgConfig)
+	return extractOrgImportMetrics(importMetrics)
+}
+
+// extractOrgImportMetrics extracts fan-in, fan-out, and stability from import metrics
+func extractOrgImportMetrics(importMetrics *analyzer.ImportGraphMetrics) ([]metrics.FanInPackage, []metrics.FanOutPackage, float64) {
+	var highFanIn []metrics.FanInPackage
+	var highFanOut []metrics.FanOutPackage
+	avgStability := 0.0
+	if importMetrics != nil {
+		highFanIn = importMetrics.HighFanInPackages
+		highFanOut = importMetrics.HighFanOutPackages
+		avgStability = importMetrics.AvgInstability
+	}
+	return highFanIn, highFanOut, avgStability
+}
+
+// logOrganizationResults prints verbose logging for organization analysis results
+func logOrganizationResults(cfg *config.Config, filesCount, packagesCount, dirsCount int) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Found %d oversized files, %d oversized packages, %d deep directories\n",
-			len(oversizedFiles), len(oversizedPackages), len(deepDirs))
+			filesCount, packagesCount, dirsCount)
 	}
 }
 
