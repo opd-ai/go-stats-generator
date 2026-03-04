@@ -23,8 +23,8 @@ class App {
       return baseEl.getAttribute('href');
     }
     // Fallback: current directory of the page
-    const path = window.location.pathname;
-    return path.endsWith('/') ? path : path.substring(0, path.lastIndexOf('/') + 1);
+    const path = window.location.pathname || '/';
+    return path.endsWith('/') ? path : path.substring(0, path.lastIndexOf('/') + 1) || '/';
   }
 
   /**

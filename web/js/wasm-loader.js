@@ -116,7 +116,7 @@ class WASMLoader {
       }
     };
 
-    const result = this.analysisAPI.analyzeCode(JSON.stringify(request));
+    const result = await this.analysisAPI.analyzeCode(JSON.stringify(request));
 
     if (!result.success) {
       throw new Error(result.error || 'Analysis failed');
