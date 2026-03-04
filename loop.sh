@@ -109,7 +109,7 @@ delegate() {
     fi
 
     log "Delegating: $prompt_name"
-    copilot -p "$(cat "$prompt_file")"
+    yes | copilot -p "$(cat "$prompt_file")" --allow-all-tools --deny-tool sudo
     local rc=$?
     log "Delegation complete: $prompt_name (exit code: $rc)"
     return $rc
