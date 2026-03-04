@@ -625,14 +625,8 @@ func deduplicateOverlappingFingerprints(group []BlockFingerprint) []BlockFingerp
 		for i := len(result) - 1; i >= 0 && result[i].File == fp.File; i-- {
 			// Check if fp overlaps with result[i]
 			if fp.StartLine <= result[i].EndLine {
-				// Extend the existing entry to cover both ranges
-				if fp.EndLine > result[i].EndLine {
-					result[i].EndLine = fp.EndLine
-				}
-				if fp.NodeCount > result[i].NodeCount {
-					result[i].NodeCount = fp.NodeCount
-					result[i].Original = fp.Original
-				}
+				// Overlapping region: keep the existing representative fingerprint as-is
+				// and discard this one to avoid changing the hashed/classified range.
 				merged = true
 				break
 			}
