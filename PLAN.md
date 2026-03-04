@@ -58,20 +58,32 @@ go-stats-generator analyze cmd/ --sections duplication | grep "clone_pairs"
 - Zero regressions, 6 complexity improvements in unrelated code
 - All tests pass (pre-existing cmd package test failures remain unrelated to these changes)
 
-### Step 3: Consolidate Reporter CSV Section Writers
+### Step 3: Consolidate Reporter CSV Section Writers ✅ COMPLETE
 - **Deliverable**: Refactored `internal/reporter/csv.go` with table-driven section writing
 - **Dependencies**: None (independent refactoring)
 - **Metric Justification**: 9 functions above complexity threshold (10.1) in csv.go indicate repetitive patterns
+- **Status**: Completed - Created generic `writeSectionData[T any]()` helper function
 
 **Target Functions:**
-- `writeFunctionsSection` (47 lines, complexity 10.1)
-- `writeStructsSection` (36 lines, complexity 10.1)
-- `writePackagesSection` (44 lines, complexity 10.1)
-- `writeIdentifierIssues` (33 lines, complexity 10.1)
+- `writeFunctionsSection` (47 lines, complexity 10.1) ✅
+- `writeStructsSection` (36 lines, complexity 10.1) ✅
+- `writePackagesSection` (44 lines, complexity 10.1) ✅
+- `writeFileNameIssues` (33 lines, complexity 10.1) ✅
+- `writeIdentifierIssues` (33 lines, complexity 10.1) ✅
+- `writePackageNameIssues` (33 lines, complexity 10.1) ✅
 
 **Approach:**
-- Create generic `writeSectionCSV[T any](writer, header, rows []T, formatter func(T) []string)` helper
-- Replace per-section functions with calls to generic helper
+- Created generic `writeSectionData[T any](writer, header, headers, data, formatter)` helper ✅
+- Replaced per-section functions with calls to generic helper ✅
+- Used Go 1.23 generics to eliminate boilerplate while maintaining type safety ✅
+
+**Results:**
+- Reduced complexity from 10.1 → 1.3 in all 6 refactored functions (87% improvement)
+- Reduced cyclomatic complexity from 7 → 1 in all 6 functions (86% improvement)
+- Reduced functions over 30 lines from 79 → 75 (4 fewer violations)
+- Zero regressions introduced
+- All reporter tests pass
+- Duplication ratio remains at 4.87% (BELOW 5% target)
 
 ### Step 4: Consolidate Internal Analyzer Helper Patterns
 - **Deliverable**: Shared helper functions in `internal/analyzer/` to reduce repetitive AST traversal code
