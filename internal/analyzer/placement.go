@@ -214,63 +214,100 @@ func (pa *PlacementAnalyzer) AnalyzeFunctionAffinity() []metrics.MisplacedFuncti
 	var issues []metrics.MisplacedFunctionIssue
 
 	for symbol, defFile := range pa.symbolDefs {
-		// Skip methods (handled separately)
-		if strings.Contains(symbol, ".") {
-			continue
-		}
-
-		// Get references to this symbol from different files
-		refs := pa.symbolRefs[symbol]
-		if refs == nil || len(refs) == 0 {
-			continue
-		}
-
-		// Calculate affinity scores
-		totalRefs := 0
-		for _, count := range refs {
-			totalRefs += count
-		}
-
-		sameFileRefs := refs[defFile]
-		currentAffinity := float64(sameFileRefs) / float64(totalRefs)
-
-		// Find the file with highest affinity
-		bestFile := defFile
-		bestAffinity := currentAffinity
-		var referencedSymbols []string
-
-		for file, count := range refs {
-			affinity := float64(count) / float64(totalRefs)
-			if affinity > bestAffinity+pa.affinityMargin {
-				bestFile = file
-				bestAffinity = affinity
-			}
-		}
-
-		// Collect symbols referenced by this function
-		// (This would require AST analysis of function body - simplified for now)
-		referencedSymbols = []string{}
-
-		// If best file is different from current file, flag it
-		if bestFile != defFile && bestAffinity > currentAffinity+pa.affinityMargin {
-			severity := "medium"
-			if bestAffinity-currentAffinity > 2*pa.affinityMargin {
-				severity = "high"
-			}
-
-			issues = append(issues, metrics.MisplacedFunctionIssue{
-				Name:              symbol,
-				CurrentFile:       defFile,
-				SuggestedFile:     bestFile,
-				CurrentAffinity:   currentAffinity,
-				SuggestedAffinity: bestAffinity,
-				ReferencedSymbols: referencedSymbols,
-				Severity:          severity,
-			})
+		if issue := pa.checkFunctionPlacement(symbol, defFile); issue != nil {
+			issues = append(issues, *issue)
 		}
 	}
 
 	return issues
+}
+
+// checkFunctionPlacement analyzes a single function for potential misplacement
+func (pa *PlacementAnalyzer) checkFunctionPlacement(symbol, defFile string) *metrics.MisplacedFunctionIssue {
+	if pa.shouldSkipSymbol(symbol) {
+		return nil
+	}
+
+	refs := pa.symbolRefs[symbol]
+	if refs == nil || len(refs) == 0 {
+		return nil
+	}
+
+	totalRefs := pa.calculateTotalRefs(refs)
+	currentAffinity := pa.calculateAffinity(refs[defFile], totalRefs)
+	bestFile, bestAffinity := pa.findBestAffinityFile(refs, totalRefs, defFile, currentAffinity)
+
+	if pa.isMisplaced(bestFile, defFile, bestAffinity, currentAffinity) {
+		return pa.createMisplacedIssue(symbol, defFile, bestFile, currentAffinity, bestAffinity)
+	}
+
+	return nil
+}
+
+// shouldSkipSymbol returns true if the symbol should be skipped (e.g., methods)
+func (pa *PlacementAnalyzer) shouldSkipSymbol(symbol string) bool {
+	return strings.Contains(symbol, ".")
+}
+
+// calculateTotalRefs sums all references across files
+func (pa *PlacementAnalyzer) calculateTotalRefs(refs map[string]int) int {
+	total := 0
+	for _, count := range refs {
+		total += count
+	}
+	return total
+}
+
+// calculateAffinity computes affinity score as ratio of refs to total
+func (pa *PlacementAnalyzer) calculateAffinity(fileRefs, totalRefs int) float64 {
+	if totalRefs == 0 {
+		return 0.0
+	}
+	return float64(fileRefs) / float64(totalRefs)
+}
+
+// findBestAffinityFile identifies the file with highest reference affinity
+func (pa *PlacementAnalyzer) findBestAffinityFile(refs map[string]int, totalRefs int, defFile string, currentAffinity float64) (string, float64) {
+	bestFile := defFile
+	bestAffinity := currentAffinity
+
+	for file, count := range refs {
+		affinity := pa.calculateAffinity(count, totalRefs)
+		if affinity > bestAffinity+pa.affinityMargin {
+			bestFile = file
+			bestAffinity = affinity
+		}
+	}
+
+	return bestFile, bestAffinity
+}
+
+// isMisplaced checks if function should be flagged as misplaced
+func (pa *PlacementAnalyzer) isMisplaced(bestFile, defFile string, bestAffinity, currentAffinity float64) bool {
+	return bestFile != defFile && bestAffinity > currentAffinity+pa.affinityMargin
+}
+
+// createMisplacedIssue builds a misplaced function issue with appropriate severity
+func (pa *PlacementAnalyzer) createMisplacedIssue(symbol, defFile, bestFile string, currentAffinity, bestAffinity float64) *metrics.MisplacedFunctionIssue {
+	severity := pa.calculateSeverity(bestAffinity, currentAffinity)
+
+	return &metrics.MisplacedFunctionIssue{
+		Name:              symbol,
+		CurrentFile:       defFile,
+		SuggestedFile:     bestFile,
+		CurrentAffinity:   currentAffinity,
+		SuggestedAffinity: bestAffinity,
+		ReferencedSymbols: []string{},
+		Severity:          severity,
+	}
+}
+
+// calculateSeverity determines issue severity based on affinity difference
+func (pa *PlacementAnalyzer) calculateSeverity(bestAffinity, currentAffinity float64) string {
+	if bestAffinity-currentAffinity > 2*pa.affinityMargin {
+		return "high"
+	}
+	return "medium"
 }
 
 // AnalyzeMethodPlacement checks if methods are defined in the same file as their receiver

@@ -30,11 +30,11 @@ The root package serves as the CLI entry point, delegating to the cmd package. A
 - [ ] med naming — 11 file name violations (generic names like types.go)
 - [ ] med naming — 25 identifier violations (non-idiomatic names)
 - [ ] med naming — 11 package name violations
-- [ ] med documentation — 1 TODO comment (`internal/metrics/types.go:395`)
-- [ ] med documentation — 1 FIXME comment (critical severity, `internal/metrics/types.go:403`)
-- [ ] med documentation — 1 HACK comment (`internal/metrics/types.go:412`)
-- [ ] med documentation — 1 BUG comment (critical severity, `internal/metrics/types.go:421`)
-- [ ] med function-length — 69 functions exceed complexity or length thresholds
+- [x] med documentation — 1 TODO comment (verified: false positive, type name `TODOComment` detected as annotation)
+- [x] med documentation — 1 FIXME comment (verified: false positive, type name `FIXMEComment` detected as annotation)
+- [x] med documentation — 1 HACK comment (verified: false positive, type name `HACKComment` detected as annotation)
+- [x] med documentation — 1 BUG comment (verified: false positive, type name `BUGComment` detected as annotation)
+- [ ] med function-length — 57 functions exceed complexity threshold (down from 69)
 
 ### Low Priority
 - [ ] low documentation — 1 XXX comment (`internal/metrics/types.go:430`)
