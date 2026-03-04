@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>go-stats-generator - Online Go Code Analyzer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>go-stats-generator</h1>
+        <p>Comprehensive Go code analysis running entirely in your browser</p>
+        <nav>
+            <a href="https://github.com/opd-ai/go-stats-generator" target="_blank">GitHub Repository</a>
+            <a href="https://github.com/opd-ai/go-stats-generator#readme" target="_blank">Documentation</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="input-section">
+            <h2>Analyze a Repository</h2>
+            
+            <div class="form-group">
+                <label for="repo-url">Repository URL *</label>
+                <input 
+                    type="text" 
+                    id="repo-url" 
+                    placeholder="https://github.com/owner/repo"
+                    aria-label="GitHub repository URL"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="repo-ref">Branch / Tag / Commit (optional)</label>
+                <input 
+                    type="text" 
+                    id="repo-ref" 
+                    placeholder="main, v1.0.0, or commit SHA (leave blank for default branch)"
+                    aria-label="Git reference"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="github-token">GitHub Personal Access Token (optional)</label>
+                <input 
+                    type="password" 
+                    id="github-token" 
+                    placeholder="Increases rate limit from 60 to 5,000 requests/hour"
+                    aria-label="GitHub token"
+                    autocomplete="off"
+                >
+                <small>Token is never stored. Used only for this analysis session.</small>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label>
+                    <input type="checkbox" id="include-tests">
+                    Include test files (_test.go)
+                </label>
+            </div>
+
+            <div class="form-group radio-group">
+                <label>Output Format:</label>
+                <label>
+                    <input type="radio" name="format" value="html" checked>
+                    HTML Report
+                </label>
+                <label>
+                    <input type="radio" name="format" value="json">
+                    JSON
+                </label>
+            </div>
+
+            <button id="analyze-btn" class="btn-primary">Analyze Repository</button>
+        </section>
+
+        <section id="error-message" class="error hidden" role="alert"></section>
+
+        <section id="progress-area" class="hidden">
+            <h2>Analysis Progress</h2>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <p id="progress-text">Initializing...</p>
+            <button id="cancel-btn" class="btn-secondary">Cancel</button>
+        </section>
+
+        <section id="results-area" class="hidden">
+            <h2>Analysis Results</h2>
+            <div id="stats-summary" class="stats-summary hidden"></div>
+            <div id="results" class="results-container"></div>
+        </section>
+    </main>
+
+    <footer>
+        <div id="rate-limit" class="rate-limit-status">GitHub API rate limit: Loading...</div>
+        <p>
+            Powered by <strong>go-stats-generator</strong> v1.0.0 | 
+            <a href="https://github.com/opd-ai/go-stats-generator" target="_blank">Source Code</a> |
+            All analysis runs client-side with WebAssembly
+        </p>
+    </footer>
+
+    <!-- Load scripts -->
+    <script src="js/wasm_exec.js"></script>
+    <script src="js/github-fetcher.js"></script>
+    <script src="js/wasm-loader.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
