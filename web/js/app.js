@@ -138,7 +138,7 @@ class App {
         const detail = this.cloneErrorDetail || 'unknown error';
         throw new Error(
           `Git clone failed: ${detail}. ` +
-          'For private repositories, provide a personal access token.',
+          'If this is a private repository, provide a personal access token.',
         );
       }
 
