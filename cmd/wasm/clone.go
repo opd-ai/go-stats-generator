@@ -15,6 +15,7 @@ import (
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 
 	"github.com/opd-ai/go-stats-generator/pkg/generator"
@@ -24,6 +25,7 @@ import (
 type CloneRequest struct {
 	URL          string       `json:"url"`
 	Ref          string       `json:"ref,omitempty"`
+	Token        string       `json:"token,omitempty"`
 	IncludeTests bool         `json:"includeTests"`
 	OutputFormat string       `json:"outputFormat"`
 	Config       *ConfigInput `json:"config,omitempty"`
@@ -114,7 +116,7 @@ func performCloneAndAnalysis(inputJSON string, progressCb js.Value) (map[string]
 	reportProgress(progressCb, 5, "Cloning repository…")
 
 	fs := memfs.New()
-	_, err := cloneRepository(repoURL, request.Ref, fs, progressCb)
+	_, err := cloneRepository(repoURL, request.Ref, request.Token, fs, progressCb)
 	if err != nil {
 		return nil, fmt.Errorf("clone failed: %w", err)
 	}
@@ -189,7 +191,8 @@ func isLikelyCommitSHA(ref string) bool {
 
 // cloneRepository performs a shallow HTTPS clone into in-memory storage.
 // Commit SHA refs are not supported with shallow clones and will return an error.
-func cloneRepository(url, ref string, fs billy.Filesystem, progressCb js.Value) (*git.Repository, error) {
+// If token is non-empty, it is used for HTTP basic authentication (e.g. GitHub PAT).
+func cloneRepository(url, ref, token string, fs billy.Filesystem, progressCb js.Value) (*git.Repository, error) {
 	if ref != "" && isLikelyCommitSHA(ref) {
 		return nil, fmt.Errorf(
 			"commit SHA refs (%q) are not supported with shallow clone; "+
@@ -200,6 +203,13 @@ func cloneRepository(url, ref string, fs billy.Filesystem, progressCb js.Value) 
 		URL:   url,
 		Depth: 1,
 		Tags:  git.NoTags,
+	}
+
+	if token != "" {
+		opts.Auth = &githttp.BasicAuth{
+			Username: "x-access-token",
+			Password: token,
+		}
 	}
 
 	// Optionally write clone progress to a JS callback.

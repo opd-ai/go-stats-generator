@@ -1,17 +1,14 @@
 /**
  * Main Application Controller for go-stats-generator Web Interface
  *
- * Orchestrates: UI events → WASM git clone (or GitHub API fallback) → WASM analyzer → results rendering
+ * Orchestrates: UI events → WASM git clone → WASM analyzer → results rendering
  */
-
-/** Progress percentages for non-download stages. */
-const STAGE_PERCENT = { resolving: 5, fetching_tree: 10 };
 
 class App {
   constructor() {
     this.wasmLoader = new WASMLoader();
-    this.fetcher = null;
     this.isAnalyzing = false;
+    this.lastCloneError = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -78,29 +75,13 @@ class App {
   /** Bind DOM event listeners. */
   setupEventListeners() {
     const analyzeBtn = document.getElementById('analyze-btn');
-    const tokenInput = document.getElementById('github-token');
     const cancelBtn = document.getElementById('cancel-btn');
 
     if (analyzeBtn) {
       analyzeBtn.addEventListener('click', () => this.handleAnalyze());
     }
-    if (tokenInput) {
-      tokenInput.addEventListener('input', (e) => this.ensureFetcher(e.target.value));
-    }
     if (cancelBtn) {
       cancelBtn.addEventListener('click', () => this.handleCancel());
-    }
-  }
-
-  /**
-   * Ensure a {@link GitHubFetcher} instance exists and has the latest token.
-   * @param {string} token
-   */
-  ensureFetcher(token) {
-    if (!this.fetcher) {
-      this.fetcher = new GitHubFetcher(token);
-    } else {
-      this.fetcher.setToken(token);
     }
   }
 
@@ -135,27 +116,30 @@ class App {
       UI.show('progress-area');
       UI.hide('results-area');
 
-      // Try the WASM git-clone path first (no API rate limits).
-      // Fall back to GitHub REST API fetcher if clone fails (e.g. CORS issues,
-      // private repo needing a token, or non-GitHub hosts).
+      // Use the WASM git-clone path (no API rate limits).
+      // The GitHub REST API fallback has been removed to prevent HTTP 429
+      // rate-limit errors. Repositories are cloned directly over HTTPS
+      // using go-git in the WASM binary.
       let result, stats;
       const cloneAvailable = typeof globalThis.cloneAndAnalyze === 'function';
 
-      if (cloneAvailable) {
-        this.usingClone = true;
-        UI.setCancelVisible(false);
-        const cloneResult = await this.analyzeViaClone(inputs);
-        if (cloneResult) {
-          ({ result, stats } = cloneResult);
-        } else {
-          // Clone returned an error – fall back to API.
-          this.usingClone = false;
-          UI.setCancelVisible(true);
-          UI.updateProgress(5, 'Clone failed – falling back to GitHub API…');
-          ({ result, stats } = await this.analyzeViaAPI(inputs));
-        }
+      if (!cloneAvailable) {
+        throw new Error(
+          'WASM git clone is not available. Please reload the page and try again.',
+        );
+      }
+
+      this.usingClone = true;
+      UI.setCancelVisible(false);
+      const cloneResult = await this.analyzeViaClone(inputs);
+      if (cloneResult) {
+        ({ result, stats } = cloneResult);
       } else {
-        ({ result, stats } = await this.analyzeViaAPI(inputs));
+        const detail = this.lastCloneError || 'unknown error';
+        throw new Error(
+          `Git clone failed: ${detail}. ` +
+          'For private repositories, provide a personal access token.',
+        );
       }
 
       UI.updateProgress(100, 'Complete');
@@ -194,6 +178,7 @@ class App {
     const request = {
       url: inputs.repoURL,
       ref: inputs.ref || '',
+      token: inputs.token || '',
       includeTests: inputs.includeTests,
       outputFormat: inputs.format,
       config: {
@@ -211,12 +196,15 @@ class App {
         (progress) => this.handleCloneProgress(progress),
       );
     } catch (err) {
-      console.warn('Git clone threw:', err);
+      console.error('Git clone threw:', err);
+      this.lastCloneError = String(err);
       return null;
     }
 
     if (!response || !response.success) {
-      console.warn('Git clone failed:', response && response.error);
+      const errMsg = (response && response.error) || 'unknown error';
+      console.error('Git clone failed:', errMsg);
+      this.lastCloneError = errMsg;
       return null;
     }
 
@@ -224,33 +212,6 @@ class App {
       result: response.data,
       stats: response.stats || {},
     };
-  }
-
-  /**
-   * Fetch files via GitHub REST API and analyze them (original approach).
-   * Used as fallback when git clone is unavailable or fails.
-   * @param {Object} inputs - Form inputs.
-   * @returns {Promise<{result: string, stats: Object}>}
-   */
-  async analyzeViaAPI(inputs) {
-    this.ensureFetcher(inputs.token);
-
-    const { files, stats } = await this.fetcher.fetchRepository(
-      inputs.repoURL,
-      inputs.ref,
-      inputs.includeTests,
-      (progress) => this.handleFetchProgress(progress),
-    );
-
-    UI.updateRateLimit(this.fetcher.getRateLimitStatus());
-    UI.updateProgress(80, 'Running analysis…');
-
-    const result = await this.wasmLoader.analyze(files, {
-      format: inputs.format,
-      skipTests: !inputs.includeTests,
-    });
-
-    return { result, stats };
   }
 
   /**
@@ -268,27 +229,10 @@ class App {
   }
 
   /**
-   * Map fetcher progress events to the progress bar.
-   * @param {Object} progress
-   */
-  handleFetchProgress(progress) {
-    if (progress.stage === 'downloading') {
-      const pct = 10 + (progress.current / progress.total) * 70;
-      UI.updateProgress(pct, progress.message);
-    } else {
-      UI.updateProgress(STAGE_PERCENT[progress.stage] || 0, progress.message);
-    }
-  }
-
-  /**
-   * Cancel in-flight operations. When using the GitHub API fetcher the
-   * abort signal stops network requests. When using git clone, the WASM
-   * goroutine cannot be interrupted from JS, so we only hide progress.
+   * Cancel in-flight operations. The WASM git clone goroutine cannot be
+   * interrupted from JS, so we only hide the progress area.
    */
   handleCancel() {
-    if (this.fetcher) {
-      this.fetcher.abort();
-    }
     UI.hide('progress-area');
   }
 
