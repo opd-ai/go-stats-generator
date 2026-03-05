@@ -10,7 +10,8 @@ import (
 
 // PatternAnalyzer detects common design patterns in Go code
 type PatternAnalyzer struct {
-	fset *token.FileSet
+	fset           *token.FileSet
+	interfaceNames map[string]bool // per-file set of interface type names
 }
 
 // NewPatternAnalyzer creates analyzer for design pattern detection, identifying common Go idioms and architectural patterns.
@@ -30,6 +31,9 @@ func (pa *PatternAnalyzer) AnalyzePatterns(file *ast.File, pkgName, filePath str
 		Strategy:  []metrics.PatternInstance{},
 	}
 
+	// Build a set of interface type names declared in this file
+	pa.interfaceNames = pa.buildInterfaceNameSet(file)
+
 	pa.detectSingleton(file, filePath, &patterns)
 	pa.detectFactory(file, filePath, &patterns)
 	pa.detectBuilder(file, filePath, &patterns)
@@ -37,6 +41,29 @@ func (pa *PatternAnalyzer) AnalyzePatterns(file *ast.File, pkgName, filePath str
 	pa.detectStrategy(file, filePath, &patterns)
 
 	return patterns, nil
+}
+
+// buildInterfaceNameSet scans the file for type declarations that are interfaces
+// and returns a set of their names. This allows isInterfaceField/isInterfaceReturn
+// to detect interfaces declared anywhere in the file, not just in the same scope.
+func (pa *PatternAnalyzer) buildInterfaceNameSet(file *ast.File) map[string]bool {
+	names := make(map[string]bool)
+	for _, decl := range file.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+			if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+				names[typeSpec.Name.Name] = true
+			}
+		}
+	}
+	return names
 }
 
 // detectSingleton identifies singleton patterns via sync.Once or init
@@ -396,6 +423,11 @@ func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr) bool {
 		if ident.Name == "Interface" {
 			return true
 		}
+		// Check the precomputed interface name set (covers same-file declarations)
+		if pa.interfaceNames[ident.Name] {
+			return true
+		}
+		// Check AST object resolution (covers same-scope declarations)
 		if ident.Obj != nil && ident.Obj.Decl != nil {
 			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
 				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
@@ -503,6 +535,11 @@ func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field) bool {
 		if ident.Name == "Interface" {
 			return true
 		}
+		// Check the precomputed interface name set (covers same-file declarations)
+		if pa.interfaceNames[ident.Name] {
+			return true
+		}
+		// Check AST object resolution (covers same-scope declarations)
 		if ident.Obj != nil && ident.Obj.Decl != nil {
 			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
 				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {

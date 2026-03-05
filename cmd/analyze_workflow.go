@@ -16,6 +16,10 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/scanner"
 )
 
+// minPatternConfidenceThreshold mirrors metrics.DefaultMinPatternConfidence for use in
+// runAnalysisWorkflow where the local "metrics" variable shadows the metrics package.
+const minPatternConfidenceThreshold = 0.5
+
 // runDirectoryAnalysis performs comprehensive code analysis on a directory,
 // discovering Go files, processing them through a worker pool, and generating
 // a detailed metrics report including functions, structs, interfaces, patterns, etc.
@@ -218,6 +222,10 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 
 	// Step 6: Generate refactoring suggestions after all metrics are finalized
 	finalizeRefactoringSuggestions(report, cfg)
+
+	// Filter low-confidence pattern detections to reduce false positives
+	// NOTE: uses local constant because the local "metrics" variable shadows the metrics package
+	report.FilterLowConfidencePatterns(minPatternConfidenceThreshold)
 
 	report.Metadata.AnalysisTime = time.Since(startTime)
 

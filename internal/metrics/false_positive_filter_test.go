@@ -20,6 +20,7 @@ func TestFilterLowConfidencePatterns(t *testing.T) {
 		wantPipeline  int
 		wantFanOut    int
 		wantFanIn     int
+		wantSemaphore int
 	}{
 		{
 			name:          "filters low confidence patterns",
@@ -38,6 +39,7 @@ func TestFilterLowConfidencePatterns(t *testing.T) {
 						Pipelines:   []PatternInstance{{Name: "Pipeline", ConfidenceScore: 0.5}},
 						FanOut:      []PatternInstance{{Name: "Fan-Out", ConfidenceScore: 0.9}},
 						FanIn:       []PatternInstance{{Name: "Fan-In", ConfidenceScore: 0.3}},
+						Semaphores:  []PatternInstance{{Name: "Semaphore", ConfidenceScore: 0.75}},
 					},
 				},
 			},
@@ -50,6 +52,7 @@ func TestFilterLowConfidencePatterns(t *testing.T) {
 			wantPipeline:  0,
 			wantFanOut:    1,
 			wantFanIn:     0,
+			wantSemaphore: 1,
 		},
 		{
 			name:          "zero threshold preserves all",
@@ -60,12 +63,14 @@ func TestFilterLowConfidencePatterns(t *testing.T) {
 						Strategy: []PatternInstance{{Name: "Strategy", ConfidenceScore: 0.1}},
 					},
 					ConcurrencyPatterns: ConcurrencyPatternMetrics{
-						Pipelines: []PatternInstance{{Name: "Pipeline", ConfidenceScore: 0.1}},
+						Pipelines:  []PatternInstance{{Name: "Pipeline", ConfidenceScore: 0.1}},
+						Semaphores: []PatternInstance{{Name: "Semaphore", ConfidenceScore: 0.1}},
 					},
 				},
 			},
-			wantStrategy: 1,
-			wantPipeline: 1,
+			wantStrategy:  1,
+			wantPipeline:  1,
+			wantSemaphore: 1,
 		},
 		{
 			name:          "empty patterns unaffected",
@@ -88,9 +93,16 @@ func TestFilterLowConfidencePatterns(t *testing.T) {
 							{Name: "Factory B", ConfidenceScore: 0.49},
 						},
 					},
+					ConcurrencyPatterns: ConcurrencyPatternMetrics{
+						Semaphores: []PatternInstance{
+							{Name: "Semaphore A", ConfidenceScore: 0.5},
+							{Name: "Semaphore B", ConfidenceScore: 0.49},
+						},
+					},
 				},
 			},
-			wantFactory: 1,
+			wantFactory:   1,
+			wantSemaphore: 1,
 		},
 	}
 
@@ -107,6 +119,7 @@ func TestFilterLowConfidencePatterns(t *testing.T) {
 			assert.Len(t, tt.report.Patterns.ConcurrencyPatterns.Pipelines, tt.wantPipeline)
 			assert.Len(t, tt.report.Patterns.ConcurrencyPatterns.FanOut, tt.wantFanOut)
 			assert.Len(t, tt.report.Patterns.ConcurrencyPatterns.FanIn, tt.wantFanIn)
+			assert.Len(t, tt.report.Patterns.ConcurrencyPatterns.Semaphores, tt.wantSemaphore)
 		})
 	}
 }
@@ -140,8 +153,22 @@ func TestFilterPatternInstancesPreservesHighConfidence(t *testing.T) {
 	}
 }
 
-func TestDefaultMinPatternConfidence(t *testing.T) {
-	// Ensure the default threshold is reasonable (not too aggressive)
-	assert.GreaterOrEqual(t, DefaultMinPatternConfidence, 0.3, "threshold should not be too low")
-	assert.LessOrEqual(t, DefaultMinPatternConfidence, 0.7, "threshold should not be too high (would filter true positives)")
+func TestDefaultMinPatternConfidenceBehavior(t *testing.T) {
+	// Verify that the default threshold correctly filters instances below it
+	patterns := []PatternInstance{
+		{Name: "Below", ConfidenceScore: DefaultMinPatternConfidence - 0.01},
+		{Name: "Equal", ConfidenceScore: DefaultMinPatternConfidence},
+		{Name: "Above", ConfidenceScore: DefaultMinPatternConfidence + 0.01},
+	}
+
+	result := filterPatternInstances(patterns, DefaultMinPatternConfidence)
+
+	// Instances at or above the default threshold should be preserved,
+	// while those below it should be filtered out.
+	assert.Len(t, result, 2)
+	assert.Equal(t, "Equal", result[0].Name)
+	assert.Equal(t, "Above", result[1].Name)
+	for _, p := range result {
+		assert.GreaterOrEqual(t, p.ConfidenceScore, DefaultMinPatternConfidence)
+	}
 }

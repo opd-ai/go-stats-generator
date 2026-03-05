@@ -5,9 +5,9 @@ package metrics
 const DefaultMinPatternConfidence = 0.5
 
 // FilterLowConfidencePatterns removes pattern instances with confidence scores below the given
-// threshold from all pattern collections in the report. This reduces false positives while
-// preserving all true positives (which have higher confidence scores). A threshold of 0
-// disables filtering, preserving all results.
+// threshold from all pattern collections in the report. This reduces likely false positives but
+// may also remove some true positives with lower confidence scores. A threshold of 0 disables
+// filtering and leaves all results unchanged.
 func (r *Report) FilterLowConfidencePatterns(minConfidence float64) {
 	if minConfidence <= 0 {
 		return

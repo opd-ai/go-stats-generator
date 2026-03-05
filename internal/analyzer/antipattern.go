@@ -281,11 +281,14 @@ func (a *AntipatternAnalyzer) isResourceAcquisition(call *ast.CallExpr) bool {
 }
 
 // hasDeferClose checks if the enclosing function body contains a defer close/Close statement
-// after the resource acquisition call.
+// for the specific resource acquired by the given call expression.
 func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr, funcBody *ast.BlockStmt) bool {
 	if funcBody == nil {
 		return false
 	}
+
+	// Find the variable name assigned from this resource acquisition
+	resourceVar := a.findAssignedVar(call, funcBody)
 
 	found := false
 	ast.Inspect(funcBody, func(n ast.Node) bool {
@@ -301,8 +304,17 @@ func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr, funcBody *ast.Bl
 			cleanupFuncs := []string{"Close", "Release", "Disconnect", "Shutdown", "Stop", "Done"}
 			for _, fn := range cleanupFuncs {
 				if sel.Sel.Name == fn {
-					found = true
-					return false
+					// If we know the resource variable, check it matches the defer receiver
+					if resourceVar != "" {
+						if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == resourceVar {
+							found = true
+							return false
+						}
+					} else {
+						// If we can't determine the variable, accept any matching defer as before
+						found = true
+						return false
+					}
 				}
 			}
 		}
@@ -312,8 +324,15 @@ func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr, funcBody *ast.Bl
 				if innerCall, ok := inner.(*ast.CallExpr); ok {
 					if innerSel, ok := innerCall.Fun.(*ast.SelectorExpr); ok {
 						if innerSel.Sel.Name == "Close" || innerSel.Sel.Name == "Release" {
-							found = true
-							return false
+							if resourceVar != "" {
+								if ident, ok := innerSel.X.(*ast.Ident); ok && ident.Name == resourceVar {
+									found = true
+									return false
+								}
+							} else {
+								found = true
+								return false
+							}
 						}
 					}
 				}
@@ -324,4 +343,29 @@ func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr, funcBody *ast.Bl
 	})
 
 	return found
+}
+
+// findAssignedVar finds the variable name that a call expression result is assigned to
+// within the function body. Returns empty string if unable to determine.
+func (a *AntipatternAnalyzer) findAssignedVar(call *ast.CallExpr, funcBody *ast.BlockStmt) string {
+	var varName string
+	ast.Inspect(funcBody, func(n ast.Node) bool {
+		if varName != "" {
+			return false
+		}
+		assign, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		for _, rhs := range assign.Rhs {
+			if rhs == call && len(assign.Lhs) > 0 {
+				if ident, ok := assign.Lhs[0].(*ast.Ident); ok {
+					varName = ident.Name
+					return false
+				}
+			}
+		}
+		return true
+	})
+	return varName
 }

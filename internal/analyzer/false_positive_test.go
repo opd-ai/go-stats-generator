@@ -238,9 +238,9 @@ func example() {
 // TestPatternFalsePositiveReduction verifies that pattern detection does not
 // produce false positives from overly broad heuristics.
 func TestPatternFalsePositiveReduction(t *testing.T) {
-	t.Run("no false positive strategy for struct with io.Reader field", func(t *testing.T) {
-		// A struct with a field named "Reader" (ending in "er") should NOT
-		// be detected as strategy pattern unless it is a confirmed interface type
+	t.Run("no false positive strategy for struct with non-interface er-suffixed fields", func(t *testing.T) {
+		// A struct with fields named like "Reader" (ending in "er") that are NOT interfaces
+		// should NOT be detected as strategy pattern
 		src := `package test
 type MyStruct struct {
 	Reader  string

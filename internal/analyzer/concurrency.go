@@ -401,16 +401,24 @@ func (ca *ConcurrencyAnalyzer) extractSelectorName(selector *ast.SelectorExpr) s
 
 // containsDefer checks if a call expression contains a defer statement for cleanup
 func (ca *ConcurrencyAnalyzer) containsDefer(call *ast.CallExpr) bool {
-	if funcLit, ok := call.Fun.(*ast.FuncLit); ok {
-		if funcLit.Body != nil {
-			for _, stmt := range funcLit.Body.List {
-				if _, ok := stmt.(*ast.DeferStmt); ok {
-					return true
-				}
-			}
-		}
+	funcLit, ok := call.Fun.(*ast.FuncLit)
+	if !ok || funcLit.Body == nil {
+		return false
 	}
-	return false
+
+	hasDefer := false
+	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
+		if n == nil || hasDefer {
+			return false
+		}
+		if _, ok := n.(*ast.DeferStmt); ok {
+			hasDefer = true
+			return false
+		}
+		return true
+	})
+
+	return hasDefer
 }
 
 // checkGoroutineLeak analyzes a goroutine for potential leaks such as infinite loops without exit conditions

@@ -249,19 +249,18 @@ func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
 	// Count function call references
 	for _, file := range files {
 		ast.Inspect(file, func(n ast.Node) bool {
-			switch node := n.(type) {
-			case *ast.CallExpr:
+			if call, ok := n.(*ast.CallExpr); ok {
 				// Direct function call
-				if ident, ok := node.Fun.(*ast.Ident); ok {
+				if ident, ok := call.Fun.(*ast.Ident); ok {
 					refs[ident.Name]++
 				}
-				// Method call: x.Method() - track the method name
-				if sel, ok := node.Fun.(*ast.SelectorExpr); ok {
-					refs[sel.Sel.Name]++
+				// Method call on local variable: x.Method()
+				// Only count if receiver is a local identifier (not an imported package)
+				if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+					if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
+						refs[sel.Sel.Name]++
+					}
 				}
-			case *ast.SelectorExpr:
-				// Field/method access: x.Field - track as reference
-				refs[node.Sel.Name]++
 			}
 			return true
 		})
