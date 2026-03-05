@@ -90,11 +90,28 @@ func (ba *BurdenAnalyzer) checkBasicLit(lit *ast.BasicLit, file *ast.File, fn st
 func (ba *BurdenAnalyzer) isBenignNumber(value string) bool {
 	// Common benign values that shouldn't be flagged
 	benign := map[string]bool{
-		"0":   true,
-		"1":   true,
-		"-1":  true,
-		"0.0": true,
-		"1.0": true,
+		"0":    true,
+		"1":    true,
+		"2":    true,
+		"-1":   true,
+		"0.0":  true,
+		"1.0":  true,
+		"0.5":  true,
+		"2.0":  true,
+		"10":   true,
+		"100":  true,
+		"1000": true,
+		"8":    true,
+		"16":   true,
+		"32":   true,
+		"64":   true,
+		"128":  true,
+		"256":  true,
+		"512":  true,
+		"1024": true,
+		"0x00": true,
+		"0xff": true,
+		"0xFF": true,
 	}
 	return benign[value]
 }
@@ -232,11 +249,17 @@ func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
 	// Count function call references
 	for _, file := range files {
 		ast.Inspect(file, func(n ast.Node) bool {
-			switch node := n.(type) {
-			case *ast.CallExpr:
+			if call, ok := n.(*ast.CallExpr); ok {
 				// Direct function call
-				if ident, ok := node.Fun.(*ast.Ident); ok {
+				if ident, ok := call.Fun.(*ast.Ident); ok {
 					refs[ident.Name]++
+				}
+				// Method call on local variable: x.Method()
+				// Only count if receiver is a local identifier (not an imported package)
+				if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+					if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
+						refs[sel.Sel.Name]++
+					}
 				}
 			}
 			return true
@@ -408,7 +431,7 @@ func (ba *BurdenAnalyzer) checkSwitchCasesUnreachable(body *ast.BlockStmt, fn st
 }
 
 // isTerminating checks if a statement unconditionally terminates execution,
-// detecting return statements, os.Exit calls, and panic calls.
+// detecting return statements, os.Exit calls, panic calls, and log.Fatal* calls.
 func (ba *BurdenAnalyzer) isTerminating(stmt ast.Stmt) bool {
 	if ba.isReturnStmt(stmt) {
 		return true
@@ -417,6 +440,9 @@ func (ba *BurdenAnalyzer) isTerminating(stmt ast.Stmt) bool {
 		return true
 	}
 	if ba.isPanicCall(stmt) {
+		return true
+	}
+	if ba.isLogFatalCall(stmt) {
 		return true
 	}
 	return false
@@ -466,8 +492,32 @@ func (ba *BurdenAnalyzer) isPanicCall(stmt ast.Stmt) bool {
 	return ident.Name == "panic"
 }
 
+// isLogFatalCall checks if a statement is a log.Fatal, log.Fatalf, or log.Fatalln call
+func (ba *BurdenAnalyzer) isLogFatalCall(stmt ast.Stmt) bool {
+	exprStmt, ok := stmt.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	call, ok := exprStmt.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if ident.Name == "log" {
+		return sel.Sel.Name == "Fatal" || sel.Sel.Name == "Fatalf" || sel.Sel.Name == "Fatalln"
+	}
+	return false
+}
+
 // getTerminationReason returns a human-readable description of why a statement
-// terminates execution (e.g., "return statement", "os.Exit call", "panic call").
+// terminates execution (e.g., "return statement", "os.Exit call", "panic call", "log.Fatal call").
 func (ba *BurdenAnalyzer) getTerminationReason(stmt ast.Stmt) string {
 	if ba.isReturnStmt(stmt) {
 		return "return statement"
@@ -477,6 +527,9 @@ func (ba *BurdenAnalyzer) getTerminationReason(stmt ast.Stmt) string {
 	}
 	if ba.isPanicCall(stmt) {
 		return "panic call"
+	}
+	if ba.isLogFatalCall(stmt) {
+		return "log.Fatal call"
 	}
 	return "terminating statement"
 }

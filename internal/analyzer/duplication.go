@@ -539,6 +539,20 @@ func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint,
 	groups := da.GroupFingerprintsByHash(fingerprints)
 	duplicates := da.FilterDuplicateGroups(groups)
 
+	// Deduplicate overlapping fingerprints within each group before
+	// converting to clone pairs. This merges sliding-window blocks from
+	// the same file that share a hash into a single representative.
+	for hash, group := range duplicates {
+		duplicates[hash] = deduplicateOverlappingFingerprints(group)
+	}
+
+	// Re-filter: deduplication may have reduced some groups below 2 instances
+	for hash, group := range duplicates {
+		if len(group) < 2 {
+			delete(duplicates, hash)
+		}
+	}
+
 	// Convert to ClonePair format
 	var clonePairs []metrics.ClonePair
 
@@ -574,6 +588,9 @@ func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint,
 		clonePairs = append(clonePairs, pair)
 	}
 
+	// Remove clone pairs that are subsumed by larger ones
+	clonePairs = filterSubsumedClonePairs(clonePairs)
+
 	// Sort by line count (ascending) for shortest-to-longest ordering
 	sort.Slice(clonePairs, func(i, j int) bool {
 		if clonePairs[i].LineCount != clonePairs[j].LineCount {
@@ -583,6 +600,127 @@ func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint,
 	})
 
 	return clonePairs
+}
+
+// deduplicateOverlappingFingerprints merges fingerprints from the same file
+// whose line ranges overlap. The sliding window approach generates many
+// overlapping blocks that normalize to the same hash; this function keeps
+// only one representative per non-overlapping region in each file.
+func deduplicateOverlappingFingerprints(group []BlockFingerprint) []BlockFingerprint {
+	// Sort by file, then by start line, then by end line descending (largest first)
+	sort.Slice(group, func(i, j int) bool {
+		if group[i].File != group[j].File {
+			return group[i].File < group[j].File
+		}
+		if group[i].StartLine != group[j].StartLine {
+			return group[i].StartLine < group[j].StartLine
+		}
+		return group[i].EndLine > group[j].EndLine
+	})
+
+	var result []BlockFingerprint
+	for _, fp := range group {
+		merged := false
+		// Since results are sorted by file, only check backwards within the same file
+		for i := len(result) - 1; i >= 0 && result[i].File == fp.File; i-- {
+			// Check if fp overlaps with result[i]
+			if fp.StartLine <= result[i].EndLine {
+				// Overlapping region: keep the existing representative fingerprint as-is
+				// and discard this one to avoid changing the hashed/classified range.
+				merged = true
+				break
+			}
+		}
+		if !merged {
+			result = append(result, fp)
+		}
+	}
+
+	return result
+}
+
+// claimedRange represents a line range that has been claimed by an accepted clone pair.
+type claimedRange struct{ start, end int }
+
+// filterSubsumedClonePairs removes clone pairs whose instances are all
+// contained within instances of a larger clone pair. This eliminates
+// redundant smaller windows that describe the same underlying duplication.
+func filterSubsumedClonePairs(pairs []metrics.ClonePair) []metrics.ClonePair {
+	if len(pairs) <= 1 {
+		return pairs
+	}
+
+	// Sort by line count descending so we process largest pairs first
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].LineCount > pairs[j].LineCount
+	})
+
+	// Track claimed line ranges per file from already-accepted pairs.
+	claimed := make(map[string][]claimedRange)
+
+	var kept []metrics.ClonePair
+
+	for _, pair := range pairs {
+		allSubsumed := true
+		for _, inst := range pair.Instances {
+			if !isRangeSubsumed(inst.File, inst.StartLine, inst.EndLine, claimed) {
+				allSubsumed = false
+				break
+			}
+		}
+
+		if !allSubsumed {
+			kept = append(kept, pair)
+			for _, inst := range pair.Instances {
+				claimed[inst.File] = append(claimed[inst.File], claimedRange{inst.StartLine, inst.EndLine})
+			}
+		}
+	}
+
+	return kept
+}
+
+// isRangeSubsumed checks whether a line range is fully contained within
+// any of the already-claimed ranges for the given file.
+func isRangeSubsumed(file string, start, end int, claimed map[string][]claimedRange) bool {
+	ranges := claimed[file]
+	if len(ranges) == 0 {
+		return false
+	}
+
+	// Work on a sorted copy to avoid repeatedly scanning an unsorted, growing slice.
+	sorted := make([]claimedRange, len(ranges))
+	copy(sorted, ranges)
+
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].start == sorted[j].start {
+			return sorted[i].end < sorted[j].end
+		}
+		return sorted[i].start < sorted[j].start
+	})
+
+	// Binary search for the last range with start <= query start.
+	idx := sort.Search(len(sorted), func(i int) bool {
+		return sorted[i].start > start
+	}) - 1
+
+	if idx >= 0 {
+		r := sorted[idx]
+		if start >= r.start && end <= r.end {
+			return true
+		}
+	}
+
+	// Also check the next range (in case of non-overlapping ranges where the
+	// query starts inside the gap but ends inside the following range).
+	nextIdx := idx + 1
+	if nextIdx >= 0 && nextIdx < len(sorted) {
+		r := sorted[nextIdx]
+		if start >= r.start && end <= r.end {
+			return true
+		}
+	}
+	return false
 }
 
 // ClassifyClone determines the clone type (exact, renamed, or near-clone) based

@@ -199,18 +199,18 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	report := createInitialReport(targetDir, startTime, len(files))
 
 	// Step 4: Process analysis results from worker pool
-	metrics, packageAnalyzer, err := processAnalysisResults(ctx, results, analyzers, report, cfg)
+	collectedMetrics, packageAnalyzer, err := processAnalysisResults(ctx, results, analyzers, report, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	// Step 5: Finalize report with all collected metrics
-	finalizeReport(report, metrics, packageAnalyzer, cfg)
-	finalizeDuplicationMetrics(report, analyzers.Duplication, metrics, cfg)
-	finalizeNamingMetrics(report, analyzers, metrics, cfg)
-	finalizePlacementMetrics(report, analyzers, metrics, cfg)
-	finalizeDocumentationMetrics(report, analyzers, metrics, cfg)
-	finalizeOrganizationMetrics(report, analyzers, metrics, cfg, targetDir)
+	finalizeReport(report, collectedMetrics, packageAnalyzer, cfg)
+	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
+	finalizeNamingMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizePlacementMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizeDocumentationMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizeOrganizationMetrics(report, analyzers, collectedMetrics, cfg, targetDir)
 	finalizeTeamMetrics(report, targetDir, cfg)
 
 	// Step 6: Generate refactoring suggestions after all metrics are finalized

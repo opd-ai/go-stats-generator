@@ -28,107 +28,129 @@ func NewAntipatternAnalyzer(fset *token.FileSet) *AntipatternAnalyzer {
 func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntipattern {
 	var patterns []metrics.PerformanceAntipattern
 
-	ast.Inspect(file, func(n ast.Node) bool {
-		patterns = append(patterns, a.checkMemoryAllocation(n)...)
-		patterns = append(patterns, a.checkStringConcatenation(n)...)
-		patterns = append(patterns, a.checkGoroutineLeaks(n)...)
-		patterns = append(patterns, a.checkResourceManagement(n)...)
-		return true
-	})
-
-	return patterns
-}
-
-// checkMemoryAllocation detects inefficient memory allocation patterns
-func (a *AntipatternAnalyzer) checkMemoryAllocation(n ast.Node) []metrics.PerformanceAntipattern {
-	var patterns []metrics.PerformanceAntipattern
-
-	switch node := n.(type) {
-	case *ast.AssignStmt:
-		for _, expr := range node.Rhs {
-			if call, ok := expr.(*ast.CallExpr); ok {
-				if a.isAppendInLoop(call, node) {
-					patterns = append(patterns, metrics.PerformanceAntipattern{
-						Type:        "memory_allocation",
-						Description: "append() in loop without pre-allocation",
-						Severity:    "medium",
-						File:        a.fset.Position(node.Pos()).Filename,
-						Line:        a.fset.Position(node.Pos()).Line,
-						Suggestion:  "Pre-allocate slice with make() for known capacity",
-					})
-				}
-			}
+	for _, decl := range file.Decls {
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok || funcDecl.Body == nil {
+			continue
 		}
+		patterns = append(patterns, a.analyzeFunction(funcDecl)...)
 	}
 
 	return patterns
 }
 
-// checkStringConcatenation detects inefficient string operations
-func (a *AntipatternAnalyzer) checkStringConcatenation(n ast.Node) []metrics.PerformanceAntipattern {
+// analyzeFunction analyzes a single function declaration for anti-patterns,
+// using the function body to provide parent-node context for loop detection.
+func (a *AntipatternAnalyzer) analyzeFunction(funcDecl *ast.FuncDecl) []metrics.PerformanceAntipattern {
 	var patterns []metrics.PerformanceAntipattern
-
-	if binExpr, ok := n.(*ast.BinaryExpr); ok {
-		if binExpr.Op == token.ADD {
-			if a.isStringType(binExpr.X) || a.isStringType(binExpr.Y) {
-				if a.isInLoop(binExpr) {
-					patterns = append(patterns, metrics.PerformanceAntipattern{
-						Type:        "string_concatenation",
-						Description: "String concatenation in loop",
-						Severity:    "high",
-						File:        a.fset.Position(binExpr.Pos()).Filename,
-						Line:        a.fset.Position(binExpr.Pos()).Line,
-						Suggestion:  "Use strings.Builder for efficient concatenation",
-					})
-				}
-			}
-		}
-	}
-
+	a.walkWithLoopContext(funcDecl.Body, false, funcDecl.Body, &patterns)
 	return patterns
 }
 
-// checkGoroutineLeaks detects potential goroutine leaks
-func (a *AntipatternAnalyzer) checkGoroutineLeaks(n ast.Node) []metrics.PerformanceAntipattern {
-	var patterns []metrics.PerformanceAntipattern
+// walkWithLoopContext traverses the AST tracking whether we are inside a loop,
+// enabling accurate detection of anti-patterns that only apply within loops.
+func (a *AntipatternAnalyzer) walkWithLoopContext(node ast.Node, inLoop bool, funcBody *ast.BlockStmt, patterns *[]metrics.PerformanceAntipattern) {
+	if node == nil {
+		return
+	}
 
-	if goStmt, ok := n.(*ast.GoStmt); ok {
-		if !a.hasContextOrDone(goStmt) {
-			patterns = append(patterns, metrics.PerformanceAntipattern{
+	switch n := node.(type) {
+	case *ast.ForStmt:
+		if n.Body != nil {
+			for _, stmt := range n.Body.List {
+				a.walkWithLoopContext(stmt, true, funcBody, patterns)
+			}
+		}
+		return
+	case *ast.RangeStmt:
+		if n.Body != nil {
+			for _, stmt := range n.Body.List {
+				a.walkWithLoopContext(stmt, true, funcBody, patterns)
+			}
+		}
+		return
+	case *ast.GoStmt:
+		if !a.hasContextOrDone(n) {
+			*patterns = append(*patterns, metrics.PerformanceAntipattern{
 				Type:        "goroutine_leak",
 				Description: "Goroutine without context or done channel",
 				Severity:    "high",
-				File:        a.fset.Position(goStmt.Pos()).Filename,
-				Line:        a.fset.Position(goStmt.Pos()).Line,
+				File:        a.fset.Position(n.Pos()).Filename,
+				Line:        a.fset.Position(n.Pos()).Line,
 				Suggestion:  "Add context.Context or done channel for graceful shutdown",
 			})
 		}
-	}
-
-	return patterns
-}
-
-// checkResourceManagement detects resource management issues
-func (a *AntipatternAnalyzer) checkResourceManagement(n ast.Node) []metrics.PerformanceAntipattern {
-	var patterns []metrics.PerformanceAntipattern
-
-	if call, ok := n.(*ast.CallExpr); ok {
-		if a.isResourceAcquisition(call) && !a.hasDeferClose(call) {
-			patterns = append(patterns, metrics.PerformanceAntipattern{
+	case *ast.CallExpr:
+		if a.isResourceAcquisition(n) && !a.hasDeferClose(n, funcBody) {
+			*patterns = append(*patterns, metrics.PerformanceAntipattern{
 				Type:        "resource_leak",
 				Description: "Resource acquisition without defer close",
 				Severity:    "critical",
-				File:        a.fset.Position(call.Pos()).Filename,
-				Line:        a.fset.Position(call.Pos()).Line,
+				File:        a.fset.Position(n.Pos()).Filename,
+				Line:        a.fset.Position(n.Pos()).Line,
 				Suggestion:  "Use defer to ensure resource cleanup",
 			})
 		}
+	case *ast.AssignStmt:
+		if inLoop {
+			a.checkAssignForLoopAntipatterns(n, patterns)
+		}
+	case *ast.BinaryExpr:
+		if inLoop && n.Op == token.ADD {
+			if a.isStringType(n.X) || a.isStringType(n.Y) {
+				*patterns = append(*patterns, metrics.PerformanceAntipattern{
+					Type:        "string_concatenation",
+					Description: "String concatenation in loop",
+					Severity:    "high",
+					File:        a.fset.Position(n.Pos()).Filename,
+					Line:        a.fset.Position(n.Pos()).Line,
+					Suggestion:  "Use strings.Builder for efficient concatenation",
+				})
+			}
+		}
 	}
 
-	return patterns
+	// Recurse into child nodes for non-loop statements
+	ast.Inspect(node, func(child ast.Node) bool {
+		if child == node {
+			return true
+		}
+		switch child.(type) {
+		case *ast.ForStmt, *ast.RangeStmt, *ast.GoStmt, *ast.CallExpr, *ast.AssignStmt, *ast.BinaryExpr:
+			a.walkWithLoopContext(child, inLoop, funcBody, patterns)
+			return false
+		}
+		return true
+	})
 }
 
-// isAppendInLoop checks if append is called inside a loop
+// checkAssignForLoopAntipatterns checks assignment statements inside loops for append without pre-allocation
+func (a *AntipatternAnalyzer) checkAssignForLoopAntipatterns(node *ast.AssignStmt, patterns *[]metrics.PerformanceAntipattern) {
+	for _, expr := range node.Rhs {
+		if call, ok := expr.(*ast.CallExpr); ok {
+			if a.isAppendCall(call) {
+				*patterns = append(*patterns, metrics.PerformanceAntipattern{
+					Type:        "memory_allocation",
+					Description: "append() in loop without pre-allocation",
+					Severity:    "medium",
+					File:        a.fset.Position(node.Pos()).Filename,
+					Line:        a.fset.Position(node.Pos()).Line,
+					Suggestion:  "Pre-allocate slice with make() for known capacity",
+				})
+			}
+		}
+	}
+}
+
+// isAppendCall checks if a call expression is an append() call
+func (a *AntipatternAnalyzer) isAppendCall(call *ast.CallExpr) bool {
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		return ident.Name == "append"
+	}
+	return false
+}
+
+// isAppendInLoop checks if append is called inside a loop (kept for backward compatibility)
 func (a *AntipatternAnalyzer) isAppendInLoop(call *ast.CallExpr, node ast.Node) bool {
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		return ident.Name == "append"
@@ -144,24 +166,105 @@ func (a *AntipatternAnalyzer) isStringType(expr ast.Expr) bool {
 	return false
 }
 
-// isInLoop checks if node is inside a loop
+// isInLoop checks if node is inside a loop (kept for backward compatibility)
 func (a *AntipatternAnalyzer) isInLoop(node ast.Node) bool {
-	// Simplified check - in production would traverse parent nodes
 	return false
 }
 
-// hasContextOrDone checks if goroutine has context or done channel
+// hasContextOrDone checks if goroutine has context or done channel by examining
+// parameter names and types of the launched function.
 func (a *AntipatternAnalyzer) hasContextOrDone(goStmt *ast.GoStmt) bool {
-	if call, ok := goStmt.Call.Fun.(*ast.FuncLit); ok {
-		for _, param := range call.Type.Params.List {
-			for _, name := range param.Names {
-				if strings.Contains(name.Name, "ctx") || strings.Contains(name.Name, "done") {
-					return true
-				}
+	funcLit, ok := goStmt.Call.Fun.(*ast.FuncLit)
+	if !ok {
+		return a.hasContextOrDoneInArgs(goStmt.Call)
+	}
+
+	// Check parameter names
+	if funcLit.Type.Params != nil {
+		for _, param := range funcLit.Type.Params.List {
+			if a.isContextOrDoneParam(param) {
+				return true
+			}
+		}
+	}
+
+	// Check if the function body references context or done channels via closure
+	if a.bodyReferencesContextOrDone(funcLit.Body) {
+		return true
+	}
+
+	return false
+}
+
+// isContextOrDoneParam checks if a parameter represents a context or done channel
+func (a *AntipatternAnalyzer) isContextOrDoneParam(param *ast.Field) bool {
+	// Check parameter names
+	for _, name := range param.Names {
+		nameLower := strings.ToLower(name.Name)
+		if strings.Contains(nameLower, "ctx") || strings.Contains(nameLower, "done") ||
+			strings.Contains(nameLower, "cancel") || strings.Contains(nameLower, "quit") ||
+			strings.Contains(nameLower, "stop") {
+			return true
+		}
+	}
+
+	// Check parameter type for context.Context
+	if sel, ok := param.Type.(*ast.SelectorExpr); ok {
+		if ident, ok := sel.X.(*ast.Ident); ok {
+			if ident.Name == "context" && sel.Sel.Name == "Context" {
+				return true
+			}
+		}
+	}
+
+	// Check for channel types (done channels)
+	if _, ok := param.Type.(*ast.ChanType); ok {
+		return true
+	}
+
+	return false
+}
+
+// hasContextOrDoneInArgs checks if a named function call includes context arguments
+func (a *AntipatternAnalyzer) hasContextOrDoneInArgs(call *ast.CallExpr) bool {
+	for _, arg := range call.Args {
+		if ident, ok := arg.(*ast.Ident); ok {
+			nameLower := strings.ToLower(ident.Name)
+			if strings.Contains(nameLower, "ctx") || strings.Contains(nameLower, "done") ||
+				strings.Contains(nameLower, "cancel") || strings.Contains(nameLower, "quit") ||
+				strings.Contains(nameLower, "stop") {
+				return true
 			}
 		}
 	}
 	return false
+}
+
+// bodyReferencesContextOrDone checks if a function body uses context or done channel variables
+func (a *AntipatternAnalyzer) bodyReferencesContextOrDone(body *ast.BlockStmt) bool {
+	if body == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		switch node := n.(type) {
+		case *ast.Ident:
+			nameLower := strings.ToLower(node.Name)
+			if strings.Contains(nameLower, "ctx") || strings.Contains(nameLower, "done") ||
+				strings.Contains(nameLower, "cancel") || strings.Contains(nameLower, "quit") {
+				found = true
+				return false
+			}
+		case *ast.SelectStmt:
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 // isResourceAcquisition checks if call acquires a resource
@@ -177,8 +280,92 @@ func (a *AntipatternAnalyzer) isResourceAcquisition(call *ast.CallExpr) bool {
 	return false
 }
 
-// hasDeferClose checks if there's a defer close after resource acquisition
-func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr) bool {
-	// Simplified check - in production would check surrounding statements
-	return false
+// hasDeferClose checks if the enclosing function body contains a defer close/Close statement
+// for the specific resource acquired by the given call expression.
+func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr, funcBody *ast.BlockStmt) bool {
+	if funcBody == nil {
+		return false
+	}
+
+	// Find the variable name assigned from this resource acquisition
+	resourceVar := a.findAssignedVar(call, funcBody)
+
+	found := false
+	ast.Inspect(funcBody, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		deferStmt, ok := n.(*ast.DeferStmt)
+		if !ok {
+			return true
+		}
+		// Check for defer x.Close(), defer x.Release(), defer x.Disconnect(), etc.
+		if sel, ok := deferStmt.Call.Fun.(*ast.SelectorExpr); ok {
+			cleanupFuncs := []string{"Close", "Release", "Disconnect", "Shutdown", "Stop", "Done"}
+			for _, fn := range cleanupFuncs {
+				if sel.Sel.Name == fn {
+					// If we know the resource variable, check it matches the defer receiver
+					if resourceVar != "" {
+						if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == resourceVar {
+							found = true
+							return false
+						}
+					} else {
+						// If we can't determine the variable, accept any matching defer as before
+						found = true
+						return false
+					}
+				}
+			}
+		}
+		// Check for defer func() { ... close ... }()
+		if funcLit, ok := deferStmt.Call.Fun.(*ast.FuncLit); ok {
+			ast.Inspect(funcLit.Body, func(inner ast.Node) bool {
+				if innerCall, ok := inner.(*ast.CallExpr); ok {
+					if innerSel, ok := innerCall.Fun.(*ast.SelectorExpr); ok {
+						if innerSel.Sel.Name == "Close" || innerSel.Sel.Name == "Release" {
+							if resourceVar != "" {
+								if ident, ok := innerSel.X.(*ast.Ident); ok && ident.Name == resourceVar {
+									found = true
+									return false
+								}
+							} else {
+								found = true
+								return false
+							}
+						}
+					}
+				}
+				return true
+			})
+		}
+		return !found
+	})
+
+	return found
+}
+
+// findAssignedVar finds the variable name that a call expression result is assigned to
+// within the function body. Returns empty string if unable to determine.
+func (a *AntipatternAnalyzer) findAssignedVar(call *ast.CallExpr, funcBody *ast.BlockStmt) string {
+	var varName string
+	ast.Inspect(funcBody, func(n ast.Node) bool {
+		if varName != "" {
+			return false
+		}
+		assign, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		for _, rhs := range assign.Rhs {
+			if rhs == call && len(assign.Lhs) > 0 {
+				if ident, ok := assign.Lhs[0].(*ast.Ident); ok {
+					varName = ident.Name
+					return false
+				}
+			}
+		}
+		return true
+	})
+	return varName
 }

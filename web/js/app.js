@@ -1,63 +1,52 @@
 /**
  * Main Application Controller for go-stats-generator Web Interface
- * 
- * Orchestrates the flow: UI events → GitHub fetcher → WASM analyzer → results rendering
+ *
+ * Orchestrates: UI events → WASM git clone → WASM analyzer → results rendering
  */
 
 class App {
   constructor() {
     this.wasmLoader = new WASMLoader();
-    this.fetcher = null;
     this.isAnalyzing = false;
+    this.cloneErrorDetail = null;
+    /** @type {string|null} Error detail from failed zipball download. */
+    this.zipballErrorDetail = null;
+    /** @type {ZipballFetcher|null} Active fetcher for cancellation support. */
+    this.currentFetcher = null;
   }
+
+  // ---------------------------------------------------------------------------
+  // Initialization
+  // ---------------------------------------------------------------------------
 
   /**
    * Resolve the base path for the deployed site.
    * GitHub Pages may serve from a subpath (e.g. /go-stats-generator/).
-   * @returns {string} base path with trailing slash
+   * @returns {string} Base path with trailing slash.
    */
   getBasePath() {
-    // Use <base> href if set, otherwise derive from document location
     const baseEl = document.querySelector('base[href]');
     if (baseEl) {
       return baseEl.getAttribute('href');
     }
-    // Fallback: current directory of the page
     const path = window.location.pathname || '/';
     return path.endsWith('/') ? path : path.substring(0, path.lastIndexOf('/') + 1) || '/';
   }
 
   /**
-   * Initialize the application
+   * Initialize the application: load WASM binary and bind event listeners.
    */
   async init() {
     try {
-      UI.updateProgress(10, 'Loading WebAssembly...');
+      UI.updateProgress(10, 'Loading WebAssembly…');
       UI.show('progress-area');
 
-      const basePath = this.getBasePath();
-      let wasmPath;
-
-      // Load WASM manifest to get content-hashed filename
-      try {
-        const manifestResponse = await fetch(`${basePath}wasm/wasm-manifest.json`);
-        if (!manifestResponse.ok) {
-          throw new Error(`manifest returned HTTP ${manifestResponse.status}`);
-        }
-        const manifest = await manifestResponse.json();
-        wasmPath = `${basePath}wasm/${manifest.wasmFile}`;
-      } catch (manifestError) {
-        // Fallback: try the default non-hashed filename
-        console.warn('Could not load WASM manifest, using default filename:', manifestError);
-        wasmPath = `${basePath}wasm/go-stats-generator.wasm`;
-      }
-
+      const wasmPath = await this.resolveWASMPath();
       await this.wasmLoader.load(wasmPath);
-      
+
       UI.updateProgress(100, 'Ready');
       UI.hide('progress-area');
-      
-      // Set up event listeners
+
       this.setupEventListeners();
     } catch (error) {
       UI.showError(`Failed to initialize: ${error.message}`);
@@ -66,152 +55,341 @@ class App {
   }
 
   /**
-   * Set up UI event listeners
+   * Determine the URL for the WASM binary, using the content-hashed
+   * manifest when available and falling back to a default filename.
+   * @returns {Promise<string>}
    */
+  async resolveWASMPath() {
+    const basePath = this.getBasePath();
+    try {
+      const res = await fetch(`${basePath}wasm/wasm-manifest.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const manifest = await res.json();
+      return `${basePath}wasm/${manifest.wasmFile}`;
+    } catch (err) {
+      console.warn('Could not load WASM manifest, using default filename:', err);
+      return `${basePath}wasm/go-stats-generator.wasm`;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Event listeners
+  // ---------------------------------------------------------------------------
+
+  /** Bind DOM event listeners. */
   setupEventListeners() {
     const analyzeBtn = document.getElementById('analyze-btn');
-    const tokenInput = document.getElementById('github-token');
     const cancelBtn = document.getElementById('cancel-btn');
 
     if (analyzeBtn) {
       analyzeBtn.addEventListener('click', () => this.handleAnalyze());
     }
-
-    if (tokenInput) {
-      tokenInput.addEventListener('input', (e) => {
-        if (!this.fetcher) {
-          this.fetcher = new GitHubFetcher(e.target.value);
-        } else {
-          this.fetcher.setToken(e.target.value);
-        }
-      });
-    }
-
     if (cancelBtn) {
       cancelBtn.addEventListener('click', () => this.handleCancel());
     }
   }
 
-  /**
-   * Handle analyze button click
-   */
+  // ---------------------------------------------------------------------------
+  // Analysis flow
+  // ---------------------------------------------------------------------------
+
+  /** Gather form inputs and return a plain object. */
+  gatherFormInputs() {
+    return {
+      repoURL: document.getElementById('repo-url').value.trim(),
+      ref: document.getElementById('repo-ref').value.trim() || null,
+      token: document.getElementById('github-token').value.trim() || null,
+      includeTests: document.getElementById('include-tests').checked,
+      format: document.querySelector('input[name="format"]:checked').value,
+    };
+  }
+
+  /** Handle the "Analyze" button click. */
   async handleAnalyze() {
     if (this.isAnalyzing) return;
 
     UI.clearError();
     this.isAnalyzing = true;
+    this.usingClone = false;
+    this.cloneErrorDetail = null;
+    this.zipballErrorDetail = null;
     UI.setAnalyzeButtonState(false);
 
     try {
-      const repoURL = document.getElementById('repo-url').value.trim();
-      const ref = document.getElementById('repo-ref').value.trim() || null;
-      const token = document.getElementById('github-token').value.trim() || null;
-      const includeTests = document.getElementById('include-tests').checked;
-      const format = document.querySelector('input[name="format"]:checked').value;
+      const inputs = this.gatherFormInputs();
+      if (!inputs.repoURL) throw new Error('Please enter a repository URL');
 
-      if (!repoURL) {
-        throw new Error('Please enter a repository URL');
-      }
-
-      // Initialize fetcher with token
-      if (!this.fetcher) {
-        this.fetcher = new GitHubFetcher(token);
-      } else {
-        this.fetcher.setToken(token);
-      }
-
-      // Show progress area
       UI.show('progress-area');
       UI.hide('results-area');
 
-      // Fetch repository
-      const { files, stats } = await this.fetcher.fetchRepository(
-        repoURL,
-        ref,
-        includeTests,
-        (progress) => this.handleFetchProgress(progress)
-      );
+      // Use the WASM git-clone path (no API rate limits).
+      // If clone fails with a network/CORS error, fall back to
+      // downloading the repository as a ZIP archive (single API request).
+      let result, stats;
+      const cloneAvailable = typeof globalThis.cloneAndAnalyze === 'function';
 
-      // Update rate limit display
-      UI.updateRateLimit(this.fetcher.getRateLimitStatus());
+      if (!cloneAvailable) {
+        throw new Error(
+          'WASM git clone is not available. Please reload the page and try again.',
+        );
+      }
 
-      // Run analysis
-      UI.updateProgress(80, 'Running analysis...');
-      
-      const result = await this.wasmLoader.analyze(files, {
-        format,
-        skipTests: !includeTests
-      });
+      this.usingClone = true;
+      UI.setCancelVisible(false);
+      const cloneResult = await this.analyzeViaClone(inputs);
+      if (cloneResult) {
+        ({ result, stats } = cloneResult);
+      } else {
+        const detail = this.cloneErrorDetail || 'unknown error';
+        if (this.isNetworkError(detail)) {
+          // Clone failed due to CORS / network – download ZIP archive instead.
+          console.warn(
+            'Git clone failed with network error, trying zipball fallback:',
+            detail,
+          );
+          this.usingClone = false;
+          UI.setCancelVisible(true);
+          UI.updateProgress(10, 'Git clone unavailable, downloading ZIP archive…');
+          const zipResult = await this.analyzeViaZipball(inputs);
+          if (zipResult) {
+            ({ result, stats } = zipResult);
+          } else {
+            const zipDetail = this.zipballErrorDetail || 'unknown error';
+            throw new Error(
+              'Git clone was blocked by the browser (CORS) and the ZIP archive ' +
+              `download also failed (${zipDetail}). If this is a private ` +
+              'repository, provide a personal access token.',
+            );
+          }
+        } else {
+          throw new Error(
+            `Git clone failed: ${detail}. ` +
+            'If this is a private repository, provide a personal access token.',
+          );
+        }
+      }
 
-      // Display results
       UI.updateProgress(100, 'Complete');
       UI.hide('progress-area');
       UI.show('results-area');
 
-      if (format === 'html') {
+      if (inputs.format === 'html') {
         UI.renderHTMLReport(result);
       } else {
         UI.renderJSONReport(result);
       }
 
-      // Show stats summary
       this.displayStatsSummary(stats);
-
     } catch (error) {
-      UI.showError(`Analysis failed: ${error.message}`);
-      console.error('Analysis error:', error);
+      if (error.name !== 'AbortError') {
+        UI.showError(`Analysis failed: ${error.message}`);
+        console.error('Analysis error:', error);
+      }
     } finally {
       this.isAnalyzing = false;
+      this.usingClone = false;
       UI.setAnalyzeButtonState(true);
+      UI.setCancelVisible(true);
       UI.hide('progress-area');
     }
   }
 
   /**
-   * Handle fetch progress updates
-   * @param {Object} progress - Progress information
+   * Clone the repository in WASM via go-git and run analysis.
+   * This avoids GitHub API rate limits entirely by using the git
+   * smart HTTP protocol directly.
+   * @param {Object} inputs - Form inputs.
+   * @returns {Promise<{result: string, stats: Object}|null>} Resolves with analysis results, or null if clone failed.
    */
-  handleFetchProgress(progress) {
-    if (progress.stage === 'resolving') {
-      UI.updateProgress(5, progress.message);
-    } else if (progress.stage === 'fetching_tree') {
-      UI.updateProgress(10, progress.message);
-    } else if (progress.stage === 'downloading') {
-      const percent = 10 + ((progress.current / progress.total) * 70);
-      UI.updateProgress(percent, progress.message);
+  async analyzeViaClone(inputs) {
+    const request = {
+      url: inputs.repoURL,
+      ref: inputs.ref || '',
+      token: inputs.token || '',
+      includeTests: inputs.includeTests,
+      outputFormat: inputs.format,
+      config: {
+        maxFunctionLength: 30,
+        maxCyclomaticComplexity: 10,
+        minDocumentationCoverage: 0.7,
+        skipTestFiles: !inputs.includeTests,
+      },
+    };
+
+    let response;
+    try {
+      response = await globalThis.cloneAndAnalyze(
+        JSON.stringify(request),
+        (progress) => this.handleCloneProgress(progress),
+      );
+    } catch (err) {
+      console.error('Git clone threw:', err);
+      this.cloneErrorDetail = String(err);
+      return null;
+    }
+
+    if (!response || !response.success) {
+      const errMsg = (response && response.error) || 'unknown error';
+      console.error('Git clone failed:', errMsg);
+      this.cloneErrorDetail = errMsg;
+      return null;
+    }
+
+    return {
+      result: response.data,
+      stats: response.stats || {},
+    };
+  }
+
+  /**
+   * Map clone progress events to the progress bar.
+   * @param {Object} progress - {percent, message}
+   */
+  handleCloneProgress(progress) {
+    if (typeof progress.percent === 'number' && progress.percent >= 0) {
+      UI.updateProgress(progress.percent, progress.message);
+    } else {
+      // Clone output without explicit percent – show message only.
+      const text = document.getElementById('progress-text');
+      if (text) text.textContent = progress.message;
     }
   }
 
   /**
-   * Handle cancel button click
+   * Detect whether a clone error is a browser network / CORS failure.
+   * In WASM, Go's net/http delegates to the browser fetch() API which
+   * surfaces opaque "NetworkError" messages when CORS blocks the request.
+   * @param {string} detail - Error detail string from the clone attempt.
+   * @returns {boolean}
+   */
+  isNetworkError(detail) {
+    if (!detail) return false;
+    const lower = detail.toLowerCase();
+    return (
+      lower.includes('networkerror') ||
+      lower.includes('fetch() failed') ||
+      lower.includes('network error') ||
+      lower.includes('failed to fetch') ||
+      lower.includes('cors')
+    );
+  }
+
+  /**
+   * Fallback: download the repository as a ZIP archive from the GitHub
+   * API zipball endpoint and analyze the Go files with the in-memory
+   * WASM analyzer. This uses exactly ONE API request regardless of
+   * repository size, avoiding the per-blob rate-limit problem entirely.
+   * @param {Object} inputs - Form inputs.
+   * @returns {Promise<{result: string, stats: Object}|null>}
+   */
+  async analyzeViaZipball(inputs) {
+    const fetcher = new ZipballFetcher(inputs.token);
+    this.currentFetcher = fetcher;
+
+    try {
+      const { files, stats } = await fetcher.fetchRepository(
+        inputs.repoURL,
+        inputs.ref,
+        inputs.includeTests,
+        (progress) => {
+          if (progress.current && progress.total) {
+            const pct = 10 + Math.round((progress.current / progress.total) * 55);
+            UI.updateProgress(pct, progress.message);
+          } else if (progress.stage === 'downloading') {
+            UI.updateProgress(15, progress.message);
+          } else {
+            UI.updateProgress(40, progress.message);
+          }
+        },
+      );
+
+      if (!files || files.length === 0) {
+        throw new Error('No Go source files found in repository');
+      }
+
+      UI.updateProgress(70, `Analyzing ${files.length} files…`);
+
+      const request = {
+        files,
+        outputFormat: inputs.format,
+        config: {
+          maxFunctionLength: 30,
+          maxCyclomaticComplexity: 10,
+          minDocumentationCoverage: 0.7,
+          skipTestFiles: !inputs.includeTests,
+        },
+      };
+
+      const response = globalThis.analyzeCode(JSON.stringify(request));
+
+      if (!response || !response.success) {
+        throw new Error((response && response.error) || 'Analysis failed');
+      }
+
+      return { result: response.data, stats: { ...stats, method: 'zipball' } };
+    } catch (err) {
+      if (err && err.name === 'AbortError') throw err;
+      console.error('Zipball fallback failed:', err);
+      // Preserve the error message for the caller so the user sees
+      // the specific reason the ZIP download failed, not just a
+      // generic "also failed" message.
+      this.zipballErrorDetail = (err && err.message) || String(err);
+      return null;
+    } finally {
+      this.currentFetcher = null;
+    }
+  }
+
+  /**
+   * Cancel in-flight operations. Aborts the zipball fetcher if
+   * active; the WASM git clone goroutine cannot be interrupted from JS.
    */
   handleCancel() {
-    // Note: Can't truly cancel ongoing fetch/WASM operations
-    // This just hides the progress UI
+    if (this.currentFetcher) {
+      this.currentFetcher.abort();
+    }
     UI.hide('progress-area');
-    this.isAnalyzing = false;
-    UI.setAnalyzeButtonState(true);
   }
 
+  // ---------------------------------------------------------------------------
+  // Results display
+  // ---------------------------------------------------------------------------
+
   /**
-   * Display repository stats summary
-   * @param {Object} stats - Repository statistics
+   * Show a short summary of the fetched repository.
+   * Uses textContent (not innerHTML) to avoid XSS from repo metadata.
+   * @param {Object} stats
    */
   displayStatsSummary(stats) {
-    const summaryDiv = document.getElementById('stats-summary');
-    if (summaryDiv) {
-      summaryDiv.innerHTML = `
-        <h3>Repository: ${stats.owner}/${stats.repo}</h3>
-        <p>Ref: ${stats.ref}</p>
-        <p>Files analyzed: ${stats.totalFiles}</p>
-        <p>Total size: ${(stats.totalSize / 1024).toFixed(2)} KB</p>
-      `;
-      summaryDiv.classList.remove('hidden');
+    const el = document.getElementById('stats-summary');
+    if (!el) return;
+
+    el.textContent = '';
+
+    const h3 = document.createElement('h3');
+    h3.textContent = `Repository: ${stats.owner || ''}/${stats.repo || ''}`;
+    el.appendChild(h3);
+
+    const lines = [
+      `Ref: ${stats.ref || 'default branch'}`,
+      `Files analyzed: ${stats.totalFiles || 0}`,
+      `Total size: ${((stats.totalSize || 0) / 1024).toFixed(2)} KB`,
+    ];
+    if (stats.method) {
+      lines.push(`Fetch method: ${stats.method}`);
     }
+
+    for (const line of lines) {
+      const p = document.createElement('p');
+      p.textContent = line;
+      el.appendChild(p);
+    }
+
+    el.classList.remove('hidden');
   }
 }
 
-// Initialize app when DOM is ready
+// Initialize app when DOM is ready.
 document.addEventListener('DOMContentLoaded', async () => {
   const app = new App();
   await app.init();

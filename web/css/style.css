@@ -1,7 +1,11 @@
 /**
  * Styles for go-stats-generator Web Interface
- * Responsive, accessible design with dark/light mode support
+ * Responsive, accessible design with automatic dark/light mode.
  */
+
+/* ==========================================================================
+   Design tokens
+   ========================================================================== */
 
 :root {
   --primary-color: #0066cc;
@@ -27,14 +31,21 @@
   }
 }
 
-* {
+/* ==========================================================================
+   Base / Reset
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
   color: var(--text);
   background: var(--background);
@@ -42,6 +53,10 @@ body {
   margin: 0 auto;
   padding: 20px;
 }
+
+/* ==========================================================================
+   Header & Navigation
+   ========================================================================== */
 
 header {
   text-align: center;
@@ -75,13 +90,17 @@ nav a {
   padding: 8px 16px;
   border: 1px solid var(--primary-color);
   border-radius: 4px;
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
 nav a:hover {
   background: var(--primary-color);
   color: white;
 }
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
 
 main {
   display: flex;
@@ -101,6 +120,10 @@ h2 {
   color: var(--primary-color);
 }
 
+/* ==========================================================================
+   Form controls
+   ========================================================================== */
+
 .form-group {
   margin-bottom: 20px;
 }
@@ -111,8 +134,8 @@ label {
   font-weight: 500;
 }
 
-input[type="text"],
-input[type="password"] {
+input[type='text'],
+input[type='password'] {
   width: 100%;
   padding: 12px;
   border: 1px solid var(--border);
@@ -122,8 +145,8 @@ input[type="password"] {
   color: var(--text);
 }
 
-input[type="text"]:focus,
-input[type="password"]:focus {
+input[type='text']:focus,
+input[type='password']:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
@@ -146,11 +169,15 @@ small {
   font-weight: normal;
 }
 
-input[type="checkbox"],
-input[type="radio"] {
+input[type='checkbox'],
+input[type='radio'] {
   width: auto;
   cursor: pointer;
 }
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
 
 button {
   padding: 12px 24px;
@@ -158,7 +185,7 @@ button {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
   font-weight: 500;
 }
 
@@ -185,9 +212,17 @@ button {
   background: #333;
 }
 
+/* ==========================================================================
+   Utility classes
+   ========================================================================== */
+
 .hidden {
   display: none !important;
 }
+
+/* ==========================================================================
+   Error alert
+   ========================================================================== */
 
 .error {
   background: var(--error);
@@ -195,6 +230,10 @@ button {
   padding: 15px;
   border-radius: 4px;
 }
+
+/* ==========================================================================
+   Progress bar
+   ========================================================================== */
 
 .progress-bar-container {
   width: 100%;
@@ -223,6 +262,10 @@ button {
   margin: 0 auto;
 }
 
+/* ==========================================================================
+   Results area
+   ========================================================================== */
+
 .stats-summary {
   background: var(--background);
   padding: 20px;
@@ -245,6 +288,14 @@ button {
   overflow-x: auto;
 }
 
+.report-frame {
+  width: 100%;
+  /* Use viewport-relative height; JS may also set iframe.style.height = '80vh' */
+  height: min(600px, 80vh);
+  border: none;
+  display: block;
+}
+
 .results-container pre {
   background: var(--background);
   padding: 20px;
@@ -264,6 +315,10 @@ button {
 .download-btn:hover {
   background: #2e7d32;
 }
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
 
 footer {
   text-align: center;
@@ -289,6 +344,10 @@ footer a {
 footer a:hover {
   text-decoration: underline;
 }
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
 
 @media (max-width: 768px) {
   body {
