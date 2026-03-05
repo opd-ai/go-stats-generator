@@ -14,6 +14,7 @@ type AnalyzeRequest struct {
 	Include           []string `json:"include,omitempty"`
 	Exclude           []string `json:"exclude,omitempty"`
 	SkipTests         bool     `json:"skip_tests,omitempty"`
+	OnlyTests         bool     `json:"only_tests,omitempty"`
 	MaxFunctionLength int      `json:"max_function_length,omitempty"`
 	MaxComplexity     int      `json:"max_complexity,omitempty"`
 }

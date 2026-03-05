@@ -183,6 +183,7 @@ type FilterConfig struct {
 	MaxFileSizeKB int  `mapstructure:"max_file_size_kb" json:"max_file_size_kb"`
 	SkipVendor    bool `mapstructure:"skip_vendor" json:"skip_vendor"`
 	SkipTestFiles bool `mapstructure:"skip_test_files" json:"skip_test_files"`
+	OnlyTestFiles bool `mapstructure:"only_test_files" json:"only_test_files"`
 	SkipGenerated bool `mapstructure:"skip_generated" json:"skip_generated"`
 }
 

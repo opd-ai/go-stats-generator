@@ -36,6 +36,10 @@ func (d *Discoverer) passesFileConstraints(fileInfo FileInfo) bool {
 		return false
 	}
 
+	if d.config.OnlyTestFiles && !fileInfo.IsTestFile {
+		return false
+	}
+
 	if d.config.SkipGenerated && fileInfo.IsGenerated {
 		return false
 	}

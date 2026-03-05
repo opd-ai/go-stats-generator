@@ -145,6 +145,7 @@ func buildConfig(req *AnalyzeRequest) *config.Config {
 		cfg.Filters.ExcludePatterns = req.Exclude
 	}
 	cfg.Filters.SkipTestFiles = req.SkipTests
+	cfg.Filters.OnlyTestFiles = req.OnlyTests
 
 	if req.MaxFunctionLength > 0 {
 		cfg.Analysis.MaxFunctionLength = req.MaxFunctionLength

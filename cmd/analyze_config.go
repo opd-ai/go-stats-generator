@@ -93,6 +93,9 @@ func loadFilterConfiguration(cfg *config.Config) {
 	if viper.IsSet("filters.skip_test_files") {
 		cfg.Filters.SkipTestFiles = viper.GetBool("filters.skip_test_files")
 	}
+	if viper.IsSet("filters.only_test_files") {
+		cfg.Filters.OnlyTestFiles = viper.GetBool("filters.only_test_files")
+	}
 	if viper.IsSet("filters.skip_vendor") {
 		cfg.Filters.SkipVendor = viper.GetBool("filters.skip_vendor")
 	}

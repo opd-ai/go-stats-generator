@@ -116,6 +116,8 @@ func registerFilterFlags() {
 		"skip vendor directories")
 	analyzeCmd.Flags().Bool("skip-tests", false,
 		"skip test files (*_test.go)")
+	analyzeCmd.Flags().Bool("only-tests", false,
+		"analyze only test files (*_test.go)")
 	analyzeCmd.Flags().Bool("skip-generated", true,
 		"skip generated files")
 	analyzeCmd.Flags().StringSlice("exclude", []string{},
@@ -234,6 +236,7 @@ func bindFilterFlags() {
 	bindFlags(analyzeCmd, []flagBinding{
 		{"skip-vendor", "filters.skip_vendor"},
 		{"skip-tests", "filters.skip_test_files"},
+		{"only-tests", "filters.only_test_files"},
 		{"skip-generated", "filters.skip_generated"},
 		{"exclude", "filters.exclude_patterns"},
 		{"include", "filters.include_patterns"},
@@ -294,12 +297,25 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 
 	cfg := loadConfiguration()
+
+	if err := validateFilterFlags(cfg); err != nil {
+		return err
+	}
+
 	report, err := executeAnalysis(absPath, fileInfo, cfg)
 	if err != nil {
 		return err
 	}
 
 	return processResults(report, cfg)
+}
+
+// validateFilterFlags checks for mutually exclusive filter flag combinations.
+func validateFilterFlags(cfg *config.Config) error {
+	if cfg.Filters.SkipTestFiles && cfg.Filters.OnlyTestFiles {
+		return fmt.Errorf("--skip-tests and --only-tests are mutually exclusive: cannot both skip and exclusively analyze test files")
+	}
+	return nil
 }
 
 // validateAndResolvePath resolves and validates the target path from command arguments.

@@ -35,6 +35,7 @@ type ConfigInput struct {
 	MinDocumentationCoverage float64 `json:"minDocumentationCoverage,omitempty"`
 	MinPackageDocCoverage    float64 `json:"minPackageDocCoverage,omitempty"`
 	SkipTestFiles            bool    `json:"skipTestFiles,omitempty"`
+	OnlyTestFiles            bool    `json:"onlyTestFiles,omitempty"`
 }
 
 // AnalysisResponse represents the output to JavaScript
@@ -154,6 +155,9 @@ func applyAnalysisSettings(cfg *config.Config, input *ConfigInput) {
 func applyFilterSettings(cfg *config.Config, input *ConfigInput) {
 	if input.SkipTestFiles {
 		cfg.Filters.SkipTestFiles = true
+	}
+	if input.OnlyTestFiles {
+		cfg.Filters.OnlyTestFiles = true
 	}
 }
 
