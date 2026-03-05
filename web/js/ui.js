@@ -93,8 +93,9 @@ const UI = {
       try {
         const doc = iframe.contentDocument || iframe.contentWindow.document;
         iframe.style.height = doc.documentElement.scrollHeight + 'px';
-      } catch (_) {
-        // Cross-origin fallback: use a generous default.
+      } catch (e) {
+        // Sandboxed iframe without allow-same-origin cannot be measured;
+        // fall back to a generous viewport-relative height.
         iframe.style.height = '80vh';
       }
     });
