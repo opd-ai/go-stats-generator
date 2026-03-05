@@ -89,15 +89,10 @@ const UI = {
     iframe.srcdoc = html;
     iframe.title = 'Analysis Report';
 
+    // With a sandbox that omits allow-same-origin, the parent cannot
+    // measure the iframe document. Use a fixed viewport-relative height.
     iframe.addEventListener('load', () => {
-      try {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        iframe.style.height = doc.documentElement.scrollHeight + 'px';
-      } catch (e) {
-        // Sandboxed iframe without allow-same-origin cannot be measured;
-        // fall back to a generous viewport-relative height.
-        iframe.style.height = '80vh';
-      }
+      iframe.style.height = '80vh';
     });
 
     container.appendChild(iframe);
