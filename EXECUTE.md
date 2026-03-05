@@ -1,4 +1,4 @@
-# TASK: Execute the next planned task from the project backlog in strict priority order: AUDIT.md first, then PLAN.md, then ROADMAP.md.
+# TASK: Execute the next planned task from the project's backlog in strict priority order: audit findings first, then planned steps, then roadmap items.
 
 ## Execution Mode
 **Autonomous action** — implement the task fully, validate with tests and diff.
@@ -10,6 +10,13 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Project
+Before executing any task, build context:
+1. Read the project README to learn what it does, its domain, and its users.
+2. Examine `go.mod` for module path, Go version, and key dependencies.
+3. Scan existing source files to identify the project's code style: error handling patterns, naming conventions, test strategy, and preferred idioms.
+4. Note any CI configuration, linter configs, or code generation patterns to respect.
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,duplication,documentation
@@ -17,18 +24,19 @@ go-stats-generator analyze . --skip-tests --format json --output baseline.json -
 
 ### Phase 2: Select and Execute Task
 1. **Task selection** — strict file priority order, NO EXCEPTIONS:
-   - **First**: Check AUDIT.md for unchecked `- [ ]` findings. Take the first unchecked item.
-   - **Second**: If no AUDIT.md items remain, check PLAN.md for the first incomplete step.
-   - **Third**: If no PLAN.md items remain, check ROADMAP.md for the first incomplete item.
-   - Do NOT skip files. Do NOT reorder. AUDIT.md items ALWAYS take priority over PLAN.md, which ALWAYS takes priority over ROADMAP.md.
+   - **First**: Discover any audit findings file (e.g., `AUDIT.md`, `*AUDIT*.md`). Take the first unchecked `- [ ]` item.
+   - **Second**: If no audit items remain, find the project's implementation plan (e.g., `PLAN.md`, issue tracker). Take the first incomplete step.
+   - **Third**: If no plan items remain, find the project's roadmap or backlog. Take the first incomplete item.
+   - Do NOT skip priority levels. Do NOT reorder.
 
-2. **Task grouping** — if the next task is part of a logical group (e.g., "Step 3" in PLAN.md has sub-items a, b, c), execute the entire group as one unit.
+2. **Task grouping** — if the next task has logical sub-items, execute the entire group as one unit.
 
-3. **Implementation**:
-   - Follow Go best practices: functions <=30 lines, explicit error handling, GoDoc comments.
+3. **Implementation** — match the project's existing conventions:
+   - Mirror the codebase's error handling style (wrapping pattern, sentinel errors, etc.).
+   - Follow the project's naming conventions and package structure.
+   - Respect established function length and complexity norms (default targets: <=30 lines, cyclomatic <=10).
    - Preserve all existing public API signatures.
-   - Run `go test -race ./...` after implementation.
-   - Run `go vet ./...` to confirm no new issues.
+   - Run `go test -race ./...` and `go vet ./...` after implementation.
 
 4. **Mark completion**: Check off completed items (`- [x]`) in the source file.
 
@@ -39,7 +47,7 @@ go-stats-generator diff baseline.json post.json
 ```
 Confirm: zero regressions in complexity, duplication, or doc coverage.
 
-## Thresholds
+## Default Thresholds (calibrate to project baseline)
 - Max function length: 30 lines
 - Max cyclomatic complexity: 10
 - Min doc coverage: 70%
@@ -47,28 +55,20 @@ Confirm: zero regressions in complexity, duplication, or doc coverage.
 
 ## Priority Rules
 The task priority order is absolute and non-negotiable:
-1. **AUDIT.md** — bug fixes and critical findings always come first
-2. **PLAN.md** — planned implementation steps come second
-3. **ROADMAP.md** — strategic improvements come last
+1. **Audit findings** — bug fixes and critical findings always come first
+2. **Planned steps** — implementation plan items come second
+3. **Roadmap items** — strategic improvements come last
 
-Do NOT second-guess this order. The humans put them in that order deliberately. Execute what is next, not what seems most interesting or impactful.
-
-## Go Coding Standards
-- Verb-first function names: `parseConfig`, `buildReport`.
-- Explicit error handling: `fmt.Errorf("context: %w", err)`.
-- GoDoc comment on every exported symbol.
-- Prefer stdlib over external dependencies.
-- Race-safe: pass `go test -race ./...`.
+Execute what is next, not what seems most interesting or impactful.
 
 ## Task Completion Rules
-- If an AUDIT.md finding is already resolved (code matches expectation), check it off and move to the next.
-- If a task requires information not available in the codebase, note the blocker and skip to the next task.
-- After completing all items in AUDIT.md, delete the file to signal completion to loop.sh.
-- After completing all items in PLAN.md, delete the file to signal completion to loop.sh.
+- If a finding is already resolved (code matches expectation), check it off and move to the next.
+- If a task requires information not available, note the blocker and skip to the next task.
+- After completing all items in an audit file, delete it to signal completion.
 
 ## Output Format
 ```
-Source: [AUDIT.md | PLAN.md | ROADMAP.md]
+Source: [audit file | plan file | roadmap file]
 Task: [description]
 Files modified: [list]
 Tests: PASS
@@ -77,7 +77,3 @@ Diff: [summary of changes]
 
 ## Tiebreaker
 Always take the first unchecked item in the current priority file. Never skip ahead.
-## Backlog Completion
-- When all items in AUDIT.md are checked off, delete AUDIT.md.
-- When all items in PLAN.md are checked off, delete PLAN.md.
-- This signals loop.sh that the backlog is empty and triggers the termination check.

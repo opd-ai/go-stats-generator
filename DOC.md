@@ -10,6 +10,12 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Project
+1. Read the project README to understand what the project does, who uses it, and what it promises.
+2. Examine `go.mod` for module path and dependencies.
+3. Identify all markdown documentation files in the repository.
+4. Discover whether the project uses auto-generated docs (look for generator signatures, `go generate` directives, or `godocdown` headers).
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections documentation,naming
@@ -29,7 +35,6 @@ go-stats-generator analyze . --skip-tests --format json --output baseline.json -
    - **NEEDS_REVIEW**: Behavioral claims that may be intentionally aspirational — flag with `<!-- REVIEW: ... -->`.
    - **INFO_MISSING**: Documented feature exists but has no usage example — add example.
 4. Apply SAFE_AUTO_FIX corrections directly. Mark NEEDS_REVIEW items with comments.
-5. Run `go test -race ./...` to confirm no regressions (documentation changes should not affect tests).
 
 ### Phase 3: Validate
 ```bash
@@ -38,28 +43,20 @@ go-stats-generator diff baseline.json post.json
 ```
 Confirm: doc coverage did not decrease.
 
-## Thresholds
+## Default Thresholds (calibrate to project)
 - Minimum doc coverage: 80%
-- All exported symbols must have GoDoc comments
-- All markdown code examples must reference existing symbols
+- All exported symbols should have GoDoc comments
+- All markdown code examples should reference existing symbols
 
 ## Issue Classification
 | Category | Action | Example |
 |----------|--------|---------|
 | SAFE_AUTO_FIX | Fix directly | Wrong function name in example |
-| NEEDS_REVIEW | Flag with comment | "Supports 50k+ files" claim without benchmark |
+| NEEDS_REVIEW | Flag with comment | Performance claim without benchmark |
 | INFO_MISSING | Add documentation | Exported function without GoDoc |
 
-## Doc Coverage Targets
-| Level | Target |
-|-------|--------|
-| Package-level doc | 100% (every package has a doc.go or package comment) |
-| Exported functions | >=80% coverage |
-| Exported types | >=80% coverage |
-| Methods | >=80% coverage |
-
 ## Markdown Fix Rules
-- Do not modify auto-generated files (detected by generator signatures like `godocdown` headers).
+- Do not modify auto-generated files.
 - Preserve existing accurate content — only fix what is wrong or missing.
 - When adding GoDoc, follow Go convention: first sentence starts with the symbol name.
 - For CLI flag documentation, verify against `--help` output.
@@ -74,9 +71,3 @@ Doc coverage: [before]% -> [after]%
 
 ## Tiebreaker
 Fix the file with the lowest doc coverage first.
-## Validation Checklist
-- [ ] Doc coverage did not decrease
-- [ ] All SAFE_AUTO_FIX changes are correct
-- [ ] All NEEDS_REVIEW items are flagged with comments
-- [ ] No auto-generated files were modified
-- [ ] All tests still pass

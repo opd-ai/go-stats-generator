@@ -1,4 +1,4 @@
-# TASK: Execute ONE highest-priority incomplete task from ROADMAP.md with full implementation and baseline/diff validation.
+# TASK: Execute ONE highest-priority incomplete task from the project's backlog with full implementation and baseline/diff validation.
 
 ## Execution Mode
 **Autonomous action** — implement the task, validate with tests and diff.
@@ -10,23 +10,27 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Project
+1. Read the project README to understand its domain, users, and architecture.
+2. Examine `go.mod` for module path and dependency profile.
+3. Discover the project's coding conventions: error handling style, naming patterns, test strategy.
+4. Find the project's backlog: roadmap files, issue tracker, TODO comments, or milestone documents.
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,duplication,documentation
 ```
 
 ### Phase 2: Select and Implement
-1. Read ROADMAP.md and identify the highest-priority incomplete task.
+1. Identify the highest-priority incomplete task from the project's backlog.
 2. Understand the task requirements and acceptance criteria.
-3. Implement the task following Go best practices:
-   - Functions <=30 lines, cyclomatic complexity <=10.
-   - Explicit error handling with `fmt.Errorf("context: %w", err)`.
-   - GoDoc comments on all exported symbols.
-   - Prefer stdlib over external dependencies.
-   - If external libraries are needed, choose well-maintained options (>1000 GitHub stars, recent activity).
+3. Implement following the project's established conventions:
+   - Match the codebase's error handling style and naming patterns.
+   - Respect established function length and complexity norms (default targets: <=30 lines, cyclomatic <=10).
+   - Add GoDoc comments on all exported symbols.
+   - Prefer stdlib over external dependencies unless the project already uses a relevant library.
 4. Preserve all existing public API signatures.
-5. Run `go test -race ./...` after implementation.
-6. Run `go vet ./...` to confirm no new issues.
+5. Run `go test -race ./...` and `go vet ./...` after implementation.
 
 ### Phase 3: Validate
 ```bash
@@ -35,9 +39,9 @@ go-stats-generator diff baseline.json post.json
 ```
 Confirm: zero regressions in complexity, duplication, or doc coverage.
 
-## Thresholds
-| Metric | Maximum/Minimum |
-|--------|----------------|
+## Default Thresholds (calibrate to project)
+| Metric | Target |
+|--------|--------|
 | Cyclomatic complexity | <=10 |
 | Function length | <=30 lines |
 | Doc coverage | >=70% |
@@ -46,41 +50,23 @@ Confirm: zero regressions in complexity, duplication, or doc coverage.
 ## Implementation Rules
 - Execute exactly ONE task per invocation.
 - Preserve all existing public APIs.
-- Follow Go naming conventions (verb-first functions, CamelCase types).
+- Match the project's naming conventions.
 - Add tests for new functionality where practical.
 - Do not introduce new dependencies without justification.
 
 ## Mark Completion
 After successful implementation and validation:
-- Check off the completed item in ROADMAP.md (`- [x]`).
+- Check off the completed item in the backlog file (`- [x]`).
 - Note the diff summary in your output.
 
 ## Output Format
 ```
-Task: [description from ROADMAP.md]
+Task: [description from backlog]
 Files modified: [list]
 Tests: PASS
 Diff summary: [key metric changes]
-Remaining: [count of incomplete ROADMAP items]
+Remaining: [count of incomplete items]
 ```
 
 ## Tiebreaker
 Take the highest-priority incomplete task. If tied, choose the task with broadest file impact.
-## Implementation Quality Standards
-- Verb-first function names: `parseConfig`, `buildReport`.
-- Explicit error handling: `fmt.Errorf("context: %w", err)`.
-- GoDoc comment on every exported symbol.
-- Prefer stdlib. If external deps needed, >1000 GitHub stars and recent activity.
-- All new code covered by existing or new tests.
-
-## Constraints
-- Execute exactly ONE task per invocation.
-- Preserve all existing public APIs.
-- Do not introduce new dependencies without justification.
-- If the task is blocked, note the blocker and skip to the next task.
-
-## Validation Checklist
-- [ ] Task fully implemented
-- [ ] All tests pass with -race flag
-- [ ] Diff shows zero regressions
-- [ ] ROADMAP.md updated with completion mark

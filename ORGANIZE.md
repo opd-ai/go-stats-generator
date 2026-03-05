@@ -10,33 +10,38 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Codebase
+1. Read the project README to understand its domain and architecture.
+2. List packages (`go list ./...`) and identify the project's organizational philosophy: is it flat, layered, domain-driven, or hexagonal?
+3. Discover existing conventions: how are files named? Do types get their own files? Are there `doc.go` files?
+4. Identify any code generation or `go:embed` directives that constrain file organization.
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections packages,structs,interfaces,functions
 ```
 
 ### Phase 2: Identify and Reorganize
-1. From baseline JSON, identify packages with poor organization:
+1. From baseline JSON, identify packages with poor organization (thresholds are tunable defaults):
    - Cohesion <0.3: CRITICAL — package serves too many unrelated purposes
    - Cohesion <0.5: HIGH — package would benefit from splitting
-   - Cohesion <0.7: MEDIUM — minor organizational improvements possible
    - Coupling >0.7: package has too many external dependencies
 2. Select the worst-scoring package (lowest cohesion first).
 3. Analyze the package structure:
    - What types/functions are defined in each file?
    - Which symbols are related (share types, call each other)?
    - Are there files with mixed concerns?
-4. Apply reorganization moves:
+4. Apply reorganization moves that respect the project's existing conventions:
    - **Group by concern**: move related functions/types into the same file.
-   - **Split large files**: break files with >500 lines or >20 functions into focused files.
+   - **Split large files**: break files with >500 lines into focused files.
    - **Consolidate tiny files**: merge files with <50 lines into related files.
-   - **Fix naming**: rename files to match their primary concern (e.g., `helpers.go` → `validation.go`).
-5. Rules for moving code:
-   - Only move entire top-level declarations (functions, types, constants).
+   - **Fix naming**: rename files to match their primary concern.
+5. Move rules:
+   - Only move entire top-level declarations.
    - Do NOT modify function bodies, signatures, or logic.
-   - Update imports as needed after moves.
-   - Maintain `doc.go` as the package documentation file.
-6. Run `go build ./...` and `go test -race ./...` after each package reorganization.
+   - Update imports as needed.
+   - Preserve `doc.go` as the package documentation file.
+6. Run `go build ./...` and `go test -race ./...` after each reorganization.
 
 ### Phase 3: Validate
 ```bash
@@ -45,7 +50,7 @@ go-stats-generator diff baseline.json post.json
 ```
 Confirm: cohesion improved, zero test regressions, no logic changes.
 
-## Thresholds
+## Default Thresholds (calibrate to project)
 | Metric | Critical | Warning | Target |
 |--------|----------|---------|--------|
 | Package cohesion | <0.3 | <0.5 | >=0.5 |
@@ -55,9 +60,8 @@ Confirm: cohesion improved, zero test regressions, no logic changes.
 
 ## Move Rules
 - Only move code — never modify logic, add features, or fix bugs.
-- Each move must improve at least one metric (cohesion, coupling, file size).
+- Each move must improve at least one metric.
 - Preserve all existing public API signatures and import paths.
-- After reorganization, the package must compile and all tests must pass.
 - Document each move: `[symbol] [from_file] -> [to_file] — [reason]`
 
 ## Output Format
@@ -70,18 +74,4 @@ Tests: PASS
 ```
 
 ## Tiebreaker
-Reorganize the package with the lowest cohesion score first. If tied, highest coupling. If still tied, most files.
-## File Organization Patterns
-| Pattern | When to Apply |
-|---------|---------------|
-| One type per file | When a file has multiple unrelated types |
-| Group by lifecycle | When init/New/Close are scattered across files |
-| Separate interface from implementation | When interface + all impls are in one large file |
-| Consolidate constants | When constants are scattered across many files |
-
-## Validation Checklist
-- [ ] Package cohesion improved (metrics confirmed via diff)
-- [ ] All tests pass with -race flag
-- [ ] No logic changes — only code movement
-- [ ] All imports updated correctly
-- [ ] `go build ./...` succeeds
+Reorganize the package with the lowest cohesion score first. If tied, highest coupling.

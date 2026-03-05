@@ -10,6 +10,12 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Project
+1. Read the project README to understand its build process and artifact patterns.
+2. Examine `go.mod`, `Makefile`, or CI config to identify expected build outputs and their locations.
+3. Discover the project's `.gitignore` patterns and note what's already excluded.
+4. Identify which files are development artifacts vs. tracked project inputs.
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.json --sections duplication
@@ -19,21 +25,21 @@ go-stats-generator analyze . --skip-tests --format json --output pre-cleanup.jso
 Execute these steps in order:
 
 **Step 1 — Remove binary artifacts:**
-- Find and remove compiled binaries, `.exe`, `.so`, `.dylib` files not in `build/`.
-- Remove any stale `go-stats-generator` binary in the repo root (the installed one is in `$GOPATH/bin`).
+- Find and remove compiled binaries, `.exe`, `.so`, `.dylib` files not in expected build output directories.
+- Remove any stale binaries in the repo root.
 
 **Step 2 — Remove redundant report files:**
 - Identify JSON baseline/diff files that are development artifacts (e.g., `*-baseline.json`, `*-post.json`, `diff-report*.json`).
 - Remove files that are not tracked inputs to active workflows.
-- Preserve `ROADMAP.md`, `PLAN.md`, `README.md`, and any `AUDIT.md`.
+- Preserve README, tracked config files, and any active backlog/audit files.
 
 **Step 3 — Consolidate duplicate tests:**
 - Use the duplication report (`.duplication.clone_pairs`) to find test files with >20 duplicated lines.
-- Extract shared setup/assertion code into test helpers (e.g., `testutil_test.go`).
+- Extract shared setup/assertion code into test helpers.
 - Consolidate table-driven test cases that differ only in inputs.
 
 **Step 4 — Update .gitignore:**
-- Add patterns for: compiled binaries, analysis JSON outputs, loop artifacts (`.loop-*.json`, `loop.log`, `test-output.txt`).
+- Add patterns for: compiled binaries, analysis JSON outputs, loop artifacts, and any other discovered artifact patterns.
 - Do not ignore checked-in config files or test fixtures.
 
 Run `go test -race ./...` after each step to confirm no regressions.
@@ -45,16 +51,11 @@ go-stats-generator diff pre-cleanup.json post-cleanup.json
 ```
 Confirm: duplication ratio did not increase, all tests pass.
 
-## Thresholds
-- Duplication ratio: must not increase after cleanup
-- All tests: must remain passing
-- No complexity regressions in diff report
-
 ## Cleanup Rules
 - Only remove files that are clearly artifacts (not source code, configs, or test fixtures).
 - When consolidating tests, prefer table-driven patterns over identical test functions.
 - If uncertain whether a file should be removed, leave it and note it in output.
-- Never remove `testdata/` fixtures.
+- Never remove test fixture directories.
 
 ## Output Format
 ```
@@ -67,18 +68,3 @@ Tests: PASS | Duplication: [before]% -> [after]%
 
 ## Tiebreaker
 When cleanup actions have equal impact, prefer the action that removes the most files first.
-## File Classification Guide
-| Pattern | Action | Rationale |
-|---------|--------|-----------|
-| `*.json` (root, prefixed with baseline/diff/post) | Remove | Development artifact |
-| `go-stats-generator` (root binary) | Remove | Should be in $GOPATH/bin |
-| `*.exe`, `*.so`, `*.dylib` | Remove | Platform binaries |
-| `testdata/**` | Keep | Test fixtures |
-| `*.md` (ALL_CAPS) | Keep | Prompt files |
-| `loop.log`, `test-output.txt` | Remove | Runtime artifacts |
-
-## Validation Checklist
-- [ ] No binary artifacts remain in repository root
-- [ ] .gitignore updated with all artifact patterns
-- [ ] All tests pass after cleanup
-- [ ] Duplication ratio did not increase

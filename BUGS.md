@@ -10,29 +10,36 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Codebase
+Before hunting bugs, learn the project's conventions:
+1. Read the project README to understand its domain, users, and critical paths.
+2. Discover the project's **error handling conventions**: Does it use sentinel errors, `%w` wrapping, custom error types, or multi-return? Bug fixes must match.
+3. Identify how the project handles nil values, resource lifecycle, and concurrency.
+4. Note the test strategy: what testing framework, assertion style, and coverage level exist.
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,patterns
 ```
 
 ### Phase 2: Identify and Fix
-1. Extract high-risk functions from baseline JSON (sorted by cyclomatic complexity descending):
+1. Extract high-risk functions (sorted by cyclomatic complexity descending). Thresholds are tunable defaults:
    - CRITICAL: cyclomatic >20 OR nesting >5
    - HIGH: cyclomatic >15 OR nesting >4
    - MEDIUM: cyclomatic 10–15 OR nesting 3–4
-2. For each high-risk function, perform targeted code review:
-   - Error handling: are errors silently ignored? Missing `%w` wrapping?
+2. For each high-risk function, perform targeted code review using the project's own conventions as the standard:
+   - Error handling: are errors silently ignored? Missing wrapping per project convention?
    - Nil pointer risks: pointers dereferenced without nil checks?
    - Slice/map access: possible index-out-of-range or nil-map writes?
    - Goroutine safety: shared variables accessed without synchronization?
    - Resource leaks: missing deferred closes for files/connections?
-   - Concurrency patterns (`.patterns.concurrency_patterns`): missing context cancellation, unbuffered channel deadlocks.
+   - Concurrency patterns: missing context cancellation, unbuffered channel deadlocks?
 3. For each confirmed bug, apply the minimal fix:
    - Preserve existing API contracts and behavior.
-   - Add error context with `fmt.Errorf("...: %w", err)`.
+   - Match the project's error handling style.
    - Add nil/bounds checks before access.
    - Add missing defers for resource cleanup.
-4. Run `go test -race ./...` after each fix to confirm no regressions.
+4. Run `go test -race ./...` after each fix.
 
 ### Phase 3: Validate
 ```bash
@@ -41,7 +48,7 @@ go-stats-generator diff baseline.json post.json
 ```
 Confirm: zero new regressions, all fixes preserve existing test coverage.
 
-## Bug Risk Classification
+## Bug Risk Classification (tunable defaults)
 | Risk Level | Criteria | Action |
 |------------|----------|--------|
 | CRITICAL | cyclomatic >20, nesting >5, concurrency without sync | Fix immediately |
@@ -52,7 +59,7 @@ Confirm: zero new regressions, all fixes preserve existing test coverage.
 ## Fix Rules
 - Only fix bugs with clear, deterministic solutions.
 - Preserve existing functionality and API contracts.
-- Maintain code style consistency with surrounding code.
+- Maintain code style consistency with surrounding code and project conventions.
 - Skip fixes that require architectural changes or unclear requirements.
 
 ## Common Bug Patterns
@@ -71,16 +78,4 @@ Tests: PASS
 ```
 
 ## Tiebreaker
-Fix the function with the highest cyclomatic complexity first. If tied, prefer deeper nesting. If still tied, prefer functions with more concurrency primitives.
-## Concurrency Bug Checklist
-- Check all goroutine launches for proper error propagation.
-- Verify all channels are eventually closed by their senders.
-- Confirm all sync.WaitGroup calls are balanced (Add/Done/Wait).
-- Check context cancellation paths for resource cleanup.
-- Verify no goroutines outlive their parent scope without justification.
-
-## Validation Checklist
-- [ ] All confirmed bugs have fixes applied
-- [ ] All fixes pass `go test -race ./...`
-- [ ] No exported API signatures changed
-- [ ] Diff report shows zero complexity regressions
+Fix the function with the highest cyclomatic complexity first. If tied, prefer deeper nesting.

@@ -8,19 +8,23 @@
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-## Workflow
+## Phase 0: Understand the Test Strategy
+Before the first iteration:
+1. Read the project README and discover the testing philosophy (unit-focused, integration-heavy, BDD?).
+2. Identify the test framework, assertion style, and existing helper patterns.
+3. Note conventions to respect: `t.Parallel()` usage, `t.Helper()`, table-driven patterns, cleanup style.
 
-### Initialization
+## Initialization
 ```bash
 go-stats-generator analyze . --only-tests --format json --output iteration-0.json --sections functions --max-complexity 15 --max-function-length 45
 ```
 
-### Per-Iteration Cycle (max 5 iterations)
+## Per-Iteration Cycle (max 5 iterations)
 For each iteration N:
 
 1. **Identify target**: Select the single highest-complexity test function exceeding thresholds.
-2. **Refactor**: Apply test-appropriate decomposition:
-   - Convert to table-driven subtests where applicable (preferred strategy).
+2. **Refactor**: Apply test-appropriate decomposition matching project conventions:
+   - Convert to table-driven subtests where applicable (preferred).
    - Extract setup/assertion helpers with `t.Helper()` (<30 lines, cyclomatic <12).
    - Preserve all test coverage and pass/fail behavior.
    - Use descriptive subtest names in `t.Run`.
@@ -31,16 +35,11 @@ For each iteration N:
    go-stats-generator diff iteration-$((N-1)).json iteration-N.json
    ```
 5. **Check termination conditions**:
-   - **Success**: No remaining test functions exceed thresholds → halt with success.
+   - **Success**: No remaining test functions exceed thresholds → halt.
    - **Regression**: Diff shows any metric worsening → halt with rollback warning.
    - **Max iterations**: N >= 5 → halt with remaining violations count.
 
-## Complexity Formula
-```
-Overall = (Cyclomatic * 0.3) + (Lines * 0.2) + (Nesting * 0.2) + (Cognitive * 0.15) + (Signature * 0.15)
-```
-
-## Thresholds (Test-Appropriate)
+## Default Thresholds (test-appropriate — ~50% relaxed)
 | Metric | Maximum |
 |--------|---------|
 | Overall complexity | 15.0 |
@@ -49,8 +48,6 @@ Overall = (Cyclomatic * 0.3) + (Lines * 0.2) + (Nesting * 0.2) + (Cognitive * 0.
 | Nesting depth | 5 |
 | Extracted helper length | 30 lines |
 | Extracted helper cyclomatic | 12 |
-
-> **Note**: Thresholds are relaxed by ~50% for test code. Table-driven tests and `t.Helper()` extraction are preferred strategies.
 
 ## Termination Conditions
 | Condition | Action |
@@ -72,21 +69,8 @@ ITERATION [N]:
   Remaining violations: [count]
 ```
 
-## Final Summary
-```
-LOOP COMPLETE: [iterations] iterations, [test_functions_fixed] test functions refactored
-Remaining violations: [count] (or "none")
-```
+## Recovery
+If tests fail: revert (`git checkout -- <modified files>`), log the failure, halt immediately.
 
 ## Tiebreaker
-Refactor the highest-complexity test function. If tied, choose the longest function.
-## Recovery from Failed Iteration
-If tests fail after a refactoring:
-1. Revert the last change (`git checkout -- <modified files>`).
-2. Log the failure and the test function that caused it.
-3. Halt the loop — do not attempt further iterations.
-
-## Validation Checklist
-- [ ] Each iteration reduced at least one violation
-- [ ] All tests pass after every iteration
-- [ ] No test coverage reduced
+Refactor the highest-complexity test function. If tied, choose the longest.

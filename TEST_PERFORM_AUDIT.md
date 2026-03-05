@@ -10,6 +10,12 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Test Strategy
+1. Read the project README to understand its domain and expected behavior.
+2. Discover the test framework in use and the project's assertion patterns.
+3. Identify the test organization: how are tests structured, what testing conventions exist?
+4. Note whether the project uses `t.Parallel()`, `t.Cleanup()`, test suites, or integration test separation.
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --only-tests --format json --output test-audit-metrics.json --sections functions,documentation,naming,patterns,duplication
@@ -17,69 +23,46 @@ go-stats-generator analyze . --only-tests
 ```
 
 ### Phase 2: Risk-Prioritized Audit
-1. Extract test function metrics and classify by risk:
+1. Extract test function metrics and classify by risk (tunable defaults):
    - **HIGH RISK**: length >75 lines OR cyclomatic >22 OR nesting >7
    - **MEDIUM RISK**: length >45 lines OR cyclomatic >15 OR nesting >5
-   - **LOW RISK**: all metrics within test-appropriate thresholds
-2. For each HIGH RISK test function, perform detailed review:
-   - Verify test setup error handling (are setup failures caught with `t.Fatal`?)
-   - Check for race conditions in parallel tests
-   - Verify resource cleanup (`t.Cleanup()`, temp files, goroutines)
-   - Check for flaky test patterns (timing, hardcoded ports, file system)
-   - Check documentation accuracy for test helpers
-3. For MEDIUM RISK test functions, perform targeted review.
-4. Cross-reference findings with:
-   - `.duplication.clone_pairs` for duplicated test code
-   - `.naming` for test naming convention violations
-   - `.documentation` for undocumented test helpers
+   - **LOW RISK**: within test-appropriate thresholds
+2. For each HIGH RISK test function, review:
+   - Test setup error handling (are setup failures caught with `t.Fatal`?)
+   - Race conditions in parallel tests
+   - Resource cleanup (`t.Cleanup()`, temp files, goroutines)
+   - Flaky test patterns (timing, hardcoded ports, file system)
+   - Documentation accuracy for test helpers
+3. Cross-reference with `.duplication.clone_pairs`, `.naming`, and `.documentation`.
 
 ### Phase 3: Report
-Generate `TEST_AUDIT.md` in the repository root with findings organized by risk level, each with:
-- Severity classification (CRITICAL/HIGH/MEDIUM/LOW)
-- File:line reference
-- Metric evidence (complexity, length, coverage)
-- Remediation recommendation (prefer table-driven tests, `t.Helper()` extraction)
-
-## Thresholds (Test-Appropriate)
-| Risk Level | Criteria |
-|------------|----------|
-| HIGH | length >75 OR cyclomatic >22 OR nesting >7 |
-| MEDIUM | length >45 OR cyclomatic >15 OR nesting >5 |
-| LOW | within all test-appropriate thresholds |
-
-> **Note**: Risk thresholds are relaxed by ~50% for test code.
-
-## Report Structure
+Generate a test audit document with findings organized by risk level:
 ```markdown
 # TEST AUDIT — [date]
+## Test Infrastructure Context
+[Test framework, conventions, coverage approach]
 ## Risk Summary
-[HIGH: N test functions, MEDIUM: N test functions, critical findings: N]
-
+[HIGH: N, MEDIUM: N, critical findings: N]
 ## Findings
 ### CRITICAL
 - [ ] [Finding] — [file:line] — [evidence] — [remediation]
-
 ### HIGH / MEDIUM / LOW
 - [ ] ...
 ```
 
-## Tiebreaker
-Prioritize: HIGH RISK → MEDIUM RISK → LOW RISK. Within a level, highest complexity first.
-## Audit Scope
-- All `*_test.go` files in the repository.
-- All exported test helpers and their documentation.
-- All test setup/teardown paths in HIGH RISK test functions.
-- Race condition risks in parallel tests.
+## Risk Thresholds (test-appropriate — ~50% relaxed)
+| Risk Level | Criteria |
+|------------|----------|
+| HIGH | length >75 OR cyclomatic >22 OR nesting >7 |
+| MEDIUM | length >45 OR cyclomatic >15 OR nesting >5 |
+| LOW | within thresholds |
 
 ## Constraints
-- Output ONLY `TEST_AUDIT.md` — no code changes.
-- Use `go-stats-generator --only-tests` metrics as primary evidence for all findings.
+- Output ONLY the audit report — no code changes.
+- Use `go-stats-generator --only-tests` metrics as primary evidence.
 - Every finding must reference a specific file and line number.
 - All findings must use unchecked `- [ ]` checkboxes.
-- Recommend table-driven tests and `t.Helper()` extraction as primary remediation strategies.
+- Recommend table-driven tests and `t.Helper()` extraction as primary remediation.
 
-## Validation Checklist
-- [ ] All HIGH RISK test functions reviewed
-- [ ] All findings have file:line references
-- [ ] All findings have metric evidence
-- [ ] TEST_AUDIT.md follows the severity classification structure
+## Tiebreaker
+Prioritize: HIGH RISK → MEDIUM RISK → LOW RISK. Within a level, highest complexity first.

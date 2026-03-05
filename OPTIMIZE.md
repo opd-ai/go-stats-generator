@@ -1,4 +1,4 @@
-# TASK: Convert remaining ALL_CAPS prompt files to use `go-stats-generator` as their primary analysis and validation engine.
+# TASK: Ensure all ALL_CAPS prompt files use `go-stats-generator` as their primary analysis and validation engine with consistent structure.
 
 ## Execution Mode
 **Autonomous action** — rewrite each target file in-place. No user approval between files.
@@ -10,74 +10,49 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
-### Phase 1: Inventory
-1. List all ALL_CAPS `.md` files in the repository root.
-2. Classify each as: exemplar (do not modify), already optimized, non-prompt (skip), or conversion target.
+### Phase 0: Understand the Project
+1. Read the project README to understand its purpose and build process.
+2. List all ALL_CAPS `.md` files in the repository root.
+3. Classify each as: exemplar (well-structured prompt), conversion target (needs rewrite), or non-prompt (skip).
+
+### Phase 1: Inventory and Classify
+For each ALL_CAPS `.md` file:
+- Does it start with `# TASK:`? If not, it may be a report — skip.
+- Does it include a `Phase 0: Understand the Codebase` step? If not, it needs one.
+- Does it use `go-stats-generator` for baseline/validation? If not, it needs conversion.
+- Does it hardcode project-specific paths, thresholds, or file references? If so, generalize.
 
 ### Phase 2: Convert
 For each conversion target:
 1. Read the existing prompt to understand its intent and execution mode.
-2. Rewrite to follow this template structure:
+2. Rewrite to follow consistent structure:
    - **Header**: `# TASK:` one-sentence objective
    - **Execution mode**: stated explicitly
-   - **Prerequisite**: single-line install check
-   - **Workflow**: 3 phases (baseline, action, validate) using `go-stats-generator`
-   - **Thresholds**: only the thresholds relevant to THIS prompt
-   - **Output format**: 3–5 line structural outline
+   - **Phase 0**: Codebase understanding step tailored to the task
+   - **Workflow**: baseline → action → validate using `go-stats-generator`
+   - **Thresholds**: presented as tunable defaults
    - **Tiebreaker**: one sentence for ambiguous prioritization
-3. Map each prompt to appropriate `go-stats-generator` features:
-   - Complexity prompts → `--sections functions` with `--max-complexity`, `--max-function-length`
-   - Duplication prompts → `--sections duplication` with `--min-block-lines`, `--similarity-threshold`
-   - Documentation prompts → `--sections documentation,naming` with `--min-doc-coverage`
-   - Architecture prompts → `--sections packages,structs,interfaces`
-   - All prompts → `go-stats-generator diff baseline.json post.json` for validation
-4. Remove bloat:
-   - Cut redundant installation blocks (one line is enough)
-   - Cut section exclusion lists (use `--sections <relevant>` instead)
-   - Cut example workflows longer than 5 lines
-   - Cut "you are absolutely forbidden" language
+3. Map each prompt to appropriate `go-stats-generator` sections and flags.
+4. Remove bloat: redundant install blocks, excessive examples, overly prescriptive language.
 
 ### Phase 3: Validate
-- Verify each rewritten file is 80–150 lines.
-- Verify no `gostats` references remain.
+- Verify each rewritten file is ≤ its previous line count.
+- Verify no hardcoded project-specific references remain.
 - Verify all `go-stats-generator` commands use valid flags.
-- Verify execution mode is explicitly stated.
 
-## Conversion Rules
-- Preserve each prompt's original intent and tiebreaker rules.
-- The tool is called `go-stats-generator` — never `gostats`.
-- Use `--sections <relevant>` instead of listing excluded sections.
-- One-line prerequisite: `which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest`
-
-## Valid `--sections` Values
-`functions`, `structs`, `interfaces`, `packages`, `patterns`, `complexity`, `documentation`, `generics`, `duplication`, `naming`, `placement`, `organization`, `burden`, `scores`, `suggestions`, `metadata`, `overview`
-
-## Output Format
-```
-[file]: [old_lines] -> [new_lines] — [intent preserved: YES/NO]
-```
 ## Prompt Structure Template
-Each converted prompt should follow this exact structure:
-
 ```markdown
 # TASK: [one-sentence objective]
 ## Execution Mode
-[Autonomous action | Report generation only | Interactive]
 ## Prerequisite
-[single-line install check]
+## Phase 0: Understand the Codebase
 ## Workflow
 ### Phase 1: Baseline
-[go-stats-generator analyze command]
 ### Phase 2: [Action]
-[numbered steps specific to this prompt]
 ### Phase 3: Validate
-[go-stats-generator diff command]
-## Thresholds
-[only relevant thresholds]
+## Thresholds (tunable defaults)
 ## Output Format
-[3-5 line template]
 ## Tiebreaker
-[one sentence]
 ```
 
 ## Valid --sections Values
@@ -91,3 +66,14 @@ Each converted prompt should follow this exact structure:
 | Documentation | `documentation,naming` | `--min-doc-coverage 0.80` |
 | Architecture | `packages,structs,interfaces` | — |
 | Full audit | `functions,documentation,naming,packages,patterns` | — |
+
+## Conversion Rules
+- Preserve each prompt's original intent and tiebreaker rules.
+- The tool is called `go-stats-generator` — never `gostats`.
+- Present thresholds as tunable defaults, not absolutes.
+- Every prompt must work against a codebase the agent has never seen before.
+
+## Output Format
+```
+[file]: [old_lines] -> [new_lines] — [intent preserved: YES/NO]
+```

@@ -1,4 +1,4 @@
-# TASK: Discover all `*AUDIT*.md` files, extract unchecked findings, enrich with metrics, and produce a single prioritized root-level AUDIT.md.
+# TASK: Discover all audit files, extract unchecked findings, enrich with metrics, and produce a single prioritized consolidated audit.
 
 ## Execution Mode
 **Report generation only** — do NOT modify source code or existing audit files.
@@ -10,13 +10,18 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Codebase
+1. Read the project README to understand its purpose and architecture.
+2. Examine `go.mod` to understand the module structure.
+3. Note the project's conventions for error handling, testing, and code organization — findings should be evaluated in this context.
+
 ### Phase 1: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json --sections functions,packages,documentation
 ```
 
 ### Phase 2: Collate
-1. Find all `*AUDIT*.md` files in the repository:
+1. Find all audit-related files in the repository:
    ```bash
    find . -name '*AUDIT*.md' -not -path './vendor/*'
    ```
@@ -27,59 +32,42 @@ go-stats-generator analyze . --skip-tests --format json --output audit-metrics.j
    - Escalate severity if metrics indicate higher risk (never downgrade).
 5. Deduplicate findings that appear in multiple audit files (keep the highest severity version).
 
-### Phase 3: Generate AUDIT.md
-Produce a single `AUDIT.md` in the repository root:
-
+### Phase 3: Generate Consolidated Audit
 ```markdown
 # AUDIT — Collated [date]
+## Project Context
+[Project type and key architectural observations]
 ## Summary
 [Total findings, breakdown by severity, source audit files]
-
 ## CRITICAL
 - [ ] [Finding] — [file:line] — complexity: [N], lines: [N] — [remediation steps]
-
-## HIGH
+## HIGH / MEDIUM / LOW
 - [ ] ...
-
-## MEDIUM
-- [ ] ...
-
-## LOW
-- [ ] ...
-
 ## Source Audits
-[List of *AUDIT*.md files discovered and their finding counts]
+[List of audit files discovered and their finding counts]
 ```
 
 ## Severity Escalation Rules
 Metrics can only **escalate** severity, never downgrade:
 | Original Severity | Escalate to CRITICAL if | Escalate to HIGH if |
 |-------------------|------------------------|---------------------|
-| HIGH | complexity >20 OR cyclomatic >15 OR lines >60 | — |
-| MEDIUM | complexity >20 OR cyclomatic >15 | complexity >15 OR cyclomatic >10 OR lines >40 |
+| HIGH | complexity >20 OR lines >60 | — |
+| MEDIUM | complexity >20 | cyclomatic >10 OR lines >40 |
 | LOW | complexity >20 | complexity >15 OR cyclomatic >10 |
 
-## Thresholds
-- Cyclomatic complexity warning: >10
-- Function length warning: >30 lines
-- Doc coverage minimum: 70%
-
 ## Remediation Instructions
-Each finding must include step-by-step remediation:
+Each finding must include:
 1. What to change (specific function/file)
-2. Why it needs changing (metric evidence)
-3. How to validate the fix (`go test`, `go-stats-generator diff`)
+2. Why (metric evidence)
+3. How to validate (`go test`, `go-stats-generator diff`)
+
+## Deduplication Rules
+- Keep the version with: highest severity, most specific file:line reference, most detailed remediation.
+- Note the source audit files for each finding.
 
 ## Output Rules
-- Only output `AUDIT.md` — do not modify any other files.
-- Exclude test-only findings unless they indicate production-code bugs.
-- Order findings: CRITICAL → HIGH → MEDIUM → LOW, then by descending complexity within each group.
+- Only output the collated audit — do not modify any other files.
+- Order: CRITICAL → HIGH → MEDIUM → LOW, then descending complexity within group.
 
 ## Tiebreaker
-Within a severity group, order by descending complexity score. If tied, order by line count descending.
-## Deduplication Rules
-- If the same finding appears in multiple audit files, keep the version with:
-  1. Highest severity
-  2. Most specific file:line reference
-  3. Most detailed remediation steps
-- Note the source audit files for each finding.
+Within a severity group, order by descending complexity score. If tied, line count descending.

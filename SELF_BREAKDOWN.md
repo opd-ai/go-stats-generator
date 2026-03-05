@@ -1,7 +1,7 @@
-# TASK: Use `go-stats-generator` to analyze and refactor its own codebase (dogfooding) — reduce complexity of its own functions below thresholds.
+# TASK: Use `go-stats-generator` to analyze and refactor the target codebase (dogfooding) — reduce complexity of functions below thresholds while verifying the build still works.
 
 ## Execution Mode
-**Autonomous action** — self-refactor and fix discovered bugs, validate with tests and diff.
+**Autonomous action** — refactor and fix discovered bugs, validate with tests, rebuild, and diff.
 
 ## Prerequisite
 ```bash
@@ -10,25 +10,31 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
+### Phase 0: Understand the Codebase
+1. Read the project README to understand purpose, domain, and build process.
+2. Examine `go.mod` and discover the build/install command (e.g., `go build`, `go install`, `make build`).
+3. Identify the project's coding patterns, naming conventions, and error handling style.
+4. Note whether the project is a tool/binary (requires rebuild verification) or a library (build verification sufficient).
+
 ### Phase 1: Self-Analysis Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions --max-complexity 10 --max-function-length 30
 go-stats-generator analyze . --skip-tests --max-complexity 10 --max-function-length 30
 ```
 
-### Phase 2: Self-Refactor
-1. From baseline, identify functions in the `go-stats-generator` codebase exceeding thresholds.
+### Phase 2: Refactor
+1. Identify functions exceeding thresholds from the baseline.
 2. For each violating function (sorted by overall complexity descending):
-   - Apply extract-method refactoring (same rules as BREAKDOWN.md):
+   - **Understand its role** before refactoring — read callers and context.
+   - Apply extract-method refactoring matching the project's idioms:
      - Extract cohesive blocks into named helpers (<20 lines, cyclomatic <8).
      - Preserve all public API signatures.
-     - Use verb-first Go naming conventions.
    - If a bug is discovered during review, fix it as part of this pass.
 3. Run `go test -race ./...` after each refactoring.
 4. Run `go vet ./...` to confirm no issues.
-5. Rebuild and verify the tool still produces correct output:
+5. If the project is a buildable tool, rebuild and verify it still works:
    ```bash
-   go install . && go-stats-generator analyze . --skip-tests --format json | jq '.functions | length'
+   go build ./... && echo "BUILD PASS"
    ```
 
 ### Phase 3: Validate
@@ -36,9 +42,9 @@ go-stats-generator analyze . --skip-tests --max-complexity 10 --max-function-len
 go-stats-generator analyze . --skip-tests --format json --output post.json --sections functions --max-complexity 10 --max-function-length 30
 go-stats-generator diff baseline.json post.json
 ```
-Confirm: all target functions below thresholds, zero regressions, tool still functional.
+Confirm: all target functions below thresholds, zero regressions, project still builds and runs.
 
-## Thresholds
+## Default Thresholds (calibrate to project)
 | Metric | Maximum |
 |--------|---------|
 | Overall complexity | 10.0 |
@@ -48,34 +54,20 @@ Confirm: all target functions below thresholds, zero regressions, tool still fun
 | Extracted function length | 20 |
 | Extracted function cyclomatic | 8 |
 
-## Self-Analysis Rules
-- This is dogfooding — the tool analyzes itself.
-- After refactoring, rebuild (`go install .`) and verify the tool still works.
-- If the tool's own output changes after refactoring (beyond metric improvements), investigate whether a bug was introduced.
-- May fix bugs discovered during self-analysis (unlike BREAKDOWN.md which is refactor-only).
+## Dogfooding Rules
+- After refactoring, rebuild the project and verify it still produces correct output.
+- If the project's own output changes (beyond metric improvements), investigate whether a bug was introduced.
+- May fix bugs discovered during analysis (unlike BREAKDOWN.md which is refactor-only).
 
 ## Output Format
 ```
-Self-analysis: [N] functions above thresholds
+Analysis: [N] functions above thresholds
 Refactored:
   [function] [file]: [old] -> [new] ([reduction]%)
 Bugs fixed: [count] (or "none")
-Tool verification: PASS
+Build verification: PASS
 Tests: PASS
 ```
 
 ## Tiebreaker
 Refactor the longest function first when complexity scores are tied.
-## Dogfooding Verification
-After refactoring, the tool must still produce correct output:
-1. Rebuild: `go install .`
-2. Verify: `go-stats-generator analyze . --skip-tests --format json | jq '.overview'`
-3. Compare key metrics (function count, avg complexity) against baseline — they should be stable or improved.
-4. If output differs unexpectedly, investigate whether a bug was introduced during refactoring.
-
-## Validation Checklist
-- [ ] All target functions below thresholds
-- [ ] Tool still produces correct output after rebuild
-- [ ] All tests pass with -race flag
-- [ ] Diff shows zero regressions except intentional improvements
-- [ ] Any bugs discovered during review have been fixed
