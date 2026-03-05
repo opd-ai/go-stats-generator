@@ -135,9 +135,6 @@ func finalizeAllMetrics(report *metrics.Report, collectedMetrics *CollectedMetri
 	finalizeOrganizationMetrics(report, analyzers, collectedMetrics, cfg, projectRoot)
 	finalizeTeamMetrics(report, projectRoot, cfg)
 	finalizeRefactoringSuggestions(report, cfg)
-
-	// Filter low-confidence pattern detections to reduce false positives
-	report.FilterLowConfidencePatterns(metrics.DefaultMinPatternConfidence)
 }
 
 func logVerboseFileResults(collectedMetrics *CollectedMetrics, cfg *config.Config) {
@@ -218,9 +215,6 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 
 	// Step 6: Generate refactoring suggestions after all metrics are finalized
 	finalizeRefactoringSuggestions(report, cfg)
-
-	// Filter low-confidence pattern detections to reduce false positives
-	report.FilterLowConfidencePatterns(metrics.DefaultMinPatternConfidence)
 
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
