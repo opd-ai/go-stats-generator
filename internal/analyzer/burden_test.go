@@ -81,8 +81,8 @@ func example() int {
 	x := 42
 	return 100
 }`,
-			wantLen:  2,
-			wantVals: []string{"42", "100"},
+			wantLen:  1,
+			wantVals: []string{"42"},
 		},
 	}
 

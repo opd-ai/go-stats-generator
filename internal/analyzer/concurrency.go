@@ -401,8 +401,24 @@ func (ca *ConcurrencyAnalyzer) extractSelectorName(selector *ast.SelectorExpr) s
 
 // containsDefer checks if a call expression contains a defer statement for cleanup
 func (ca *ConcurrencyAnalyzer) containsDefer(call *ast.CallExpr) bool {
-	// Simple check - would need more sophisticated analysis for real detection
-	return false
+	funcLit, ok := call.Fun.(*ast.FuncLit)
+	if !ok || funcLit.Body == nil {
+		return false
+	}
+
+	hasDefer := false
+	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
+		if n == nil || hasDefer {
+			return false
+		}
+		if _, ok := n.(*ast.DeferStmt); ok {
+			hasDefer = true
+			return false
+		}
+		return true
+	})
+
+	return hasDefer
 }
 
 // checkGoroutineLeak analyzes a goroutine for potential leaks such as infinite loops without exit conditions
@@ -452,11 +468,15 @@ func (ca *ConcurrencyAnalyzer) isMakeCall(call *ast.CallExpr, targetType string)
 
 // parseIntLiteral parses a string representation of an integer literal to an int value
 func (ca *ConcurrencyAnalyzer) parseIntLiteral(value string) int {
-	// Simplified integer parsing
-	if len(value) > 0 && value[0] >= '0' && value[0] <= '9' {
-		return int(value[0] - '0') // Very basic - just first digit
+	result := 0
+	for _, c := range value {
+		if c >= '0' && c <= '9' {
+			result = result*10 + int(c-'0')
+		} else {
+			break
+		}
 	}
-	return 0
+	return result
 }
 
 // extractVariableName extracts the variable name from a call expression context
@@ -478,8 +498,28 @@ func (ca *ConcurrencyAnalyzer) analyzeForPatterns(funcDecl *ast.FuncDecl, concur
 
 // hasInfiniteLoop checks if a call expression contains an infinite loop pattern
 func (ca *ConcurrencyAnalyzer) hasInfiniteLoop(call *ast.CallExpr) bool {
-	// Detect infinite loops - simplified implementation
-	return false
+	funcLit, ok := call.Fun.(*ast.FuncLit)
+	if !ok || funcLit.Body == nil {
+		return false
+	}
+
+	found := false
+	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		forStmt, ok := n.(*ast.ForStmt)
+		if !ok {
+			return true
+		}
+		// A for statement with no condition is an infinite loop: for { ... }
+		if forStmt.Cond == nil && forStmt.Init == nil && forStmt.Post == nil {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 // detectWorkerPools identifies worker pool patterns in the code by analyzing
