@@ -83,7 +83,9 @@ func rejectedPromise(msg string) js.Value {
 		reject.Invoke(js.Global().Get("Error").New(msg))
 		return nil
 	})
-	return js.Global().Get("Promise").New(handler)
+	promise := js.Global().Get("Promise").New(handler)
+	handler.Release()
+	return promise
 }
 
 // performCloneAndAnalysis orchestrates the clone → extract → analyze pipeline.
