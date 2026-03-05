@@ -32,7 +32,8 @@ func AnalyzeDocumentation(doc *ast.CommentGroup, qualityScoreFunc func(string) f
 	// Check for code examples (simple heuristic)
 	docInfo.HasExample = strings.Contains(text, "Example") ||
 		strings.Contains(text, "example") ||
-		strings.Contains(text, "//")
+		strings.Contains(text, "e.g.") ||
+		strings.Contains(text, "E.g.")
 
 	// Calculate quality score if function provided
 	if qualityScoreFunc != nil {

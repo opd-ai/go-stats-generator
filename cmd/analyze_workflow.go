@@ -135,6 +135,9 @@ func finalizeAllMetrics(report *metrics.Report, collectedMetrics *CollectedMetri
 	finalizeOrganizationMetrics(report, analyzers, collectedMetrics, cfg, projectRoot)
 	finalizeTeamMetrics(report, projectRoot, cfg)
 	finalizeRefactoringSuggestions(report, cfg)
+
+	// Filter low-confidence pattern detections to reduce false positives
+	report.FilterLowConfidencePatterns(metrics.DefaultMinPatternConfidence)
 }
 
 func logVerboseFileResults(collectedMetrics *CollectedMetrics, cfg *config.Config) {

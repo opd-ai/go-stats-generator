@@ -393,7 +393,22 @@ func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr) bool {
 		return true
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
-		return strings.HasSuffix(ident.Name, "er") || ident.Name == "Interface"
+		if ident.Name == "Interface" {
+			return true
+		}
+		if ident.Obj != nil {
+			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
+				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+					return true
+				}
+			}
+		}
+	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		name := sel.Sel.Name
+		if name == "Interface" {
+			return true
+		}
 	}
 	return false
 }
@@ -485,7 +500,16 @@ func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field) bool {
 		return true
 	}
 	if ident, ok := field.Type.(*ast.Ident); ok {
-		return strings.HasSuffix(ident.Name, "er") || ident.Name == "Interface"
+		if ident.Name == "Interface" {
+			return true
+		}
+		if ident.Obj != nil {
+			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
+				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+					return true
+				}
+			}
+		}
 	}
 	return false
 }
