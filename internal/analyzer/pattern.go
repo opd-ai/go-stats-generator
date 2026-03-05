@@ -396,7 +396,7 @@ func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr) bool {
 		if ident.Name == "Interface" {
 			return true
 		}
-		if ident.Obj != nil {
+		if ident.Obj != nil && ident.Obj.Decl != nil {
 			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
 				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
 					return true
@@ -503,7 +503,7 @@ func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field) bool {
 		if ident.Name == "Interface" {
 			return true
 		}
-		if ident.Obj != nil {
+		if ident.Obj != nil && ident.Obj.Decl != nil {
 			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
 				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
 					return true
