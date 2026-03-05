@@ -85,7 +85,7 @@ const UI = {
 
     const iframe = document.createElement('iframe');
     iframe.className = 'report-frame';
-    iframe.sandbox = 'allow-scripts';
+    iframe.setAttribute('sandbox', 'allow-scripts');
     iframe.srcdoc = html;
     iframe.title = 'Analysis Report';
 
