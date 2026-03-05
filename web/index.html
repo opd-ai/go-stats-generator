@@ -41,15 +41,15 @@
             </div>
 
             <div class="form-group">
-                <label for="github-token">GitHub Personal Access Token (optional, API fallback only)</label>
+                <label for="github-token">Personal Access Token (optional, for private repositories)</label>
                 <input 
                     type="password" 
                     id="github-token" 
-                    placeholder="Only needed if git clone fails (e.g. private repos)"
-                    aria-label="GitHub token"
+                    placeholder="Only needed for private repositories"
+                    aria-label="Personal access token for private repositories"
                     autocomplete="off"
                 >
-                <small>Repositories are cloned directly via git over HTTPS — no API rate limits. Token is only used as a fallback and is never stored.</small>
+                <small>Repositories are cloned directly via git over HTTPS — no API rate limits. Token is only needed for private repositories and is never stored.</small>
             </div>
 
             <div class="form-group checkbox-group">
@@ -93,7 +93,6 @@
     </main>
 
     <footer>
-        <div id="rate-limit" class="rate-limit-status hidden">GitHub API rate limit: Loading...</div>
         <p>
             Powered by <strong>go-stats-generator</strong> v1.0.0 | 
             <a href="https://github.com/opd-ai/go-stats-generator" target="_blank">Source Code</a> |
@@ -103,7 +102,6 @@
 
     <!-- Load scripts -->
     <script src="js/wasm_exec.js"></script>
-    <script src="js/github-fetcher.js"></script>
     <script src="js/wasm-loader.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
