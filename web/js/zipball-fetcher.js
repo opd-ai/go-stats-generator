@@ -117,10 +117,17 @@ class ZipReader {
 
     if (entry.method === 8) {
       // Deflate – use the browser's native DecompressionStream.
+      if (typeof DecompressionStream === 'undefined') {
+        throw new Error(
+          'ZIP inflate (compression method 8) requires browser support for DecompressionStream. ' +
+          'Run go-stats-generator in a modern browser that implements the DecompressionStream API ' +
+          'or use an environment that does not rely on ZIP-based repository fetching.'
+        );
+      }
       const ds = new DecompressionStream('deflate-raw');
       const writer = ds.writable.getWriter();
-      writer.write(data);
-      writer.close();
+      await writer.write(data);
+      await writer.close();
 
       const reader = ds.readable.getReader();
       const chunks = [];
@@ -240,10 +247,28 @@ class ZipballFetcher {
         headers['Authorization'] = `Bearer ${this.token}`;
       }
 
-      const response = await fetch(endpoint, {
+      // Perform initial request with manual redirect handling so that
+      // Authorization headers are preserved when GitHub redirects to
+      // codeload.github.com for the actual ZIP payload.
+      let response = await fetch(endpoint, {
         headers,
         signal: this.abortController.signal,
+        redirect: 'manual',
       });
+
+      // If GitHub responds with a redirect (e.g., to codeload.github.com),
+      // manually follow it while reusing the same headers and abort signal.
+      if (response.status >= 300 && response.status < 400) {
+        const location =
+          response.headers.get('Location') || response.headers.get('location');
+        if (!location) {
+          throw new Error('GitHub API error: redirect response missing Location header');
+        }
+        response = await fetch(location, {
+          headers,
+          signal: this.abortController.signal,
+        });
+      }
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -300,7 +325,7 @@ class ZipballFetcher {
         files,
         stats: {
           totalFiles: files.length,
-          totalSize: files.reduce((sum, f) => sum + f.content.length, 0),
+          totalSize: files.reduce((sum, f) => sum + new TextEncoder().encode(f.content).byteLength, 0),
           owner,
           repo,
           ref: ref || 'default branch',

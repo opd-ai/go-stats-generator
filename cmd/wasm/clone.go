@@ -245,7 +245,14 @@ func classifyCloneError(err error, url, token string) error {
 	msg := err.Error()
 
 	// Detect browser fetch / CORS failures.
-	if strings.Contains(msg, "fetch() failed") || strings.Contains(msg, "NetworkError") {
+	// Normalize to lowercase for case-insensitive matching – browser
+	// implementations surface these errors with varying casing
+	// (e.g. "Failed to fetch", "NetworkError", "networkerror").
+	lower := strings.ToLower(msg)
+	if strings.Contains(lower, "fetch() failed") ||
+		strings.Contains(lower, "failed to fetch") ||
+		strings.Contains(lower, "networkerror") ||
+		strings.Contains(lower, "cors") {
 		if token == "" {
 			return fmt.Errorf(
 				"network error cloning repository: browser fetch was blocked " +
