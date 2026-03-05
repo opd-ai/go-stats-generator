@@ -72,12 +72,30 @@ const UI = {
   // ---------------------------------------------------------------------------
 
   /**
-   * Render an HTML report inside the results container.
+   * Render an HTML report inside an iframe for complete CSS isolation.
+   * The generated report contains its own <style> tags which would otherwise
+   * leak into – and conflict with – the host page styles.
    * @param {string} html - HTML string produced by the WASM analyzer.
    */
   renderHTMLReport(html) {
-    const el = document.getElementById('results');
-    if (el) el.innerHTML = html;
+    const container = document.getElementById('results');
+    if (!container) return;
+
+    container.textContent = '';
+
+    const iframe = document.createElement('iframe');
+    iframe.className = 'report-frame';
+    iframe.setAttribute('sandbox', 'allow-scripts');
+    iframe.srcdoc = html;
+    iframe.title = 'Analysis Report';
+
+    // With a sandbox that omits allow-same-origin, the parent cannot
+    // measure the iframe document. Use a fixed viewport-relative height.
+    iframe.addEventListener('load', () => {
+      iframe.style.height = '80vh';
+    });
+
+    container.appendChild(iframe);
   },
 
   /**

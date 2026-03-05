@@ -288,6 +288,14 @@ button {
   overflow-x: auto;
 }
 
+.report-frame {
+  width: 100%;
+  /* Use viewport-relative height; JS may also set iframe.style.height = '80vh' */
+  height: min(600px, 80vh);
+  border: none;
+  display: block;
+}
+
 .results-container pre {
   background: var(--background);
   padding: 20px;
