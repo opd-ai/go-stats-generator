@@ -323,8 +323,7 @@ class App {
 
       UI.updateRateLimit(fetcher.getRateLimitStatus());
 
-      stats.method = 'github-api';
-      return { result: response.data, stats };
+      return { result: response.data, stats: { ...stats, method: 'github-api' } };
     } catch (err) {
       if (err && err.name === 'AbortError') throw err;
       console.error('GitHub API fallback failed:', err);
