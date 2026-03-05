@@ -111,6 +111,8 @@ class App {
     UI.clearError();
     this.isAnalyzing = true;
     this.usingClone = false;
+    this.cloneErrorDetail = null;
+    this.zipballErrorDetail = null;
     UI.setAnalyzeButtonState(false);
 
     try {
