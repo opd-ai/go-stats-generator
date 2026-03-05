@@ -259,8 +259,7 @@ class ZipballFetcher {
       // If GitHub responds with a redirect (e.g., to codeload.github.com),
       // manually follow it while reusing the same headers and abort signal.
       if (response.status >= 300 && response.status < 400) {
-        const location =
-          response.headers.get('Location') || response.headers.get('location');
+        const location = response.headers.get('Location');
         if (!location) {
           throw new Error('GitHub API error: redirect response missing Location header');
         }
@@ -325,7 +324,10 @@ class ZipballFetcher {
         files,
         stats: {
           totalFiles: files.length,
-          totalSize: files.reduce((sum, f) => sum + new TextEncoder().encode(f.content).byteLength, 0),
+          totalSize: (() => {
+            const enc = new TextEncoder();
+            return files.reduce((sum, f) => sum + enc.encode(f.content).byteLength, 0);
+          })(),
           owner,
           repo,
           ref: ref || 'default branch',
