@@ -10,8 +10,7 @@ import (
 
 // PatternAnalyzer detects common design patterns in Go code
 type PatternAnalyzer struct {
-	fset           *token.FileSet
-	interfaceNames map[string]bool // per-file set of interface type names
+	fset *token.FileSet
 }
 
 // NewPatternAnalyzer creates analyzer for design pattern detection, identifying common Go idioms and architectural patterns.
@@ -31,14 +30,14 @@ func (pa *PatternAnalyzer) AnalyzePatterns(file *ast.File, pkgName, filePath str
 		Strategy:  []metrics.PatternInstance{},
 	}
 
-	// Build a set of interface type names declared in this file
-	pa.interfaceNames = pa.buildInterfaceNameSet(file)
+	// Build a set of interface type names declared in this file for accurate detection
+	ifaceNames := pa.buildInterfaceNameSet(file)
 
 	pa.detectSingleton(file, filePath, &patterns)
-	pa.detectFactory(file, filePath, &patterns)
+	pa.detectFactory(file, filePath, &patterns, ifaceNames)
 	pa.detectBuilder(file, filePath, &patterns)
 	pa.detectObserver(file, filePath, &patterns)
-	pa.detectStrategy(file, filePath, &patterns)
+	pa.detectStrategy(file, filePath, &patterns, ifaceNames)
 
 	return patterns, nil
 }
@@ -140,7 +139,7 @@ func (pa *PatternAnalyzer) addSingletonPattern(patterns *metrics.DesignPatternMe
 }
 
 // detectFactory identifies factory patterns via New* constructors
-func (pa *PatternAnalyzer) detectFactory(file *ast.File, filePath string, patterns *metrics.DesignPatternMetrics) {
+func (pa *PatternAnalyzer) detectFactory(file *ast.File, filePath string, patterns *metrics.DesignPatternMetrics, ifaceNames map[string]bool) {
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
 		if !ok || funcDecl.Body == nil {
@@ -157,7 +156,7 @@ func (pa *PatternAnalyzer) detectFactory(file *ast.File, filePath string, patter
 		}
 
 		returnType := funcDecl.Type.Results.List[0].Type
-		if pa.isInterfaceReturn(returnType) {
+		if pa.isInterfaceReturn(returnType, ifaceNames) {
 			confidence := 0.85
 			if pa.hasTypeSwitch(funcDecl.Body) {
 				confidence = 0.95
@@ -309,13 +308,13 @@ func (pa *PatternAnalyzer) detectObserver(file *ast.File, filePath string, patte
 }
 
 // detectStrategy identifies strategy patterns via interface delegation
-func (pa *PatternAnalyzer) detectStrategy(file *ast.File, filePath string, patterns *metrics.DesignPatternMetrics) {
-	typeStrategies := pa.collectStrategyCandidates(file)
+func (pa *PatternAnalyzer) detectStrategy(file *ast.File, filePath string, patterns *metrics.DesignPatternMetrics, ifaceNames map[string]bool) {
+	typeStrategies := pa.collectStrategyCandidates(file, ifaceNames)
 	pa.appendStrategyPatterns(typeStrategies, filePath, patterns)
 }
 
 // collectStrategyCandidates scans AST for structs with interface fields
-func (pa *PatternAnalyzer) collectStrategyCandidates(file *ast.File) map[string]*strategyCandidate {
+func (pa *PatternAnalyzer) collectStrategyCandidates(file *ast.File, ifaceNames map[string]bool) map[string]*strategyCandidate {
 	typeStrategies := make(map[string]*strategyCandidate)
 
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -329,7 +328,7 @@ func (pa *PatternAnalyzer) collectStrategyCandidates(file *ast.File) map[string]
 			return true
 		}
 
-		pa.processStructFieldsForStrategy(typeSpec, structType, typeStrategies)
+		pa.processStructFieldsForStrategy(typeSpec, structType, typeStrategies, ifaceNames)
 		return true
 	})
 
@@ -337,9 +336,9 @@ func (pa *PatternAnalyzer) collectStrategyCandidates(file *ast.File) map[string]
 }
 
 // processStructFieldsForStrategy counts interface fields in a struct
-func (pa *PatternAnalyzer) processStructFieldsForStrategy(typeSpec *ast.TypeSpec, structType *ast.StructType, typeStrategies map[string]*strategyCandidate) {
+func (pa *PatternAnalyzer) processStructFieldsForStrategy(typeSpec *ast.TypeSpec, structType *ast.StructType, typeStrategies map[string]*strategyCandidate, ifaceNames map[string]bool) {
 	for _, field := range structType.Fields.List {
-		if pa.isInterfaceField(field) {
+		if pa.isInterfaceField(field, ifaceNames) {
 			pa.updateStrategyCandidate(typeSpec, typeStrategies)
 		}
 	}
@@ -415,7 +414,7 @@ func (pa *PatternAnalyzer) isFactoryName(name string) bool {
 }
 
 // isInterfaceReturn determines if an expression represents an interface type.
-func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr) bool {
+func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr, ifaceNames map[string]bool) bool {
 	if _, ok := expr.(*ast.InterfaceType); ok {
 		return true
 	}
@@ -424,7 +423,7 @@ func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr) bool {
 			return true
 		}
 		// Check the precomputed interface name set (covers same-file declarations)
-		if pa.interfaceNames[ident.Name] {
+		if ifaceNames[ident.Name] {
 			return true
 		}
 		// Check AST object resolution (covers same-scope declarations)
@@ -527,7 +526,7 @@ func (pa *PatternAnalyzer) isCallbackType(expr ast.Expr) bool {
 }
 
 // isInterfaceField determines if a struct field is an interface type.
-func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field) bool {
+func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field, ifaceNames map[string]bool) bool {
 	if _, ok := field.Type.(*ast.InterfaceType); ok {
 		return true
 	}
@@ -536,7 +535,7 @@ func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field) bool {
 			return true
 		}
 		// Check the precomputed interface name set (covers same-file declarations)
-		if pa.interfaceNames[ident.Name] {
+		if ifaceNames[ident.Name] {
 			return true
 		}
 		// Check AST object resolution (covers same-scope declarations)

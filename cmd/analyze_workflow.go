@@ -16,10 +16,6 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/scanner"
 )
 
-// minPatternConfidenceThreshold mirrors metrics.DefaultMinPatternConfidence for use in
-// runAnalysisWorkflow where the local "metrics" variable shadows the metrics package.
-const minPatternConfidenceThreshold = 0.5
-
 // runDirectoryAnalysis performs comprehensive code analysis on a directory,
 // discovering Go files, processing them through a worker pool, and generating
 // a detailed metrics report including functions, structs, interfaces, patterns, etc.
@@ -206,26 +202,25 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	report := createInitialReport(targetDir, startTime, len(files))
 
 	// Step 4: Process analysis results from worker pool
-	metrics, packageAnalyzer, err := processAnalysisResults(ctx, results, analyzers, report, cfg)
+	collectedMetrics, packageAnalyzer, err := processAnalysisResults(ctx, results, analyzers, report, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	// Step 5: Finalize report with all collected metrics
-	finalizeReport(report, metrics, packageAnalyzer, cfg)
-	finalizeDuplicationMetrics(report, analyzers.Duplication, metrics, cfg)
-	finalizeNamingMetrics(report, analyzers, metrics, cfg)
-	finalizePlacementMetrics(report, analyzers, metrics, cfg)
-	finalizeDocumentationMetrics(report, analyzers, metrics, cfg)
-	finalizeOrganizationMetrics(report, analyzers, metrics, cfg, targetDir)
+	finalizeReport(report, collectedMetrics, packageAnalyzer, cfg)
+	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
+	finalizeNamingMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizePlacementMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizeDocumentationMetrics(report, analyzers, collectedMetrics, cfg)
+	finalizeOrganizationMetrics(report, analyzers, collectedMetrics, cfg, targetDir)
 	finalizeTeamMetrics(report, targetDir, cfg)
 
 	// Step 6: Generate refactoring suggestions after all metrics are finalized
 	finalizeRefactoringSuggestions(report, cfg)
 
 	// Filter low-confidence pattern detections to reduce false positives
-	// NOTE: uses local constant because the local "metrics" variable shadows the metrics package
-	report.FilterLowConfidencePatterns(minPatternConfidenceThreshold)
+	report.FilterLowConfidencePatterns(metrics.DefaultMinPatternConfidence)
 
 	report.Metadata.AnalysisTime = time.Since(startTime)
 
