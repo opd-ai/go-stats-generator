@@ -9,6 +9,8 @@ class App {
     this.wasmLoader = new WASMLoader();
     this.isAnalyzing = false;
     this.cloneErrorDetail = null;
+    /** @type {GitHubFetcher|null} Active fetcher for cancellation support. */
+    this.currentFetcher = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -117,9 +119,8 @@ class App {
       UI.hide('results-area');
 
       // Use the WASM git-clone path (no API rate limits).
-      // The GitHub REST API fallback has been removed to prevent HTTP 429
-      // rate-limit errors. Repositories are cloned directly over HTTPS
-      // using go-git in the WASM binary.
+      // If clone fails with a network/CORS error, fall back to the
+      // GitHub REST API which supports CORS but has rate limits.
       let result, stats;
       const cloneAvailable = typeof globalThis.cloneAndAnalyze === 'function';
 
@@ -136,10 +137,33 @@ class App {
         ({ result, stats } = cloneResult);
       } else {
         const detail = this.cloneErrorDetail || 'unknown error';
-        throw new Error(
-          `Git clone failed: ${detail}. ` +
-          'If this is a private repository, provide a personal access token.',
-        );
+        if (this.isNetworkError(detail)) {
+          // Clone failed due to CORS / network – try GitHub API fallback.
+          console.warn(
+            'Git clone failed with network error, trying GitHub API fallback:',
+            detail,
+          );
+          this.usingClone = false;
+          UI.setCancelVisible(true);
+          UI.updateProgress(20, 'Git clone unavailable, fetching via GitHub API…');
+          const apiResult = await this.analyzeViaAPI(inputs);
+          if (apiResult) {
+            ({ result, stats } = apiResult);
+          } else {
+            throw new Error(
+              'Git clone was blocked by the browser (CORS) and the GitHub API ' +
+              'fallback also failed. If this is a private repository, provide a ' +
+              'personal access token. For public repos, the API rate limit may ' +
+              'have been exceeded — try again later or provide a token for ' +
+              'higher limits.',
+            );
+          }
+        } else {
+          throw new Error(
+            `Git clone failed: ${detail}. ` +
+            'If this is a private repository, provide a personal access token.',
+          );
+        }
       }
 
       UI.updateProgress(100, 'Complete');
@@ -229,10 +253,95 @@ class App {
   }
 
   /**
-   * Cancel in-flight operations. The WASM git clone goroutine cannot be
-   * interrupted from JS, so we only hide the progress area.
+   * Detect whether a clone error is a browser network / CORS failure.
+   * In WASM, Go's net/http delegates to the browser fetch() API which
+   * surfaces opaque "NetworkError" messages when CORS blocks the request.
+   * @param {string} detail - Error detail string from the clone attempt.
+   * @returns {boolean}
+   */
+  isNetworkError(detail) {
+    if (!detail) return false;
+    const lower = detail.toLowerCase();
+    return (
+      lower.includes('networkerror') ||
+      lower.includes('fetch() failed') ||
+      lower.includes('network error') ||
+      lower.includes('failed to fetch') ||
+      lower.includes('cors')
+    );
+  }
+
+  /**
+   * Fallback: fetch files via the GitHub REST API and analyze them
+   * with the in-memory WASM analyzer. This path supports CORS but is
+   * subject to GitHub API rate limits (60 req/hr unauthenticated,
+   * 5 000 req/hr with a token).
+   * @param {Object} inputs - Form inputs.
+   * @returns {Promise<{result: string, stats: Object}|null>}
+   */
+  async analyzeViaAPI(inputs) {
+    const fetcher = new GitHubFetcher(inputs.token);
+    this.currentFetcher = fetcher;
+
+    try {
+      const { files, stats } = await fetcher.fetchRepository(
+        inputs.repoURL,
+        inputs.ref,
+        inputs.includeTests,
+        (progress) => {
+          if (progress.current && progress.total) {
+            const pct = 20 + Math.round((progress.current / progress.total) * 50);
+            UI.updateProgress(pct, progress.message);
+          } else {
+            UI.updateProgress(30, progress.message);
+          }
+        },
+      );
+
+      if (!files || files.length === 0) {
+        throw new Error('No Go source files found in repository');
+      }
+
+      UI.updateProgress(75, `Analyzing ${files.length} files…`);
+
+      const request = {
+        files,
+        outputFormat: inputs.format,
+        config: {
+          maxFunctionLength: 30,
+          maxCyclomaticComplexity: 10,
+          minDocumentationCoverage: 0.7,
+          skipTestFiles: !inputs.includeTests,
+        },
+      };
+
+      const response = globalThis.analyzeCode(JSON.stringify(request));
+
+      if (!response || !response.success) {
+        throw new Error((response && response.error) || 'Analysis failed');
+      }
+
+      UI.updateRateLimit(fetcher.getRateLimitStatus());
+
+      stats.method = 'github-api';
+      return { result: response.data, stats };
+    } catch (err) {
+      if (err && err.name === 'AbortError') throw err;
+      console.error('GitHub API fallback failed:', err);
+      return null;
+    } finally {
+      this.currentFetcher = null;
+    }
+  }
+
+  /**
+   * Cancel in-flight operations. Aborts the GitHub API fetcher if
+   * active; the WASM git clone goroutine cannot be interrupted from JS.
    */
   handleCancel() {
+    if (this.currentFetcher) {
+      this.currentFetcher.abort();
+    }
     UI.hide('progress-area');
   }
 
