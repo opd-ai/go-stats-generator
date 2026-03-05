@@ -290,8 +290,8 @@ button {
 
 .report-frame {
   width: 100%;
-  /* Tall enough to show the report header and first section without scrolling */
-  min-height: 600px;
+  /* Use viewport-relative height; JS may also set iframe.style.height = '80vh' */
+  height: min(600px, 80vh);
   border: none;
   display: block;
 }
