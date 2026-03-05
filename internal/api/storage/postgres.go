@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -109,7 +110,7 @@ func (p *Postgres) Get(id string) (*AnalysisResult, bool) {
 		}
 	}
 	if errorText != nil {
-		result.Error = fmt.Errorf(*errorText)
+		result.Error = errors.New(*errorText)
 	}
 
 	return &result, true
@@ -167,7 +168,7 @@ func populateReport(result *AnalysisResult, reportJSON []byte) {
 
 func populateError(result *AnalysisResult, errorText *string) {
 	if errorText != nil {
-		result.Error = fmt.Errorf(*errorText)
+		result.Error = errors.New(*errorText)
 	}
 }
 
