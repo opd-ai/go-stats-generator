@@ -147,22 +147,6 @@ const UI = {
   // ---------------------------------------------------------------------------
 
   /**
-   * Update the GitHub API rate-limit indicator in the footer.
-   * Only shown when the API fallback is used.
-   * @param {{remaining: number|null, reset: Date|null, authenticated: boolean}} status
-   */
-  updateRateLimit(status) {
-    const el = document.getElementById('rate-limit');
-    if (!el || status.remaining === null) return;
-
-    const resetTime = status.reset ? status.reset.toLocaleTimeString() : 'unknown';
-    const authLabel = status.authenticated ? 'authenticated' : 'unauthenticated';
-    el.textContent =
-      `GitHub API fallback: ${status.remaining} requests remaining (${authLabel}) – resets at ${resetTime}`;
-    el.classList.remove('hidden');
-  },
-
-  /**
    * Enable or disable the analyze button.
    * @param {boolean} enabled
    */

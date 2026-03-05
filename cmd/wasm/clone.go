@@ -231,7 +231,49 @@ func cloneRepository(url, ref, token string, fs billy.Filesystem, progressCb js.
 		opts.ReferenceName = plumbing.NewTagReferenceName(ref)
 		repo, err = git.Clone(memory.NewStorage(), fs, opts)
 	}
-	return repo, err
+	if err != nil {
+		return nil, classifyCloneError(err, url, token)
+	}
+	return repo, nil
+}
+
+// classifyCloneError inspects a clone error and returns a more
+// descriptive, user-facing message. In the WASM/browser context,
+// Go's net/http uses the browser fetch() API, which surfaces opaque
+// "NetworkError" messages for CORS blocks and connectivity issues.
+func classifyCloneError(err error, url, token string) error {
+	msg := err.Error()
+
+	// Detect browser fetch / CORS failures.
+	// Normalize to lowercase for case-insensitive matching – browser
+	// implementations surface these errors with varying casing
+	// (e.g. "Failed to fetch", "NetworkError", "networkerror").
+	lower := strings.ToLower(msg)
+	if strings.Contains(lower, "fetch() failed") ||
+		strings.Contains(lower, "failed to fetch") ||
+		strings.Contains(lower, "networkerror") ||
+		strings.Contains(lower, "cors") {
+		if token == "" {
+			return fmt.Errorf(
+				"network error cloning repository: browser fetch was blocked " +
+					"(this usually means CORS restrictions). " +
+					"A fallback via ZIP archive download will be attempted automatically")
+		}
+		return fmt.Errorf(
+			"network error cloning repository: browser fetch was blocked. " +
+				"Verify that the token is valid and has repository read access")
+	}
+
+	// Detect HTTP authentication failures.
+	if strings.Contains(msg, "authentication") ||
+		strings.Contains(msg, "401") ||
+		strings.Contains(msg, "403") {
+		return fmt.Errorf(
+			"authentication failed: check that your personal access token " +
+				"is valid and has repository access")
+	}
+
+	return err
 }
 
 // jsProgressWriter adapts clone progress output to a JS callback.
