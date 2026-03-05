@@ -179,6 +179,10 @@ func main() {
 	// Register the analyzeCode function on the global JavaScript object
 	js.Global().Set("analyzeCode", analyzeCodeWrapper())
 
+	// Register the cloneAndAnalyze function for git-based repository fetching.
+	// This avoids GitHub API rate limits by cloning over HTTPS using go-git.
+	js.Global().Set("cloneAndAnalyze", cloneAndAnalyzeWrapper())
+
 	// Log to browser console
 	console := js.Global().Get("console")
 	console.Call("log", "go-stats-generator WASM module loaded successfully")

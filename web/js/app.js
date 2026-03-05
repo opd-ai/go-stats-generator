@@ -1,7 +1,7 @@
 /**
  * Main Application Controller for go-stats-generator Web Interface
  *
- * Orchestrates: UI events → GitHub fetcher → WASM analyzer → results rendering
+ * Orchestrates: UI events → WASM git clone (or GitHub API fallback) → WASM analyzer → results rendering
  */
 
 /** Progress percentages for non-download stages. */
@@ -125,31 +125,38 @@ class App {
 
     UI.clearError();
     this.isAnalyzing = true;
+    this.usingClone = false;
     UI.setAnalyzeButtonState(false);
 
     try {
       const inputs = this.gatherFormInputs();
       if (!inputs.repoURL) throw new Error('Please enter a repository URL');
 
-      this.ensureFetcher(inputs.token);
-
       UI.show('progress-area');
       UI.hide('results-area');
 
-      const { files, stats } = await this.fetcher.fetchRepository(
-        inputs.repoURL,
-        inputs.ref,
-        inputs.includeTests,
-        (progress) => this.handleFetchProgress(progress),
-      );
+      // Try the WASM git-clone path first (no API rate limits).
+      // Fall back to GitHub REST API fetcher if clone fails (e.g. CORS issues,
+      // private repo needing a token, or non-GitHub hosts).
+      let result, stats;
+      const cloneAvailable = typeof globalThis.cloneAndAnalyze === 'function';
 
-      UI.updateRateLimit(this.fetcher.getRateLimitStatus());
-      UI.updateProgress(80, 'Running analysis…');
-
-      const result = await this.wasmLoader.analyze(files, {
-        format: inputs.format,
-        skipTests: !inputs.includeTests,
-      });
+      if (cloneAvailable) {
+        this.usingClone = true;
+        UI.setCancelVisible(false);
+        const cloneResult = await this.analyzeViaClone(inputs);
+        if (cloneResult) {
+          ({ result, stats } = cloneResult);
+        } else {
+          // Clone returned an error – fall back to API.
+          this.usingClone = false;
+          UI.setCancelVisible(true);
+          UI.updateProgress(5, 'Clone failed – falling back to GitHub API…');
+          ({ result, stats } = await this.analyzeViaAPI(inputs));
+        }
+      } else {
+        ({ result, stats } = await this.analyzeViaAPI(inputs));
+      }
 
       UI.updateProgress(100, 'Complete');
       UI.hide('progress-area');
@@ -169,8 +176,94 @@ class App {
       }
     } finally {
       this.isAnalyzing = false;
+      this.usingClone = false;
       UI.setAnalyzeButtonState(true);
+      UI.setCancelVisible(true);
       UI.hide('progress-area');
+    }
+  }
+
+  /**
+   * Clone the repository in WASM via go-git and run analysis.
+   * This avoids GitHub API rate limits entirely by using the git
+   * smart HTTP protocol directly.
+   * @param {Object} inputs - Form inputs.
+   * @returns {Promise<{result: string, stats: Object}|null>} Resolves with analysis results, or null if clone failed.
+   */
+  async analyzeViaClone(inputs) {
+    const request = {
+      url: inputs.repoURL,
+      ref: inputs.ref || '',
+      includeTests: inputs.includeTests,
+      outputFormat: inputs.format,
+      config: {
+        maxFunctionLength: 30,
+        maxCyclomaticComplexity: 10,
+        minDocumentationCoverage: 0.7,
+        skipTestFiles: !inputs.includeTests,
+      },
+    };
+
+    let response;
+    try {
+      response = await globalThis.cloneAndAnalyze(
+        JSON.stringify(request),
+        (progress) => this.handleCloneProgress(progress),
+      );
+    } catch (err) {
+      console.warn('Git clone threw:', err);
+      return null;
+    }
+
+    if (!response || !response.success) {
+      console.warn('Git clone failed:', response && response.error);
+      return null;
+    }
+
+    return {
+      result: response.data,
+      stats: response.stats || {},
+    };
+  }
+
+  /**
+   * Fetch files via GitHub REST API and analyze them (original approach).
+   * Used as fallback when git clone is unavailable or fails.
+   * @param {Object} inputs - Form inputs.
+   * @returns {Promise<{result: string, stats: Object}>}
+   */
+  async analyzeViaAPI(inputs) {
+    this.ensureFetcher(inputs.token);
+
+    const { files, stats } = await this.fetcher.fetchRepository(
+      inputs.repoURL,
+      inputs.ref,
+      inputs.includeTests,
+      (progress) => this.handleFetchProgress(progress),
+    );
+
+    UI.updateRateLimit(this.fetcher.getRateLimitStatus());
+    UI.updateProgress(80, 'Running analysis…');
+
+    const result = await this.wasmLoader.analyze(files, {
+      format: inputs.format,
+      skipTests: !inputs.includeTests,
+    });
+
+    return { result, stats };
+  }
+
+  /**
+   * Map clone progress events to the progress bar.
+   * @param {Object} progress - {percent, message}
+   */
+  handleCloneProgress(progress) {
+    if (typeof progress.percent === 'number' && progress.percent >= 0) {
+      UI.updateProgress(progress.percent, progress.message);
+    } else {
+      // Clone output without explicit percent – show message only.
+      const text = document.getElementById('progress-text');
+      if (text) text.textContent = progress.message;
     }
   }
 
@@ -188,9 +281,9 @@ class App {
   }
 
   /**
-   * Cancel in-flight fetch requests.  The abort signal causes
-   * {@link handleAnalyze} to reject with an AbortError, and its
-   * finally block resets `isAnalyzing` and re-enables the button.
+   * Cancel in-flight operations. When using the GitHub API fetcher the
+   * abort signal stops network requests. When using git clone, the WASM
+   * goroutine cannot be interrupted from JS, so we only hide progress.
    */
   handleCancel() {
     if (this.fetcher) {
@@ -215,14 +308,19 @@ class App {
     el.textContent = '';
 
     const h3 = document.createElement('h3');
-    h3.textContent = `Repository: ${stats.owner}/${stats.repo}`;
+    h3.textContent = `Repository: ${stats.owner || ''}/${stats.repo || ''}`;
     el.appendChild(h3);
 
-    for (const line of [
-      `Ref: ${stats.ref}`,
-      `Files analyzed: ${stats.totalFiles}`,
-      `Total size: ${(stats.totalSize / 1024).toFixed(2)} KB`,
-    ]) {
+    const lines = [
+      `Ref: ${stats.ref || 'default branch'}`,
+      `Files analyzed: ${stats.totalFiles || 0}`,
+      `Total size: ${((stats.totalSize || 0) / 1024).toFixed(2)} KB`,
+    ];
+    if (stats.method) {
+      lines.push(`Fetch method: ${stats.method}`);
+    }
+
+    for (const line of lines) {
       const p = document.createElement('p');
       p.textContent = line;
       el.appendChild(p);

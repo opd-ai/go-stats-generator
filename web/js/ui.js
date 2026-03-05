@@ -130,6 +130,7 @@ const UI = {
 
   /**
    * Update the GitHub API rate-limit indicator in the footer.
+   * Only shown when the API fallback is used.
    * @param {{remaining: number|null, reset: Date|null, authenticated: boolean}} status
    */
   updateRateLimit(status) {
@@ -139,7 +140,8 @@ const UI = {
     const resetTime = status.reset ? status.reset.toLocaleTimeString() : 'unknown';
     const authLabel = status.authenticated ? 'authenticated' : 'unauthenticated';
     el.textContent =
-      `GitHub API: ${status.remaining} requests remaining (${authLabel}) – resets at ${resetTime}`;
+      `GitHub API fallback: ${status.remaining} requests remaining (${authLabel}) – resets at ${resetTime}`;
+    el.classList.remove('hidden');
   },
 
   /**
@@ -149,6 +151,22 @@ const UI = {
   setAnalyzeButtonState(enabled) {
     const btn = document.getElementById('analyze-btn');
     if (btn) btn.disabled = !enabled;
+  },
+
+  /**
+   * Show or hide the cancel button. Hidden during git-clone analysis
+   * because the WASM goroutine cannot be cancelled from JavaScript.
+   * @param {boolean} visible
+   */
+  setCancelVisible(visible) {
+    const btn = document.getElementById('cancel-btn');
+    if (btn) {
+      if (visible) {
+        btn.classList.remove('hidden');
+      } else {
+        btn.classList.add('hidden');
+      }
+    }
   },
 };
 

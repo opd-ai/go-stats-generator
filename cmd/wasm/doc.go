@@ -5,7 +5,29 @@
 // in-memory file contents and returns analysis results without requiring
 // any server-side processing.
 //
-// JavaScript API:
+// Two analysis modes are supported:
+//
+// 1. Git Clone (recommended): Clones the repository over HTTPS using go-git
+// into browser memory. This avoids GitHub API rate limits entirely.
+//
+//	const result = await cloneAndAnalyze(JSON.stringify({
+//	    url: "https://github.com/owner/repo",
+//	    ref: "main",
+//	    includeTests: false,
+//	    outputFormat: "json",
+//	    config: {
+//	        maxFunctionLength: 30,
+//	        maxCyclomaticComplexity: 10,
+//	        minDocumentationCoverage: 0.7,
+//	        skipTestFiles: true
+//	    }
+//	}), (progress) => console.log(progress.message));
+//
+//	console.log(result.data);   // JSON string or HTML string
+//	console.log(result.stats);  // { totalFiles, totalSize, owner, repo, ref, method }
+//
+// 2. Pre-fetched Files: Accepts files already fetched by JavaScript (e.g. via
+// the GitHub REST API). This serves as a fallback when git clone fails.
 //
 //	const result = analyzeCode(JSON.stringify({
 //	    files: [
