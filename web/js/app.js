@@ -9,7 +9,7 @@ class App {
     this.wasmLoader = new WASMLoader();
     this.isAnalyzing = false;
     this.cloneErrorDetail = null;
-    /** @type {GitHubFetcher|null} Active fetcher for cancellation support. */
+    /** @type {ZipballFetcher|null} Active fetcher for cancellation support. */
     this.currentFetcher = null;
   }
 
@@ -119,8 +119,8 @@ class App {
       UI.hide('results-area');
 
       // Use the WASM git-clone path (no API rate limits).
-      // If clone fails with a network/CORS error, fall back to the
-      // GitHub REST API which supports CORS but has rate limits.
+      // If clone fails with a network/CORS error, fall back to
+      // downloading the repository as a ZIP archive (single API request).
       let result, stats;
       const cloneAvailable = typeof globalThis.cloneAndAnalyze === 'function';
 
@@ -138,24 +138,22 @@ class App {
       } else {
         const detail = this.cloneErrorDetail || 'unknown error';
         if (this.isNetworkError(detail)) {
-          // Clone failed due to CORS / network – try GitHub API fallback.
+          // Clone failed due to CORS / network – download ZIP archive instead.
           console.warn(
-            'Git clone failed with network error, trying GitHub API fallback:',
+            'Git clone failed with network error, trying zipball fallback:',
             detail,
           );
           this.usingClone = false;
           UI.setCancelVisible(true);
-          UI.updateProgress(20, 'Git clone unavailable, fetching via GitHub API…');
-          const apiResult = await this.analyzeViaAPI(inputs);
-          if (apiResult) {
-            ({ result, stats } = apiResult);
+          UI.updateProgress(10, 'Git clone unavailable, downloading ZIP archive…');
+          const zipResult = await this.analyzeViaZipball(inputs);
+          if (zipResult) {
+            ({ result, stats } = zipResult);
           } else {
             throw new Error(
-              'Git clone was blocked by the browser (CORS) and the GitHub API ' +
-              'fallback also failed. If this is a private repository, provide a ' +
-              'personal access token. For public repos, the API rate limit may ' +
-              'have been exceeded — try again later or provide a token for ' +
-              'higher limits.',
+              'Git clone was blocked by the browser (CORS) and the ZIP archive ' +
+              'download also failed. If this is a private repository, provide a ' +
+              'personal access token.',
             );
           }
         } else {
@@ -272,15 +270,15 @@ class App {
   }
 
   /**
-   * Fallback: fetch files via the GitHub REST API and analyze them
-   * with the in-memory WASM analyzer. This path supports CORS but is
-   * subject to GitHub API rate limits (60 req/hr unauthenticated,
-   * 5 000 req/hr with a token).
+   * Fallback: download the repository as a ZIP archive from the GitHub
+   * API zipball endpoint and analyze the Go files with the in-memory
+   * WASM analyzer. This uses exactly ONE API request regardless of
+   * repository size, avoiding the per-blob rate-limit problem entirely.
    * @param {Object} inputs - Form inputs.
    * @returns {Promise<{result: string, stats: Object}|null>}
    */
-  async analyzeViaAPI(inputs) {
-    const fetcher = new GitHubFetcher(inputs.token);
+  async analyzeViaZipball(inputs) {
+    const fetcher = new ZipballFetcher(inputs.token);
     this.currentFetcher = fetcher;
 
     try {
@@ -290,10 +288,12 @@ class App {
         inputs.includeTests,
         (progress) => {
           if (progress.current && progress.total) {
-            const pct = 20 + Math.round((progress.current / progress.total) * 50);
+            const pct = 10 + Math.round((progress.current / progress.total) * 55);
             UI.updateProgress(pct, progress.message);
+          } else if (progress.stage === 'downloading') {
+            UI.updateProgress(15, progress.message);
           } else {
-            UI.updateProgress(30, progress.message);
+            UI.updateProgress(40, progress.message);
           }
         },
       );
@@ -302,7 +302,7 @@ class App {
         throw new Error('No Go source files found in repository');
       }
 
-      UI.updateProgress(75, `Analyzing ${files.length} files…`);
+      UI.updateProgress(70, `Analyzing ${files.length} files…`);
 
       const request = {
         files,
@@ -321,12 +321,10 @@ class App {
         throw new Error((response && response.error) || 'Analysis failed');
       }
 
-      UI.updateRateLimit(fetcher.getRateLimitStatus());
-
-      return { result: response.data, stats: { ...stats, method: 'github-api' } };
+      return { result: response.data, stats: { ...stats, method: 'zipball' } };
     } catch (err) {
       if (err && err.name === 'AbortError') throw err;
-      console.error('GitHub API fallback failed:', err);
+      console.error('Zipball fallback failed:', err);
       return null;
     } finally {
       this.currentFetcher = null;
@@ -334,7 +332,7 @@ class App {
   }
 
   /**
-   * Cancel in-flight operations. Aborts the GitHub API fetcher if
+   * Cancel in-flight operations. Aborts the zipball fetcher if
    * active; the WASM git clone goroutine cannot be interrupted from JS.
    */
   handleCancel() {

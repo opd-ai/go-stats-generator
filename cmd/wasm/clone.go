@@ -250,7 +250,7 @@ func classifyCloneError(err error, url, token string) error {
 			return fmt.Errorf(
 				"network error cloning repository: browser fetch was blocked " +
 					"(this usually means CORS restrictions). " +
-					"A fallback via the GitHub API will be attempted automatically")
+					"A fallback via ZIP archive download will be attempted automatically")
 		}
 		return fmt.Errorf(
 			"network error cloning repository: browser fetch was blocked. " +
