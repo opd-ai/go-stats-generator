@@ -73,7 +73,9 @@ class WASMLoader {
 
   /**
    * Poll until the Go runtime exposes `globalThis.analyzeCode`.
-   * Also waits for `globalThis.cloneAndAnalyze` (git clone support).
+   * Once available, also snapshots `globalThis.cloneAndAnalyze` if present
+   * (it may be null if the Go runtime registered it at the same time or
+   * slightly later; the clone path is checked at call time in app.js).
    */
   async waitForAPI() {
     let elapsed = 0;

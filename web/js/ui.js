@@ -152,6 +152,22 @@ const UI = {
     const btn = document.getElementById('analyze-btn');
     if (btn) btn.disabled = !enabled;
   },
+
+  /**
+   * Show or hide the cancel button. Hidden during git-clone analysis
+   * because the WASM goroutine cannot be cancelled from JavaScript.
+   * @param {boolean} visible
+   */
+  setCancelVisible(visible) {
+    const btn = document.getElementById('cancel-btn');
+    if (btn) {
+      if (visible) {
+        btn.classList.remove('hidden');
+      } else {
+        btn.classList.add('hidden');
+      }
+    }
+  },
 };
 
 // Export for use in other modules.

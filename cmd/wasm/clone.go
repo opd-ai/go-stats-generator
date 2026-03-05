@@ -45,7 +45,7 @@ type CloneRequest struct {
 func cloneAndAnalyzeWrapper() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if len(args) < 1 {
-			return rejectedPromise("missing request JSON argument")
+			return resolvedErrorPromise("missing request JSON argument")
 		}
 
 		inputJSON := args[0].String()
@@ -55,15 +55,18 @@ func cloneAndAnalyzeWrapper() js.Func {
 			progressCb = args[1]
 		}
 
-		// Return a Promise that resolves with the analysis result.
+		// The Promise constructor invokes the executor synchronously, so it
+		// is safe to release the js.Func immediately after creating the Promise.
 		handler := js.FuncOf(func(_ js.Value, promiseArgs []js.Value) interface{} {
 			resolve := promiseArgs[0]
-			reject := promiseArgs[1]
 
 			go func() {
 				result, err := performCloneAndAnalysis(inputJSON, progressCb)
 				if err != nil {
-					reject.Invoke(js.Global().Get("Error").New(err.Error()))
+					resolve.Invoke(js.ValueOf(map[string]interface{}{
+						"success": false,
+						"error":   err.Error(),
+					}))
 					return
 				}
 				resolve.Invoke(js.ValueOf(result))
@@ -72,15 +75,21 @@ func cloneAndAnalyzeWrapper() js.Func {
 			return nil
 		})
 
-		return js.Global().Get("Promise").New(handler)
+		promise := js.Global().Get("Promise").New(handler)
+		handler.Release()
+		return promise
 	})
 }
 
-// rejectedPromise returns a JS Promise that immediately rejects with msg.
-func rejectedPromise(msg string) js.Value {
+// resolvedErrorPromise returns a JS Promise that resolves with {success:false, error:msg}.
+// This matches the response shape used by analyzeCode for consistency.
+func resolvedErrorPromise(msg string) js.Value {
 	handler := js.FuncOf(func(_ js.Value, promiseArgs []js.Value) interface{} {
-		reject := promiseArgs[1]
-		reject.Invoke(js.Global().Get("Error").New(msg))
+		resolve := promiseArgs[0]
+		resolve.Invoke(js.ValueOf(map[string]interface{}{
+			"success": false,
+			"error":   msg,
+		}))
 		return nil
 	})
 	promise := js.Global().Get("Promise").New(handler)
@@ -165,8 +174,28 @@ func performCloneAndAnalysis(inputJSON string, progressCb js.Value) (map[string]
 	}, nil
 }
 
+// isLikelyCommitSHA returns true if ref looks like a full or abbreviated commit hash.
+func isLikelyCommitSHA(ref string) bool {
+	if len(ref) < 7 || len(ref) > 40 {
+		return false
+	}
+	for _, c := range ref {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
 // cloneRepository performs a shallow HTTPS clone into in-memory storage.
+// Commit SHA refs are not supported with shallow clones and will return an error.
 func cloneRepository(url, ref string, fs billy.Filesystem, progressCb js.Value) (*git.Repository, error) {
+	if ref != "" && isLikelyCommitSHA(ref) {
+		return nil, fmt.Errorf(
+			"commit SHA refs (%s) are not supported with shallow clone; "+
+				"use a branch or tag name instead", ref)
+	}
+
 	opts := &git.CloneOptions{
 		URL:   url,
 		Depth: 1,
@@ -187,12 +216,6 @@ func cloneRepository(url, ref string, fs billy.Filesystem, progressCb js.Value) 
 	if err != nil && ref != "" {
 		// The ref may be a tag rather than a branch – retry with tag ref.
 		opts.ReferenceName = plumbing.NewTagReferenceName(ref)
-		repo, err = git.Clone(memory.NewStorage(), fs, opts)
-	}
-	if err != nil && ref != "" {
-		// Fall back to clone without specific ref name (e.g. commit SHA).
-		opts.ReferenceName = ""
-		opts.SingleBranch = false
 		repo, err = git.Clone(memory.NewStorage(), fs, opts)
 	}
 	return repo, err
@@ -297,12 +320,19 @@ func readFile(fs billy.Filesystem, path string) (string, error) {
 }
 
 // normalizeGitURL ensures the URL uses HTTPS and ends with .git.
+// In a browser context, only HTTPS is safe (avoids mixed-content and
+// unsupported transport issues). SSH URLs are converted; plain HTTP
+// is upgraded; other schemes are rejected.
 func normalizeGitURL(raw string) string {
 	u := strings.TrimSpace(raw)
 	// Convert SSH URLs to HTTPS.
 	if strings.HasPrefix(u, "git@") {
 		u = strings.Replace(u, ":", "/", 1)
 		u = strings.Replace(u, "git@", "https://", 1)
+	}
+	// Upgrade http:// to https://.
+	if strings.HasPrefix(u, "http://") {
+		u = "https://" + strings.TrimPrefix(u, "http://")
 	}
 	if !strings.HasSuffix(u, ".git") {
 		u += ".git"

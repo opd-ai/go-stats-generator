@@ -125,6 +125,7 @@ class App {
 
     UI.clearError();
     this.isAnalyzing = true;
+    this.usingClone = false;
     UI.setAnalyzeButtonState(false);
 
     try {
@@ -141,10 +142,15 @@ class App {
       const cloneAvailable = typeof globalThis.cloneAndAnalyze === 'function';
 
       if (cloneAvailable) {
-        try {
-          ({ result, stats } = await this.analyzeViaClone(inputs));
-        } catch (cloneErr) {
-          console.warn('Git clone failed, falling back to GitHub API:', cloneErr);
+        this.usingClone = true;
+        UI.setCancelVisible(false);
+        const cloneResult = await this.analyzeViaClone(inputs);
+        if (cloneResult) {
+          ({ result, stats } = cloneResult);
+        } else {
+          // Clone returned an error – fall back to API.
+          this.usingClone = false;
+          UI.setCancelVisible(true);
           UI.updateProgress(5, 'Clone failed – falling back to GitHub API…');
           ({ result, stats } = await this.analyzeViaAPI(inputs));
         }
@@ -170,7 +176,9 @@ class App {
       }
     } finally {
       this.isAnalyzing = false;
+      this.usingClone = false;
       UI.setAnalyzeButtonState(true);
+      UI.setCancelVisible(true);
       UI.hide('progress-area');
     }
   }
@@ -180,7 +188,7 @@ class App {
    * This avoids GitHub API rate limits entirely by using the git
    * smart HTTP protocol directly.
    * @param {Object} inputs - Form inputs.
-   * @returns {Promise<{result: string, stats: Object}>}
+   * @returns {Promise<{result: string, stats: Object}|null>} null when clone failed.
    */
   async analyzeViaClone(inputs) {
     const request = {
@@ -196,13 +204,20 @@ class App {
       },
     };
 
-    const response = await globalThis.cloneAndAnalyze(
-      JSON.stringify(request),
-      (progress) => this.handleCloneProgress(progress),
-    );
+    let response;
+    try {
+      response = await globalThis.cloneAndAnalyze(
+        JSON.stringify(request),
+        (progress) => this.handleCloneProgress(progress),
+      );
+    } catch (err) {
+      console.warn('Git clone threw:', err);
+      return null;
+    }
 
-    if (!response.success) {
-      throw new Error(response.error || 'Clone analysis failed');
+    if (!response || !response.success) {
+      console.warn('Git clone failed:', response && response.error);
+      return null;
     }
 
     return {
@@ -266,9 +281,9 @@ class App {
   }
 
   /**
-   * Cancel in-flight fetch requests.  The abort signal causes
-   * {@link handleAnalyze} to reject with an AbortError, and its
-   * finally block resets `isAnalyzing` and re-enables the button.
+   * Cancel in-flight operations. When using the GitHub API fetcher the
+   * abort signal stops network requests. When using git clone, the WASM
+   * goroutine cannot be interrupted from JS, so we only hide progress.
    */
   handleCancel() {
     if (this.fetcher) {
