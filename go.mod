@@ -1,9 +1,6 @@
 module github.com/opd-ai/go-stats-generator
 
-go 1.24.0
-
-toolchain go1.24.13
-
+go 1.23.0
 require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/go-git/go-billy/v5 v5.8.0
