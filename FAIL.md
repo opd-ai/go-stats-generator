@@ -1,22 +1,18 @@
 # TASK DESCRIPTION:
-Perform a data-driven test failure analysis to classify and resolve Go test failures using `go-stats-generator` complexity metrics for root cause correlation. Use baseline analysis, three-tier solution categorization, and differential validation to ensure targeted fixes that address root causes without introducing regressions.
+Perform a methodical, data-driven test failure analysis to classify and resolve Go test failures through structured root cause investigation. Use complexity-correlated baseline analysis, three-tier solution categorization, and differential validation to ensure targeted fixes that address root causes without introducing regressions.
 
 When results are ambiguous, such as multiple failures with similar severity or when a function straddles category boundaries, always resolve the failure in the **highest-complexity function first** — complex code is the most likely source of defects and the highest-risk to leave unfixed.
 
 ## CONSTRAINT:
 
-Use only `go-stats-generator`, `go test`, and existing tests for your analysis. You are absolutely forbidden from using any other code analysis tools. Analyze and fix — do not stop to ask questions.
+Use only `go test`, existing tests, and complexity metrics from `go-stats-generator` for your analysis. You are absolutely forbidden from using any other code analysis tools. Analyze and fix — do not stop to ask questions.
 
 ## PREREQUISITES:
-**Minimum Required Version:** `go-stats-generator` v1.0.0 or higher
-Install and configure `go-stats-generator` for complexity-correlated failure analysis:
+Install `go-stats-generator` (v1.0.0+) to supply complexity metrics for the analysis:
 
 ### Installation:
 ```bash
-# First, check if go-stats-generator is already installed
-which go-stats-generator
-# If not, install it with `go install`
-go install github.com/opd-ai/go-stats-generator@latest
+which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
 ## Recommendations:
@@ -25,7 +21,7 @@ go install github.com/opd-ai/go-stats-generator@latest
 go-stats-generator analyze --format json | jq '{functions: .functions, concurrency: .patterns.concurrency_patterns}'
 which jq || sudo apt-get install -y jq
 ```
-**Section filter**: Use only `.functions` and `.patterns.concurrency_patterns` from the report (`--sections concurrency` includes the `patterns` section). Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to test failure analysis.
+**Section filter**: Use only `.functions` and `.patterns.concurrency_patterns` from the report. Exclude `.structs`, `.interfaces`, `.packages`, `.complexity`, `.documentation`, `.generics`, `.duplication`, `.naming`, `.placement`, `.organization`, `.burden`, `.scores`, `.suggestions` — they are not relevant to test failure analysis.
 
 ### Required Analysis Workflow:
 ```bash
@@ -34,19 +30,19 @@ go test -v -race -cover ./... 2>&1 | tee test-results.txt
 go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,concurrency
 go-stats-generator analyze . --skip-tests --max-complexity 10 --max-function-length 30
 
-# Phase 2: Correlate failures with complexity, classify, and fix
+# Phase 2: Correlate failures with complexity, classify using the decision tree, and fix
 cat baseline.json | jq '.functions[] | select(.complexity.overall > 12)'
 
 # Phase 3: Post-fix validation
 go test -v -race ./...
 go-stats-generator analyze . --skip-tests --format json --output postfix.json --sections functions,concurrency
 
-# Phase 4: Verify fix did not introduce regressions
+# Phase 4: Differential validation — verify fix did not introduce regressions
 go-stats-generator diff baseline.json postfix.json
 ```
 
 ## CONTEXT:
-You are an automated Go test failure analyst using `go-stats-generator` for complexity-correlated root cause analysis. The tool provides precise function-level metrics that identify high-risk code — functions with cyclomatic complexity >12 or nesting depth >3 are statistically more likely to contain defects. You correlate test failures with these complexity hotspots, classify each failure into one of three solution categories, and apply targeted fixes validated by differential analysis. You analyze and fix autonomously without stopping for confirmation.
+You are an automated Go test failure analyst performing **methodical, complexity-correlated root cause analysis**. The methodology uses function-level complexity metrics to identify high-risk code — functions with cyclomatic complexity >12 or nesting depth >3 are statistically more likely to contain defects. You correlate test failures with these complexity hotspots, classify each failure into one of three solution categories using a structured decision tree, and apply targeted fixes validated by differential analysis. You analyze and fix autonomously without stopping for confirmation.
 
 ## INSTRUCTIONS:
 
@@ -68,7 +64,7 @@ You are an automated Go test failure analyst using `go-stats-generator` for comp
    - Identify high-risk functions (cyclomatic >12 or nesting >3)
    - Note the files and packages containing these functions
 
-3. **Correlate Failures with Complexity:**
+3. **Correlate Failures with Complexity Hotspots:**
    ```bash
    cat baseline.json | jq '[.functions[] | select(.complexity.overall > 12)] | sort_by(-.complexity.overall)'
    ```
@@ -79,18 +75,18 @@ You are an automated Go test failure analyst using `go-stats-generator` for comp
      * **High:** Assertion failure in a function with cyclomatic >12 or nesting >3
      * **Medium:** Any failure in a function with complexity ≤12
 
-### Phase 2: Solution Category Determination (CRITICAL PHASE)
-**MANDATORY CLASSIFICATION PROCESS — apply for each failure, highest priority first.**
+### Phase 2: Solution Category Determination (CRITICAL — the core of the methodology)
+**MANDATORY CLASSIFICATION PROCESS — apply the decision tree to each failure, highest priority first.**
 
 #### Step 2A: Evidence Collection
 ```bash
 # Extract metrics for the specific function under test
 cat baseline.json | jq '.functions[] | select(.name == "FUNCTION_NAME")'
 ```
-For each failing test, document:
+For each failing test, methodically document:
 1. Test function name and file location
 2. Expected vs actual values from assertion failures
-3. Implementation function metrics from `go-stats-generator` (complexity, nesting, line count)
+3. Implementation function complexity metrics (cyclomatic, nesting, line count)
 4. Whether the function exceeds any complexity threshold
 
 #### Step 2B: Apply Decision Tree
@@ -116,7 +112,7 @@ START → Is the test logic sound and following Go conventions?
   - Test logic follows Go testing best practices
   - Test assertions match documented requirements
   - Implementation fails to satisfy business rules
-  - `go-stats-generator` shows cyclomatic >12 or nesting >3 (complexity contributed to the bug)
+  - Complexity metrics show cyclomatic >12 or nesting >3 (complexity likely contributed to the bug)
 - Rules:
   - Modify only the implementation code
   - Preserve existing function signatures
@@ -151,14 +147,14 @@ START → Is the test logic sound and following Go conventions?
   - Ensure implementation handles invalid input gracefully
 
 #### Step 2D: Validation Questions
-**Before proceeding, answer ALL questions:**
-1. **For Implementation Fix**: "Does the failing code violate documented behavior, and does `go-stats-generator` flag it as high-complexity?"
+**Before proceeding with any fix, answer ALL of these classification-validation questions:**
+1. **For Implementation Fix**: "Does the failing code violate documented behavior, and is it flagged as high-complexity?"
 2. **For Test Fix**: "Are the test assertions incorrect given the actual requirements?"
 3. **For Negative Test**: "Should this test validate failure scenarios instead of success?"
 
 ### Phase 3: Targeted Resolution
-1. **Apply Category-Specific Fix:**
-   - Implement the fix according to the category rules above
+1. **Apply Category-Specific Fix** (strictly following the category rules above):
+   - Implement the fix according to the classification from Phase 2
    - For Category 1 fixes in high-complexity functions, consider whether a focused refactor (reducing cyclomatic complexity) also resolves the bug
    - Follow Go conventions: table-driven tests, explicit error checking, standard library testing package
 
@@ -168,13 +164,13 @@ START → Is the test logic sound and following Go conventions?
    go test -v -race ./...
    ```
 
-3. **Post-Fix Complexity Check:**
+3. **Post-Fix Complexity Measurement:**
    ```bash
    go-stats-generator analyze . --skip-tests --format json --output postfix.json --sections functions,concurrency
    ```
 
-### Phase 4: Differential Validation
-1. **Measure Impact:**
+### Phase 4: Differential Validation (regression prevention)
+1. **Measure Fix Impact Against Baseline:**
    ```bash
    go-stats-generator diff baseline.json postfix.json
    ```
@@ -187,7 +183,7 @@ START → Is the test logic sound and following Go conventions?
    go-stats-generator diff baseline.json postfix.json --format html --output fix-validation.html
    ```
 
-3. **Final Quality Gates:**
+3. **Final Quality Gates** (all must pass before declaring resolution):
    - All tests pass: `go test ./...`
    - Race condition check: `go test -race ./...`
    - No complexity regressions detected by diff analysis
@@ -195,7 +191,7 @@ START → Is the test logic sound and following Go conventions?
 
 ## OUTPUT FORMAT:
 
-Structure your response as:
+Structure your response following the methodical analysis phases:
 
 ### 1. Test Execution Results
 ```
@@ -209,7 +205,7 @@ Severity: [Critical/High/Medium]
 
 ### 2. Complexity Correlation
 ```
-go-stats-generator metrics for function under test:
+Complexity metrics for function under test:
   Function: [name] in [file]
   Cyclomatic Complexity: [n]
   Nesting Depth: [n]
@@ -222,7 +218,7 @@ go-stats-generator metrics for function under test:
 ```
 Evidence Analysis: [specific details supporting category choice]
 Decision Tree Path: [START → ... → Category N]
-Complexity Factor: [how go-stats-generator metrics informed the classification]
+Complexity Factor: [how complexity metrics informed the classification]
 Validation Answers:
   1. Implementation Fix: [answer]
   2. Test Fix: [answer]
@@ -241,7 +237,7 @@ Verification: go test -v -run [specific_test] output
 
 ### 5. Differential Validation
 ```
-go-stats-generator diff results:
+Diff results:
   Complexity Before: [score] → After: [score] ([change])
   New Threshold Violations: [count]
   Regressions: [count]
@@ -270,14 +266,14 @@ Priority Ranking (combined severity × complexity):
 Post-Fix Quality Gates:
   All tests passing (go test ./...)
   Race check clean (go test -race ./...)
-  No new complexity threshold violations (go-stats-generator diff)
+  No new complexity threshold violations (diff analysis)
   Fix is single-category (implementation OR test OR conversion, never mixed)
 ```
 <!-- Last verified: 2025-07-25 against function.go:calculateComplexity and cmd/analyze.go threshold defaults -->
 
 Resolution Threshold = Failed Tests > 0 AND (Cyclomatic > 12 OR Nesting > 3 OR Overall Complexity > 10)
-- If no failures: "Analysis complete: all tests passing. go-stats-generator baseline shows no high-complexity functions exceeding failure risk thresholds."
-- If failures but no complexity correlation: "Failures detected in low-complexity code — classify using decision tree without complexity weighting."
+- If no failures: "Analysis complete: all tests passing. Baseline shows no high-complexity functions exceeding failure risk thresholds."
+- If failures but no complexity correlation: "Failures detected in low-complexity code — classify using the decision tree without complexity weighting."
 
 ## EXAMPLE WORKFLOW:
 ```bash
@@ -354,4 +350,4 @@ RESOLUTION SUMMARY:
   Total files modified: 3
 ```
 
-This data-driven approach uses `go-stats-generator` complexity metrics to correlate test failures with code risk, ensuring that the highest-complexity functions — which are statistically most likely to harbor defects — are analyzed and resolved first.
+This methodical, data-driven approach correlates test failures with complexity metrics to identify code risk, ensuring that the highest-complexity functions — which are statistically most likely to harbor defects — are systematically classified, targeted, and resolved first through structured root cause analysis.
