@@ -288,6 +288,13 @@ button {
   overflow-x: auto;
 }
 
+.report-frame {
+  width: 100%;
+  min-height: 600px;
+  border: none;
+  display: block;
+}
+
 .results-container pre {
   background: var(--background);
   padding: 20px;
