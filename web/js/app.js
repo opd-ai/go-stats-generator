@@ -9,6 +9,8 @@ class App {
     this.wasmLoader = new WASMLoader();
     this.isAnalyzing = false;
     this.cloneErrorDetail = null;
+    /** @type {string|null} Error detail from failed zipball download. */
+    this.zipballErrorDetail = null;
     /** @type {ZipballFetcher|null} Active fetcher for cancellation support. */
     this.currentFetcher = null;
   }
@@ -109,6 +111,8 @@ class App {
     UI.clearError();
     this.isAnalyzing = true;
     this.usingClone = false;
+    this.cloneErrorDetail = null;
+    this.zipballErrorDetail = null;
     UI.setAnalyzeButtonState(false);
 
     try {
@@ -150,10 +154,11 @@ class App {
           if (zipResult) {
             ({ result, stats } = zipResult);
           } else {
+            const zipDetail = this.zipballErrorDetail || 'unknown error';
             throw new Error(
               'Git clone was blocked by the browser (CORS) and the ZIP archive ' +
-              'download also failed. If this is a private repository, provide a ' +
-              'personal access token.',
+              `download also failed (${zipDetail}). If this is a private ` +
+              'repository, provide a personal access token.',
             );
           }
         } else {
@@ -325,6 +330,10 @@ class App {
     } catch (err) {
       if (err && err.name === 'AbortError') throw err;
       console.error('Zipball fallback failed:', err);
+      // Preserve the error message for the caller so the user sees
+      // the specific reason the ZIP download failed, not just a
+      // generic "also failed" message.
+      this.zipballErrorDetail = (err && err.message) || String(err);
       return null;
     } finally {
       this.currentFetcher = null;

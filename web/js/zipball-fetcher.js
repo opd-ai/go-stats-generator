@@ -247,27 +247,15 @@ class ZipballFetcher {
         headers['Authorization'] = `Bearer ${this.token}`;
       }
 
-      // Perform initial request with manual redirect handling so that
-      // Authorization headers are preserved when GitHub redirects to
-      // codeload.github.com for the actual ZIP payload.
-      let response = await fetch(endpoint, {
+      // Let the browser follow the redirect automatically.
+      // GitHub's zipball endpoint returns a 302 to codeload.github.com
+      // with authentication embedded in the redirect URL, so the
+      // Authorization header being stripped on cross-origin redirect
+      // is fine for both public and private repositories.
+      const response = await fetch(endpoint, {
         headers,
         signal: this.abortController.signal,
-        redirect: 'manual',
       });
-
-      // If GitHub responds with a redirect (e.g., to codeload.github.com),
-      // manually follow it while reusing the same headers and abort signal.
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get('Location');
-        if (!location) {
-          throw new Error('GitHub API error: redirect response missing Location header');
-        }
-        response = await fetch(location, {
-          headers,
-          signal: this.abortController.signal,
-        });
-      }
 
       if (!response.ok) {
         if (response.status === 404) {
