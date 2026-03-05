@@ -206,6 +206,9 @@ func cloneRepository(url, ref, token string, fs billy.Filesystem, progressCb js.
 	}
 
 	if token != "" {
+		// GitHub accepts PATs via HTTP basic auth with any username; the
+		// conventional value is "x-access-token". Other git hosts (GitLab,
+		// Bitbucket, etc.) may require different username conventions.
 		opts.Auth = &githttp.BasicAuth{
 			Username: "x-access-token",
 			Password: token,

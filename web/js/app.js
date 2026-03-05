@@ -8,7 +8,7 @@ class App {
   constructor() {
     this.wasmLoader = new WASMLoader();
     this.isAnalyzing = false;
-    this.lastCloneError = null;
+    this.cloneErrorDetail = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ class App {
       if (cloneResult) {
         ({ result, stats } = cloneResult);
       } else {
-        const detail = this.lastCloneError || 'unknown error';
+        const detail = this.cloneErrorDetail || 'unknown error';
         throw new Error(
           `Git clone failed: ${detail}. ` +
           'For private repositories, provide a personal access token.',
@@ -197,14 +197,14 @@ class App {
       );
     } catch (err) {
       console.error('Git clone threw:', err);
-      this.lastCloneError = String(err);
+      this.cloneErrorDetail = String(err);
       return null;
     }
 
     if (!response || !response.success) {
       const errMsg = (response && response.error) || 'unknown error';
       console.error('Git clone failed:', errMsg);
-      this.lastCloneError = errMsg;
+      this.cloneErrorDetail = errMsg;
       return null;
     }
 
