@@ -188,7 +188,7 @@ class App {
    * This avoids GitHub API rate limits entirely by using the git
    * smart HTTP protocol directly.
    * @param {Object} inputs - Form inputs.
-   * @returns {Promise<{result: string, stats: Object}|null>} null when clone failed.
+   * @returns {Promise<{result: string, stats: Object}|null>} Resolves with analysis results, or null if clone failed.
    */
   async analyzeViaClone(inputs) {
     const request = {

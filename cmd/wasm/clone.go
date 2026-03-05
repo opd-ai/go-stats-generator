@@ -192,7 +192,7 @@ func isLikelyCommitSHA(ref string) bool {
 func cloneRepository(url, ref string, fs billy.Filesystem, progressCb js.Value) (*git.Repository, error) {
 	if ref != "" && isLikelyCommitSHA(ref) {
 		return nil, fmt.Errorf(
-			"commit SHA refs (%s) are not supported with shallow clone; "+
+			"commit SHA refs (%q) are not supported with shallow clone; "+
 				"use a branch or tag name instead", ref)
 	}
 
