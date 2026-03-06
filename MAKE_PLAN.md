@@ -41,6 +41,8 @@ go-stats-generator analyze . --skip-tests --format json --output metrics.json --
    - Large: >15 items above threshold
 
 ### Phase 3: Write Plan
+Write the completed plan to **`PLAN.md` in the repository root** (the directory that contains `go.mod`). Do not write it to the copilot session working directory or any other location.
+
 ```markdown
 # Implementation Plan: [Milestone Name]
 
