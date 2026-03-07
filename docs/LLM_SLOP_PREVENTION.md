@@ -278,7 +278,7 @@ These are slop patterns **unique to Go** that `go-stats-generator` specifically 
 
 **Why LLMs do this:** LLMs use `panic()` to simplify error handling, especially in initialization code.
 
-**Detection:** `panic()` and `log.Fatal()` calls outside `main` and `init` packages.
+**Detection:** `panic()` and `log.Fatal()` calls outside `main` packages and `init()` functions.
 
 **Remediation:** Return errors instead; let the caller decide how to handle failures.
 
@@ -316,11 +316,11 @@ These are slop patterns **unique to Go** that `go-stats-generator` specifically 
 
 ## Alignment With `rust-stats-generator`
 
-`go-stats-generator` is the **reference implementation**. [rust-stats-generator](https://github.com/opd-ai/rust-stats-generator) maintains mission parity:
+`go-stats-generator` and [rust-stats-generator](https://github.com/opd-ai/rust-stats-generator) are **companion tools** built on the same anti-slop philosophy. `go-stats-generator` was developed first and establishes the core workflow patterns that `rust-stats-generator` mirrors for the Rust ecosystem.
 
 ### Shared Principles
 
-1. **Same philosophy** — Both tools exist to make LLM-generated code measurably accountable to expert-level standards. `go-stats-generator` established this principle; `rust-stats-generator` inherits it.
+1. **Same philosophy** — Both tools exist to make LLM-generated code measurably accountable to expert-level standards.
 
 2. **Same workflow integration** — The Baseline → Generate → Diff → Remediate loop is **the** workflow. Both tools support it identically at the CLI level.
 
