@@ -23,7 +23,7 @@ The `internal/reporter` package implements multiple output format generators (Co
 - [x] **high** duplication — 17.87% duplication ratio far exceeds 5% threshold (446 duplicated lines, 26 clone pairs) — RESOLVED: Now 0.35% (96 lines, 9 pairs)
 - [x] **high** duplication — Largest clone block of 23 lines in console.go:769-791 (repeated pattern) — RESOLVED: No duplication in reporter package
 - [x] **high** test-coverage — 40.1% test coverage below 65% threshold — IMPROVED: Coverage increased from 40.1% to 54.6% with comprehensive test additions. Added tests for WriteDiff, refactoring suggestions, NewReporter factory, CreateReporter factory, CSV generation, Markdown generation, and JSON reporters.
-- [ ] **high** file-organization — console.go is oversized (1453 lines, 54 functions, burden=1.10)
+- [x] **high** file-organization — console.go is oversized (1453 lines, 54 functions, burden=1.10) — RESOLVED: Split into 6 focused files (console.go: 199 lines/18 funcs, console_diff.go: 198 lines/17 funcs, console_package.go: 204 lines/15 funcs, console_quality.go: 471 lines/25 funcs, console_sections.go: 269 lines/13 funcs, console_burden.go: 283 lines/11 funcs)
 
 ### Medium Severity (8 issues)
 - [x] **med** duplication — Clone pair of 21 lines in console.go:771-791 — RESOLVED: Overall duplication 0.35%
