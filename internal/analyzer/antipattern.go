@@ -28,6 +28,9 @@ func NewAntipatternAnalyzer(fset *token.FileSet) *AntipatternAnalyzer {
 func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntipattern {
 	var patterns []metrics.PerformanceAntipattern
 
+	// Check if this is library code (non-main package)
+	isLibraryCode := file.Name != nil && file.Name.Name != "main"
+
 	for _, decl := range file.Decls {
 		funcDecl, ok := decl.(*ast.FuncDecl)
 		if !ok || funcDecl.Body == nil {
@@ -37,6 +40,7 @@ func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntip
 		patterns = append(patterns, a.checkAnyOveruse(funcDecl)...)
 		patterns = append(patterns, a.checkInitFunctionComplexity(funcDecl)...)
 		patterns = append(patterns, a.checkNakedReturnInLongFunction(funcDecl)...)
+		patterns = append(patterns, a.checkPanicInLibraryCode(funcDecl, isLibraryCode)...)
 	}
 
 	return patterns
@@ -805,4 +809,75 @@ func (a *AntipatternAnalyzer) hasNakedReturn(body *ast.BlockStmt) bool {
 	})
 
 	return found
+}
+
+// checkPanicInLibraryCode detects panic() and log.Fatal() calls in library code (non-main packages).
+// Library code should return errors instead of terminating the process. The check excludes init()
+// functions where panic() is acceptable for configuration validation during initialization.
+func (a *AntipatternAnalyzer) checkPanicInLibraryCode(funcDecl *ast.FuncDecl, isLibraryCode bool) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+
+	// Skip if this is not library code (main package is OK to use panic/log.Fatal)
+	if !isLibraryCode {
+		return patterns
+	}
+
+	// Skip init() functions - panic is acceptable during initialization
+	if a.isInitFunction(funcDecl) {
+		return patterns
+	}
+
+	// Walk the function body looking for panic() or log.Fatal() calls
+	ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
+		callExpr, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+
+		if a.isPanicCall(callExpr) {
+			patterns = append(patterns, metrics.PerformanceAntipattern{
+				Type:        "panic_in_library",
+				Description: "panic() call in library code (non-main package)",
+				Severity:    "high",
+				File:        a.fset.Position(callExpr.Pos()).Filename,
+				Line:        a.fset.Position(callExpr.Pos()).Line,
+				Suggestion:  "Return error instead of panic() - library code should not terminate the process",
+			})
+		} else if a.isLogFatalCall(callExpr) {
+			patterns = append(patterns, metrics.PerformanceAntipattern{
+				Type:        "log_fatal_in_library",
+				Description: "log.Fatal() call in library code (non-main package)",
+				Severity:    "critical",
+				File:        a.fset.Position(callExpr.Pos()).Filename,
+				Line:        a.fset.Position(callExpr.Pos()).Line,
+				Suggestion:  "Return error instead of log.Fatal() - library code should not terminate the process",
+			})
+		}
+
+		return true
+	})
+
+	return patterns
+}
+
+// isPanicCall checks if a call expression is a panic() call
+func (a *AntipatternAnalyzer) isPanicCall(callExpr *ast.CallExpr) bool {
+	ident, ok := callExpr.Fun.(*ast.Ident)
+	return ok && ident.Name == "panic"
+}
+
+// isLogFatalCall checks if a call expression is a log.Fatal() or log.Fatalf() call
+func (a *AntipatternAnalyzer) isLogFatalCall(callExpr *ast.CallExpr) bool {
+	sel, ok := callExpr.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+
+	// Check if selector is log.Fatal, log.Fatalf, or log.Fatalln
+	pkgIdent, ok := sel.X.(*ast.Ident)
+	if !ok || pkgIdent.Name != "log" {
+		return false
+	}
+
+	return sel.Sel.Name == "Fatal" || sel.Sel.Name == "Fatalf" || sel.Sel.Name == "Fatalln"
 }
