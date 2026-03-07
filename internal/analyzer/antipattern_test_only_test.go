@@ -39,10 +39,10 @@ func TestExportedFunc(t *testing.T) {
 `
 
 	fset := token.NewFileSet()
-	
+
 	srcAST, err := parser.ParseFile(fset, "mypackage.go", srcFile, 0)
 	require.NoError(t, err)
-	
+
 	testAST, err := parser.ParseFile(fset, "mypackage_test.go", testFile, 0)
 	require.NoError(t, err)
 
@@ -80,10 +80,10 @@ func usesExportedFunc() string {
 `
 
 	fset := token.NewFileSet()
-	
+
 	srcAST, err := parser.ParseFile(fset, "mypackage.go", srcFile, 0)
 	require.NoError(t, err)
-	
+
 	otherAST, err := parser.ParseFile(fset, "other.go", otherFile, 0)
 	require.NoError(t, err)
 
@@ -123,10 +123,10 @@ func TestUnexportedFunc(t *testing.T) {
 `
 
 	fset := token.NewFileSet()
-	
+
 	srcAST, err := parser.ParseFile(fset, "mypackage.go", srcFile, 0)
 	require.NoError(t, err)
-	
+
 	testAST, err := parser.ParseFile(fset, "mypackage_test.go", testFile, 0)
 	require.NoError(t, err)
 
@@ -152,7 +152,7 @@ func UnusedFunc() string {
 `
 
 	fset := token.NewFileSet()
-	
+
 	srcAST, err := parser.ParseFile(fset, "mypackage.go", srcFile, 0)
 	require.NoError(t, err)
 
@@ -192,10 +192,10 @@ func TestExportedType(t *testing.T) {
 `
 
 	fset := token.NewFileSet()
-	
+
 	srcAST, err := parser.ParseFile(fset, "mypackage.go", srcFile, 0)
 	require.NoError(t, err)
-	
+
 	testAST, err := parser.ParseFile(fset, "mypackage_test.go", testFile, 0)
 	require.NoError(t, err)
 
@@ -234,10 +234,10 @@ func TestExportedVar(t *testing.T) {
 `
 
 	fset := token.NewFileSet()
-	
+
 	srcAST, err := parser.ParseFile(fset, "mypackage.go", srcFile, 0)
 	require.NoError(t, err)
-	
+
 	testAST, err := parser.ParseFile(fset, "mypackage_test.go", testFile, 0)
 	require.NoError(t, err)
 
@@ -287,13 +287,13 @@ func TestExportedB(t *testing.T) {
 `
 
 	fset := token.NewFileSet()
-	
+
 	file1AST, err := parser.ParseFile(fset, "file1.go", file1, 0)
 	require.NoError(t, err)
-	
+
 	file2AST, err := parser.ParseFile(fset, "file2.go", file2, 0)
 	require.NoError(t, err)
-	
+
 	testAST, err := parser.ParseFile(fset, "mypackage_test.go", testFile, 0)
 	require.NoError(t, err)
 
@@ -333,10 +333,10 @@ func TestExportedConst(t *testing.T) {
 `
 
 	fset := token.NewFileSet()
-	
+
 	srcAST, err := parser.ParseFile(fset, "mypackage.go", srcFile, 0)
 	require.NoError(t, err)
-	
+
 	testAST, err := parser.ParseFile(fset, "mypackage_test.go", testFile, 0)
 	require.NoError(t, err)
 

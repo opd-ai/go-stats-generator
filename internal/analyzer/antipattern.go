@@ -1098,7 +1098,7 @@ func CheckTestOnlyExports(files map[string]*ast.File, fset *token.FileSet, packa
 			if refFile == info.File {
 				continue
 			}
-			
+
 			// Count references from non-test files
 			if !isTestFile(refFile) {
 				nonTestOtherFileRefs++
