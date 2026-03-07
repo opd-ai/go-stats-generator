@@ -56,61 +56,86 @@ func (a *AntipatternAnalyzer) walkWithLoopContext(node ast.Node, inLoop bool, fu
 
 	switch n := node.(type) {
 	case *ast.ForStmt:
-		if n.Body != nil {
-			for _, stmt := range n.Body.List {
-				a.walkWithLoopContext(stmt, true, funcBody, patterns)
-			}
-		}
+		a.handleForLoop(n, funcBody, patterns)
 		return
 	case *ast.RangeStmt:
-		if n.Body != nil {
-			for _, stmt := range n.Body.List {
-				a.walkWithLoopContext(stmt, true, funcBody, patterns)
-			}
-		}
+		a.handleRangeLoop(n, funcBody, patterns)
 		return
 	case *ast.GoStmt:
-		if !a.hasContextOrDone(n) {
-			*patterns = append(*patterns, metrics.PerformanceAntipattern{
-				Type:        "goroutine_leak",
-				Description: "Goroutine without context or done channel",
-				Severity:    "high",
-				File:        a.fset.Position(n.Pos()).Filename,
-				Line:        a.fset.Position(n.Pos()).Line,
-				Suggestion:  "Add context.Context or done channel for graceful shutdown",
-			})
-		}
+		a.checkGoroutineLeak(n, patterns)
 	case *ast.CallExpr:
-		if a.isResourceAcquisition(n) && !a.hasDeferClose(n, funcBody) {
-			*patterns = append(*patterns, metrics.PerformanceAntipattern{
-				Type:        "resource_leak",
-				Description: "Resource acquisition without defer close",
-				Severity:    "critical",
-				File:        a.fset.Position(n.Pos()).Filename,
-				Line:        a.fset.Position(n.Pos()).Line,
-				Suggestion:  "Use defer to ensure resource cleanup",
-			})
-		}
+		a.checkResourceLeak(n, funcBody, patterns)
 	case *ast.AssignStmt:
 		if inLoop {
 			a.checkAssignForLoopAntipatterns(n, patterns)
 		}
 	case *ast.BinaryExpr:
-		if inLoop && n.Op == token.ADD {
-			if a.isStringType(n.X) || a.isStringType(n.Y) {
-				*patterns = append(*patterns, metrics.PerformanceAntipattern{
-					Type:        "string_concatenation",
-					Description: "String concatenation in loop",
-					Severity:    "high",
-					File:        a.fset.Position(n.Pos()).Filename,
-					Line:        a.fset.Position(n.Pos()).Line,
-					Suggestion:  "Use strings.Builder for efficient concatenation",
-				})
-			}
+		if inLoop {
+			a.checkStringConcatInLoop(n, patterns)
 		}
 	}
 
-	// Recurse into child nodes for non-loop statements
+	a.recurseIntoChildren(node, inLoop, funcBody, patterns)
+}
+
+func (a *AntipatternAnalyzer) handleForLoop(n *ast.ForStmt, funcBody *ast.BlockStmt, patterns *[]metrics.PerformanceAntipattern) {
+	if n.Body != nil {
+		for _, stmt := range n.Body.List {
+			a.walkWithLoopContext(stmt, true, funcBody, patterns)
+		}
+	}
+}
+
+func (a *AntipatternAnalyzer) handleRangeLoop(n *ast.RangeStmt, funcBody *ast.BlockStmt, patterns *[]metrics.PerformanceAntipattern) {
+	if n.Body != nil {
+		for _, stmt := range n.Body.List {
+			a.walkWithLoopContext(stmt, true, funcBody, patterns)
+		}
+	}
+}
+
+func (a *AntipatternAnalyzer) checkGoroutineLeak(n *ast.GoStmt, patterns *[]metrics.PerformanceAntipattern) {
+	if !a.hasContextOrDone(n) {
+		*patterns = append(*patterns, metrics.PerformanceAntipattern{
+			Type:        "goroutine_leak",
+			Description: "Goroutine without context or done channel",
+			Severity:    "high",
+			File:        a.fset.Position(n.Pos()).Filename,
+			Line:        a.fset.Position(n.Pos()).Line,
+			Suggestion:  "Add context.Context or done channel for graceful shutdown",
+		})
+	}
+}
+
+func (a *AntipatternAnalyzer) checkResourceLeak(n *ast.CallExpr, funcBody *ast.BlockStmt, patterns *[]metrics.PerformanceAntipattern) {
+	if a.isResourceAcquisition(n) && !a.hasDeferClose(n, funcBody) {
+		*patterns = append(*patterns, metrics.PerformanceAntipattern{
+			Type:        "resource_leak",
+			Description: "Resource acquisition without defer close",
+			Severity:    "critical",
+			File:        a.fset.Position(n.Pos()).Filename,
+			Line:        a.fset.Position(n.Pos()).Line,
+			Suggestion:  "Use defer to ensure resource cleanup",
+		})
+	}
+}
+
+func (a *AntipatternAnalyzer) checkStringConcatInLoop(n *ast.BinaryExpr, patterns *[]metrics.PerformanceAntipattern) {
+	if n.Op == token.ADD {
+		if a.isStringType(n.X) || a.isStringType(n.Y) {
+			*patterns = append(*patterns, metrics.PerformanceAntipattern{
+				Type:        "string_concatenation",
+				Description: "String concatenation in loop",
+				Severity:    "high",
+				File:        a.fset.Position(n.Pos()).Filename,
+				Line:        a.fset.Position(n.Pos()).Line,
+				Suggestion:  "Use strings.Builder for efficient concatenation",
+			})
+		}
+	}
+}
+
+func (a *AntipatternAnalyzer) recurseIntoChildren(node ast.Node, inLoop bool, funcBody *ast.BlockStmt, patterns *[]metrics.PerformanceAntipattern) {
 	ast.Inspect(node, func(child ast.Node) bool {
 		if child == node {
 			return true
@@ -287,10 +312,9 @@ func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr, funcBody *ast.Bl
 		return false
 	}
 
-	// Find the variable name assigned from this resource acquisition
 	resourceVar := a.findAssignedVar(call, funcBody)
-
 	found := false
+
 	ast.Inspect(funcBody, func(n ast.Node) bool {
 		if found {
 			return false
@@ -299,50 +323,82 @@ func (a *AntipatternAnalyzer) hasDeferClose(call *ast.CallExpr, funcBody *ast.Bl
 		if !ok {
 			return true
 		}
-		// Check for defer x.Close(), defer x.Release(), defer x.Disconnect(), etc.
-		if sel, ok := deferStmt.Call.Fun.(*ast.SelectorExpr); ok {
-			cleanupFuncs := []string{"Close", "Release", "Disconnect", "Shutdown", "Stop", "Done"}
-			for _, fn := range cleanupFuncs {
-				if sel.Sel.Name == fn {
-					// If we know the resource variable, check it matches the defer receiver
-					if resourceVar != "" {
-						if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == resourceVar {
-							found = true
-							return false
-						}
-					} else {
-						// If we can't determine the variable, accept any matching defer as before
-						found = true
-						return false
-					}
-				}
-			}
+
+		if a.checkDirectDeferCleanup(deferStmt, resourceVar) {
+			found = true
+			return false
 		}
-		// Check for defer func() { ... close ... }()
-		if funcLit, ok := deferStmt.Call.Fun.(*ast.FuncLit); ok {
-			ast.Inspect(funcLit.Body, func(inner ast.Node) bool {
-				if innerCall, ok := inner.(*ast.CallExpr); ok {
-					if innerSel, ok := innerCall.Fun.(*ast.SelectorExpr); ok {
-						if innerSel.Sel.Name == "Close" || innerSel.Sel.Name == "Release" {
-							if resourceVar != "" {
-								if ident, ok := innerSel.X.(*ast.Ident); ok && ident.Name == resourceVar {
-									found = true
-									return false
-								}
-							} else {
-								found = true
-								return false
-							}
-						}
-					}
-				}
-				return true
-			})
+
+		if a.checkDeferFuncLitCleanup(deferStmt, resourceVar) {
+			found = true
+			return false
 		}
-		return !found
+
+		return true
 	})
 
 	return found
+}
+
+func (a *AntipatternAnalyzer) checkDirectDeferCleanup(deferStmt *ast.DeferStmt, resourceVar string) bool {
+	sel, ok := deferStmt.Call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+
+	if !a.isCleanupMethod(sel.Sel.Name) {
+		return false
+	}
+
+	return a.matchesResourceVar(sel.X, resourceVar)
+}
+
+func (a *AntipatternAnalyzer) checkDeferFuncLitCleanup(deferStmt *ast.DeferStmt, resourceVar string) bool {
+	funcLit, ok := deferStmt.Call.Fun.(*ast.FuncLit)
+	if !ok {
+		return false
+	}
+
+	found := false
+	ast.Inspect(funcLit.Body, func(inner ast.Node) bool {
+		innerCall, ok := inner.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+
+		innerSel, ok := innerCall.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+
+		if innerSel.Sel.Name == "Close" || innerSel.Sel.Name == "Release" {
+			if a.matchesResourceVar(innerSel.X, resourceVar) {
+				found = true
+				return false
+			}
+		}
+		return true
+	})
+
+	return found
+}
+
+func (a *AntipatternAnalyzer) isCleanupMethod(methodName string) bool {
+	cleanupFuncs := []string{"Close", "Release", "Disconnect", "Shutdown", "Stop", "Done"}
+	for _, fn := range cleanupFuncs {
+		if methodName == fn {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *AntipatternAnalyzer) matchesResourceVar(expr ast.Expr, resourceVar string) bool {
+	if resourceVar == "" {
+		return true
+	}
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == resourceVar
 }
 
 // findAssignedVar finds the variable name that a call expression result is assigned to
