@@ -1,3 +1,20 @@
+// Package placement demonstrates intentionally low cohesion design patterns
+// for testing the go-stats-generator placement analysis functionality.
+//
+// This package is test data designed to exhibit anti-patterns that the analyzer
+// should detect. It contains functions spread across multiple files with minimal
+// internal cohesion (functions primarily reference symbols from other files
+// rather than each other). The package serves as a negative test case to validate
+// that placement analysis correctly identifies low cohesion scenarios.
+//
+// Key characteristics tested:
+//   - Low file cohesion (0.29 average)
+//   - Weak internal relationships between functions
+//   - Trivial wrapper functions providing minimal value
+//   - Misplaced functions that could be better organized
+//
+// This is intentional test data. Do NOT refactor to improve cohesion as that
+// would invalidate the test cases.
 package placement
 
 // This file has low cohesion - contains functions that primarily reference
