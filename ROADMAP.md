@@ -230,7 +230,7 @@ The following slop patterns are documented in the anti-slop architecture. Each p
 
 Enhance JSON output so every violation includes the full set of fields needed for automated LLM remediation:
 
-1. **Uniform violation schema** — Ensure all violation types (complexity, naming, duplication, burden, concurrency) emit: `file`, `line`, `item_name`, `metric`, `actual_value`, `threshold`, `severity`, `suggestion`
+1. ✅ **Uniform violation schema** — IMPLEMENTED (2026-03-07). All violation types now include optional fields: `item_name`, `metric`, `actual_value`, `threshold` in addition to existing `file`, `line`, `severity`, `suggestion`. Updated types: FileNameViolation, IdentifierViolation, PackageNameViolation, ClonePair, MagicNumber, UnreferencedSymbol, UnreachableBlock, SignatureIssue, NestingIssue, FeatureEnvyIssue, AntiPatternWarning, MisplacedFunctionIssue, MisplacedMethodIssue, FileCohesionIssue, ComplexityItem. Fields use `omitempty` for backward compatibility.
 2. **Severity classification** — Standardize severity levels (`violation` for threshold breaches, `warning` for near-threshold, `info` for advisory) across all analyzers
 3. **Machine-readable suggestion field** — Add actionable, LLM-consumable remediation hints to every violation (e.g., "Extract switch cases into named helper functions or use a dispatch map")
 4. **Remediation priority scoring** — Sort violations by maintenance burden score descending so LLMs address highest-impact issues first
