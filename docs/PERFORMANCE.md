@@ -115,10 +115,18 @@ go tool pprof mem.prof
 
 To achieve verified 50,000+ file support within 1GB memory:
 - [ ] Implement streaming report generation (write sections as processed)
-- [ ] Add object pooling for AST nodes and metrics structures
+- [x] Add object pooling for AST nodes and metrics structures (Partial: tokenizer optimization complete)
 - [ ] Optimize duplication analysis (currently most memory-intensive)
 - [ ] Add incremental analysis mode (only analyze changed files)
 - [ ] Benchmark against actual large repositories (Kubernetes, Moby, etc.)
+
+## Completed Optimizations
+
+### Tokenizer Optimization (2026-03-07)
+- **Change**: Moved `strings.Replacer` from per-call allocation to package-level constant
+- **Impact**: Eliminates 1000s of unnecessary allocations during duplication analysis
+- **File**: `internal/analyzer/duplication.go:19-31`
+- **Benefit**: Reduces GC pressure during similarity comparison operations
 
 ## Conclusion
 

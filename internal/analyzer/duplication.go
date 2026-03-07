@@ -17,6 +17,20 @@ import (
 // to prevent excessive memory usage on pathological code
 const MaxDeepCopyNodes = 10000
 
+// tokenizerReplacer is a package-level string replacer for tokenization, created once
+// to avoid repeated allocations during similarity comparison operations.
+var tokenizerReplacer = strings.NewReplacer(
+	"(", " ( ",
+	")", " ) ",
+	"{", " { ",
+	"}", " } ",
+	"[", " [ ",
+	"]", " ] ",
+	";", " ; ",
+	",", " , ",
+	".", " . ",
+)
+
 // DuplicationAnalyzer performs code duplication detection using AST fingerprinting
 type DuplicationAnalyzer struct {
 	fset *token.FileSet
@@ -827,19 +841,8 @@ func normalizeWhitespace(s string) string {
 
 // tokenize splits a string into tokens for similarity comparison
 func tokenize(s string) []string {
-	// Split on whitespace and common delimiters
-	replacer := strings.NewReplacer(
-		"(", " ( ",
-		")", " ) ",
-		"{", " { ",
-		"}", " } ",
-		"[", " [ ",
-		"]", " ] ",
-		";", " ; ",
-		",", " , ",
-		".", " . ",
-	)
-	s = replacer.Replace(s)
+	// Split on whitespace and common delimiters using package-level replacer
+	s = tokenizerReplacer.Replace(s)
 	tokens := strings.Fields(s)
 	return tokens
 }
