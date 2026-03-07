@@ -486,11 +486,11 @@ func analyzeCodebase(targetPath string) (*metrics.Report, error) {
 	// Load default configuration for full analysis
 	// DefaultConfig enables all analyzers by default
 	cfg := config.DefaultConfig()
-	
+
 	// Disable progress output for baseline creation
 	cfg.Output.ShowProgress = false
 	cfg.Output.Verbose = false
-	
+
 	// Use the full analysis workflow to ensure all metrics are populated
 	report, err := runAnalysisWorkflow(context.Background(), targetPath, cfg)
 	if err != nil {

@@ -149,19 +149,19 @@ func TestAnalyzeCodebase_PopulatesAllMetrics(t *testing.T) {
 	require.NotNil(t, report, "report should not be nil")
 
 	// Assert: Critical metrics are populated (not zeroed)
-	
+
 	// 1. Documentation coverage should be populated
 	assert.NotZero(t, report.Documentation.Coverage.Overall,
 		"Documentation coverage should be populated (was 0.00%% in bug)")
-	
+
 	// 2. File scores should be populated
 	assert.NotEmpty(t, report.Scores.FileScores,
 		"File scores should be populated (was empty in bug)")
-	
+
 	// 3. Functions should be analyzed
 	assert.NotEmpty(t, report.Functions,
 		"Functions should be analyzed")
-	
+
 	// 4. Complexity metrics should be calculated
 	// Average function complexity should be non-negative
 	assert.GreaterOrEqual(t, report.Complexity.AverageFunction, 0.0,
