@@ -31,12 +31,12 @@ The `pkg/go-stats-generator` package provides the public programmatic API for an
 - [x] **low** naming — Generic file name: `errors.go` too generic, should describe content (errors.go) — RESOLVED: renamed to errors_api.go
 
 ### API Design (Low Priority)
-- [ ] **low** api — Low package cohesion score (1.17) suggests functions may not be tightly related — consider splitting into focused sub-packages
-- [ ] **low** api — 4 dependencies create moderate coupling (coupling score: 2.0)
+- [x] **low** api — Low package cohesion score (1.17) suggests functions may not be tightly related — consider splitting into focused sub-packages — RESOLVED: Cohesion score is appropriate for a public API facade package that orchestrates multiple internal components. Package serves distinct but complementary roles: core API (Analyzer), platform-specific implementations (filesystem vs WASM), report building, and type re-exports. Splitting would increase API surface complexity without improving design.
+- [x] **low** api — 4 dependencies create moderate coupling (coupling score: 2.0) — RESOLVED: All 4 dependencies (metrics, scanner, analyzer, config) are necessary and appropriate for a facade layer that orchestrates internal components. The coupling is intentional and follows the facade pattern.
 
 ### Code Organization (Low Priority)
-- [ ] **low** organization — File `types.go` flagged as oversized with organization burden 0.40
-- [ ] **low** organization — Suggested refactoring: Move `Report` function to `api_common.go` for better cohesion (ROI: 12.31)
+- [x] **low** organization — File `types.go` flagged as oversized with organization burden 0.40 — RESOLVED: File renamed to `reexports.go` with only 23 lines containing type aliases. Organization burden eliminated.
+- [x] **low** organization — Suggested refactoring: Move `Report` function to `api_common.go` for better cohesion (ROI: 12.31) — RESOLVED: Report type is a re-export in reexports.go. Report building functions (buildReport, createReport, finalizeReport) are already in api_common.go. Organization is optimal.
 
 ## Concurrency Assessment
 **Goroutine Patterns**: 1 anonymous goroutine detected (api.go:53)
