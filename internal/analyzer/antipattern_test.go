@@ -224,3 +224,123 @@ func f() {
 		})
 	}
 }
+
+func TestAnalyze_BareErrorReturn(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		expected int
+	}{
+		{
+			name: "bare error return - simple pattern",
+			src: `package main
+import "os"
+func readFile(path string) error {
+	_, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	return nil
+}`,
+			expected: 1,
+		},
+		{
+			name: "bare error return - with value",
+			src: `package main
+import "os"
+func readFile(path string) ([]byte, error) {
+	_, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}`,
+			expected: 1,
+		},
+		{
+			name: "wrapped error - should not detect",
+			src: `package main
+import (
+	"fmt"
+	"os"
+)
+func readFile(path string) error {
+	_, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	return nil
+}`,
+			expected: 0,
+		},
+		{
+			name: "error with new error - should not detect",
+			src: `package main
+import (
+	"errors"
+	"os"
+)
+func readFile(path string) error {
+	_, err := os.Open(path)
+	if err != nil {
+		return errors.New("failed")
+	}
+	return nil
+}`,
+			expected: 0,
+		},
+		{
+			name: "nil != err pattern",
+			src: `package main
+import "os"
+func readFile(path string) error {
+	_, err := os.Open(path)
+	if nil != err {
+		return err
+	}
+	return nil
+}`,
+			expected: 1,
+		},
+		{
+			name: "multiple bare error returns",
+			src: `package main
+import "os"
+func process() error {
+	_, err := os.Open("file1")
+	if err != nil {
+		return err
+	}
+	_, err = os.Open("file2")
+	if err != nil {
+		return err
+	}
+	return nil
+}`,
+			expected: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "test.go", tt.src, 0)
+			require.NoError(t, err)
+
+			analyzer := NewAntipatternAnalyzer(fset)
+			patterns := analyzer.Analyze(file)
+
+			bareErrorPatterns := 0
+			for _, p := range patterns {
+				if p.Type == "bare_error_return" {
+					bareErrorPatterns++
+					assert.Equal(t, "high", p.Severity)
+					assert.Contains(t, p.Description, "Error returned without context")
+					assert.Contains(t, p.Suggestion, "fmt.Errorf")
+				}
+			}
+
+			assert.Equal(t, tt.expected, bareErrorPatterns, "Expected %d bare error returns, got %d", tt.expected, bareErrorPatterns)
+		})
+	}
+}

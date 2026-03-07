@@ -314,10 +314,11 @@ type SyncPrimitiveInstance struct {
 
 // AntiPatternMetrics tracks code smells and anti-patterns
 type AntiPatternMetrics struct {
-	GodObjects   []AntiPatternWarning `json:"god_objects"`
-	LongMethods  []AntiPatternWarning `json:"long_methods"`
-	DeepNesting  []AntiPatternWarning `json:"deep_nesting"`
-	MagicNumbers []AntiPatternWarning `json:"magic_numbers"`
+	GodObjects              []AntiPatternWarning     `json:"god_objects"`
+	LongMethods             []AntiPatternWarning     `json:"long_methods"`
+	DeepNesting             []AntiPatternWarning     `json:"deep_nesting"`
+	MagicNumbers            []AntiPatternWarning     `json:"magic_numbers"`
+	PerformanceAntipatterns []PerformanceAntipattern `json:"performance_antipatterns"`
 }
 
 // PatternInstance represents a detected pattern

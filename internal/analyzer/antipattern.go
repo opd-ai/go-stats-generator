@@ -73,6 +73,8 @@ func (a *AntipatternAnalyzer) walkWithLoopContext(node ast.Node, inLoop bool, fu
 		if inLoop {
 			a.checkStringConcatInLoop(n, patterns)
 		}
+	case *ast.IfStmt:
+		a.checkBareErrorReturn(n, patterns)
 	}
 
 	a.recurseIntoChildren(node, inLoop, funcBody, patterns)
@@ -141,7 +143,7 @@ func (a *AntipatternAnalyzer) recurseIntoChildren(node ast.Node, inLoop bool, fu
 			return true
 		}
 		switch child.(type) {
-		case *ast.ForStmt, *ast.RangeStmt, *ast.GoStmt, *ast.CallExpr, *ast.AssignStmt, *ast.BinaryExpr:
+		case *ast.ForStmt, *ast.RangeStmt, *ast.GoStmt, *ast.CallExpr, *ast.AssignStmt, *ast.BinaryExpr, *ast.IfStmt:
 			a.walkWithLoopContext(child, inLoop, funcBody, patterns)
 			return false
 		}
@@ -442,4 +444,85 @@ func (a *AntipatternAnalyzer) findAssignedVar(call *ast.CallExpr, funcBody *ast.
 		return true
 	})
 	return varName
+}
+
+// checkBareErrorReturn detects the pattern `if err != nil { return err }` without
+// error wrapping using fmt.Errorf, errors.New, or custom error types. This is the
+// most common LLM slop pattern in Go where generated code loses error context.
+func (a *AntipatternAnalyzer) checkBareErrorReturn(ifStmt *ast.IfStmt, patterns *[]metrics.PerformanceAntipattern) {
+	// Pattern: if err != nil { return err } or if err != nil { return nil, err }
+	// First check the condition is err != nil or nil != err
+	if !a.isErrorNilCheck(ifStmt.Cond) {
+		return
+	}
+
+	// Check the body contains a return statement returning err
+	if ifStmt.Body == nil || len(ifStmt.Body.List) == 0 {
+		return
+	}
+
+	// Look for return statements in the if body
+	for _, stmt := range ifStmt.Body.List {
+		retStmt, ok := stmt.(*ast.ReturnStmt)
+		if !ok {
+			continue
+		}
+
+		// Check if any return value is a bare err identifier
+		if a.hasBareErrorReturn(retStmt) {
+			*patterns = append(*patterns, metrics.PerformanceAntipattern{
+				Type:        "bare_error_return",
+				Description: "Error returned without context wrapping",
+				Severity:    "high",
+				File:        a.fset.Position(ifStmt.Pos()).Filename,
+				Line:        a.fset.Position(ifStmt.Pos()).Line,
+				Suggestion:  "Wrap error with fmt.Errorf(\"context: %w\", err) to preserve error chain",
+			})
+			return
+		}
+	}
+}
+
+// isErrorNilCheck checks if condition is `err != nil` or `nil != err`
+func (a *AntipatternAnalyzer) isErrorNilCheck(cond ast.Expr) bool {
+	binExpr, ok := cond.(*ast.BinaryExpr)
+	if !ok || binExpr.Op != token.NEQ {
+		return false
+	}
+
+	// Check left side is err and right is nil, or vice versa
+	leftErr := a.isErrIdentifier(binExpr.X)
+	leftNil := a.isNilIdentifier(binExpr.X)
+	rightErr := a.isErrIdentifier(binExpr.Y)
+	rightNil := a.isNilIdentifier(binExpr.Y)
+
+	return (leftErr && rightNil) || (leftNil && rightErr)
+}
+
+// isErrIdentifier checks if expression is an identifier named "err"
+func (a *AntipatternAnalyzer) isErrIdentifier(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "err"
+}
+
+// isNilIdentifier checks if expression is the nil identifier
+func (a *AntipatternAnalyzer) isNilIdentifier(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "nil"
+}
+
+// hasBareErrorReturn checks if return statement returns err without wrapping
+func (a *AntipatternAnalyzer) hasBareErrorReturn(retStmt *ast.ReturnStmt) bool {
+	for _, result := range retStmt.Results {
+		// Skip if result is wrapped (CallExpr like fmt.Errorf)
+		if _, ok := result.(*ast.CallExpr); ok {
+			continue
+		}
+
+		// Check if it's a bare err identifier
+		if a.isErrIdentifier(result) {
+			return true
+		}
+	}
+	return false
 }

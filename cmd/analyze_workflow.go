@@ -220,6 +220,7 @@ type AnalyzerSet struct {
 	Package       *analyzer.PackageAnalyzer
 	Concurrency   *analyzer.ConcurrencyAnalyzer
 	Pattern       *analyzer.PatternAnalyzer
+	Antipattern   *analyzer.AntipatternAnalyzer
 	Duplication   *analyzer.DuplicationAnalyzer
 	Naming        *analyzer.NamingAnalyzer
 	Placement     *analyzer.PlacementAnalyzer
@@ -303,6 +304,7 @@ func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 		Package:       analyzer.NewPackageAnalyzer(fileSet),
 		Concurrency:   analyzer.NewConcurrencyAnalyzer(fileSet),
 		Pattern:       analyzer.NewPatternAnalyzer(fileSet),
+		Antipattern:   analyzer.NewAntipatternAnalyzer(fileSet),
 		Duplication:   analyzer.NewDuplicationAnalyzer(fileSet),
 		Naming:        analyzer.NewNamingAnalyzer(),
 		Placement:     analyzer.NewPlacementAnalyzer(cfg.Analysis.Placement.AffinityMargin, cfg.Analysis.Placement.MinCohesion),
@@ -473,6 +475,7 @@ func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collecte
 	analyzePackageStructure(result, analyzers, cfg)
 	analyzeConcurrencyPatterns(result, analyzers, report, cfg)
 	analyzeDesignPatterns(result, analyzers, report, cfg)
+	analyzePerformanceAntipatterns(result, analyzers, report, cfg)
 	analyzeBurdenIndicators(result, analyzers, report, cfg)
 }
 
@@ -523,6 +526,14 @@ func analyzeBurdenIndicators(result scanner.Result, analyzers *AnalyzerSet, repo
 func analyzeDesignPatterns(result scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) {
 	if err := analyzeDesignPatternsInFile(analyzers.Pattern, result, report, cfg); err != nil && cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze design patterns in %s: %v\n",
+			result.FileInfo.Path, err)
+	}
+}
+
+// analyzePerformanceAntipatterns analyzes performance anti-patterns in a file
+func analyzePerformanceAntipatterns(result scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) {
+	if err := analyzePerformanceAntipatternsInFile(analyzers.Antipattern, result, report, cfg); err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze performance antipatterns in %s: %v\n",
 			result.FileInfo.Path, err)
 	}
 }
@@ -692,4 +703,11 @@ func aggregateDesignPatternMetrics(report *metrics.Report, patterns *metrics.Des
 	report.Patterns.DesignPatterns.Builder = append(report.Patterns.DesignPatterns.Builder, patterns.Builder...)
 	report.Patterns.DesignPatterns.Observer = append(report.Patterns.DesignPatterns.Observer, patterns.Observer...)
 	report.Patterns.DesignPatterns.Strategy = append(report.Patterns.DesignPatterns.Strategy, patterns.Strategy...)
+}
+
+// analyzePerformanceAntipatternsInFile analyzes performance anti-patterns in a single file
+func analyzePerformanceAntipatternsInFile(antipatternAnalyzer *analyzer.AntipatternAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) error {
+	patterns := antipatternAnalyzer.Analyze(result.File)
+	report.Patterns.AntiPatterns.PerformanceAntipatterns = append(report.Patterns.AntiPatterns.PerformanceAntipatterns, patterns...)
+	return nil
 }
