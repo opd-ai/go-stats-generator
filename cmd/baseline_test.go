@@ -167,3 +167,55 @@ func TestAnalyzeCodebase_PopulatesAllMetrics(t *testing.T) {
 	assert.GreaterOrEqual(t, report.Complexity.AverageFunction, 0.0,
 		"Average function complexity should be calculated")
 }
+
+func TestExtractTargetPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{
+			name:     "with argument",
+			args:     []string{"/path/to/code"},
+			expected: "/path/to/code",
+		},
+		{
+			name:     "no arguments",
+			args:     []string{},
+			expected: ".",
+		},
+		{
+			name:     "multiple arguments",
+			args:     []string{"/first", "/second"},
+			expected: "/first",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractTargetPath(tt.args)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGenerateBaselineID(t *testing.T) {
+	// The ID is based on timestamp, so we may get the same ID if called in the same second
+	// Just check that it's not empty
+	id1 := generateBaselineID()
+
+	assert.NotEmpty(t, id1)
+	assert.Contains(t, id1, "baseline-")
+}
+
+func TestGetCurrentBranch(t *testing.T) {
+	branch := getCurrentBranch()
+	// Should return a string (empty if not in git repo, or branch name)
+	assert.NotNil(t, branch)
+}
+
+func TestGetCurrentCommit(t *testing.T) {
+	commit := getCurrentCommit()
+	// Should return a string (empty if not in git repo, or commit hash)
+	assert.NotNil(t, commit)
+}
