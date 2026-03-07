@@ -24,7 +24,9 @@ func CalculateAreaCircle(radius float64) float64 {
 	return area
 }
 
-// These functions have similar basic structure but very different logic
+// AuthenticateUserByPassword validates user credentials by checking username and password against stored data.
+// Returns true if authentication succeeds, false otherwise. Returns an error if username or password is empty.
+// This function demonstrates authentication logic for duplication analysis testing purposes.
 func AuthenticateUserByPassword(username, password string) (bool, error) {
 	if username == "" {
 		return false, ErrEmptyUsername

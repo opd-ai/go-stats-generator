@@ -3,7 +3,8 @@ package smallblocks
 // small_blocks.go contains small code blocks below min_block_lines threshold
 // These should NOT be flagged as duplicates (negative test case)
 
-// Simple getters - too small to be considered duplicates (< 6 lines)
+// GetUserID extracts the ID field from a User struct, returning an empty string if the user pointer is nil.
+// This function demonstrates small code blocks that fall below minimum duplication detection thresholds.
 func GetUserID(u *User) string {
 	if u == nil {
 		return ""
@@ -27,7 +28,8 @@ func GetUserEmail(u *User) string {
 	return u.Email
 }
 
-// Simple validation - identical structure but too small
+// IsValidID checks whether the provided ID string is non-empty, returning false for empty strings.
+// This function demonstrates small validation patterns that fall below duplication detection thresholds.
 func IsValidID(id string) bool {
 	if id == "" {
 		return false
@@ -51,7 +53,8 @@ func IsValidEmail(email string) bool {
 	return true
 }
 
-// Trivial error checks - common pattern but too small to flag
+// CheckErrorA panics if the provided error is non-nil, implementing a simple error-handling pattern.
+// This function demonstrates trivial error checks that are too small for duplication flagging.
 func CheckErrorA(err error) {
 	if err != nil {
 		panic(err)

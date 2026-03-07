@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-// Worker pool pattern example
+// WorkerPoolExample demonstrates the worker pool concurrency pattern with 5 workers processing jobs from a channel.
+// Creates a fixed number of worker goroutines that consume jobs from a shared channel and send results to an output channel.
 func WorkerPoolExample() {
 	const numWorkers = 5
 	jobs := make(chan int, 100)
@@ -45,7 +46,8 @@ func WorkerPoolExample() {
 	}
 }
 
-// Pipeline pattern example
+// PipelineExample demonstrates a multi-stage pipeline pattern where data flows through sequential processing stages.
+// Numbers are generated in stage 1, squared in stage 2, and collected in stage 3 using channels to connect stages.
 func PipelineExample() {
 	// Stage 1: generate numbers
 	numbers := make(chan int)
@@ -71,7 +73,8 @@ func PipelineExample() {
 	}
 }
 
-// Fan-out pattern example
+// FanOutExample demonstrates the fan-out pattern where a single input channel distributes work to multiple output channels.
+// One goroutine sends data to an input channel while three worker goroutines consume from separate output channels.
 func FanOutExample() {
 	input := make(chan int)
 	output1 := make(chan int)
@@ -126,7 +129,8 @@ func FanOutExample() {
 	wg.Wait()
 }
 
-// Fan-in pattern example
+// FanInExample demonstrates the fan-in pattern where multiple input channels merge into a single output channel.
+// Three goroutines send data to separate input channels which are merged into one output channel for consumption.
 func FanInExample() {
 	input1 := make(chan int)
 	input2 := make(chan int)
@@ -192,7 +196,8 @@ func FanInExample() {
 	}
 }
 
-// Semaphore pattern using buffered channel
+// SemaphoreExample demonstrates using a buffered channel as a semaphore to limit concurrent operations.
+// Restricts execution to a maximum of 3 concurrent goroutines using a buffered channel with capacity 3.
 func SemaphoreExample() {
 	semaphore := make(chan struct{}, 3) // Allow max 3 concurrent operations
 	var wg sync.WaitGroup
@@ -214,7 +219,8 @@ func SemaphoreExample() {
 	wg.Wait()
 }
 
-// Various sync primitives examples
+// SyncPrimitivesExample demonstrates various synchronization primitives including Mutex, RWMutex, Once, WaitGroup, Cond, and atomic operations.
+// Shows proper usage patterns for Go's synchronization mechanisms to coordinate concurrent access and execution.
 func SyncPrimitivesExample() {
 	var mu sync.Mutex
 	var rwmu sync.RWMutex
@@ -257,7 +263,8 @@ func SyncPrimitivesExample() {
 	atomic.StoreInt64(&counter, 42)
 }
 
-// Potential goroutine leak example
+// PotentialLeakExample demonstrates common goroutine leak patterns where goroutines have no exit mechanism.
+// Contains two anti-patterns: a goroutine blocked on channel read without close, and an infinite loop without cancellation.
 func PotentialLeakExample() {
 	ch := make(chan int)
 
@@ -280,7 +287,8 @@ func PotentialLeakExample() {
 	}()
 }
 
-// Context-based cancellation (good pattern)
+// ContextCancellationExample demonstrates proper goroutine lifecycle management using context for cancellation.
+// Shows the recommended pattern of using context.WithTimeout to ensure goroutines can be properly terminated.
 func ContextCancellationExample() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

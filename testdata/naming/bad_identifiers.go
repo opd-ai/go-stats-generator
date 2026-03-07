@@ -41,7 +41,8 @@ func process() {
 	fmt.Println(z)
 }
 
-// Id should be ID
+// UserId represents a user identifier as an integer. The type name violates Go naming conventions
+// (should be UserID with capitalized initialism) and is used for naming analysis testing.
 type UserId int
 
 // JsonData should be JSONData

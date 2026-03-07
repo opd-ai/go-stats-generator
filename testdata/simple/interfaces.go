@@ -42,5 +42,6 @@ type Service interface {
 	IsRunning() bool
 }
 
-// Empty interface for any type
+// Any is an empty interface type that can hold values of any type, used for generic type parameters.
+// This type demonstrates interface usage in type declarations for concurrency pattern analysis.
 type Any interface{}

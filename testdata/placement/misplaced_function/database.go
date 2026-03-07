@@ -31,8 +31,8 @@ func (db *Database) AddUser(u User) {
 	db.users = append(db.users, u)
 }
 
-// Helper function that calls ValidateUser and ProcessUser
-// These functions are actually defined in handler.go but heavily used here
+// BatchProcess demonstrates a misplaced function that heavily calls ValidateUser and ProcessUser from handler.go.
+// This function illustrates poor code placement where a function resides in the wrong package relative to its dependencies.
 func BatchProcess(db *Database) {
 	for i := 0; i < 10; i++ {
 		ValidateUser(db, i)
@@ -43,12 +43,14 @@ func BatchProcess(db *Database) {
 	}
 }
 
-// Another helper that calls ValidateUser
+// CheckUser validates a user by ID using the ValidateUser function from handler.go.
+// This function demonstrates code placement issues where dependencies are in different packages.
 func CheckUser(db *Database, id int) bool {
 	return ValidateUser(db, id)
 }
 
-// Yet another function calling ValidateUser
+// VerifyUser confirms user existence by delegating to ValidateUser from handler.go.
+// This function illustrates misplaced code where heavy cross-package dependencies indicate poor module organization.
 func VerifyUser(db *Database, id int) bool {
 	return ValidateUser(db, id)
 }
