@@ -41,6 +41,7 @@ func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntip
 		patterns = append(patterns, a.checkInitFunctionComplexity(funcDecl)...)
 		patterns = append(patterns, a.checkNakedReturnInLongFunction(funcDecl)...)
 		patterns = append(patterns, a.checkPanicInLibraryCode(funcDecl, isLibraryCode)...)
+		patterns = append(patterns, a.checkGiantBranchingChains(funcDecl)...)
 	}
 
 	return patterns
@@ -880,4 +881,118 @@ func (a *AntipatternAnalyzer) isLogFatalCall(callExpr *ast.CallExpr) bool {
 	}
 
 	return sel.Sel.Name == "Fatal" || sel.Sel.Name == "Fatalf" || sel.Sel.Name == "Fatalln"
+}
+
+// checkGiantBranchingChains detects switch statements or if-else chains with excessive branches.
+// Giant branching structures indicate poor control flow design and suggest refactoring to
+// dispatch maps, strategy patterns, or polymorphic design. Configurable threshold defaults to 10 branches.
+func (a *AntipatternAnalyzer) checkGiantBranchingChains(funcDecl *ast.FuncDecl) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+	const maxBranches = 10 // Configurable threshold
+
+	// Track if statements that are part of else-if chains to avoid double-counting
+	processedIfs := make(map[*ast.IfStmt]bool)
+
+	ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
+		switch stmt := n.(type) {
+		case *ast.SwitchStmt:
+			branchCount := a.countSwitchBranches(stmt)
+			if branchCount > maxBranches {
+				patterns = append(patterns, metrics.PerformanceAntipattern{
+					Type:        "giant_switch",
+					Description: "Switch statement with excessive branches",
+					Severity:    "medium",
+					File:        a.fset.Position(stmt.Pos()).Filename,
+					Line:        a.fset.Position(stmt.Pos()).Line,
+					Suggestion:  "Consider using a dispatch map or strategy pattern instead of giant switch statement",
+				})
+			}
+		case *ast.TypeSwitchStmt:
+			branchCount := a.countTypeSwitchBranches(stmt)
+			if branchCount > maxBranches {
+				patterns = append(patterns, metrics.PerformanceAntipattern{
+					Type:        "giant_type_switch",
+					Description: "Type switch statement with excessive branches",
+					Severity:    "medium",
+					File:        a.fset.Position(stmt.Pos()).Filename,
+					Line:        a.fset.Position(stmt.Pos()).Line,
+					Suggestion:  "Consider using interface methods or type-specific handlers instead of giant type switch",
+				})
+			}
+		case *ast.IfStmt:
+			// Skip if this is part of an else-if chain we've already processed
+			if processedIfs[stmt] {
+				return true
+			}
+
+			chainLength := a.countIfElseChainLength(stmt)
+			if chainLength > maxBranches {
+				patterns = append(patterns, metrics.PerformanceAntipattern{
+					Type:        "giant_if_else_chain",
+					Description: "If-else chain with excessive branches",
+					Severity:    "medium",
+					File:        a.fset.Position(stmt.Pos()).Filename,
+					Line:        a.fset.Position(stmt.Pos()).Line,
+					Suggestion:  "Refactor to dispatch map, early returns, or extract condition checks into named functions",
+				})
+
+				// Mark all if statements in this chain as processed
+				a.markIfElseChain(stmt, processedIfs)
+			}
+		}
+		return true
+	})
+
+	return patterns
+}
+
+// markIfElseChain marks all if statements in an if-else chain as processed
+func (a *AntipatternAnalyzer) markIfElseChain(ifStmt *ast.IfStmt, processedIfs map[*ast.IfStmt]bool) {
+	current := ifStmt
+	for current != nil {
+		processedIfs[current] = true
+
+		// Check if the else is another if statement
+		nextIf, ok := current.Else.(*ast.IfStmt)
+		if !ok {
+			break
+		}
+		current = nextIf
+	}
+}
+
+// countSwitchBranches counts the number of case clauses in a switch statement
+func (a *AntipatternAnalyzer) countSwitchBranches(switchStmt *ast.SwitchStmt) int {
+	if switchStmt.Body == nil {
+		return 0
+	}
+	return len(switchStmt.Body.List)
+}
+
+// countTypeSwitchBranches counts the number of case clauses in a type switch statement
+func (a *AntipatternAnalyzer) countTypeSwitchBranches(typeSwitchStmt *ast.TypeSwitchStmt) int {
+	if typeSwitchStmt.Body == nil {
+		return 0
+	}
+	return len(typeSwitchStmt.Body.List)
+}
+
+// countIfElseChainLength counts the total length of an if-else-if chain
+func (a *AntipatternAnalyzer) countIfElseChainLength(ifStmt *ast.IfStmt) int {
+	count := 1 // Count the initial if statement
+
+	// Follow the else chain
+	current := ifStmt
+	for current.Else != nil {
+		count++
+		// Check if the else is another if statement (else if)
+		nextIf, ok := current.Else.(*ast.IfStmt)
+		if !ok {
+			// It's a final else block, stop counting
+			break
+		}
+		current = nextIf
+	}
+
+	return count
 }
