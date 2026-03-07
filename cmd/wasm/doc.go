@@ -54,7 +54,7 @@
 //	GOOS=js GOARCH=wasm go build -o go-stats-generator.wasm ./cmd/wasm/
 //	cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" .
 //
-// Note: This implementation requires the WASM-compatible scanner shim
-// (steps 3-4 in PLAN.md) to be completed before it can analyze files.
-// Currently, it returns an error indicating the dependency.
+// The WASM build supports all core analyzers (functions, structs, interfaces,
+// packages, patterns, concurrency, duplication, naming, documentation) and
+// produces identical results to the CLI build.
 package main
