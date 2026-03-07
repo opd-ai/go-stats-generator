@@ -694,69 +694,61 @@ func displayBurdenTrends(analysis map[string]interface{}) {
 	displayNamingViolationsTrend(burdenTrends)
 }
 
-// displayMBITrend outputs the MBI (Maintenance Burden Index) trend to console.
-func displayMBITrend(burdenTrends map[string]interface{}) {
-	mbi, ok := burdenTrends["mbi_score"].(map[string]interface{})
+// displayFloatTrend outputs a float metric trend with optional percentage formatting.
+func displayFloatTrend(trends map[string]interface{}, key, label string, asPercent bool) {
+	data, ok := trends[key].(map[string]interface{})
 	if !ok {
 		return
 	}
-	fmt.Printf("\nMBI Score (Maintenance Burden Index):\n")
-	fmt.Printf("  Start:     %.2f\n", mbi["start"])
-	fmt.Printf("  End:       %.2f\n", mbi["end"])
-	fmt.Printf("  Delta:     %+.2f\n", mbi["delta"])
-	fmt.Printf("  Trend:     %s\n", mbi["direction"])
+	fmt.Printf("\n%s:\n", label)
+	if asPercent {
+		fmt.Printf("  Start:     %.2f%%\n", data["start"].(float64)*100)
+		fmt.Printf("  End:       %.2f%%\n", data["end"].(float64)*100)
+		fmt.Printf("  Delta:     %+.2f%%\n", data["delta"].(float64)*100)
+	} else {
+		fmt.Printf("  Start:     %.2f\n", data["start"])
+		fmt.Printf("  End:       %.2f\n", data["end"])
+		fmt.Printf("  Delta:     %+.2f\n", data["delta"])
+	}
+	fmt.Printf("  Trend:     %s\n", data["direction"])
+}
+
+// displayMBITrend outputs the MBI (Maintenance Burden Index) trend to console.
+func displayMBITrend(burdenTrends map[string]interface{}) {
+	displayFloatTrend(burdenTrends, "mbi_score", "MBI Score (Maintenance Burden Index)", false)
 }
 
 // displayDuplicationTrend outputs the duplication ratio trend to console.
 func displayDuplicationTrend(burdenTrends map[string]interface{}) {
-	dup, ok := burdenTrends["duplication_ratio"].(map[string]interface{})
-	if !ok {
-		return
-	}
-	fmt.Printf("\nDuplication Ratio:\n")
-	fmt.Printf("  Start:     %.2f%%\n", dup["start"].(float64)*100)
-	fmt.Printf("  End:       %.2f%%\n", dup["end"].(float64)*100)
-	fmt.Printf("  Delta:     %+.2f%%\n", dup["delta"].(float64)*100)
-	fmt.Printf("  Trend:     %s\n", dup["direction"])
+	displayFloatTrend(burdenTrends, "duplication_ratio", "Duplication Ratio", true)
 }
 
 // displayDocCoverageTrend outputs the documentation coverage trend to console.
 func displayDocCoverageTrend(burdenTrends map[string]interface{}) {
-	doc, ok := burdenTrends["doc_coverage"].(map[string]interface{})
+	displayFloatTrend(burdenTrends, "doc_coverage", "Documentation Coverage", true)
+}
+
+// displayIntTrend outputs an integer metric trend.
+func displayIntTrend(trends map[string]interface{}, key, label string) {
+	data, ok := trends[key].(map[string]interface{})
 	if !ok {
 		return
 	}
-	fmt.Printf("\nDocumentation Coverage:\n")
-	fmt.Printf("  Start:     %.2f%%\n", doc["start"].(float64)*100)
-	fmt.Printf("  End:       %.2f%%\n", doc["end"].(float64)*100)
-	fmt.Printf("  Delta:     %+.2f%%\n", doc["delta"].(float64)*100)
-	fmt.Printf("  Trend:     %s\n", doc["direction"])
+	fmt.Printf("\n%s:\n", label)
+	fmt.Printf("  Start:     %d\n", data["start"])
+	fmt.Printf("  End:       %d\n", data["end"])
+	fmt.Printf("  Delta:     %+d\n", data["delta"])
+	fmt.Printf("  Trend:     %s\n", data["direction"])
 }
 
 // displayComplexityViolationsTrend outputs the complexity violations trend to console.
 func displayComplexityViolationsTrend(burdenTrends map[string]interface{}) {
-	comp, ok := burdenTrends["complexity_violations"].(map[string]interface{})
-	if !ok {
-		return
-	}
-	fmt.Printf("\nComplexity Violations:\n")
-	fmt.Printf("  Start:     %d\n", comp["start"])
-	fmt.Printf("  End:       %d\n", comp["end"])
-	fmt.Printf("  Delta:     %+d\n", comp["delta"])
-	fmt.Printf("  Trend:     %s\n", comp["direction"])
+	displayIntTrend(burdenTrends, "complexity_violations", "Complexity Violations")
 }
 
 // displayNamingViolationsTrend outputs the naming violations trend to console.
 func displayNamingViolationsTrend(burdenTrends map[string]interface{}) {
-	naming, ok := burdenTrends["naming_violations"].(map[string]interface{})
-	if !ok {
-		return
-	}
-	fmt.Printf("\nNaming Violations:\n")
-	fmt.Printf("  Start:     %d\n", naming["start"])
-	fmt.Printf("  End:       %d\n", naming["end"])
-	fmt.Printf("  Delta:     %+d\n", naming["delta"])
-	fmt.Printf("  Trend:     %s\n", naming["direction"])
+	displayIntTrend(burdenTrends, "naming_violations", "Naming Violations")
 }
 
 // outputForecastsConsole displays metric forecasts in human-readable console format.

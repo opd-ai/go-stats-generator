@@ -454,13 +454,19 @@ func (ba *BurdenAnalyzer) isReturnStmt(stmt ast.Stmt) bool {
 	return ok
 }
 
-// isOsExitCall checks if a statement is an os.Exit call
-func (ba *BurdenAnalyzer) isOsExitCall(stmt ast.Stmt) bool {
+// extractCallExpr extracts a CallExpr from a statement if it's an expression statement.
+func extractCallExpr(stmt ast.Stmt) (*ast.CallExpr, bool) {
 	exprStmt, ok := stmt.(*ast.ExprStmt)
 	if !ok {
-		return false
+		return nil, false
 	}
 	call, ok := exprStmt.X.(*ast.CallExpr)
+	return call, ok
+}
+
+// isOsExitCall checks if a statement is an os.Exit call
+func (ba *BurdenAnalyzer) isOsExitCall(stmt ast.Stmt) bool {
+	call, ok := extractCallExpr(stmt)
 	if !ok {
 		return false
 	}
@@ -477,11 +483,7 @@ func (ba *BurdenAnalyzer) isOsExitCall(stmt ast.Stmt) bool {
 
 // isPanicCall checks if a statement is a panic call
 func (ba *BurdenAnalyzer) isPanicCall(stmt ast.Stmt) bool {
-	exprStmt, ok := stmt.(*ast.ExprStmt)
-	if !ok {
-		return false
-	}
-	call, ok := exprStmt.X.(*ast.CallExpr)
+	call, ok := extractCallExpr(stmt)
 	if !ok {
 		return false
 	}
@@ -494,11 +496,7 @@ func (ba *BurdenAnalyzer) isPanicCall(stmt ast.Stmt) bool {
 
 // isLogFatalCall checks if a statement is a log.Fatal, log.Fatalf, or log.Fatalln call
 func (ba *BurdenAnalyzer) isLogFatalCall(stmt ast.Stmt) bool {
-	exprStmt, ok := stmt.(*ast.ExprStmt)
-	if !ok {
-		return false
-	}
-	call, ok := exprStmt.X.(*ast.CallExpr)
+	call, ok := extractCallExpr(stmt)
 	if !ok {
 		return false
 	}
