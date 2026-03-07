@@ -700,8 +700,8 @@ type SnapshotMetadata struct {
 
 // ComplexityDiff represents comprehensive diff between two metrics snapshots
 type ComplexityDiff struct {
-	Baseline     Snapshot `json:"baseline"`
-	Current      Snapshot `json:"current"`
+	Baseline     Snapshot        `json:"baseline"`
+	Current      Snapshot        `json:"current"`
 	Summary      DiffSummary     `json:"summary"`
 	Changes      []MetricChange  `json:"changes"`
 	Regressions  []Regression    `json:"regressions"`
