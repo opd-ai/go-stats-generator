@@ -35,8 +35,8 @@ func NewAnalyzerWithConfig(cfg *config.Config) *Analyzer {
 	}
 }
 
-// analyzeResults processes parsed files
-func (a *Analyzer) analyzeResults(ctx context.Context, results <-chan scanner.Result, fset *token.FileSet, rootPath string, fileCount int) (*metrics.Report, error) {
+// buildReport processes parsed files and builds a comprehensive metrics report
+func (a *Analyzer) buildReport(ctx context.Context, results <-chan scanner.Result, fset *token.FileSet, rootPath string, fileCount int) (*metrics.Report, error) {
 	analyzers := createAnalyzers(fset, a.config)
 	report := createReport(rootPath, fileCount)
 	collected := &collectedMetrics{files: make(map[string]*ast.File)}
@@ -61,8 +61,8 @@ type collectedMetrics struct {
 	generics   []metrics.GenericMetrics
 }
 
-// analyzerSet holds all analyzers
-type analyzerSet struct {
+// analysisSet holds all analyzers used to process Go source files
+type analysisSet struct {
 	function    *analyzer.FunctionAnalyzer
 	structure   *analyzer.StructAnalyzer
 	iface       *analyzer.InterfaceAnalyzer
@@ -74,8 +74,8 @@ type analyzerSet struct {
 }
 
 // createAnalyzers initializes analyzers
-func createAnalyzers(fset *token.FileSet, cfg *config.Config) *analyzerSet {
-	return &analyzerSet{
+func createAnalyzers(fset *token.FileSet, cfg *config.Config) *analysisSet {
+	return &analysisSet{
 		function:    analyzer.NewFunctionAnalyzer(fset),
 		structure:   analyzer.NewStructAnalyzer(fset),
 		iface:       analyzer.NewInterfaceAnalyzer(fset),
@@ -110,7 +110,7 @@ func createReport(rootPath string, fileCount int) *metrics.Report {
 }
 
 // processFile performs analysis on file
-func processFile(result scanner.Result, analyzers *analyzerSet, collected *collectedMetrics, report *metrics.Report, cfg *config.Config) {
+func processFile(result scanner.Result, analyzers *analysisSet, collected *collectedMetrics, report *metrics.Report, cfg *config.Config) {
 	collected.files[result.FileInfo.RelPath] = result.File
 
 	if funcs, err := analyzers.function.AnalyzeFunctionsWithPath(result.File, result.FileInfo.Package, result.FileInfo.RelPath); err == nil {
@@ -174,7 +174,7 @@ func analyzePatterns(result scanner.Result, patternAnalyzer *analyzer.PatternAna
 }
 
 // finalizeReport aggregates metrics
-func finalizeReport(report *metrics.Report, collected *collectedMetrics, analyzers *analyzerSet) {
+func finalizeReport(report *metrics.Report, collected *collectedMetrics, analyzers *analysisSet) {
 	report.Functions = collected.functions
 	report.Structs = collected.structs
 	report.Interfaces = collected.interfaces

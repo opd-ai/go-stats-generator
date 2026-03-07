@@ -31,7 +31,7 @@ func (a *Analyzer) AnalyzeDirectory(ctx context.Context, dir string) (*metrics.R
 		return nil, err
 	}
 
-	return a.analyzeResults(ctx, results, discoverer.GetFileSet(), absPath, len(files))
+	return a.buildReport(ctx, results, discoverer.GetFileSet(), absPath, len(files))
 }
 
 // AnalyzeFile analyzes a single Go source file and produces a comprehensive metrics report for that file only.
@@ -51,7 +51,7 @@ func (a *Analyzer) AnalyzeFile(ctx context.Context, filePath string) (*metrics.R
 	results <- result
 	close(results)
 
-	return a.analyzeResults(ctx, results, discoverer.GetFileSet(), filePath, 1)
+	return a.buildReport(ctx, results, discoverer.GetFileSet(), filePath, 1)
 }
 
 // createFileInfo creates FileInfo for a single file analysis

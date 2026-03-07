@@ -31,7 +31,7 @@ func (a *Analyzer) AnalyzeMemoryFiles(ctx context.Context, files []MemoryFile, r
 		return nil, err
 	}
 
-	return a.analyzeResults(ctx, results, discoverer.GetFileSet(), rootDir, len(fileInfos))
+	return a.buildReport(ctx, results, discoverer.GetFileSet(), rootDir, len(fileInfos))
 }
 
 // convertToMemoryFiles converts API MemoryFile to scanner MemoryFile
