@@ -535,13 +535,19 @@ func (da *DuplicationAnalyzer) GetBlockSource(block StatementBlock) (string, err
 // DetectClonePairs groups fingerprints by hash and identifies groups with 2+ entries.
 // DetectClonePairs returns classified clone pairs sorted by line count.
 func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint, similarityThreshold float64) []metrics.ClonePair {
-	// Group fingerprints by hash
+	duplicates := da.buildDuplicateGroups(fingerprints)
+	clonePairs := da.convertToClonePairs(duplicates, similarityThreshold)
+	clonePairs = filterSubsumedClonePairs(clonePairs)
+	da.sortClonePairs(clonePairs)
+	return clonePairs
+}
+
+// buildDuplicateGroups creates deduplicated groups of fingerprints with the same hash.
+func (da *DuplicationAnalyzer) buildDuplicateGroups(fingerprints []BlockFingerprint) map[string][]BlockFingerprint {
 	groups := da.GroupFingerprintsByHash(fingerprints)
 	duplicates := da.FilterDuplicateGroups(groups)
 
-	// Deduplicate overlapping fingerprints within each group before
-	// converting to clone pairs. This merges sliding-window blocks from
-	// the same file that share a hash into a single representative.
+	// Deduplicate overlapping fingerprints within each group
 	for hash, group := range duplicates {
 		duplicates[hash] = deduplicateOverlappingFingerprints(group)
 	}
@@ -552,54 +558,51 @@ func (da *DuplicationAnalyzer) DetectClonePairs(fingerprints []BlockFingerprint,
 			delete(duplicates, hash)
 		}
 	}
+	return duplicates
+}
 
-	// Convert to ClonePair format
+// convertToClonePairs transforms fingerprint groups into ClonePair format.
+func (da *DuplicationAnalyzer) convertToClonePairs(duplicates map[string][]BlockFingerprint, similarityThreshold float64) []metrics.ClonePair {
 	var clonePairs []metrics.ClonePair
 
 	for hash, group := range duplicates {
-		// Create instances from the group
-		instances := make([]metrics.CloneInstance, len(group))
-		lineCount := 0
+		instances := da.createCloneInstances(group)
+		lineCount := group[0].EndLine - group[0].StartLine + 1
 
-		for i, fp := range group {
-			instances[i] = metrics.CloneInstance{
-				File:      fp.File,
-				StartLine: fp.StartLine,
-				EndLine:   fp.EndLine,
-				NodeCount: fp.NodeCount,
-			}
-			// Calculate line count (use first instance as representative)
-			if i == 0 {
-				lineCount = fp.EndLine - fp.StartLine + 1
-			}
-		}
-
-		// Create the clone pair
 		pair := metrics.ClonePair{
 			Hash:      hash,
-			Type:      metrics.CloneTypeExact, // Default to exact, will be classified later
+			Type:      metrics.CloneTypeExact,
 			Instances: instances,
 			LineCount: lineCount,
 		}
-
-		// Classify the clone type
 		pair.Type = da.ClassifyClone(pair, group, similarityThreshold)
-
 		clonePairs = append(clonePairs, pair)
 	}
+	return clonePairs
+}
 
-	// Remove clone pairs that are subsumed by larger ones
-	clonePairs = filterSubsumedClonePairs(clonePairs)
+// createCloneInstances builds CloneInstance records from fingerprints.
+func (da *DuplicationAnalyzer) createCloneInstances(group []BlockFingerprint) []metrics.CloneInstance {
+	instances := make([]metrics.CloneInstance, len(group))
+	for i, fp := range group {
+		instances[i] = metrics.CloneInstance{
+			File:      fp.File,
+			StartLine: fp.StartLine,
+			EndLine:   fp.EndLine,
+			NodeCount: fp.NodeCount,
+		}
+	}
+	return instances
+}
 
-	// Sort by line count (ascending) for shortest-to-longest ordering
+// sortClonePairs orders clone pairs by line count and hash.
+func (da *DuplicationAnalyzer) sortClonePairs(clonePairs []metrics.ClonePair) {
 	sort.Slice(clonePairs, func(i, j int) bool {
 		if clonePairs[i].LineCount != clonePairs[j].LineCount {
 			return clonePairs[i].LineCount < clonePairs[j].LineCount
 		}
 		return clonePairs[i].Hash < clonePairs[j].Hash
 	})
-
-	return clonePairs
 }
 
 // deduplicateOverlappingFingerprints merges fingerprints from the same file

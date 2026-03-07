@@ -18,6 +18,7 @@ import (
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/opd-ai/go-stats-generator/pkg/generator"
 )
 
@@ -101,18 +102,39 @@ func resolvedErrorPromise(msg string) js.Value {
 
 // performCloneAndAnalysis orchestrates the clone → extract → analyze pipeline.
 func performCloneAndAnalysis(inputJSON string, progressCb js.Value) (map[string]interface{}, error) {
+	request, err := parseCloneRequest(inputJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err := cloneAndExtractFiles(request, progressCb)
+	if err != nil {
+		return nil, err
+	}
+
+	report, err := analyzeFiles(files, request.Config, progressCb)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildSuccessResponse(files, report, request, progressCb)
+}
+
+// parseCloneRequest validates and parses the JSON input for clone analysis.
+func parseCloneRequest(inputJSON string) (*CloneRequest, error) {
 	var request CloneRequest
 	if err := json.Unmarshal([]byte(inputJSON), &request); err != nil {
 		return nil, fmt.Errorf("failed to parse request: %w", err)
 	}
-
 	if request.URL == "" {
 		return nil, fmt.Errorf("repository URL is required")
 	}
+	return &request, nil
+}
 
-	// Ensure the URL ends with .git for the smart HTTP protocol.
+// cloneAndExtractFiles clones the repository and extracts Go source files.
+func cloneAndExtractFiles(request *CloneRequest, progressCb js.Value) ([]FileInput, error) {
 	repoURL := normalizeGitURL(request.URL)
-
 	reportProgress(progressCb, 5, "Cloning repository…")
 
 	fs := memfs.New()
@@ -122,7 +144,6 @@ func performCloneAndAnalysis(inputJSON string, progressCb js.Value) (map[string]
 	}
 
 	reportProgress(progressCb, 60, "Extracting Go source files…")
-
 	files, err := extractGoFiles(fs, request.IncludeTests)
 	if err != nil {
 		return nil, fmt.Errorf("file extraction failed: %w", err)
@@ -131,10 +152,14 @@ func performCloneAndAnalysis(inputJSON string, progressCb js.Value) (map[string]
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no Go source files found in repository")
 	}
+	return files, nil
+}
 
+// analyzeFiles performs the analysis on the extracted Go files.
+func analyzeFiles(files []FileInput, config *ConfigInput, progressCb js.Value) (*metrics.Report, error) {
 	reportProgress(progressCb, 75, fmt.Sprintf("Analyzing %d files…", len(files)))
 
-	cfg := buildConfig(request.Config)
+	cfg := buildConfig(config)
 	analyzer := generator.NewAnalyzerWithConfig(cfg)
 
 	memFiles := make([]generator.MemoryFile, len(files))
@@ -146,7 +171,11 @@ func performCloneAndAnalysis(inputJSON string, progressCb js.Value) (map[string]
 	if err != nil {
 		return nil, fmt.Errorf("analysis failed: %w", err)
 	}
+	return report, nil
+}
 
+// buildSuccessResponse creates the final success response with analysis results.
+func buildSuccessResponse(files []FileInput, report *metrics.Report, request *CloneRequest, progressCb js.Value) (map[string]interface{}, error) {
 	reportProgress(progressCb, 90, "Generating output…")
 
 	outputData, err := generateOutput(report, request.OutputFormat)

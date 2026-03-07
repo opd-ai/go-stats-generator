@@ -223,31 +223,49 @@ func (a *AntipatternAnalyzer) hasContextOrDone(goStmt *ast.GoStmt) bool {
 
 // isContextOrDoneParam checks if a parameter represents a context or done channel
 func (a *AntipatternAnalyzer) isContextOrDoneParam(param *ast.Field) bool {
-	// Check parameter names
+	if a.hasContextOrDoneParamName(param) {
+		return true
+	}
+	if a.isContextType(param) {
+		return true
+	}
+	if a.isChannelType(param) {
+		return true
+	}
+	return false
+}
+
+// hasContextOrDoneParamName checks if parameter name suggests context/cancellation usage.
+func (a *AntipatternAnalyzer) hasContextOrDoneParamName(param *ast.Field) bool {
+	contextKeywords := []string{"ctx", "done", "cancel", "quit", "stop"}
 	for _, name := range param.Names {
 		nameLower := strings.ToLower(name.Name)
-		if strings.Contains(nameLower, "ctx") || strings.Contains(nameLower, "done") ||
-			strings.Contains(nameLower, "cancel") || strings.Contains(nameLower, "quit") ||
-			strings.Contains(nameLower, "stop") {
-			return true
-		}
-	}
-
-	// Check parameter type for context.Context
-	if sel, ok := param.Type.(*ast.SelectorExpr); ok {
-		if ident, ok := sel.X.(*ast.Ident); ok {
-			if ident.Name == "context" && sel.Sel.Name == "Context" {
+		for _, keyword := range contextKeywords {
+			if strings.Contains(nameLower, keyword) {
 				return true
 			}
 		}
 	}
-
-	// Check for channel types (done channels)
-	if _, ok := param.Type.(*ast.ChanType); ok {
-		return true
-	}
-
 	return false
+}
+
+// isContextType checks if parameter type is context.Context.
+func (a *AntipatternAnalyzer) isContextType(param *ast.Field) bool {
+	sel, ok := param.Type.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return ident.Name == "context" && sel.Sel.Name == "Context"
+}
+
+// isChannelType checks if parameter is a channel (often used for done signals).
+func (a *AntipatternAnalyzer) isChannelType(param *ast.Field) bool {
+	_, ok := param.Type.(*ast.ChanType)
+	return ok
 }
 
 // hasContextOrDoneInArgs checks if a named function call includes context arguments

@@ -413,35 +413,67 @@ func (pa *PatternAnalyzer) isFactoryName(name string) bool {
 	return false
 }
 
-// isInterfaceReturn determines if an expression represents an interface type.
-func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr, ifaceNames map[string]bool) bool {
-	if _, ok := expr.(*ast.InterfaceType); ok {
+// isInterfaceExpr determines if an expression represents an interface type.
+// It checks for inline interfaces, named types from ifaceNames, AST-resolved types, and selector expressions.
+func (pa *PatternAnalyzer) isInterfaceExpr(expr ast.Expr, ifaceNames map[string]bool) bool {
+	if pa.isInlineInterface(expr) {
 		return true
 	}
-	if ident, ok := expr.(*ast.Ident); ok {
-		if ident.Name == "Interface" {
-			return true
-		}
-		// Check the precomputed interface name set (covers same-file declarations)
-		if ifaceNames[ident.Name] {
-			return true
-		}
-		// Check AST object resolution (covers same-scope declarations)
-		if ident.Obj != nil && ident.Obj.Decl != nil {
-			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
-				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-					return true
-				}
-			}
-		}
+	if pa.isNamedInterface(expr, ifaceNames) {
+		return true
 	}
-	if sel, ok := expr.(*ast.SelectorExpr); ok {
-		name := sel.Sel.Name
-		if name == "Interface" {
-			return true
-		}
+	if pa.isQualifiedInterface(expr) {
+		return true
 	}
 	return false
+}
+
+// isInlineInterface checks if the expression is an inline interface type definition.
+func (pa *PatternAnalyzer) isInlineInterface(expr ast.Expr) bool {
+	_, ok := expr.(*ast.InterfaceType)
+	return ok
+}
+
+// isNamedInterface checks if the expression is a named identifier that refers to an interface.
+func (pa *PatternAnalyzer) isNamedInterface(expr ast.Expr, ifaceNames map[string]bool) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if ident.Name == "Interface" {
+		return true
+	}
+	if ifaceNames[ident.Name] {
+		return true
+	}
+	return pa.isASTResolvedInterface(ident)
+}
+
+// isASTResolvedInterface checks if an identifier's AST object resolves to an interface type.
+func (pa *PatternAnalyzer) isASTResolvedInterface(ident *ast.Ident) bool {
+	if ident.Obj == nil || ident.Obj.Decl == nil {
+		return false
+	}
+	typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec)
+	if !ok {
+		return false
+	}
+	_, ok = typeSpec.Type.(*ast.InterfaceType)
+	return ok
+}
+
+// isQualifiedInterface checks if the expression is a qualified selector like pkg.Interface.
+func (pa *PatternAnalyzer) isQualifiedInterface(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	return sel.Sel.Name == "Interface"
+}
+
+// isInterfaceReturn determines if an expression represents an interface type.
+func (pa *PatternAnalyzer) isInterfaceReturn(expr ast.Expr, ifaceNames map[string]bool) bool {
+	return pa.isInterfaceExpr(expr, ifaceNames)
 }
 
 // hasTypeSwitch checks if a function body contains a type switch statement.
@@ -527,25 +559,5 @@ func (pa *PatternAnalyzer) isCallbackType(expr ast.Expr) bool {
 
 // isInterfaceField determines if a struct field is an interface type.
 func (pa *PatternAnalyzer) isInterfaceField(field *ast.Field, ifaceNames map[string]bool) bool {
-	if _, ok := field.Type.(*ast.InterfaceType); ok {
-		return true
-	}
-	if ident, ok := field.Type.(*ast.Ident); ok {
-		if ident.Name == "Interface" {
-			return true
-		}
-		// Check the precomputed interface name set (covers same-file declarations)
-		if ifaceNames[ident.Name] {
-			return true
-		}
-		// Check AST object resolution (covers same-scope declarations)
-		if ident.Obj != nil && ident.Obj.Decl != nil {
-			if typeSpec, ok := ident.Obj.Decl.(*ast.TypeSpec); ok {
-				if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-					return true
-				}
-			}
-		}
-	}
-	return false
+	return pa.isInterfaceExpr(field.Type, ifaceNames)
 }
