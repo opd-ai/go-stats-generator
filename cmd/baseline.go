@@ -166,8 +166,8 @@ func initializeStorageBackend() (storage.MetricsStorage, error) {
 
 	jsonPretty := viper.GetBool("storage.json.pretty")
 
-	// Convert to storage.StorageConfig format
-	storageConfig := storage.StorageConfig{
+	// Convert to storage.Config format
+	storageConfig := storage.Config{
 		Type: storageType,
 	}
 
@@ -191,9 +191,9 @@ func initializeStorageBackend() (storage.MetricsStorage, error) {
 	return storage.NewStorage(storageConfig)
 }
 
-// convertToStorageConfig converts config.StorageConfig to storage.StorageConfig.
-func convertToStorageConfig(cfg config.StorageConfig) storage.StorageConfig {
-	storageConfig := storage.StorageConfig{
+// convertToStorageConfig converts config.StorageConfig to storage.Config.
+func convertToStorageConfig(cfg config.StorageConfig) storage.Config {
+	storageConfig := storage.Config{
 		Type: cfg.Type,
 	}
 

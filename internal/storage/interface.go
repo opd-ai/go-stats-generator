@@ -86,8 +86,8 @@ func DefaultRetentionPolicy() RetentionPolicy {
 	}
 }
 
-// StorageConfig defines configuration for different storage backends
-type StorageConfig struct {
+// Config defines configuration for different storage backends
+type Config struct {
 	Type   string       `yaml:"type" json:"type"`
 	SQLite SQLiteConfig `yaml:"sqlite" json:"sqlite"`
 	JSON   JSONConfig   `yaml:"json" json:"json"`
@@ -109,11 +109,11 @@ type JSONConfig struct {
 	Pretty      bool   `yaml:"pretty" json:"pretty"`
 }
 
-// DefaultStorageConfig returns default storage configuration with SQLite backend and 90-day retention policy.
+// DefaultConfig returns default storage configuration with SQLite backend and 90-day retention policy.
 // The configuration assumes a local database file at "./metrics.db" and automatically prunes baselines older than
 // the retention window to prevent unbounded database growth. Adjust retention days based on your trend analysis needs.
-func DefaultStorageConfig() StorageConfig {
-	return StorageConfig{
+func DefaultConfig() Config {
+	return Config{
 		Type: "sqlite",
 		SQLite: SQLiteConfig{
 			Path:              ".go-stats-generator/metrics.db",
@@ -134,7 +134,7 @@ func DefaultStorageConfig() StorageConfig {
 // It routes to specialized constructors for each storage type, handling database initialization, file system setup, or memory
 // allocation as appropriate. Returns a fully initialized storage instance conforming to the MetricsStorage interface, ready for
 // baseline snapshot persistence and retrieval operations. Returns error if the storage type is unsupported or initialization fails.
-func NewStorage(config StorageConfig) (MetricsStorage, error) {
+func NewStorage(config Config) (MetricsStorage, error) {
 	switch config.Type {
 	case "sqlite":
 		return NewSQLiteStorage(config.SQLite)

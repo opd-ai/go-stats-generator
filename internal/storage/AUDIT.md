@@ -26,7 +26,7 @@ The `internal/storage` package provides persistence for historical metrics throu
 - [x] **high** test-coverage — Package coverage at 49.2% is below 65% threshold — **FIXED**: Created comprehensive sqlite_test.go with 11 test cases covering Store, Retrieve, List, Delete, Cleanup, GetLatest, GetByTag, and filtering. Coverage increased from 49.0% to 81.3%
 
 ### Medium Priority
-- [ ] **med** naming — StorageConfig type stutters package name (`interface.go:88`) — should be `Config`
+- [x] **med** naming — StorageConfig type stutters package name (`interface.go:88`) — should be `Config` — **FIXED**: Renamed to `Config` following Go naming conventions
 - [ ] **med** naming — Package name mismatch with directory (`interface.go:1`) — directory/package name inconsistency
 - [ ] **med** duplication — Renamed clone pair detected (`sqlite.go:325-330` and `sqlite.go:507-512`, 6 lines)
 - [ ] **med** complexity — matchesFilter functions have cyclomatic complexity of 9 (`json.go:matchesFilter` and `memory.go:matchesFilter`)

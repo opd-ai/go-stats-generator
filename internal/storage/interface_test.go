@@ -29,9 +29,9 @@ func TestDefaultRetentionPolicy(t *testing.T) {
 	}
 }
 
-// TestDefaultStorageConfig tests the DefaultStorageConfig function
-func TestDefaultStorageConfig(t *testing.T) {
-	config := DefaultStorageConfig()
+// TestDefaultConfig tests the DefaultConfig function
+func TestDefaultConfig(t *testing.T) {
+	config := DefaultConfig()
 
 	// Test storage type
 	if config.Type != "sqlite" {
@@ -85,13 +85,13 @@ func TestDefaultStorageConfig(t *testing.T) {
 func TestNewStorage(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      StorageConfig
+		config      Config
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "SQLite storage",
-			config: StorageConfig{
+			config: Config{
 				Type: "sqlite",
 				SQLite: SQLiteConfig{
 					Path:              "test.db",
@@ -105,7 +105,7 @@ func TestNewStorage(t *testing.T) {
 		},
 		{
 			name: "JSON storage",
-			config: StorageConfig{
+			config: Config{
 				Type: "json",
 				JSON: JSONConfig{
 					Directory:   t.TempDir(),
@@ -117,7 +117,7 @@ func TestNewStorage(t *testing.T) {
 		},
 		{
 			name: "Unsupported storage type",
-			config: StorageConfig{
+			config: Config{
 				Type: "redis",
 			},
 			expectError: true,
@@ -125,7 +125,7 @@ func TestNewStorage(t *testing.T) {
 		},
 		{
 			name: "Empty storage type",
-			config: StorageConfig{
+			config: Config{
 				Type: "",
 			},
 			expectError: true,
@@ -383,9 +383,9 @@ func TestRetentionPolicy(t *testing.T) {
 	}
 }
 
-// TestStorageConfig tests the StorageConfig struct behavior
-func TestStorageConfig(t *testing.T) {
-	config := StorageConfig{
+// TestConfig tests the Config struct behavior
+func TestConfig(t *testing.T) {
+	config := Config{
 		Type: "custom",
 		SQLite: SQLiteConfig{
 			Path:              "custom.db",
