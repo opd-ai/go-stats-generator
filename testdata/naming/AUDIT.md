@@ -17,7 +17,7 @@ This package is a test fixture demonstrating both correct and incorrect Go namin
 
 ## Issues Found
 - [ ] **high** documentation — Overall doc coverage 18.8% far below 70% threshold (package-level)
-- [ ] **high** naming — File name violation: BadFileName.go should be bad_file_name.go (`BadFileName.go:1`)
+- [x] **high** naming — File name violation: BadFileName.go should be bad_file_name.go (`BadFileName.go:1`) — RESOLVED: File renamed to bad_file_name.go
 - [ ] **high** naming — Underscore in function name: get_user should be getUser (`bad_identifiers.go:12`)
 - [ ] **high** naming — Underscore in type name: User_Service should be UserService (`bad_identifiers.go:17`)
 - [ ] **high** build — Multiple packages in same directory: naming and util (`bad_identifiers.go:2`)

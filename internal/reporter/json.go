@@ -10,7 +10,9 @@ import (
 // JSONReporter generates JSON formatted output for analysis reports and diffs.
 // JSONReporter implements the Reporter interface and produces properly indented JSON.
 type JSONReporter struct {
-	indent bool
+	indent          bool
+	firstSection    bool
+	sectionsWritten int
 }
 
 // NewJSONReporter creates a new JSON reporter with pretty-printing enabled by default.
@@ -19,8 +21,88 @@ type JSONReporter struct {
 // and integration with monitoring/visualization tools. Use --format json flag to activate.
 func NewJSONReporter() *JSONReporter {
 	return &JSONReporter{
-		indent: true,
+		indent:       true,
+		firstSection: true,
 	}
+}
+
+// BeginReport writes the JSON opening brace and metadata section for streaming output.
+// This is the first method called in streaming mode. It initializes the JSON structure
+// and writes repository metadata. Must be called before WriteSection.
+func (jr *JSONReporter) BeginReport(output io.Writer, metadata *metrics.ReportMetadata) error {
+	jr.firstSection = true
+	jr.sectionsWritten = 0
+
+	// Write opening brace and metadata
+	if _, err := output.Write([]byte("{\n")); err != nil {
+		return err
+	}
+
+	// Write metadata section
+	if _, err := output.Write([]byte("  \"metadata\": ")); err != nil {
+		return err
+	}
+
+	encoder := json.NewEncoder(output)
+	if jr.indent {
+		encoder.SetIndent("  ", "  ")
+	}
+	if err := encoder.Encode(metadata); err != nil {
+		return err
+	}
+
+	jr.firstSection = false
+	jr.sectionsWritten++
+	return nil
+}
+
+// WriteSection writes an individual report section to the output stream.
+// Sections are written as top-level JSON fields with proper comma separation.
+// The sectionData must be JSON-serializable. Can be called multiple times.
+func (jr *JSONReporter) WriteSection(output io.Writer, sectionName string, sectionData interface{}) error {
+	// Write comma separator (except after metadata which was already written in BeginReport)
+	if jr.sectionsWritten > 0 {
+		if _, err := output.Write([]byte(",\n")); err != nil {
+			return err
+		}
+	}
+
+	// Write section name
+	sectionJSON, err := json.Marshal(sectionName)
+	if err != nil {
+		return err
+	}
+	if _, err := output.Write([]byte("  ")); err != nil {
+		return err
+	}
+	if _, err := output.Write(sectionJSON); err != nil {
+		return err
+	}
+	if _, err := output.Write([]byte(": ")); err != nil {
+		return err
+	}
+
+	// Write section data
+	encoder := json.NewEncoder(output)
+	if jr.indent {
+		encoder.SetIndent("  ", "  ")
+	}
+	if err := encoder.Encode(sectionData); err != nil {
+		return err
+	}
+
+	jr.sectionsWritten++
+	return nil
+}
+
+// EndReport writes the JSON closing brace to finalize streaming output.
+// This is the final method called in streaming mode. After this, the output
+// represents a complete, valid JSON document. Must be called after all WriteSection calls.
+func (jr *JSONReporter) EndReport(output io.Writer) error {
+	if _, err := output.Write([]byte("}\n")); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Generate generates a JSON-formatted analysis report by encoding the metrics.Report structure

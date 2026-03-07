@@ -13,6 +13,19 @@ type Reporter interface {
 	WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) error
 }
 
+// StreamingReporter defines an optional interface for reporters that support streaming output.
+// Reporters implementing this interface can write report sections as they become available,
+// reducing peak memory usage for large codebases. The streaming workflow is:
+//  1. BeginReport() - write header/metadata
+//  2. WriteSection() - write each section as it's processed (multiple calls)
+//  3. EndReport() - write footer/summary and finalize output
+type StreamingReporter interface {
+	Reporter
+	BeginReport(output io.Writer, metadata *metrics.ReportMetadata) error
+	WriteSection(output io.Writer, sectionName string, sectionData interface{}) error
+	EndReport(output io.Writer) error
+}
+
 // Type represents the type of reporter
 type Type string
 
