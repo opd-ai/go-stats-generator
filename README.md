@@ -127,7 +127,7 @@ go-stats-generator analyze [file.go] [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--format` | Output format (console, json, html) | console |
+| `--format` | Output format (console, json, html, csv, markdown) | console |
 | `--output` | Output file (default: stdout) | - |
 | `--workers` | Number of worker goroutines | CPU cores |
 | `--timeout` | Analysis timeout | 10m |
@@ -589,6 +589,230 @@ func example() {
 | 6-10 | Moderate | Acceptable |
 | 11-20 | High | Consider refactoring |
 | 21+ | Very High | Refactor immediately |
+
+## Output Formats
+
+`go-stats-generator` supports multiple output formats to suit different use cases, from interactive console output to machine-readable formats for integration with other tools.
+
+### Console Output (Default)
+
+The default human-friendly format with colored text, tables, and progress indicators. Best for interactive terminal use and quick analysis.
+
+```bash
+go-stats-generator analyze .
+# or explicitly
+go-stats-generator analyze . --format console
+```
+
+**Features:**
+- Color-coded severity indicators
+- Formatted tables for easy reading
+- Progress bars during analysis
+- Summary statistics with emoji indicators
+
+**Use Cases:**
+- Interactive development and debugging
+- Quick code reviews
+- Manual analysis and exploration
+
+### JSON Output
+
+Structured JSON format for programmatic access and integration with other tools. All metrics are preserved with full precision.
+
+```bash
+go-stats-generator analyze . --format json --output report.json
+```
+
+**Features:**
+- Complete metrics preservation
+- Nested structure for complex data
+- Type safety for programmatic parsing
+- Suitable for version control and diffing
+
+**Use Cases:**
+- CI/CD integration and automation
+- Custom tooling and analysis scripts
+- Historical tracking and trending
+- API responses and data exchange
+
+**Example Structure:**
+```json
+{
+  "metadata": {
+    "repository": "/path/to/project",
+    "generated_at": "2026-03-07T03:13:07Z",
+    "analysis_time": "849.601886ms",
+    "tool_version": "1.0.0"
+  },
+  "overview": {
+    "total_lines": 14362,
+    "total_functions": 650,
+    "total_methods": 828
+  },
+  "functions": [...],
+  "structs": [...],
+  "packages": [...]
+}
+```
+
+### HTML Output
+
+Interactive HTML report with embedded CSS and JavaScript for rich visualization in web browsers.
+
+```bash
+go-stats-generator analyze . --format html --output report.html
+```
+
+**Features:**
+- Sortable and filterable tables
+- Interactive charts and graphs
+- Hyperlinked navigation between sections
+- Embedded styling (no external dependencies)
+
+**Use Cases:**
+- Shareable reports for team reviews
+- Documentation and presentations
+- Archival of analysis results
+- Non-technical stakeholder communication
+
+### CSV Output
+
+Comma-separated values format optimized for spreadsheet applications and data analysis tools. Each section (functions, structs, interfaces, packages) is exported as a separate table with headers.
+
+```bash
+go-stats-generator analyze . --format csv --output report.csv
+```
+
+**Structure:**
+The CSV output contains multiple sections, each prefixed with a comment header:
+- `# METADATA` - Repository info, generation time, tool version
+- `# OVERVIEW` - Summary statistics
+- `# FUNCTIONS` - Detailed function metrics (one row per function)
+- `# STRUCTS` - Struct analysis data
+- `# INTERFACES` - Interface metrics
+- `# PACKAGES` - Package-level statistics
+
+**Function Columns:**
+- Name, Package, File, Line, Is Exported, Is Method
+- Lines Total, Lines Code, Lines Comments, Lines Blank
+- Cyclomatic Complexity, Cognitive Complexity, Nesting Depth
+- Overall Complexity, Parameter Count, Return Count
+- Has Variadic, Returns Error, Has Documentation, Documentation Quality
+
+**Use Cases:**
+- Import into Excel, Google Sheets, or other spreadsheet tools
+- Statistical analysis with R, Python pandas, or similar
+- Data warehouse integration
+- Custom reporting and charting
+- Filtering and sorting large datasets
+
+**Example:**
+```csv
+# METADATA
+Repository,/path/to/project
+Generated At,2026-03-07 03:13:07
+Analysis Time,849.601886ms
+
+# FUNCTIONS
+Name,Package,File,Line,Cyclomatic Complexity,Lines Code
+ProcessData,analyzer,analyzer.go,45,8,23
+ValidateInput,validator,validator.go,12,4,15
+```
+
+**Tips:**
+- Use `grep "^# "` to identify section boundaries
+- Import with "comma" delimiter and "quote" text qualifier
+- Filter rows by exporting specific sections only with `--sections` flag
+- Combine with `--skip-tests` for production code analysis
+
+### Markdown Output
+
+GitHub-flavored Markdown format with tables, emoji indicators, and formatted sections. Perfect for README files, pull request comments, and documentation.
+
+```bash
+go-stats-generator analyze . --format markdown --output report.md
+```
+
+**Features:**
+- GitHub-flavored Markdown tables
+- Emoji indicators for visual appeal (📊, 🔧, 🏗️, 🔌, 📦, ⚡)
+- Collapsible sections (when rendered on GitHub)
+- Direct copy-paste into issues and PRs
+- Renders beautifully on GitHub, GitLab, and documentation sites
+
+**Structure:**
+```markdown
+# Go Code Analysis Report
+
+## 📊 Overview
+| Metric | Value |
+|--------|-------|
+| Repository | /path/to/project |
+| Total Functions | 650 |
+
+## 🔧 Functions
+| Function | File | Lines | Complexity | Exported | Documentation |
+|----------|------|-------|------------|----------|---------------|
+| ProcessData | analyzer.go | 23 | 8 | ✅ | 85.2% |
+
+## 🏗️ Structs
+...
+```
+
+**Use Cases:**
+- Adding reports to repository README files
+- Pull request and code review comments
+- GitHub Issues and discussion threads
+- Static site documentation (Jekyll, Hugo, MkDocs)
+- Markdown-based wikis and knowledge bases
+
+**Tips:**
+- Use `--sections` to include only relevant sections for focused reports
+- Pipe to clipboard: `go-stats-generator analyze . --format markdown | pbcopy` (macOS) or `xclip` (Linux)
+- Combine with baseline diffs for changelog generation
+- Top 50 results are shown by default for readability (full data available in JSON/CSV)
+
+### Choosing the Right Format
+
+| Format | Interactive | Machine-Readable | Human-Readable | Shareable | Best For |
+|--------|-------------|------------------|----------------|-----------|----------|
+| **Console** | ✅ | ❌ | ✅ | ❌ | Development, debugging |
+| **JSON** | ❌ | ✅ | ⚠️ | ✅ | Automation, APIs, CI/CD |
+| **HTML** | ✅ | ❌ | ✅ | ✅ | Reports, presentations |
+| **CSV** | ❌ | ✅ | ⚠️ | ✅ | Spreadsheets, data analysis |
+| **Markdown** | ❌ | ⚠️ | ✅ | ✅ | Documentation, PRs, issues |
+
+### Filtering Output Sections
+
+All output formats support the `--sections` flag to include only specific parts of the analysis:
+
+```bash
+# Export only function metrics to CSV for analysis
+go-stats-generator analyze . --format csv --sections functions --output functions.csv
+
+# Create a focused Markdown report for documentation
+go-stats-generator analyze . --format markdown --sections overview,documentation --output docs.md
+
+# Generate JSON with specific sections for API integration
+go-stats-generator analyze . --format json --sections functions,complexity,burden --output api-report.json
+```
+
+**Available Sections:**
+- `metadata` - Repository info and generation metadata (always included)
+- `overview` - High-level summary statistics (always included)
+- `functions` - Function and method metrics
+- `structs` - Struct analysis
+- `interfaces` - Interface metrics
+- `packages` - Package-level statistics
+- `patterns` - Design and concurrency patterns
+- `complexity` - Complexity analysis
+- `documentation` - Documentation coverage
+- `duplication` - Code duplication detection
+- `naming` - Naming convention analysis
+- `placement` - Code organization analysis
+- `burden` - Maintenance burden indicators
+- `scores` - Quality scores (MBI, etc.)
+- `suggestions` - Refactoring suggestions
 
 ## Architecture
 

@@ -1,0 +1,189 @@
+
+Processing files: 1/6 (16.7%)Processing files: 2/6 (33.3%)Processing files: 3/6 (50.0%)Processing files: 4/6 (66.7%)Processing files: 5/6 (83.3%)Processing files: 6/6 (100.0%)Processing files: 6/6 (100.0%)
+Processing files: 1/6 (16.7%)Processing files: 2/6 (33.3%)Processing files: 3/6 (50.0%)Processing files: 4/6 (66.7%)Processing files: 5/6 (83.3%)Processing files: 6/6 (100.0%)Processing files: 6/6 (100.0%)
+Processing files: 1/6 (16.7%)Processing files: 2/6 (33.3%)Processing files: 3/6 (50.0%)Processing files: 4/6 (66.7%)Processing files: 5/6 (83.3%)Processing files: 6/6 (100.0%)Processing files: 6/6 (100.0%)
+Processing files: 1/6 (16.7%)Processing files: 2/6 (33.3%)Processing files: 3/6 (50.0%)Processing files: 4/6 (66.7%)Processing files: 5/6 (83.3%)Processing files: 6/6 (100.0%)Processing files: 6/6 (100.0%)
+Processing files: 1/55 (1.8%)Processing files: 2/55 (3.6%)Processing files: 3/55 (5.5%)Processing files: 4/55 (7.3%)Processing files: 5/55 (9.1%)Processing files: 6/55 (10.9%)Processing files: 7/55 (12.7%)Processing files: 8/55 (14.5%)Processing files: 9/55 (16.4%)Processing files: 10/55 (18.2%)Processing files: 11/55 (20.0%)Processing files: 12/55 (21.8%)Processing files: 13/55 (23.6%)Processing files: 14/55 (25.5%)Processing files: 15/55 (27.3%)Processing files: 16/55 (29.1%)Processing files: 17/55 (30.9%)Processing files: 18/55 (32.7%)Processing files: 19/55 (34.5%)Processing files: 20/55 (36.4%)Processing files: 21/55 (38.2%)Processing files: 22/55 (40.0%)Processing files: 23/55 (41.8%)Processing files: 24/55 (43.6%)Processing files: 25/55 (45.5%)Processing files: 26/55 (47.3%)Processing files: 27/55 (49.1%)Processing files: 28/55 (50.9%)Processing files: 29/55 (52.7%)Processing files: 30/55 (54.5%)Processing files: 31/55 (56.4%)Processing files: 32/55 (58.2%)Processing files: 33/55 (60.0%)Processing files: 34/55 (61.8%)Processing files: 35/55 (63.6%)Processing files: 36/55 (65.5%)Processing files: 37/55 (67.3%)Processing files: 38/55 (69.1%)Processing files: 39/55 (70.9%)Processing files: 40/55 (72.7%)Processing files: 41/55 (74.5%)Processing files: 42/55 (76.4%)Processing files: 43/55 (78.2%)Processing files: 44/55 (80.0%)Processing files: 45/55 (81.8%)Processing files: 46/55 (83.6%)Processing files: 47/55 (85.5%)Processing files: 48/55 (87.3%)Processing files: 49/55 (89.1%)Processing files: 50/55 (90.9%)Processing files: 51/55 (92.7%)Processing files: 52/55 (94.5%)Processing files: 53/55 (96.4%)Processing files: 54/55 (98.2%)Processing files: 55/55 (100.0%)Processing files: 55/55 (100.0%)=== GO SOURCE CODE STATISTICS REPORT ===
+Repository: /tmp/TestAnalyzeCommandFileVsDirectoryHandling2567858374/001
+Generated: 2026-03-07 02:31:51
+Analysis Time: 0s
+Files Processed: 1
+
+=== OVERVIEW ===
+Total Lines of Code: 2
+Total Functions: 2
+Total Methods: 0
+Total Structs: 0
+Total Interfaces: 0
+Total Packages: 1
+Total Files: 1
+
+=== FUNCTION ANALYSIS ===
+Function Statistics:
+  Average Function Length: 1.0 lines
+  Longest Function: main (1 lines)
+  Functions > 50 lines: 0 (0.0%)
+  Functions > 100 lines: 0 (0.0%)
+  Average Complexity: 1.3
+  High Complexity (>10): 0 functions
+
+Top Complex Functions:
+Rank Function                  File                    Lines Complexity
+-----------------------------------------------------------------------
+   1 main                      TestAnalyzeComman...        1        1.3
+   2 add                       TestAnalyzeComman...        1        1.3
+
+=== COMPLEXITY ANALYSIS ===
+Top 2 Most Complex Functions:
+Function                       Package                 Lines Cyclomatic    Overall
+--------------------------------------------------------------------------------
+main                           main                        1          1        1.3
+add                            main                        1          1        1.3
+
+=== PACKAGE ANALYSIS ===
+Total Packages: 1
+Average Dependencies per Package: 0.0
+Average Files per Package: 1.0
+
+Low Cohesion Packages (<2.0 cohesion score):
+  main: 0.4 cohesion, 1 files, 2 functions
+
+Largest Packages (by function count):
+  main: 2 functions, 0 structs, 0 interfaces, 1 files
+
+=== CIRCULAR DEPENDENCIES ===
+No circular dependencies detected.
+
+=== NAMING CONVENTION ANALYSIS ===
+File Name Violations: 1
+Identifier Violations: 0
+Package Name Violations: 0
+Overall Naming Score: 0.90
+
+Top 1 File Name Violations:
+File                                     Violation            Suggested Name                
+--------------------------------------------------------------------------------
+TestAnalyzeCommandFileVsDirectoryHand... improper_test_name   impl.go                       
+
+=== MAINTENANCE BURDEN ===
+Magic Numbers: 2
+Dead Code (Unreferenced): 2 functions
+Dead Code (Unreachable): 0 blocks
+Dead Code Percentage: 0.00%
+Complex Signatures: 0
+Deeply Nested Functions: 0
+Feature Envy Methods: 0
+
+Top 2 Magic Numbers:
+Value                File                               Line Context
+--------------------------------------------------------------------------------
+"fmt"                /tmp/TestAnalyzeCommandFile...        3 expression
+"Hello, world!"      /tmp/TestAnalyzeCommandFile...        6 function_call
+
+
+=== ANALYSIS COMPLETE ===
+Report generated by go-stats-generator v1.0.0
+=== GO SOURCE CODE STATISTICS REPORT ===
+Repository: /tmp/TestAnalyzeCommandFileVsDirectoryHandling2567858374/001
+Generated: 2026-03-07 02:31:51
+Analysis Time: 0s
+Files Processed: 1
+
+=== OVERVIEW ===
+Total Lines of Code: 2
+Total Functions: 2
+Total Methods: 0
+Total Structs: 0
+Total Interfaces: 0
+Total Packages: 1
+Total Files: 1
+
+=== FUNCTION ANALYSIS ===
+Function Statistics:
+  Average Function Length: 1.0 lines
+  Longest Function: main (1 lines)
+  Functions > 50 lines: 0 (0.0%)
+  Functions > 100 lines: 0 (0.0%)
+  Average Complexity: 1.3
+  High Complexity (>10): 0 functions
+
+Top Complex Functions:
+Rank Function                  File                    Lines Complexity
+-----------------------------------------------------------------------
+   1 main                      test.go                     1        1.3
+   2 add                       test.go                     1        1.3
+
+=== COMPLEXITY ANALYSIS ===
+Top 2 Most Complex Functions:
+Function                       Package                 Lines Cyclomatic    Overall
+--------------------------------------------------------------------------------
+main                           main                        1          1        1.3
+add                            main                        1          1        1.3
+
+=== PACKAGE ANALYSIS ===
+Total Packages: 1
+Average Dependencies per Package: 0.0
+Average Files per Package: 1.0
+
+Low Cohesion Packages (<2.0 cohesion score):
+  main: 0.4 cohesion, 1 files, 2 functions
+
+Largest Packages (by function count):
+  main: 2 functions, 0 structs, 0 interfaces, 1 files
+
+=== CIRCULAR DEPENDENCIES ===
+No circular dependencies detected.
+
+=== NAMING CONVENTION ANALYSIS ===
+File Name Violations: 1
+Identifier Violations: 0
+Package Name Violations: 0
+Overall Naming Score: 0.90
+
+Top 1 File Name Violations:
+File                                     Violation            Suggested Name                
+--------------------------------------------------------------------------------
+test.go                                  improper_test_name   impl.go                       
+
+=== MAINTENANCE BURDEN ===
+Magic Numbers: 2
+Dead Code (Unreferenced): 2 functions
+Dead Code (Unreachable): 0 blocks
+Dead Code Percentage: 0.00%
+Complex Signatures: 0
+Deeply Nested Functions: 0
+Feature Envy Methods: 0
+
+Top 2 Magic Numbers:
+Value                File                               Line Context
+--------------------------------------------------------------------------------
+"fmt"                /tmp/TestAnalyzeCommandFile...        3 expression
+"Hello, world!"      /tmp/TestAnalyzeCommandFile...        6 function_call
+
+
+=== ANALYSIS COMPLETE ===
+Report generated by go-stats-generator v1.0.0
+
+Processing files: 1/6 (16.7%)Processing files: 2/6 (33.3%)Processing files: 3/6 (50.0%)Processing files: 4/6 (66.7%)Processing files: 5/6 (83.3%)Processing files: 6/6 (100.0%)Processing files: 6/6 (100.0%){
+  "count": 0,
+  "snapshots": null
+}
+No baseline snapshots found.
+No baseline snapshots found.
+No baseline snapshots found.
+goos: linux
+goarch: amd64
+pkg: github.com/opd-ai/go-stats-generator/cmd
+cpu: AMD Ryzen 7 7735HS with Radeon Graphics        
+BenchmarkFullAnalysis_CurrentCodebase-16       	       3	 177726152 ns/op	145543056 B/op	 1063908 allocs/op
+--- BENCH: BenchmarkFullAnalysis_CurrentCodebase-16
+    analyze_bench_test.go:34: Analyzing 178 Go files in /home/user/go/src/github.com/opd-ai/go-stats-generator
+    analyze_bench_test.go:34: Analyzing 178 Go files in /home/user/go/src/github.com/opd-ai/go-stats-generator
+
+BenchmarkFullAnalysis_WithMemoryTracking-16    	
+       3	 181318837 ns/op	        11.13 MB_peak	       178.0 files	         0.1804 sec/op	145466618 B/op	 1063859 allocs/op
+--- BENCH: BenchmarkFullAnalysis_WithMemoryTracking-16
+    analyze_bench_test.go:107: Performance: 982 files/sec, Peak memory: 11.1 MB
+    analyze_bench_test.go:107: Performance: 987 files/sec, Peak memory: 11.1 MB
+PASS
+ok  	github.com/opd-ai/go-stats-generator/cmd	2.361s

@@ -53,7 +53,7 @@
 
 ### LOW
 
-- [ ] **CSV/Markdown formats undocumented** — README:34 — README claims "Multiple Output Formats: Console, JSON, HTML, CSV, and Markdown" but provides zero documentation on CSV/Markdown output structure, use cases, or examples. HTML/JSON are well-documented, console has examples, but CSV/Markdown appear to be afterthoughts. Tested CSV output successfully generates (see /tmp/test-report.csv) but users have no guidance on when to use it.
+- [x] **CSV/Markdown formats undocumented** — README:34 — README claims "Multiple Output Formats: Console, JSON, HTML, CSV, and Markdown" but provides zero documentation on CSV/Markdown output structure, use cases, or examples. **RESOLVED**: Added comprehensive "Output Formats" section to README.md with detailed documentation for all 5 formats (Console, JSON, HTML, CSV, Markdown). Each format now has feature descriptions, use cases, examples, structure documentation, and tips. Added format comparison table and section filtering documentation. Updated --format flag description in flags table to list all 5 formats. CSV documentation includes column definitions, section structure, and import tips. Markdown documentation covers GitHub-flavored features, emoji indicators, and copy-paste workflows.
 
 - [ ] **Test quality section exists but undocumented** — /tmp/full-baseline.json:test_quality — JSON includes test_quality and test_coverage sections (with --skip-tests these are empty). README mentions "Test coverage >85% for business logic" in contributing guidelines but never documents the test quality/coverage analysis features for end users. These appear to be hidden features not exposed in user-facing docs.
 
