@@ -42,8 +42,8 @@ func TestJSONReporter_StreamingMode(t *testing.T) {
 	// Write functions section
 	functions := []metrics.FunctionMetrics{
 		{
-			Name: "TestFunction",
-			File: "test.go",
+			Name:  "TestFunction",
+			File:  "test.go",
 			Lines: metrics.LineMetrics{Total: 10, Code: 8, Comments: 1, Blank: 1},
 			Complexity: metrics.ComplexityScore{
 				Cyclomatic: 3,
@@ -100,15 +100,15 @@ func TestJSONReporter_StreamingMatchesNonStreaming(t *testing.T) {
 		},
 		Functions: []metrics.FunctionMetrics{
 			{
-				Name: "TestFunction",
-				File: "test.go",
+				Name:  "TestFunction",
+				File:  "test.go",
 				Lines: metrics.LineMetrics{Total: 10, Code: 8, Comments: 1, Blank: 1},
 				Complexity: metrics.ComplexityScore{
 					Cyclomatic: 3,
 				},
 			},
 		},
-		Packages: []metrics.PackageMetrics{},
+		Packages:             []metrics.PackageMetrics{},
 		CircularDependencies: []metrics.CircularDependency{},
 	}
 

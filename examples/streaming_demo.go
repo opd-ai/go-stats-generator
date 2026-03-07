@@ -26,7 +26,7 @@ func main() {
 
 	// Write using streaming API
 	var buf bytes.Buffer
-	
+
 	if err := rep.BeginReport(&buf, metadata); err != nil {
 		panic(err)
 	}
@@ -42,13 +42,13 @@ func main() {
 
 	functions := []metrics.FunctionMetrics{
 		{
-			Name: "TestFunc1",
-			File: "test.go",
+			Name:  "TestFunc1",
+			File:  "test.go",
 			Lines: metrics.LineMetrics{Total: 10, Code: 8, Comments: 1, Blank: 1},
 		},
 		{
-			Name: "TestFunc2",
-			File: "test.go",
+			Name:  "TestFunc2",
+			File:  "test.go",
 			Lines: metrics.LineMetrics{Total: 20, Code: 18, Comments: 1, Blank: 1},
 		},
 	}
