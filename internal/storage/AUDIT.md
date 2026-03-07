@@ -18,11 +18,11 @@ The `internal/storage` package provides persistence for historical metrics throu
 ## Issues Found
 
 ### High Priority
-- [ ] **high** complexity — List function exceeds cyclomatic complexity threshold (`json.go:List`, cyclomatic: 14)
-- [ ] **high** function-length — List function exceeds 30 line threshold (`json.go:List`, 63 lines)
-- [ ] **high** function-length — Retrieve function exceeds 30 line threshold (`sqlite.go:Retrieve`, 61 lines)
-- [ ] **high** function-length — Store function exceeds 30 line threshold (`sqlite.go:Store`, 56 lines)
-- [ ] **high** function-length — initSchema function exceeds 30 line threshold (`sqlite.go:initSchema`, 50 lines)
+- [x] **high** complexity — List function exceeds cyclomatic complexity threshold (`json.go:List`, cyclomatic: 14) — **FIXED**: Refactored to 7 code lines, complexity 2
+- [x] **high** function-length — List function exceeds 30 line threshold (`json.go:List`, 63 lines) — **FIXED**: Refactored to 7 code lines
+- [x] **high** function-length — Retrieve function exceeds 30 line threshold (`sqlite.go:Retrieve`, 61 lines) — **FIXED**: Refactored to 17 code lines
+- [x] **high** function-length — Store function exceeds 30 line threshold (`sqlite.go:Store`, 56 lines) — **FIXED**: Refactored to 16 code lines
+- [x] **high** function-length — initSchema function exceeds 30 line threshold (`sqlite.go:initSchema`, 50 lines) — **FIXED**: Refactored to 11 code lines by extracting SQL constants and helper methods
 - [ ] **high** test-coverage — Package coverage at 49.2% is below 65% threshold
 
 ### Medium Priority

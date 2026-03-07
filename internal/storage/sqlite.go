@@ -24,6 +24,45 @@ type SQLiteStorage struct {
 	config SQLiteConfig
 }
 
+const (
+	createSnapshotsTableSQL = `
+	CREATE TABLE IF NOT EXISTS snapshots (
+		id TEXT PRIMARY KEY,
+		timestamp DATETIME NOT NULL,
+		git_commit TEXT,
+		git_branch TEXT,
+		git_tag TEXT,
+		version TEXT,
+		author TEXT,
+		description TEXT,
+		size_bytes INTEGER NOT NULL,
+		data_compressed BLOB NOT NULL,
+		mbi_score_avg REAL,
+		duplication_ratio REAL,
+		doc_coverage REAL,
+		complexity_violations INTEGER,
+		naming_violations INTEGER,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	createTagsTableSQL = `
+	CREATE TABLE IF NOT EXISTS snapshot_tags (
+		snapshot_id TEXT NOT NULL,
+		key TEXT NOT NULL,
+		value TEXT NOT NULL,
+		PRIMARY KEY (snapshot_id, key),
+		FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE
+	);`
+)
+
+var schemaIndexes = []string{
+	"CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON snapshots(timestamp)",
+	"CREATE INDEX IF NOT EXISTS idx_snapshots_branch ON snapshots(git_branch)",
+	"CREATE INDEX IF NOT EXISTS idx_snapshots_tag ON snapshots(git_tag)",
+	"CREATE INDEX IF NOT EXISTS idx_tags_key ON snapshot_tags(key)",
+	"CREATE INDEX IF NOT EXISTS idx_tags_value ON snapshot_tags(value)",
+}
+
 // NewSQLiteStorageImpl creates a new SQLite storage instance with persistent database file for baseline retention.
 // Automatically creates the database directory if it doesn't exist and initializes schema with compression enabled.
 // Provides ACID guarantees for metric snapshots, making it suitable for production trend analysis and baseline management.
@@ -97,65 +136,41 @@ func (s *SQLiteStorage) configure() error {
 func (s *SQLiteStorage) initSchema() error {
 	ctx := context.Background()
 
-	// Create snapshots table
-	createSnapshotsTable := `
-	CREATE TABLE IF NOT EXISTS snapshots (
-		id TEXT PRIMARY KEY,
-		timestamp DATETIME NOT NULL,
-		git_commit TEXT,
-		git_branch TEXT,
-		git_tag TEXT,
-		version TEXT,
-		author TEXT,
-		description TEXT,
-		size_bytes INTEGER NOT NULL,
-		data_compressed BLOB NOT NULL,
-		mbi_score_avg REAL,
-		duplication_ratio REAL,
-		doc_coverage REAL,
-		complexity_violations INTEGER,
-		naming_violations INTEGER,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
-
-	if _, err := s.db.ExecContext(ctx, createSnapshotsTable); err != nil {
-		return fmt.Errorf("failed to create snapshots table: %w", err)
+	if err := s.createSnapshotsTable(ctx); err != nil {
+		return err
 	}
 
-	// Migrate existing schema if burden columns don't exist
 	if err := s.migrateSchema(ctx); err != nil {
 		return fmt.Errorf("failed to migrate schema: %w", err)
 	}
 
-	// Create tags table for key-value metadata
-	createTagsTable := `
-	CREATE TABLE IF NOT EXISTS snapshot_tags (
-		snapshot_id TEXT NOT NULL,
-		key TEXT NOT NULL,
-		value TEXT NOT NULL,
-		PRIMARY KEY (snapshot_id, key),
-		FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE
-	);`
+	if err := s.createTagsTable(ctx); err != nil {
+		return err
+	}
 
-	if _, err := s.db.ExecContext(ctx, createTagsTable); err != nil {
+	return s.createSchemaIndexes(ctx)
+}
+
+func (s *SQLiteStorage) createSnapshotsTable(ctx context.Context) error {
+	if _, err := s.db.ExecContext(ctx, createSnapshotsTableSQL); err != nil {
+		return fmt.Errorf("failed to create snapshots table: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLiteStorage) createTagsTable(ctx context.Context) error {
+	if _, err := s.db.ExecContext(ctx, createTagsTableSQL); err != nil {
 		return fmt.Errorf("failed to create tags table: %w", err)
 	}
+	return nil
+}
 
-	// Create indexes for performance
-	indexes := []string{
-		"CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON snapshots(timestamp)",
-		"CREATE INDEX IF NOT EXISTS idx_snapshots_branch ON snapshots(git_branch)",
-		"CREATE INDEX IF NOT EXISTS idx_snapshots_tag ON snapshots(git_tag)",
-		"CREATE INDEX IF NOT EXISTS idx_tags_key ON snapshot_tags(key)",
-		"CREATE INDEX IF NOT EXISTS idx_tags_value ON snapshot_tags(value)",
-	}
-
-	for _, indexSQL := range indexes {
+func (s *SQLiteStorage) createSchemaIndexes(ctx context.Context) error {
+	for _, indexSQL := range schemaIndexes {
 		if _, err := s.db.ExecContext(ctx, indexSQL); err != nil {
 			return fmt.Errorf("failed to create index: %w", err)
 		}
 	}
-
 	return nil
 }
 
