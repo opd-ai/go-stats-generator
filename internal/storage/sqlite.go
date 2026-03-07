@@ -403,12 +403,7 @@ func (s *SQLiteStorage) fetchSnapshotData(ctx context.Context, id string, snapsh
 
 // populateNullableFields converts SQL nullable fields to metadata fields
 func (s *SQLiteStorage) populateNullableFields(metadata *metrics.SnapshotMetadata, gitCommit, gitBranch, gitTag, version, author, description sql.NullString) {
-	metadata.GitCommit = gitCommit.String
-	metadata.GitBranch = gitBranch.String
-	metadata.GitTag = gitTag.String
-	metadata.Version = version.String
-	metadata.Author = author.String
-	metadata.Description = description.String
+	populateNullableStrings(&metadata.GitCommit, &metadata.GitBranch, &metadata.GitTag, &metadata.Version, &metadata.Author, &metadata.Description, gitCommit, gitBranch, gitTag, version, author, description)
 }
 
 // loadSnapshotTags retrieves tags associated with the snapshot
@@ -573,20 +568,21 @@ func (s *SQLiteStorage) scanSnapshotInfo(rows *sql.Rows) (SnapshotInfo, error) {
 		return info, fmt.Errorf("failed to scan snapshot: %w", err)
 	}
 
-	populateNullableStrings(&info, gitCommit, gitBranch, gitTag, version, author, description)
+	populateNullableStrings(&info.GitCommit, &info.GitBranch, &info.GitTag, &info.Version, &info.Author, &info.Description, gitCommit, gitBranch, gitTag, version, author, description)
 	populateBurdenMetrics(&info, mbiScoreAvg, duplicationRatio, docCoverage, complexityViolations, namingViolations)
 
 	return info, nil
 }
 
-// populateNullableStrings sets string fields from nullable SQL values.
-func populateNullableStrings(info *SnapshotInfo, gitCommit, gitBranch, gitTag, version, author, description sql.NullString) {
-	info.GitCommit = gitCommit.String
-	info.GitBranch = gitBranch.String
-	info.GitTag = gitTag.String
-	info.Version = version.String
-	info.Author = author.String
-	info.Description = description.String
+// populateNullableStrings sets string pointer fields from nullable SQL values.
+// This helper function eliminates duplication between SnapshotInfo and SnapshotMetadata population.
+func populateNullableStrings(gitCommitDest, gitBranchDest, gitTagDest, versionDest, authorDest, descriptionDest *string, gitCommit, gitBranch, gitTag, version, author, description sql.NullString) {
+	*gitCommitDest = gitCommit.String
+	*gitBranchDest = gitBranch.String
+	*gitTagDest = gitTag.String
+	*versionDest = version.String
+	*authorDest = author.String
+	*descriptionDest = description.String
 }
 
 // populateBurdenMetrics sets burden metric fields from nullable SQL values.
