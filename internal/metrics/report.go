@@ -517,16 +517,16 @@ type DuplicationMetrics struct {
 
 // ClonePair represents a set of duplicated code blocks
 type ClonePair struct {
-	Hash       string          `json:"hash"`
-	Type       CloneType       `json:"type"`
-	Instances  []CloneInstance `json:"instances"`
-	LineCount  int             `json:"line_count"`
-	Severity   string          `json:"severity"`
-	Suggestion string          `json:"suggestion"`
-	ItemName   string          `json:"item_name,omitempty"`
-	Metric     string          `json:"metric,omitempty"`
-	ActualValue float64        `json:"actual_value,omitempty"`
-	Threshold   float64        `json:"threshold,omitempty"`
+	Hash        string          `json:"hash"`
+	Type        CloneType       `json:"type"`
+	Instances   []CloneInstance `json:"instances"`
+	LineCount   int             `json:"line_count"`
+	Severity    string          `json:"severity"`
+	Suggestion  string          `json:"suggestion"`
+	ItemName    string          `json:"item_name,omitempty"`
+	Metric      string          `json:"metric,omitempty"`
+	ActualValue float64         `json:"actual_value,omitempty"`
+	Threshold   float64         `json:"threshold,omitempty"`
 }
 
 // CloneInstance represents a single instance of duplicated code
