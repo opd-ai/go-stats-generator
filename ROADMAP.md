@@ -211,16 +211,18 @@ These features are described in `docs/LLM_SLOP_PREVENTION.md` and represent the 
 
 #### 4A. Go-Specific Slop Pattern Detections (New Analyzers)
 
-The following slop patterns are documented in the anti-slop architecture but not yet implemented as dedicated detectors. Each should produce structured JSON output with file, line, metric, actual_value, threshold, severity, and suggestion fields.
+The following slop patterns are documented in the anti-slop architecture. Each produces structured JSON output with file, line, metric, actual_value, threshold, severity, and suggestion fields.
 
-1. **Bare error return detection** — Detect `if err != nil { return err }` without `fmt.Errorf` wrapping. Flag bare `return err` statements that lack error context annotation. Priority: high (most common LLM slop pattern in Go)
-2. **`interface{}` / `any` overuse detection** — Measure empty interface parameter and return density per function/package. Flag usage outside genuinely generic utility functions. Threshold: configurable max `any` parameter ratio
-3. **`init()` proliferation detection** — Count `init()` functions per package and measure their cyclomatic complexity. Flag packages with multiple `init()` functions or complex initialization logic. Threshold: configurable max `init()` count per package
-4. **Naked return detection in long functions** — Detect named returns with naked `return` in functions exceeding a line threshold (~10 lines). Short functions with named returns are idiomatic; long functions with naked returns harm readability
+1. ✅ **Bare error return detection** — IMPLEMENTED. Detects `if err != nil { return err }` without `fmt.Errorf` wrapping. Flags bare `return err` statements that lack error context annotation. (Completed: 2026-03-07)
+2. ✅ **`interface{}` / `any` overuse detection** — IMPLEMENTED. Measures empty interface parameter and return density per function/package. Flags usage outside genuinely generic utility functions with configurable max `any` parameter ratio. (Completed: 2026-03-07)
+3. ✅ **`init()` proliferation detection** — IMPLEMENTED. Counts `init()` functions per package and measures their cyclomatic complexity. Flags packages with multiple `init()` functions or complex initialization logic (threshold: 5 complexity). (Completed: 2026-03-07)
+4. ✅ **Naked return detection in long functions** — IMPLEMENTED. Detects named returns with naked `return` in functions exceeding 10 lines. Short functions with named returns are idiomatic; long functions with naked returns harm readability. (Completed: 2026-03-07)
 5. **`panic()` in library code detection** — Flag `panic()` and `log.Fatal()` calls in non-`main` packages (excluding `init()` functions). Library code should return errors, not terminate the process
 6. **Giant `switch`/`if-else` chain detection** — Count branches per switch/if-else statement. Flag statements exceeding a configurable branch threshold. Suggest dispatch maps or strategy patterns as alternatives
 7. **Unused receiver name detection** — Identify method receivers that are never referenced in the method body. Suggest converting to a plain function or using `_` as the receiver name
 8. **Test-only export detection** — Detect exported symbols with zero cross-package references outside `_test.go` files. Suggest using `export_test.go` patterns or restructuring to test via the public API
+
+**Status**: 4/8 detectors implemented (50% complete). All implemented detectors produce structured violations in JSON reports with actionable suggestions.
 
 **Acceptance criteria**: Each detector produces structured violations in the JSON report with actionable suggestions. All detectors are configurable via CLI flags and `.go-stats-generator.yaml`.
 
