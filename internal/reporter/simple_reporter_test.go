@@ -79,7 +79,7 @@ func TestNewReporter_AllTypes(t *testing.T) {
 }
 
 func TestCreateReporter_AllTypes(t *testing.T) {
-	types := []ReporterType{TypeJSON, TypeCSV, TypeHTML, TypeMarkdown, TypeConsole}
+	types := []Type{TypeJSON, TypeCSV, TypeHTML, TypeMarkdown, TypeConsole}
 	for _, rtype := range types {
 		reporter := CreateReporter(rtype, nil)
 		assert.NotNil(t, reporter)

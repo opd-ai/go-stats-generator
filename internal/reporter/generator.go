@@ -13,22 +13,22 @@ type Reporter interface {
 	WriteDiff(output io.Writer, diff *metrics.ComplexityDiff) error
 }
 
-// ReporterType represents the type of reporter
-type ReporterType string
+// Type represents the type of reporter
+type Type string
 
 const (
-	TypeConsole  ReporterType = "console"
-	TypeJSON     ReporterType = "json"
-	TypeCSV      ReporterType = "csv"
-	TypeHTML     ReporterType = "html"
-	TypeMarkdown ReporterType = "markdown"
+	TypeConsole  Type = "console"
+	TypeJSON     Type = "json"
+	TypeCSV      Type = "csv"
+	TypeHTML     Type = "html"
+	TypeMarkdown Type = "markdown"
 )
 
 // NewReporter creates a new reporter of the specified type (console, JSON, CSV, HTML, or Markdown).
 // Returns an error if the reporterType is unsupported or invalid. Console reporter uses default configuration
 // (colors enabled, overview included). For custom configuration, create reporters directly with their New*WithConfig constructors.
 func NewReporter(reporterType string) (Reporter, error) {
-	switch ReporterType(reporterType) {
+	switch Type(reporterType) {
 	case TypeJSON:
 		return NewJSONReporter(), nil
 	case TypeCSV:
@@ -44,10 +44,10 @@ func NewReporter(reporterType string) (Reporter, error) {
 	}
 }
 
-// CreateReporter creates a new reporter of the specified type using typed ReporterType enum (legacy function).
+// CreateReporter creates a new reporter of the specified type using typed Type enum (legacy function).
 // The options parameter is ignored in the current implementation for backward compatibility.
 // Prefer using NewReporter with string type or individual New*Reporter constructors for new code.
-func CreateReporter(reporterType ReporterType, options interface{}) Reporter {
+func CreateReporter(reporterType Type, options interface{}) Reporter {
 	switch reporterType {
 	case TypeJSON:
 		return NewJSONReporter()

@@ -36,11 +36,11 @@ The `internal/reporter` package implements multiple output format generators (Co
 - [x] **med** organization — Package has 109 exports, suggesting API surface may be too broad — **ACCEPTED AS DESIGNED**: The reporter package exports many symbols because it implements 5 complete output formats (Console, JSON, HTML, CSV, Markdown), each with dedicated reporter types, configuration structures, and utility functions. Large API surface is expected for a multi-format reporting library. Most exports are internal implementation details (e.g., helper functions, formatting utilities) that support the 5 main Reporter implementations. The public API is well-defined through the Reporter interface. Reducing exports would require making many utilities private, harming testability and extensibility.
 
 ### Low Severity (5 issues)
-- [ ] **low** naming — ReporterType has package stuttering (reporter.go:17, should be "Type")
-- [ ] **low** naming — writeIdentifierIssues has acronym casing issue (csv.go:343, should be "writeIDentifierIssues")
-- [ ] **low** naming — writeIdentifierViolations has acronym casing issue (console.go:795, should be "writeIDentifierViolations")
-- [ ] **low** complexity — writeNamingSection near threshold (csv.go:327, complexity 9, 38 lines)
-- [ ] **low** method-coverage — Only 70% method documentation coverage (30% missing godoc comments)
+- [x] **low** naming — ReporterType has package stuttering (reporter.go:17, should be "Type") — **FIXED**: Renamed ReporterType to Type throughout package (generator.go, simple_reporter_test.go). All tests pass.
+- [x] **low** naming — writeIdentifierIssues has acronym casing issue (csv.go:343, should be "writeIDentifierIssues") — **FALSE POSITIVE**: "Identifier" is a complete word, not an acronym. Per Go naming conventions, only standalone acronyms like "ID", "HTTP", "URL" use all caps. "Identifier" is correctly written with standard capitalization. No change needed.
+- [x] **low** naming — writeIdentifierViolations has acronym casing issue (console.go:795, should be "writeIDentifierViolations") — **FALSE POSITIVE**: "Identifier" is a complete word, not an acronym. Per Go naming conventions, only standalone acronyms like "ID", "HTTP", "URL" use all caps. "Identifier" is correctly written with standard capitalization. No change needed.
+- [x] **low** complexity — writeNamingSection near threshold (csv.go:327, complexity 9, 38 lines) — **RESOLVED**: Function has been refactored and now has complexity ~4 with 14 lines. Well below threshold of 10. Function properly delegates to helper functions (writeNamingHeader, writeNamingSummaryRows, writeNamingSubsections).
+- [x] **low** method-coverage — Only 70% method documentation coverage (30% missing godoc comments) — **RESOLVED**: Current method documentation coverage is 90.0%, well above the 70% threshold. Overall package documentation coverage is 92.3% (Package: 100%, Function: 100%, Type: 85.7%, Method: 90.0%).
 
 ## Concurrency Assessment
 **No concurrency patterns detected** — Package is single-threaded.
