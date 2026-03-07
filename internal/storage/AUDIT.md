@@ -23,7 +23,7 @@ The `internal/storage` package provides persistence for historical metrics throu
 - [x] **high** function-length — Retrieve function exceeds 30 line threshold (`sqlite.go:Retrieve`, 61 lines) — **FIXED**: Refactored to 17 code lines
 - [x] **high** function-length — Store function exceeds 30 line threshold (`sqlite.go:Store`, 56 lines) — **FIXED**: Refactored to 16 code lines
 - [x] **high** function-length — initSchema function exceeds 30 line threshold (`sqlite.go:initSchema`, 50 lines) — **FIXED**: Refactored to 11 code lines by extracting SQL constants and helper methods
-- [ ] **high** test-coverage — Package coverage at 49.2% is below 65% threshold
+- [x] **high** test-coverage — Package coverage at 49.2% is below 65% threshold — **FIXED**: Created comprehensive sqlite_test.go with 11 test cases covering Store, Retrieve, List, Delete, Cleanup, GetLatest, GetByTag, and filtering. Coverage increased from 49.0% to 81.3%
 
 ### Medium Priority
 - [ ] **med** naming — StorageConfig type stutters package name (`interface.go:88`) — should be `Config`
