@@ -610,7 +610,20 @@ func (da *DuplicationAnalyzer) sortClonePairs(clonePairs []metrics.ClonePair) {
 // overlapping blocks that normalize to the same hash; this function keeps
 // only one representative per non-overlapping region in each file.
 func deduplicateOverlappingFingerprints(group []BlockFingerprint) []BlockFingerprint {
-	// Sort by file, then by start line, then by end line descending (largest first)
+	sortFingerprintsByLocation(group)
+
+	var result []BlockFingerprint
+	for _, fp := range group {
+		if !isOverlappingWithExisting(fp, result) {
+			result = append(result, fp)
+		}
+	}
+
+	return result
+}
+
+// sortFingerprintsByLocation sorts fingerprints by file, start line, then end line descending.
+func sortFingerprintsByLocation(group []BlockFingerprint) {
 	sort.Slice(group, func(i, j int) bool {
 		if group[i].File != group[j].File {
 			return group[i].File < group[j].File
@@ -620,26 +633,16 @@ func deduplicateOverlappingFingerprints(group []BlockFingerprint) []BlockFingerp
 		}
 		return group[i].EndLine > group[j].EndLine
 	})
+}
 
-	var result []BlockFingerprint
-	for _, fp := range group {
-		merged := false
-		// Since results are sorted by file, only check backwards within the same file
-		for i := len(result) - 1; i >= 0 && result[i].File == fp.File; i-- {
-			// Check if fp overlaps with result[i]
-			if fp.StartLine <= result[i].EndLine {
-				// Overlapping region: keep the existing representative fingerprint as-is
-				// and discard this one to avoid changing the hashed/classified range.
-				merged = true
-				break
-			}
-		}
-		if !merged {
-			result = append(result, fp)
+// isOverlappingWithExisting checks if a fingerprint overlaps with any in the result set.
+func isOverlappingWithExisting(fp BlockFingerprint, result []BlockFingerprint) bool {
+	for i := len(result) - 1; i >= 0 && result[i].File == fp.File; i-- {
+		if fp.StartLine <= result[i].EndLine {
+			return true
 		}
 	}
-
-	return result
+	return false
 }
 
 // claimedRange represents a line range that has been claimed by an accepted clone pair.
@@ -653,34 +656,43 @@ func filterSubsumedClonePairs(pairs []metrics.ClonePair) []metrics.ClonePair {
 		return pairs
 	}
 
-	// Sort by line count descending so we process largest pairs first
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].LineCount > pairs[j].LineCount
-	})
+	sortPairsByLineCount(pairs)
 
-	// Track claimed line ranges per file from already-accepted pairs.
 	claimed := make(map[string][]claimedRange)
-
 	var kept []metrics.ClonePair
 
 	for _, pair := range pairs {
-		allSubsumed := true
-		for _, inst := range pair.Instances {
-			if !isRangeSubsumed(inst.File, inst.StartLine, inst.EndLine, claimed) {
-				allSubsumed = false
-				break
-			}
-		}
-
-		if !allSubsumed {
+		if !areAllInstancesSubsumed(pair, claimed) {
 			kept = append(kept, pair)
-			for _, inst := range pair.Instances {
-				claimed[inst.File] = append(claimed[inst.File], claimedRange{inst.StartLine, inst.EndLine})
-			}
+			claimPairRanges(pair, claimed)
 		}
 	}
 
 	return kept
+}
+
+// sortPairsByLineCount sorts clone pairs by line count descending.
+func sortPairsByLineCount(pairs []metrics.ClonePair) {
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].LineCount > pairs[j].LineCount
+	})
+}
+
+// areAllInstancesSubsumed checks if all instances in a pair are subsumed by claimed ranges.
+func areAllInstancesSubsumed(pair metrics.ClonePair, claimed map[string][]claimedRange) bool {
+	for _, inst := range pair.Instances {
+		if !isRangeSubsumed(inst.File, inst.StartLine, inst.EndLine, claimed) {
+			return false
+		}
+	}
+	return true
+}
+
+// claimPairRanges adds all instances of a pair to the claimed ranges.
+func claimPairRanges(pair metrics.ClonePair, claimed map[string][]claimedRange) {
+	for _, inst := range pair.Instances {
+		claimed[inst.File] = append(claimed[inst.File], claimedRange{inst.StartLine, inst.EndLine})
+	}
 }
 
 // isRangeSubsumed checks whether a line range is fully contained within
@@ -691,7 +703,12 @@ func isRangeSubsumed(file string, start, end int, claimed map[string][]claimedRa
 		return false
 	}
 
-	// Work on a sorted copy to avoid repeatedly scanning an unsorted, growing slice.
+	sorted := sortClaimedRanges(ranges)
+	return checkRangeInSorted(start, end, sorted)
+}
+
+// sortClaimedRanges creates a sorted copy of claimed ranges.
+func sortClaimedRanges(ranges []claimedRange) []claimedRange {
 	sorted := make([]claimedRange, len(ranges))
 	copy(sorted, ranges)
 
@@ -702,26 +719,24 @@ func isRangeSubsumed(file string, start, end int, claimed map[string][]claimedRa
 		return sorted[i].start < sorted[j].start
 	})
 
-	// Binary search for the last range with start <= query start.
+	return sorted
+}
+
+// checkRangeInSorted checks if a range is contained in any sorted claimed range.
+func checkRangeInSorted(start, end int, sorted []claimedRange) bool {
 	idx := sort.Search(len(sorted), func(i int) bool {
 		return sorted[i].start > start
 	}) - 1
 
-	if idx >= 0 {
-		r := sorted[idx]
-		if start >= r.start && end <= r.end {
-			return true
-		}
-	}
+	return isContainedInRange(idx, start, end, sorted) || 
+	       isContainedInRange(idx+1, start, end, sorted)
+}
 
-	// Also check the next range (in case of non-overlapping ranges where the
-	// query starts inside the gap but ends inside the following range).
-	nextIdx := idx + 1
-	if nextIdx >= 0 && nextIdx < len(sorted) {
-		r := sorted[nextIdx]
-		if start >= r.start && end <= r.end {
-			return true
-		}
+// isContainedInRange checks if start-end is contained in sorted[idx] if idx is valid.
+func isContainedInRange(idx, start, end int, sorted []claimedRange) bool {
+	if idx >= 0 && idx < len(sorted) {
+		r := sorted[idx]
+		return start >= r.start && end <= r.end
 	}
 	return false
 }
