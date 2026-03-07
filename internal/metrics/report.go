@@ -507,10 +507,12 @@ type DuplicationMetrics struct {
 
 // ClonePair represents a set of duplicated code blocks
 type ClonePair struct {
-	Hash      string          `json:"hash"`
-	Type      CloneType       `json:"type"`
-	Instances []CloneInstance `json:"instances"`
-	LineCount int             `json:"line_count"`
+	Hash       string          `json:"hash"`
+	Type       CloneType       `json:"type"`
+	Instances  []CloneInstance `json:"instances"`
+	LineCount  int             `json:"line_count"`
+	Severity   string          `json:"severity"`
+	Suggestion string          `json:"suggestion"`
 }
 
 // CloneInstance represents a single instance of duplicated code
@@ -1045,13 +1047,15 @@ type BurdenMetrics struct {
 
 // MagicNumber represents a detected magic number or string
 type MagicNumber struct {
-	File     string `json:"file"`
-	Line     int    `json:"line"`
-	Column   int    `json:"column"`
-	Value    string `json:"value"`
-	Type     string `json:"type"`
-	Context  string `json:"context"`
-	Function string `json:"function"`
+	File       string `json:"file"`
+	Line       int    `json:"line"`
+	Column     int    `json:"column"`
+	Value      string `json:"value"`
+	Type       string `json:"type"`
+	Context    string `json:"context"`
+	Function   string `json:"function"`
+	Severity   string `json:"severity"`
+	Suggestion string `json:"suggestion"`
 }
 
 // DeadCodeMetrics contains dead code detection results
@@ -1090,6 +1094,7 @@ type SignatureIssue struct {
 	ReturnCount    int      `json:"return_count"`
 	BoolParams     []string `json:"bool_params,omitempty"`
 	Severity       string   `json:"severity"`
+	Suggestion     string   `json:"suggestion"`
 }
 
 // NestingIssue represents deep nesting in a function
@@ -1099,6 +1104,7 @@ type NestingIssue struct {
 	Line       int    `json:"line"`
 	MaxDepth   int    `json:"max_depth"`
 	Location   string `json:"location"`
+	Severity   string `json:"severity"`
 	Suggestion string `json:"suggestion"`
 }
 
@@ -1112,6 +1118,7 @@ type FeatureEnvyIssue struct {
 	ExternalType   string  `json:"external_type"`
 	ExternalRefs   int     `json:"external_references"`
 	Ratio          float64 `json:"ratio"`
+	Severity       string  `json:"severity"`
 	SuggestedMove  string  `json:"suggested_move"`
 }
 

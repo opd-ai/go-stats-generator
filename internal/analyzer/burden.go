@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 
@@ -119,15 +120,27 @@ func (ba *BurdenAnalyzer) isBenignNumber(value string) bool {
 // createMagicNumber constructs a MagicNumber metric from a literal and its context
 func (ba *BurdenAnalyzer) createMagicNumber(lit *ast.BasicLit, file *ast.File, fn, typ string) *metrics.MagicNumber {
 	pos := ba.fset.Position(lit.Pos())
+	severity, suggestion := ba.getMagicNumberSeverityAndSuggestion(typ, lit.Value)
+
 	return &metrics.MagicNumber{
-		File:     pos.Filename,
-		Line:     pos.Line,
-		Column:   pos.Column,
-		Value:    lit.Value,
-		Type:     typ,
-		Context:  ba.extractContext(lit, file),
-		Function: fn,
+		File:       pos.Filename,
+		Line:       pos.Line,
+		Column:     pos.Column,
+		Value:      lit.Value,
+		Type:       typ,
+		Context:    ba.extractContext(lit, file),
+		Function:   fn,
+		Severity:   severity,
+		Suggestion: suggestion,
 	}
+}
+
+// getMagicNumberSeverityAndSuggestion determines severity and suggestion for magic numbers
+func (ba *BurdenAnalyzer) getMagicNumberSeverityAndSuggestion(typ, value string) (string, string) {
+	if typ == "string" {
+		return "info", "Consider extracting string literal into a const if reused or semantically meaningful"
+	}
+	return "warning", fmt.Sprintf("Extract %s literal '%s' into a named constant for better maintainability", typ, value)
 }
 
 // extractContext finds the statement context for a literal by inspecting the AST
@@ -550,6 +563,7 @@ func (ba *BurdenAnalyzer) AnalyzeSignatureComplexity(fn *ast.FuncDecl, maxParams
 
 	severity := ba.calculateSeverity(paramCount, returnCount, maxParams, maxReturns)
 	pos := ba.fset.Position(fn.Pos())
+	suggestion := ba.getSignatureSuggestion(paramCount, returnCount, maxParams, maxReturns, boolParams)
 
 	return &metrics.SignatureIssue{
 		Function:       fn.Name.Name,
@@ -559,7 +573,25 @@ func (ba *BurdenAnalyzer) AnalyzeSignatureComplexity(fn *ast.FuncDecl, maxParams
 		ReturnCount:    returnCount,
 		BoolParams:     boolParams,
 		Severity:       severity,
+		Suggestion:     suggestion,
 	}
+}
+
+// getSignatureSuggestion generates an actionable suggestion for complex function signatures
+func (ba *BurdenAnalyzer) getSignatureSuggestion(paramCount, returnCount, maxParams, maxReturns int, boolParams []string) string {
+	if paramCount > maxParams && returnCount > maxReturns {
+		return fmt.Sprintf("Function has %d parameters and %d returns. Consider using a config struct for parameters and a result struct for returns", paramCount, returnCount)
+	}
+	if paramCount > maxParams {
+		return fmt.Sprintf("Function has %d parameters. Consider grouping related parameters into a config struct or using functional options pattern", paramCount)
+	}
+	if returnCount > maxReturns {
+		return fmt.Sprintf("Function has %d return values. Consider using a result struct to group related returns", returnCount)
+	}
+	if len(boolParams) > 0 {
+		return fmt.Sprintf("Function has boolean parameters %v. Consider using functional options or command objects instead", boolParams)
+	}
+	return ""
 }
 
 // countParameters counts the total parameters in a function signature and
@@ -647,12 +679,19 @@ func (ba *BurdenAnalyzer) DetectDeepNesting(fn *ast.FuncDecl, maxNesting int) *m
 	pos := ba.fset.Position(fn.Pos())
 	locPos := ba.fset.Position(deepestLoc)
 
+	// Determine severity based on depth
+	severity := "warning"
+	if maxDepth > maxNesting+3 {
+		severity = "violation"
+	}
+
 	return &metrics.NestingIssue{
 		Function:   fn.Name.Name,
 		File:       pos.Filename,
 		Line:       pos.Line,
 		MaxDepth:   maxDepth,
 		Location:   locPos.String(),
+		Severity:   severity,
 		Suggestion: "Consider extracting nested logic into separate functions or using early returns/guard clauses",
 	}
 }
@@ -793,6 +832,13 @@ func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ra
 
 	pos := ba.fset.Position(fn.Pos())
 
+	// Determine severity based on ratio
+	envyRatio := float64(maxExtCount) / float64(max(selfRefs, 1))
+	severity := "warning"
+	if envyRatio > 3.0 {
+		severity = "violation"
+	}
+
 	return &metrics.FeatureEnvyIssue{
 		Method:         fn.Name.Name,
 		File:           pos.Filename,
@@ -801,7 +847,8 @@ func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ra
 		SelfReferences: selfRefs,
 		ExternalType:   maxExtType,
 		ExternalRefs:   maxExtCount,
-		Ratio:          float64(maxExtCount) / float64(max(selfRefs, 1)),
+		Ratio:          envyRatio,
+		Severity:       severity,
 		SuggestedMove:  "Consider moving this method to " + maxExtType + " or extracting shared logic",
 	}
 }

@@ -590,9 +590,26 @@ func (da *DuplicationAnalyzer) convertToClonePairs(duplicates map[string][]Block
 			LineCount: lineCount,
 		}
 		pair.Type = da.ClassifyClone(pair, group, similarityThreshold)
+		pair.Severity, pair.Suggestion = da.getCloneSeverityAndSuggestion(lineCount, len(instances), pair.Type)
+
 		clonePairs = append(clonePairs, pair)
 	}
 	return clonePairs
+}
+
+// getCloneSeverityAndSuggestion determines severity and suggestion for code clones
+func (da *DuplicationAnalyzer) getCloneSeverityAndSuggestion(lineCount, instanceCount int, cloneType metrics.CloneType) (string, string) {
+	severity := "warning"
+	if lineCount > 20 || instanceCount > 3 {
+		severity = "violation"
+	}
+
+	suggestion := fmt.Sprintf("Extract %d-line duplicate code block into a shared function. Found in %d locations", lineCount, instanceCount)
+	if cloneType == metrics.CloneTypeRenamed {
+		suggestion += ". Consider using generics or interface-based abstraction"
+	}
+
+	return severity, suggestion
 }
 
 // createCloneInstances builds CloneInstance records from fingerprints.
