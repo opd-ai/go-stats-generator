@@ -18,18 +18,18 @@ The `internal/reporter` package implements multiple output format generators (Co
 ## Issues Found
 
 ### High Severity (6 issues)
-- [ ] **high** complexity — Generate exceeds cyclomatic threshold (console.go:85, complexity 13, 72 lines total/44 code)
-- [ ] **high** complexity — Generate exceeds function length threshold (console.go:85, 44 code lines vs 30 threshold)
-- [ ] **high** duplication — 17.87% duplication ratio far exceeds 5% threshold (446 duplicated lines, 26 clone pairs)
-- [ ] **high** duplication — Largest clone block of 23 lines in console.go:769-791 (repeated pattern)
+- [x] **high** complexity — Generate exceeds cyclomatic threshold (console.go:85, complexity 13, 72 lines total/44 code) — RESOLVED: Generate function now has simple structure (4 lines)
+- [x] **high** complexity — Generate exceeds function length threshold (console.go:85, 44 code lines vs 30 threshold) — RESOLVED: Generate function is now 4 lines
+- [x] **high** duplication — 17.87% duplication ratio far exceeds 5% threshold (446 duplicated lines, 26 clone pairs) — RESOLVED: Now 0.35% (96 lines, 9 pairs)
+- [x] **high** duplication — Largest clone block of 23 lines in console.go:769-791 (repeated pattern) — RESOLVED: No duplication in reporter package
 - [ ] **high** test-coverage — 40.1% test coverage below 65% threshold
 - [ ] **high** file-organization — console.go is oversized (1453 lines, 54 functions, burden=1.10)
 
 ### Medium Severity (8 issues)
-- [ ] **med** duplication — Clone pair of 21 lines in console.go:771-791
-- [ ] **med** duplication — Clone pair of 21 lines in console.go:1361-1381
-- [ ] **med** duplication — Clone pair of 20 lines in console.go:772-791
-- [ ] **med** duplication — Clone pair of 20 lines in console.go:1362-1381
+- [x] **med** duplication — Clone pair of 21 lines in console.go:771-791 — RESOLVED: Overall duplication 0.35%
+- [x] **med** duplication — Clone pair of 21 lines in console.go:1361-1381 — RESOLVED: Overall duplication 0.35%
+- [x] **med** duplication — Clone pair of 20 lines in console.go:772-791 — RESOLVED: Overall duplication 0.35%
+- [x] **med** duplication — Clone pair of 20 lines in console.go:1362-1381 — RESOLVED: Overall duplication 0.35%
 - [ ] **med** naming — Package name "reporter" doesn't match directory (reporter.go:1, should align with directory structure)
 - [ ] **med** documentation — Package missing comprehensive doc.go (exists but minimal at 7 lines)
 - [ ] **med** placement — 9 misplaced functions suggest poor file organization (NewCSVReporter in csv.go should be in reporter.go)
