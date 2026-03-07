@@ -182,7 +182,7 @@ jobs:
           go-version: '1.23'
 
       - name: Install go-stats-generator
-        run: go install github.com/opd-ai/go-stats-generator@latest
+        run: go install github.com/opd-ai/go-stats-generator@v0.1.0  # pinned; update as needed
 
       - name: Analyze current code
         run: |
@@ -199,9 +199,9 @@ jobs:
             --enforce-thresholds
 
       - name: Diff against baseline (if available)
-        if: hashFiles('.baseline.json') != ''
+        if: hashFiles('baseline.json') != ''
         run: |
-          go-stats-generator diff .baseline.json current.json --changes-only
+          go-stats-generator diff baseline.json current.json --changes-only
 ```
 
 This turns the tool into an **automated slop firewall**: no PR with degraded metrics merges, whether the code was written by a human or an LLM.
