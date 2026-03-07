@@ -27,7 +27,7 @@
 
 ### CRITICAL
 
-- [ ] **Build failure in internal/api/storage** — internal/api/storage/postgres.go:112,170 — Package fails to build with "non-constant format string in call to fmt.Errorf" errors. This prevents `go test ./...` from completing successfully and blocks CI/CD quality gates. The README claims enterprise production-readiness but ships with build failures. Lines 112 and 170 use `fmt.Errorf(*errorText)` where errorText is a pointer to string, violating static analysis rules for error formatting.
+- [x] **Build failure in internal/api/storage** — internal/api/storage/postgres.go:112,170 — Package fails to build with "non-constant format string in call to fmt.Errorf" errors. This prevents `go test ./...` from completing successfully and blocks CI/CD quality gates. The README claims enterprise production-readiness but ships with build failures. Lines 112 and 170 use `fmt.Errorf(*errorText)` where errorText is a pointer to string, violating static analysis rules for error formatting.
 
 - [ ] **Metadata and overview sections return zero values** — audit-baseline.json — When using `--sections` flag with functions,documentation,naming,packages, the generated JSON has completely zeroed metadata and overview sections: repository="", generated_at="0001-01-01T00:00:00Z", analysis_time=0, files_processed=0, total_functions=0, etc. This creates invalid reports when users attempt to filter output sections. The full analysis (without --sections) correctly populates these fields. This is a data corruption issue affecting programmatic consumers of JSON output.
 
