@@ -34,6 +34,7 @@ func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntip
 			continue
 		}
 		patterns = append(patterns, a.analyzeFunction(funcDecl)...)
+		patterns = append(patterns, a.checkAnyOveruse(funcDecl)...)
 	}
 
 	return patterns
@@ -525,4 +526,121 @@ func (a *AntipatternAnalyzer) hasBareErrorReturn(retStmt *ast.ReturnStmt) bool {
 		}
 	}
 	return false
+}
+
+// checkAnyOveruse detects excessive use of interface{} or any in function signatures.
+// Flags functions with multiple any/interface{} parameters or returns, suggesting more
+// specific types. Excludes genuinely generic utility functions (single type parameter).
+func (a *AntipatternAnalyzer) checkAnyOveruse(funcDecl *ast.FuncDecl) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+
+	if funcDecl.Type == nil {
+		return patterns
+	}
+
+	anyCount, totalParams := a.countAnyUsage(funcDecl.Type)
+
+	if a.exceedsAnyThreshold(anyCount, totalParams) {
+		patterns = append(patterns, metrics.PerformanceAntipattern{
+			Type:        "any_overuse",
+			Description: "Excessive use of interface{}/any in function signature",
+			Severity:    "medium",
+			File:        a.fset.Position(funcDecl.Pos()).Filename,
+			Line:        a.fset.Position(funcDecl.Pos()).Line,
+			Suggestion:  "Use concrete types or constrained generics instead of interface{}/any for type safety",
+		})
+	}
+
+	return patterns
+}
+
+// countAnyUsage counts any/interface{} parameters and returns in function type
+func (a *AntipatternAnalyzer) countAnyUsage(funcType *ast.FuncType) (anyCount, totalParams int) {
+	anyCount += a.countAnyInParams(funcType.Params)
+	totalParams = a.countTotalParams(funcType.Params)
+	anyCount += a.countAnyInResults(funcType.Results)
+	return anyCount, totalParams
+}
+
+// countAnyInParams counts any/interface{} in parameter list
+func (a *AntipatternAnalyzer) countAnyInParams(params *ast.FieldList) int {
+	if params == nil {
+		return 0
+	}
+
+	count := 0
+	for _, param := range params.List {
+		if a.isAnyType(param.Type) {
+			paramCount := len(param.Names)
+			if paramCount == 0 {
+				paramCount = 1
+			}
+			count += paramCount
+		}
+	}
+	return count
+}
+
+// countTotalParams counts total parameters in parameter list
+func (a *AntipatternAnalyzer) countTotalParams(params *ast.FieldList) int {
+	if params == nil {
+		return 0
+	}
+
+	total := 0
+	for _, param := range params.List {
+		paramCount := len(param.Names)
+		if paramCount == 0 {
+			paramCount = 1
+		}
+		total += paramCount
+	}
+	return total
+}
+
+// countAnyInResults counts any/interface{} in result list
+func (a *AntipatternAnalyzer) countAnyInResults(results *ast.FieldList) int {
+	if results == nil {
+		return 0
+	}
+
+	count := 0
+	for _, result := range results.List {
+		if a.isAnyType(result.Type) {
+			count++
+		}
+	}
+	return count
+}
+
+// exceedsAnyThreshold checks if any usage exceeds acceptable threshold
+func (a *AntipatternAnalyzer) exceedsAnyThreshold(anyCount, totalParams int) bool {
+	// Flag if more than 2 any parameters
+	if anyCount > 2 {
+		return true
+	}
+
+	// Flag if >30% any ratio (excluding single-param generic utilities)
+	if totalParams > 1 && anyCount > 0 && float64(anyCount)/float64(totalParams) > 0.3 {
+		return true
+	}
+
+	return false
+}
+
+// isAnyType checks if the type is interface{} or any
+func (a *AntipatternAnalyzer) isAnyType(expr ast.Expr) bool {
+	// Check for "any" identifier (Go 1.18+)
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "any" {
+		return true
+	}
+
+	// Check for empty interface{}
+	ifaceType, ok := expr.(*ast.InterfaceType)
+	if !ok {
+		return false
+	}
+
+	// Empty interface has no methods
+	return ifaceType.Methods == nil || len(ifaceType.Methods.List) == 0
 }

@@ -344,3 +344,90 @@ func process() error {
 		})
 	}
 }
+
+func TestAnalyze_AnyOveruse(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		expected int
+	}{
+		{
+			name: "multiple any parameters - should detect",
+			src: `package main
+func process(a any, b any, c any) error {
+	return nil
+}`,
+			expected: 1,
+		},
+		{
+			name: "single any parameter - should not detect",
+			src: `package main
+func process(a any) error {
+	return nil
+}`,
+			expected: 0,
+		},
+		{
+			name: "empty interface overuse - should detect",
+			src: `package main
+func transform(input interface{}, output interface{}, config interface{}) error {
+	return nil
+}`,
+			expected: 1,
+		},
+		{
+			name: "high ratio any parameters - should detect",
+			src: `package main
+func merge(a any, b any, c string) any {
+	return nil
+}`,
+			expected: 1,
+		},
+		{
+			name: "concrete types only - should not detect",
+			src: `package main
+func process(s string, n int, b bool) error {
+	return nil
+}`,
+			expected: 0,
+		},
+		{
+			name: "any return only - acceptable for single param",
+			src: `package main
+func convert(data []byte) any {
+	return nil
+}`,
+			expected: 0,
+		},
+		{
+			name: "mixed any with interface{} - should detect",
+			src: `package main
+func handle(a any, b interface{}, c interface{}) {
+}`,
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "test.go", tt.src, 0)
+			require.NoError(t, err)
+
+			analyzer := NewAntipatternAnalyzer(fset)
+			patterns := analyzer.Analyze(file)
+
+			anyOverusePatterns := 0
+			for _, p := range patterns {
+				if p.Type == "any_overuse" {
+					anyOverusePatterns++
+					assert.Equal(t, "medium", p.Severity)
+					assert.Contains(t, p.Description, "interface{}/any")
+					assert.Contains(t, p.Suggestion, "concrete types")
+				}
+			}
+
+			assert.Equal(t, tt.expected, anyOverusePatterns, "Expected %d any_overuse patterns, got %d", tt.expected, anyOverusePatterns)
+		})
+	}
+}
