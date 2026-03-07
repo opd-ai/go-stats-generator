@@ -36,6 +36,7 @@ func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntip
 		patterns = append(patterns, a.analyzeFunction(funcDecl)...)
 		patterns = append(patterns, a.checkAnyOveruse(funcDecl)...)
 		patterns = append(patterns, a.checkInitFunctionComplexity(funcDecl)...)
+		patterns = append(patterns, a.checkNakedReturnInLongFunction(funcDecl)...)
 	}
 
 	return patterns
@@ -708,4 +709,100 @@ func (a *AntipatternAnalyzer) calculateCyclomaticComplexity(body *ast.BlockStmt)
 	})
 
 	return complexity
+}
+
+// checkNakedReturnInLongFunction detects naked returns (return without explicit values)
+// in functions exceeding a line threshold. Short functions with named returns are idiomatic
+// Go; long functions with naked returns harm readability. This is a common LLM slop pattern
+// where generated code uses named returns inappropriately in complex functions.
+func (a *AntipatternAnalyzer) checkNakedReturnInLongFunction(funcDecl *ast.FuncDecl) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+
+	// Only check functions with named return parameters
+	if !a.hasNamedReturns(funcDecl) {
+		return patterns
+	}
+
+	// Check if function body exists
+	if funcDecl.Body == nil {
+		return patterns
+	}
+
+	// Count lines in function body
+	lineCount := a.countFunctionLines(funcDecl)
+
+	// Threshold: only flag if function > 10 lines
+	const maxLinesForNakedReturn = 10
+	if lineCount <= maxLinesForNakedReturn {
+		return patterns
+	}
+
+	// Check for naked return statements
+	if a.hasNakedReturn(funcDecl.Body) {
+		patterns = append(patterns, metrics.PerformanceAntipattern{
+			Type:        "naked_return_long_function",
+			Description: "Naked return in long function with named returns",
+			Severity:    "medium",
+			File:        a.fset.Position(funcDecl.Pos()).Filename,
+			Line:        a.fset.Position(funcDecl.Pos()).Line,
+			Suggestion:  "Use explicit return values in long functions to improve readability",
+		})
+	}
+
+	return patterns
+}
+
+// hasNamedReturns checks if function has named return parameters
+func (a *AntipatternAnalyzer) hasNamedReturns(funcDecl *ast.FuncDecl) bool {
+	if funcDecl.Type == nil || funcDecl.Type.Results == nil {
+		return false
+	}
+
+	for _, result := range funcDecl.Type.Results.List {
+		// If any result has a name, it's a named return
+		if len(result.Names) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// countFunctionLines counts the number of lines in a function body
+func (a *AntipatternAnalyzer) countFunctionLines(funcDecl *ast.FuncDecl) int {
+	if funcDecl.Body == nil {
+		return 0
+	}
+
+	start := a.fset.Position(funcDecl.Body.Lbrace)
+	end := a.fset.Position(funcDecl.Body.Rbrace)
+
+	// Return number of lines between braces (exclusive of braces themselves)
+	return end.Line - start.Line - 1
+}
+
+// hasNakedReturn checks if function body contains any naked return statements
+func (a *AntipatternAnalyzer) hasNakedReturn(body *ast.BlockStmt) bool {
+	found := false
+
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+
+		retStmt, ok := n.(*ast.ReturnStmt)
+		if !ok {
+			return true
+		}
+
+		// Naked return: return statement with no explicit values
+		if len(retStmt.Results) == 0 {
+			found = true
+			return false
+		}
+
+		return true
+	})
+
+	return found
 }

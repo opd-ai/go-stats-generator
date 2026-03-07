@@ -431,3 +431,167 @@ func handle(a any, b interface{}, c interface{}) {
 		})
 	}
 }
+
+func TestAnalyze_NakedReturnInLongFunction(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		expected int
+	}{
+		{
+			name: "short function with naked return - should NOT detect",
+			src: `package main
+func process() (result int, err error) {
+	result = 42
+	return
+}`,
+			expected: 0,
+		},
+		{
+			name: "long function with naked return - should detect",
+			src: `package main
+func process() (result int, err error) {
+	x := 1
+	y := 2
+	z := 3
+	a := 4
+	b := 5
+	c := 6
+	d := 7
+	e := 8
+	f := 9
+	result = x + y + z + a + b + c + d + e + f
+	return
+}`,
+			expected: 1,
+		},
+		{
+			name: "long function with explicit return - should NOT detect",
+			src: `package main
+func process() (int, error) {
+	x := 1
+	y := 2
+	z := 3
+	a := 4
+	b := 5
+	c := 6
+	d := 7
+	e := 8
+	result := x + y + z + a + b + c + d + e
+	return result, nil
+}`,
+			expected: 0,
+		},
+		{
+			name: "long function without named returns - should NOT detect",
+			src: `package main
+func process() int {
+	x := 1
+	y := 2
+	z := 3
+	a := 4
+	b := 5
+	c := 6
+	d := 7
+	e := 8
+	return x + y + z + a + b + c + d + e
+}`,
+			expected: 0,
+		},
+		{
+			name: "exactly 10 lines with naked return - should NOT detect",
+			src: `package main
+func process() (result int, err error) {
+	x := 1
+	y := 2
+	z := 3
+	a := 4
+	b := 5
+	c := 6
+	d := 7
+	result = x + y + z + a + b + c + d
+	return
+}`,
+			expected: 0,
+		},
+		{
+			name: "11 lines with naked return - should detect",
+			src: `package main
+func process() (result int, err error) {
+	x := 1
+	y := 2
+	z := 3
+	a := 4
+	b := 5
+	c := 6
+	d := 7
+	e := 8
+	f := 9
+	result = x + y + z + a + b + c + d + e + f
+	return
+}`,
+			expected: 1,
+		},
+		{
+			name: "long function with mixed returns - should detect naked",
+			src: `package main
+func process(flag bool) (result int, err error) {
+	x := 1
+	y := 2
+	z := 3
+	a := 4
+	b := 5
+	c := 6
+	if flag {
+		return 0, nil
+	}
+	result = x + y + z + a + b + c
+	return
+}`,
+			expected: 1,
+		},
+		{
+			name: "long function with only explicit returns - should NOT detect",
+			src: `package main
+func process(flag bool) (result int, err error) {
+	x := 1
+	y := 2
+	z := 3
+	a := 4
+	b := 5
+	c := 6
+	d := 7
+	e := 8
+	if flag {
+		return 0, nil
+	}
+	result = x + y + z + a + b + c + d + e
+	return result, err
+}`,
+			expected: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "test.go", tt.src, 0)
+			require.NoError(t, err)
+
+			analyzer := NewAntipatternAnalyzer(fset)
+			patterns := analyzer.Analyze(file)
+
+			nakedReturnPatterns := 0
+			for _, p := range patterns {
+				if p.Type == "naked_return_long_function" {
+					nakedReturnPatterns++
+					assert.Equal(t, "medium", p.Severity)
+					assert.Contains(t, p.Description, "Naked return in long function")
+					assert.Contains(t, p.Suggestion, "explicit return values")
+				}
+			}
+
+			assert.Equal(t, tt.expected, nakedReturnPatterns, "Expected %d naked_return_long_function patterns, got %d", tt.expected, nakedReturnPatterns)
+		})
+	}
+}
