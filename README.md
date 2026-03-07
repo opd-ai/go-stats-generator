@@ -39,6 +39,11 @@
   - Statistical forecasting (7/14/30-day predictions) with 95% confidence intervals
   - Regression detection with hypothesis testing and p-values for significance assessment
   - Future enhancements: ARIMA forecasting, exponential smoothing (see [Planned Features](#planned-features))
+- **Team Productivity Analysis**: Git-based metrics for understanding team contributions and code ownership
+  - Per-developer commit statistics and contribution volumes
+  - Code ownership analysis using `git blame` to identify primary file maintainers
+  - Activity patterns and engagement metrics (active days, commit frequency)
+  - Knowledge silo detection and expertise area identification
 
 ## Installation
 
@@ -136,6 +141,7 @@ go-stats-generator analyze [file.go] [flags]
 | `--max-burden-score` | Maximum Maintenance Burden Index (MBI) score (0-100) | 70.0 |
 | `--min-doc-coverage` | Minimum documentation coverage (fraction) | 0.7 |
 | `--enforce-thresholds` | Exit with code 1 if thresholds exceeded | false |
+| `--enable-team-metrics` | Enable team productivity analysis (requires Git repository) | false |
 | `--verbose` | Verbose output | false |
 
 ### CI/CD Integration
@@ -290,6 +296,103 @@ Severity levels based on deviation:
 - **high**: 15-25% deviation
 - **medium**: 10-15% deviation
 - **low**: <10% deviation
+
+### Team Productivity Analysis
+
+The `--enable-team-metrics` flag enables Git-based analysis of team contributions and code ownership patterns. This feature requires the analyzed directory to be a Git repository.
+
+**Requirements:**
+- Git must be installed and available in PATH
+- Directory must be a valid Git repository with commit history
+- Analysis is read-only and does not modify the repository
+
+**Usage:**
+
+```bash
+# Analyze with team metrics
+go-stats-generator analyze . --enable-team-metrics
+
+# Export team metrics to JSON for detailed analysis
+go-stats-generator analyze . --enable-team-metrics --format json --output report.json
+
+# Combine with other analysis options
+go-stats-generator analyze . --enable-team-metrics --skip-tests
+```
+
+**Metrics Produced:**
+
+The team metrics analysis provides per-developer statistics extracted from Git history:
+
+| Metric | Description | Use Case |
+|--------|-------------|----------|
+| `commit_count` | Total commits by the developer | Activity level and contribution frequency |
+| `lines_added` | Total lines added across all commits | Code contribution volume |
+| `lines_removed` | Total lines removed/deleted | Refactoring activity and code cleanup |
+| `files_modified` | Number of files where developer is primary owner (>50% lines) | Code ownership and expertise areas |
+| `first_commit_date` | Timestamp of first commit | Tenure on the project |
+| `last_commit_date` | Timestamp of most recent commit | Current activity status |
+| `active_days` | Number of unique calendar days with commits | Consistency and engagement patterns |
+
+**JSON Output Structure:**
+
+```json
+{
+  "team": {
+    "total_developers": 3,
+    "developers": {
+      "Alice Smith": {
+        "name": "Alice Smith",
+        "commit_count": 247,
+        "lines_added": 18432,
+        "lines_removed": 9821,
+        "files_modified": 42,
+        "first_commit_date": "2025-01-15T10:23:00Z",
+        "last_commit_date": "2026-03-05T14:52:00Z",
+        "active_days": 89
+      },
+      "Bob Johnson": {
+        "name": "Bob Johnson",
+        "commit_count": 156,
+        "lines_added": 12109,
+        "lines_removed": 8342,
+        "files_modified": 28,
+        "first_commit_date": "2025-02-01T09:15:00Z",
+        "last_commit_date": "2026-03-06T16:20:00Z",
+        "active_days": 62
+      }
+    }
+  }
+}
+```
+
+**Interpreting Results:**
+
+- **Knowledge Silos**: Developers with high `files_modified` counts may indicate concentrated code ownership. Consider cross-training or pair programming to distribute knowledge.
+- **Code Churn**: High `lines_removed` relative to `lines_added` may indicate refactoring work or exploratory development patterns.
+- **Engagement Patterns**: Compare `active_days` to commit count to identify burst vs. consistent contribution patterns.
+- **Onboarding Effectiveness**: Track `first_commit_date` alongside early contribution metrics to evaluate new developer ramp-up.
+
+**Limitations:**
+
+- File ownership is calculated using `git blame`, which attributes lines to the most recent modifier. Large refactorings may shift ownership attribution.
+- Merge commits and automated commits (bots, CI systems) are included in metrics. Filter by author name if needed.
+- Metrics reflect Git history only. Contributions like code reviews, design discussions, and documentation outside the codebase are not captured.
+
+**Example Analysis Workflow:**
+
+```bash
+# 1. Generate team report
+go-stats-generator analyze . --enable-team-metrics --format json --output team-report.json
+
+# 2. Extract top contributors (using jq)
+jq '.team.developers | to_entries | sort_by(-.value.commit_count) | .[0:5]' team-report.json
+
+# 3. Identify potential knowledge silos (developers owning >20 files)
+jq '.team.developers | to_entries | map(select(.value.files_modified > 20))' team-report.json
+
+# 4. Track recent activity (commits in last 30 days)
+# Compare last_commit_date against current date in your analysis scripts
+```
 
 ### Example Output
 
