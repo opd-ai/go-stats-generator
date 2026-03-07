@@ -30,12 +30,12 @@ func createTestSQLiteSnapshot(id string) metrics.MetricsSnapshot {
 
 func createTestSQLiteMetadata() metrics.SnapshotMetadata {
 	return metrics.SnapshotMetadata{
-		Timestamp: time.Now(),
-		GitCommit: "abc123",
-		GitBranch: "main",
-		GitTag:    "",
-		Version:   "1.0.0",
-		Author:    "test-user",
+		Timestamp:   time.Now(),
+		GitCommit:   "abc123",
+		GitBranch:   "main",
+		GitTag:      "",
+		Version:     "1.0.0",
+		Author:      "test-user",
 		Description: "Test snapshot",
 	}
 }
