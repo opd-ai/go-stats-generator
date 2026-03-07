@@ -35,6 +35,7 @@ func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntip
 		}
 		patterns = append(patterns, a.analyzeFunction(funcDecl)...)
 		patterns = append(patterns, a.checkAnyOveruse(funcDecl)...)
+		patterns = append(patterns, a.checkInitFunctionComplexity(funcDecl)...)
 	}
 
 	return patterns
@@ -643,4 +644,68 @@ func (a *AntipatternAnalyzer) isAnyType(expr ast.Expr) bool {
 
 	// Empty interface has no methods
 	return ifaceType.Methods == nil || len(ifaceType.Methods.List) == 0
+}
+
+// checkInitFunctionComplexity detects complex init() functions, which violate
+// Go best practices. Init functions should be simple and focused on setup.
+// Complex init() functions (high cyclomatic complexity) make code harder to test
+// and understand, and can hide initialization bugs. This is a common LLM slop pattern.
+func (a *AntipatternAnalyzer) checkInitFunctionComplexity(funcDecl *ast.FuncDecl) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+
+	// Check if this is an init() function
+	if !a.isInitFunction(funcDecl) {
+		return patterns
+	}
+
+	// Calculate cyclomatic complexity for the init function
+	complexity := a.calculateCyclomaticComplexity(funcDecl.Body)
+
+	// Flag if complexity exceeds threshold (default: 5)
+	const maxInitComplexity = 5
+	if complexity > maxInitComplexity {
+		patterns = append(patterns, metrics.PerformanceAntipattern{
+			Type:        "init_complexity",
+			Description: "init() function has high cyclomatic complexity",
+			Severity:    "medium",
+			File:        a.fset.Position(funcDecl.Pos()).Filename,
+			Line:        a.fset.Position(funcDecl.Pos()).Line,
+			Suggestion:  "Simplify init() function or move complex initialization to explicit functions",
+		})
+	}
+
+	return patterns
+}
+
+// isInitFunction checks if function declaration is an init() function
+func (a *AntipatternAnalyzer) isInitFunction(funcDecl *ast.FuncDecl) bool {
+	return funcDecl.Name != nil && funcDecl.Name.Name == "init" &&
+		funcDecl.Recv == nil && // Not a method
+		(funcDecl.Type.Params == nil || len(funcDecl.Type.Params.List) == 0) && // No parameters
+		(funcDecl.Type.Results == nil || len(funcDecl.Type.Results.List) == 0) // No returns
+}
+
+// calculateCyclomaticComplexity computes cyclomatic complexity for a statement block
+func (a *AntipatternAnalyzer) calculateCyclomaticComplexity(body *ast.BlockStmt) int {
+	if body == nil {
+		return 1
+	}
+
+	complexity := 1 // Base complexity
+
+	ast.Inspect(body, func(n ast.Node) bool {
+		switch n.(type) {
+		case *ast.IfStmt, *ast.ForStmt, *ast.RangeStmt, *ast.CaseClause, *ast.CommClause:
+			complexity++
+		case *ast.BinaryExpr:
+			// Count logical operators (&&, ||)
+			binExpr := n.(*ast.BinaryExpr)
+			if binExpr.Op == token.LAND || binExpr.Op == token.LOR {
+				complexity++
+			}
+		}
+		return true
+	})
+
+	return complexity
 }

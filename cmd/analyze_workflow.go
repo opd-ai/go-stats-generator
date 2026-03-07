@@ -385,10 +385,11 @@ func createInitialConcurrencyPatterns() metrics.ConcurrencyPatternMetrics {
 
 func createInitialAntiPatterns() metrics.AntiPatternMetrics {
 	return metrics.AntiPatternMetrics{
-		GodObjects:   []metrics.AntiPatternWarning{},
-		LongMethods:  []metrics.AntiPatternWarning{},
-		DeepNesting:  []metrics.AntiPatternWarning{},
-		MagicNumbers: []metrics.AntiPatternWarning{},
+		GodObjects:              []metrics.AntiPatternWarning{},
+		LongMethods:             []metrics.AntiPatternWarning{},
+		DeepNesting:             []metrics.AntiPatternWarning{},
+		MagicNumbers:            []metrics.AntiPatternWarning{},
+		PerformanceAntipatterns: []metrics.PerformanceAntipattern{},
 	}
 }
 
