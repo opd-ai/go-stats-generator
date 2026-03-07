@@ -4,7 +4,7 @@ import "time"
 
 // Test helper functions to create test data
 
-func newTestFunctionMetrics(name, pkg string, cyclomatic int, totalLines int) FunctionMetrics {
+func newTestFunctionMetrics(name, pkg string, cyclomatic, totalLines int) FunctionMetrics {
 	return FunctionMetrics{
 		Name:    name,
 		Package: pkg,
@@ -41,9 +41,9 @@ func newTestSnapshot(id string, funcs []FunctionMetrics, structs []StructMetrics
 			Timestamp: time.Now(),
 		},
 		Report: Report{
-			Functions:  funcs,
-			Structs:    structs,
-			Packages:   packages,
+			Functions: funcs,
+			Structs:   structs,
+			Packages:  packages,
 			Complexity: ComplexityMetrics{
 				AverageFunction: 5.0,
 			},
