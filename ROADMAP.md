@@ -219,10 +219,10 @@ The following slop patterns are documented in the anti-slop architecture. Each p
 4. ✅ **Naked return detection in long functions** — IMPLEMENTED. Detects named returns with naked `return` in functions exceeding 10 lines. Short functions with named returns are idiomatic; long functions with naked returns harm readability. (Completed: 2026-03-07)
 5. ✅ **`panic()` in library code detection** — IMPLEMENTED. Flags `panic()` and `log.Fatal()` calls in non-`main` packages (excluding `init()` functions). Library code should return errors, not terminate the process. Produces structured violations with "high" severity for panic() and "critical" for log.Fatal(). (Completed: 2026-03-07)
 6. ✅ **Giant `switch`/`if-else` chain detection** — IMPLEMENTED. Counts branches per switch/if-else/type-switch statement. Flags statements exceeding configurable branch threshold (default: 10 branches). Suggests dispatch maps, strategy patterns, or polymorphic design as alternatives. Includes comprehensive tests for switch, type switch, and if-else chains. (Completed: 2026-03-07)
-7. **Unused receiver name detection** — Identify method receivers that are never referenced in the method body. Suggest converting to a plain function or using `_` as the receiver name
+7. ✅ **Unused receiver name detection** — IMPLEMENTED. Identifies method receivers that are never referenced in the method body. Suggests converting to a plain function or using `_` as the receiver name for clarity. Includes comprehensive tests for value/pointer receivers, closures, field assignments, and interface implementations. (Completed: 2026-03-07)
 8. **Test-only export detection** — Detect exported symbols with zero cross-package references outside `_test.go` files. Suggest using `export_test.go` patterns or restructuring to test via the public API
 
-**Status**: 6/8 detectors implemented (75.0% complete). All implemented detectors produce structured violations in JSON reports with actionable suggestions.
+**Status**: 7/8 detectors implemented (87.5% complete). All implemented detectors produce structured violations in JSON reports with actionable suggestions.
 
 **Acceptance criteria**: Each detector produces structured violations in the JSON report with actionable suggestions. All detectors are configurable via CLI flags and `.go-stats-generator.yaml`.
 

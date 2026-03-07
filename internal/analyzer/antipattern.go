@@ -42,6 +42,7 @@ func (a *AntipatternAnalyzer) Analyze(file *ast.File) []metrics.PerformanceAntip
 		patterns = append(patterns, a.checkNakedReturnInLongFunction(funcDecl)...)
 		patterns = append(patterns, a.checkPanicInLibraryCode(funcDecl, isLibraryCode)...)
 		patterns = append(patterns, a.checkGiantBranchingChains(funcDecl)...)
+		patterns = append(patterns, a.checkUnusedReceiverName(funcDecl)...)
 	}
 
 	return patterns
@@ -995,4 +996,64 @@ func (a *AntipatternAnalyzer) countIfElseChainLength(ifStmt *ast.IfStmt) int {
 	}
 
 	return count
+}
+
+// checkUnusedReceiverName detects method receivers that are never referenced in the method body.
+// A receiver name that is never used suggests the method could be a plain function or the receiver
+// should be named _ (underscore) following Go idioms. This improves code clarity and signals intent.
+func (a *AntipatternAnalyzer) checkUnusedReceiverName(funcDecl *ast.FuncDecl) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+
+	// Only check methods (functions with receivers)
+	if funcDecl.Recv == nil || len(funcDecl.Recv.List) == 0 {
+		return patterns
+	}
+
+	// Get the receiver field
+	receiver := funcDecl.Recv.List[0]
+
+	// Skip if receiver is already named _ (idiomatic Go for unused receivers)
+	if len(receiver.Names) == 0 || receiver.Names[0].Name == "_" {
+		return patterns
+	}
+
+	receiverName := receiver.Names[0].Name
+
+	// Check if receiver is referenced in the function body
+	if !a.isReceiverUsed(funcDecl.Body, receiverName) {
+		patterns = append(patterns, metrics.PerformanceAntipattern{
+			Type:        "unused_receiver",
+			Description: "Method receiver is never referenced in method body",
+			Severity:    "low",
+			File:        a.fset.Position(funcDecl.Pos()).Filename,
+			Line:        a.fset.Position(funcDecl.Pos()).Line,
+			Suggestion:  "Use _ as receiver name or convert to plain function if receiver is not needed",
+		})
+	}
+
+	return patterns
+}
+
+// isReceiverUsed checks if a receiver name is referenced anywhere in the function body
+func (a *AntipatternAnalyzer) isReceiverUsed(body *ast.BlockStmt, receiverName string) bool {
+	if body == nil {
+		return false
+	}
+
+	used := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if used {
+			return false
+		}
+
+		// Check for identifier references
+		if ident, ok := n.(*ast.Ident); ok && ident.Name == receiverName {
+			used = true
+			return false
+		}
+
+		return true
+	})
+
+	return used
 }
