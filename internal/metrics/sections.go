@@ -78,6 +78,8 @@ func buildSectionKeepSet(sections []string) map[string]bool {
 	if keep["concurrency"] {
 		keep["patterns"] = true
 	}
+	keep["metadata"] = true
+	keep["overview"] = true
 	return keep
 }
 

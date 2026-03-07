@@ -123,6 +123,40 @@ func TestFilterReportSections_WhitespaceHandling(t *testing.T) {
 	}
 }
 
+func TestFilterReportSections_MetadataAlwaysPreserved(t *testing.T) {
+	report := &Report{
+		Metadata: ReportMetadata{
+			Repository:     "test/repo",
+			FilesProcessed: 42,
+			ToolVersion:    "1.0.0",
+		},
+		Overview: OverviewMetrics{
+			TotalFunctions: 100,
+			TotalFiles:     42,
+		},
+		Functions: []FunctionMetrics{{Name: "foo"}},
+		Structs:   []StructMetrics{{Name: "Bar"}},
+	}
+
+	FilterReportSections(report, []string{"functions"})
+
+	if report.Metadata.Repository != "test/repo" {
+		t.Errorf("expected metadata preserved, got empty repository")
+	}
+	if report.Metadata.FilesProcessed != 42 {
+		t.Errorf("expected metadata.FilesProcessed=42, got %d", report.Metadata.FilesProcessed)
+	}
+	if report.Overview.TotalFunctions != 100 {
+		t.Errorf("expected overview.TotalFunctions=100, got %d", report.Overview.TotalFunctions)
+	}
+	if len(report.Functions) != 1 {
+		t.Errorf("expected functions preserved, got %d", len(report.Functions))
+	}
+	if report.Structs != nil {
+		t.Errorf("expected structs zeroed, got %v", report.Structs)
+	}
+}
+
 func TestValidSections_AllPresent(t *testing.T) {
 	expected := []string{
 		"metadata", "overview", "functions", "structs", "interfaces",
