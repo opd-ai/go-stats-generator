@@ -130,3 +130,40 @@ func TestBaselineCreateHasFlags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("format"), "--format flag should exist")
 	assert.NotNil(t, cmd.Flags().Lookup("output"), "--output flag should exist")
 }
+
+// TestAnalyzeCodebase_PopulatesAllMetrics ensures baseline creation populates all critical metrics
+// that were previously zeroed (MBI scores and documentation coverage).
+// Regression test for: FUNCTIONAL_AUDIT.md "Trend analysis baseline data quality issues"
+func TestAnalyzeCodebase_PopulatesAllMetrics(t *testing.T) {
+	// Arrange: Use testdata/simple which has documented code
+	testPath := "../testdata/simple"
+	if _, err := os.Stat(testPath); os.IsNotExist(err) {
+		t.Skip("Testdata not available")
+	}
+
+	// Act: Run baseline analysis
+	report, err := analyzeCodebase(testPath)
+
+	// Assert: Analysis succeeds
+	require.NoError(t, err, "analyzeCodebase should not fail")
+	require.NotNil(t, report, "report should not be nil")
+
+	// Assert: Critical metrics are populated (not zeroed)
+	
+	// 1. Documentation coverage should be populated
+	assert.NotZero(t, report.Documentation.Coverage.Overall,
+		"Documentation coverage should be populated (was 0.00%% in bug)")
+	
+	// 2. File scores should be populated
+	assert.NotEmpty(t, report.Scores.FileScores,
+		"File scores should be populated (was empty in bug)")
+	
+	// 3. Functions should be analyzed
+	assert.NotEmpty(t, report.Functions,
+		"Functions should be analyzed")
+	
+	// 4. Complexity metrics should be calculated
+	// Average function complexity should be non-negative
+	assert.GreaterOrEqual(t, report.Complexity.AverageFunction, 0.0,
+		"Average function complexity should be calculated")
+}

@@ -12,7 +12,6 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/config"
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/opd-ai/go-stats-generator/internal/storage"
-	"github.com/opd-ai/go-stats-generator/pkg/generator"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -481,11 +480,19 @@ func getOutputWriter() (*os.File, error) {
 
 // Helper functions
 
-// analyzeCodebase performs code analysis on the target directory using the public API.
+// analyzeCodebase performs code analysis on the target directory using the full workflow.
+// This ensures all metrics (including scores and documentation) are properly populated.
 func analyzeCodebase(targetPath string) (*metrics.Report, error) {
-	// Use the public API to analyze the project
-	api := generator.NewAnalyzer()
-	report, err := api.AnalyzeDirectory(context.Background(), targetPath)
+	// Load default configuration for full analysis
+	// DefaultConfig enables all analyzers by default
+	cfg := config.DefaultConfig()
+	
+	// Disable progress output for baseline creation
+	cfg.Output.ShowProgress = false
+	cfg.Output.Verbose = false
+	
+	// Use the full analysis workflow to ensure all metrics are populated
+	report, err := runAnalysisWorkflow(context.Background(), targetPath, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to analyze project: %w", err)
 	}
