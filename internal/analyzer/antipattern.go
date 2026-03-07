@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -1056,4 +1057,150 @@ func (a *AntipatternAnalyzer) isReceiverUsed(body *ast.BlockStmt, receiverName s
 	})
 
 	return used
+}
+
+// CheckTestOnlyExports detects exported symbols with zero cross-package references outside
+// test files. This identifies symbols that are exported solely for test access, which could
+// instead use export_test.go patterns or be restructured to test via the public API. This
+// prevents API surface bloat and clarifies what is truly public vs. test infrastructure.
+func CheckTestOnlyExports(files map[string]*ast.File, fset *token.FileSet, packagePath string) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+
+	// Track exported symbols: map[symbolName]SymbolInfo
+	exportedSymbols := make(map[string]*exportedSymbolInfo)
+
+	// Track usage of symbols from other files
+	symbolReferences := make(map[string][]string) // symbolName -> []referencingFiles
+
+	// First pass: Collect all exported symbols
+	for filePath, file := range files {
+		if isTestFile(filePath) {
+			continue // Skip test files when collecting exports
+		}
+
+		collectExportedSymbols(file, filePath, fset, packagePath, exportedSymbols)
+	}
+
+	// Second pass: Track references to exported symbols
+	for filePath, file := range files {
+		trackSymbolReferences(file, filePath, exportedSymbols, symbolReferences)
+	}
+
+	// Third pass: Identify test-only exports
+	for symbolName, info := range exportedSymbols {
+		refs := symbolReferences[symbolName]
+
+		// Count non-test references from OTHER files (not the definition file)
+		nonTestOtherFileRefs := 0
+
+		for _, refFile := range refs {
+			// Skip references from the same file (self-references)
+			if refFile == info.File {
+				continue
+			}
+			
+			// Count references from non-test files
+			if !isTestFile(refFile) {
+				nonTestOtherFileRefs++
+			}
+		}
+
+		// Flag if exported but only referenced in test files or not referenced at all (outside its own file)
+		if nonTestOtherFileRefs == 0 {
+			patterns = append(patterns, metrics.PerformanceAntipattern{
+				Type:        "test_only_export",
+				Description: fmt.Sprintf("Exported %s '%s' has zero cross-package references outside test files", info.SymbolType, symbolName),
+				Severity:    "low",
+				File:        info.File,
+				Line:        info.Line,
+				Suggestion:  "Consider using export_test.go patterns, making symbol unexported, or restructuring tests to use the public API",
+			})
+		}
+	}
+
+	return patterns
+}
+
+// exportedSymbolInfo tracks information about an exported symbol
+type exportedSymbolInfo struct {
+	Name       string
+	Package    string
+	File       string
+	Line       int
+	SymbolType string // "function", "type", "variable", "constant"
+}
+
+// collectExportedSymbols collects all exported symbols from a file
+func collectExportedSymbols(file *ast.File, filePath string, fset *token.FileSet, packagePath string, exports map[string]*exportedSymbolInfo) {
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.FuncDecl:
+			// Exported function or method
+			if d.Name != nil && d.Name.IsExported() {
+				exports[d.Name.Name] = &exportedSymbolInfo{
+					Name:       d.Name.Name,
+					Package:    packagePath,
+					File:       filePath,
+					Line:       fset.Position(d.Pos()).Line,
+					SymbolType: "function",
+				}
+			}
+
+		case *ast.GenDecl:
+			for _, spec := range d.Specs {
+				switch s := spec.(type) {
+				case *ast.TypeSpec:
+					// Exported type
+					if s.Name != nil && s.Name.IsExported() {
+						exports[s.Name.Name] = &exportedSymbolInfo{
+							Name:       s.Name.Name,
+							Package:    packagePath,
+							File:       filePath,
+							Line:       fset.Position(s.Pos()).Line,
+							SymbolType: "type",
+						}
+					}
+
+				case *ast.ValueSpec:
+					// Exported variable or constant
+					for _, name := range s.Names {
+						if name != nil && name.IsExported() {
+							symbolType := "variable"
+							if d.Tok == token.CONST {
+								symbolType = "constant"
+							}
+							exports[name.Name] = &exportedSymbolInfo{
+								Name:       name.Name,
+								Package:    packagePath,
+								File:       filePath,
+								Line:       fset.Position(name.Pos()).Line,
+								SymbolType: symbolType,
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// trackSymbolReferences tracks references to exported symbols
+func trackSymbolReferences(file *ast.File, filePath string, exports map[string]*exportedSymbolInfo, references map[string][]string) {
+	ast.Inspect(file, func(n ast.Node) bool {
+		// Check for identifier usage
+		if ident, ok := n.(*ast.Ident); ok {
+			if info, exists := exports[ident.Name]; exists {
+				// Don't count references in the same file as the definition
+				if filePath != info.File {
+					references[ident.Name] = append(references[ident.Name], filePath)
+				}
+			}
+		}
+		return true
+	})
+}
+
+// isTestFile checks if a file is a test file
+func isTestFile(filePath string) bool {
+	return strings.HasSuffix(filePath, "_test.go")
 }
