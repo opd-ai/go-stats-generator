@@ -113,7 +113,7 @@ func TestCalculateSeverity(t *testing.T) {
 	tests := []struct {
 		deviation float64
 		threshold float64
-		expected  string
+		expected  metrics.SeverityLevel
 	}{
 		{5.0, 10.0, "low"},
 		{15.0, 10.0, "medium"},

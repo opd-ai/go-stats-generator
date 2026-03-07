@@ -124,7 +124,7 @@ func (a *AntipatternAnalyzer) checkResourceLeak(n *ast.CallExpr, funcBody *ast.B
 		*patterns = append(*patterns, metrics.PerformanceAntipattern{
 			Type:        "resource_leak",
 			Description: "Resource acquisition without defer close",
-			Severity:    "critical",
+			Severity:    metrics.SeverityLevelCritical,
 			File:        a.fset.Position(n.Pos()).Filename,
 			Line:        a.fset.Position(n.Pos()).Line,
 			Suggestion:  "Use defer to ensure resource cleanup",
@@ -850,7 +850,7 @@ func (a *AntipatternAnalyzer) checkPanicInLibraryCode(funcDecl *ast.FuncDecl, is
 			patterns = append(patterns, metrics.PerformanceAntipattern{
 				Type:        "log_fatal_in_library",
 				Description: "log.Fatal() call in library code (non-main package)",
-				Severity:    "critical",
+				Severity:    metrics.SeverityLevelCritical,
 				File:        a.fset.Position(callExpr.Pos()).Filename,
 				Line:        a.fset.Position(callExpr.Pos()).Line,
 				Suggestion:  "Return error instead of log.Fatal() - library code should not terminate the process",

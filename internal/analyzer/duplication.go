@@ -598,10 +598,10 @@ func (da *DuplicationAnalyzer) convertToClonePairs(duplicates map[string][]Block
 }
 
 // getCloneSeverityAndSuggestion determines severity and suggestion for code clones
-func (da *DuplicationAnalyzer) getCloneSeverityAndSuggestion(lineCount, instanceCount int, cloneType metrics.CloneType) (string, string) {
-	severity := "warning"
+func (da *DuplicationAnalyzer) getCloneSeverityAndSuggestion(lineCount, instanceCount int, cloneType metrics.CloneType) (metrics.SeverityLevel, string) {
+	severity := metrics.SeverityLevelWarning
 	if lineCount > 20 || instanceCount > 3 {
-		severity = "violation"
+		severity = metrics.SeverityLevelViolation
 	}
 
 	suggestion := fmt.Sprintf("Extract %d-line duplicate code block into a shared function. Found in %d locations", lineCount, instanceCount)

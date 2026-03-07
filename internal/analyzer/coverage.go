@@ -244,17 +244,17 @@ func (a *TestCoverageAnalyzer) calculateRiskScore(fn metrics.FunctionMetrics, co
 }
 
 // gapSeverity categorizes coverage gaps as critical, high, medium, or low based on coverage and complexity.
-func (a *TestCoverageAnalyzer) gapSeverity(fn metrics.FunctionMetrics, coverage float64) string {
+func (a *TestCoverageAnalyzer) gapSeverity(fn metrics.FunctionMetrics, coverage float64) metrics.SeverityLevel {
 	if coverage < 0.3 && fn.Complexity.Cyclomatic > 5 {
-		return "critical"
+		return metrics.SeverityLevelCritical
 	}
 	if coverage < 0.5 || fn.Complexity.Cyclomatic > 8 {
-		return "high"
+		return metrics.SeverityLevelViolation
 	}
 	if coverage < 0.7 {
-		return "medium"
+		return metrics.SeverityLevelWarning
 	}
-	return "low"
+	return metrics.SeverityLevelInfo
 }
 
 // AnalyzeTestQuality assesses test suite quality by analyzing test file structure, assertion density,

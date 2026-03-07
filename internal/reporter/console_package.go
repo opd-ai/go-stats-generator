@@ -179,9 +179,9 @@ func (cr *ConsoleReporter) writeCircularDepsList(output io.Writer, cycles []metr
 func (cr *ConsoleReporter) writeCircularDepsEntry(output io.Writer, index int, cycle metrics.CircularDependency) {
 	severity := cycle.Severity
 	if severity == "" {
-		severity = "unknown"
+		severity = metrics.SeverityLevelInfo
 	}
-	fmt.Fprintf(output, "%d. [%s SEVERITY] ", index, toUpperCase(severity))
+	fmt.Fprintf(output, "%d. [%s SEVERITY] ", index, toUpperCase(string(severity)))
 	cr.writeCircularDepsChain(output, cycle.Packages)
 	fmt.Fprintln(output)
 }

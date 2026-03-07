@@ -415,7 +415,7 @@ func TestCountSignificantChanges(t *testing.T) {
 func TestCountCriticalIssues(t *testing.T) {
 	regressions := []Regression{
 		{Severity: SeverityLevelCritical},
-		{Severity: SeverityLevelError},
+		{Severity: SeverityLevelViolation},
 		{Severity: SeverityLevelWarning},
 	}
 

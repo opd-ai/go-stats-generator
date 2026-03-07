@@ -209,8 +209,8 @@ type PackageReport struct {
 
 // CircularDependency represents a circular dependency in the package graph
 type CircularDependency struct {
-	Packages []string `json:"packages"`
-	Severity string   `json:"severity"` // "low", "medium", "high"
+	Packages []string      `json:"packages"`
+	Severity SeverityLevel `json:"severity"` // "low", "medium", "high"
 }
 
 // PatternMetrics contains design pattern detection results
@@ -333,17 +333,17 @@ type PatternInstance struct {
 
 // AntiPatternWarning represents a detected anti-pattern
 type AntiPatternWarning struct {
-	Type           string  `json:"type"`
-	File           string  `json:"file"`
-	Line           int     `json:"line"`
-	Function       string  `json:"function"`
-	Severity       string  `json:"severity"`
-	Description    string  `json:"description"`
-	Recommendation string  `json:"recommendation"`
-	ItemName       string  `json:"item_name,omitempty"`
-	Metric         string  `json:"metric,omitempty"`
-	ActualValue    float64 `json:"actual_value,omitempty"`
-	Threshold      float64 `json:"threshold,omitempty"`
+	Type           string        `json:"type"`
+	File           string        `json:"file"`
+	Line           int           `json:"line"`
+	Function       string        `json:"function"`
+	Severity       SeverityLevel `json:"severity"`
+	Description    string        `json:"description"`
+	Recommendation string        `json:"recommendation"`
+	ItemName       string        `json:"item_name,omitempty"`
+	Metric         string        `json:"metric,omitempty"`
+	ActualValue    float64       `json:"actual_value,omitempty"`
+	Threshold      float64       `json:"threshold,omitempty"`
 }
 
 // ComplexityMetrics provides overall complexity analysis
@@ -356,17 +356,17 @@ type ComplexityMetrics struct {
 
 // ComplexityItem represents a high-complexity item
 type ComplexityItem struct {
-	Name        string  `json:"name"`
-	Type        string  `json:"type"`
-	File        string  `json:"file"`
-	Line        int     `json:"line"`
-	Complexity  float64 `json:"complexity"`
-	Severity    string  `json:"severity,omitempty"`
-	Suggestion  string  `json:"suggestion,omitempty"`
-	ItemName    string  `json:"item_name,omitempty"`
-	Metric      string  `json:"metric,omitempty"`
-	ActualValue float64 `json:"actual_value,omitempty"`
-	Threshold   float64 `json:"threshold,omitempty"`
+	Name        string        `json:"name"`
+	Type        string        `json:"type"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	Complexity  float64       `json:"complexity"`
+	Severity    SeverityLevel `json:"severity,omitempty"`
+	Suggestion  string        `json:"suggestion,omitempty"`
+	ItemName    string        `json:"item_name,omitempty"`
+	Metric      string        `json:"metric,omitempty"`
+	ActualValue float64       `json:"actual_value,omitempty"`
+	Threshold   float64       `json:"threshold,omitempty"`
 }
 
 // DocumentationMetrics contains documentation quality analysis
@@ -413,11 +413,11 @@ type TODOComment struct {
 
 // FIXMEComment represents a FIXME comment
 type FIXMEComment struct {
-	File        string `json:"file"`
-	Line        int    `json:"line"`
-	Author      string `json:"author,omitempty"`
-	Description string `json:"description"`
-	Severity    string `json:"severity"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	Author      string        `json:"author,omitempty"`
+	Description string        `json:"description"`
+	Severity    SeverityLevel `json:"severity"`
 }
 
 // HACKComment represents a HACK comment
@@ -431,11 +431,11 @@ type HACKComment struct {
 
 // BUGComment represents a BUG comment
 type BUGComment struct {
-	File        string `json:"file"`
-	Line        int    `json:"line"`
-	Author      string `json:"author,omitempty"`
-	Description string `json:"description"`
-	Severity    string `json:"severity"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	Author      string        `json:"author,omitempty"`
+	Description string        `json:"description"`
+	Severity    SeverityLevel `json:"severity"`
 }
 
 // XXXComment represents a XXX comment
@@ -521,7 +521,7 @@ type ClonePair struct {
 	Type        CloneType       `json:"type"`
 	Instances   []CloneInstance `json:"instances"`
 	LineCount   int             `json:"line_count"`
-	Severity    string          `json:"severity"`
+	Severity    SeverityLevel   `json:"severity"`
 	Suggestion  string          `json:"suggestion"`
 	ItemName    string          `json:"item_name,omitempty"`
 	Metric      string          `json:"metric,omitempty"`
@@ -570,91 +570,91 @@ type PlacementMetrics struct {
 
 // MisplacedFunctionIssue represents a function that may be better placed in another file
 type MisplacedFunctionIssue struct {
-	Name              string   `json:"name"`
-	CurrentFile       string   `json:"current_file"`
-	SuggestedFile     string   `json:"suggested_file"`
-	CurrentAffinity   float64  `json:"current_affinity"`
-	SuggestedAffinity float64  `json:"suggested_affinity"`
-	ReferencedSymbols []string `json:"referenced_symbols"`
-	Severity          string   `json:"severity"`
-	Suggestion        string   `json:"suggestion,omitempty"`
-	ItemName          string   `json:"item_name,omitempty"`
-	Metric            string   `json:"metric,omitempty"`
-	ActualValue       float64  `json:"actual_value,omitempty"`
-	Threshold         float64  `json:"threshold,omitempty"`
+	Name              string        `json:"name"`
+	CurrentFile       string        `json:"current_file"`
+	SuggestedFile     string        `json:"suggested_file"`
+	CurrentAffinity   float64       `json:"current_affinity"`
+	SuggestedAffinity float64       `json:"suggested_affinity"`
+	ReferencedSymbols []string      `json:"referenced_symbols"`
+	Severity          SeverityLevel `json:"severity"`
+	Suggestion        string        `json:"suggestion,omitempty"`
+	ItemName          string        `json:"item_name,omitempty"`
+	Metric            string        `json:"metric,omitempty"`
+	ActualValue       float64       `json:"actual_value,omitempty"`
+	Threshold         float64       `json:"threshold,omitempty"`
 }
 
 // MisplacedMethodIssue represents a method defined away from its receiver type
 type MisplacedMethodIssue struct {
-	MethodName   string  `json:"method_name"`
-	ReceiverType string  `json:"receiver_type"`
-	CurrentFile  string  `json:"current_file"`
-	ReceiverFile string  `json:"receiver_file"`
-	Distance     string  `json:"distance"` // "same_package" or "different_package"
-	Severity     string  `json:"severity"`
-	Suggestion   string  `json:"suggestion,omitempty"`
-	ItemName     string  `json:"item_name,omitempty"`
-	Metric       string  `json:"metric,omitempty"`
-	ActualValue  float64 `json:"actual_value,omitempty"`
-	Threshold    float64 `json:"threshold,omitempty"`
+	MethodName   string        `json:"method_name"`
+	ReceiverType string        `json:"receiver_type"`
+	CurrentFile  string        `json:"current_file"`
+	ReceiverFile string        `json:"receiver_file"`
+	Distance     string        `json:"distance"` // "same_package" or "different_package"
+	Severity     SeverityLevel `json:"severity"`
+	Suggestion   string        `json:"suggestion,omitempty"`
+	ItemName     string        `json:"item_name,omitempty"`
+	Metric       string        `json:"metric,omitempty"`
+	ActualValue  float64       `json:"actual_value,omitempty"`
+	Threshold    float64       `json:"threshold,omitempty"`
 }
 
 // FileCohesionIssue represents a file with low internal cohesion
 type FileCohesionIssue struct {
-	File            string   `json:"file"`
-	CohesionScore   float64  `json:"cohesion_score"`
-	IntraFileRefs   int      `json:"intra_file_refs"`
-	TotalRefs       int      `json:"total_refs"`
-	SuggestedSplits []string `json:"suggested_splits"`
-	Severity        string   `json:"severity"`
-	Suggestion      string   `json:"suggestion,omitempty"`
-	ItemName        string   `json:"item_name,omitempty"`
-	Metric          string   `json:"metric,omitempty"`
-	ActualValue     float64  `json:"actual_value,omitempty"`
-	Threshold       float64  `json:"threshold,omitempty"`
+	File            string        `json:"file"`
+	CohesionScore   float64       `json:"cohesion_score"`
+	IntraFileRefs   int           `json:"intra_file_refs"`
+	TotalRefs       int           `json:"total_refs"`
+	SuggestedSplits []string      `json:"suggested_splits"`
+	Severity        SeverityLevel `json:"severity"`
+	Suggestion      string        `json:"suggestion,omitempty"`
+	ItemName        string        `json:"item_name,omitempty"`
+	Metric          string        `json:"metric,omitempty"`
+	ActualValue     float64       `json:"actual_value,omitempty"`
+	Threshold       float64       `json:"threshold,omitempty"`
 }
 
 // FileNameViolation represents a file naming convention violation
 type FileNameViolation struct {
-	File          string  `json:"file"`
-	ViolationType string  `json:"violation_type"`
-	Description   string  `json:"description"`
-	SuggestedName string  `json:"suggested_name"`
-	Severity      string  `json:"severity"`
-	ItemName      string  `json:"item_name,omitempty"`
-	Metric        string  `json:"metric,omitempty"`
-	ActualValue   float64 `json:"actual_value,omitempty"`
-	Threshold     float64 `json:"threshold,omitempty"`
+	File          string        `json:"file"`
+	ViolationType string        `json:"violation_type"`
+	Description   string        `json:"description"`
+	SuggestedName string        `json:"suggested_name"`
+	Severity      SeverityLevel `json:"severity"`
+	ItemName      string        `json:"item_name,omitempty"`
+	Metric        string        `json:"metric,omitempty"`
+	ActualValue   float64       `json:"actual_value,omitempty"`
+	Threshold     float64       `json:"threshold,omitempty"`
 }
 
 // IdentifierViolation represents an identifier naming convention violation
 type IdentifierViolation struct {
-	Name          string  `json:"name"`
-	File          string  `json:"file"`
-	Line          int     `json:"line"`
-	Type          string  `json:"type"` // function, method, type, const, var
-	ViolationType string  `json:"violation_type"`
-	Description   string  `json:"description"`
-	SuggestedName string  `json:"suggested_name"`
-	Severity      string  `json:"severity"`
-	ItemName      string  `json:"item_name,omitempty"`
-	Metric        string  `json:"metric,omitempty"`
-	ActualValue   float64 `json:"actual_value,omitempty"`
-	Threshold     float64 `json:"threshold,omitempty"`
+	Name          string        `json:"name"`
+	File          string        `json:"file"`
+	Line          int           `json:"line"`
+	Type          string        `json:"type"` // function, method, type, const, var
+	ViolationType string        `json:"violation_type"`
+	Description   string        `json:"description"`
+	SuggestedName string        `json:"suggested_name"`
+	Severity      SeverityLevel `json:"severity"`
+	ItemName      string        `json:"item_name,omitempty"`
+	Metric        string        `json:"metric,omitempty"`
+	ActualValue   float64       `json:"actual_value,omitempty"`
+	Threshold     float64       `json:"threshold,omitempty"`
 }
 
 // PackageNameViolation represents a package naming convention violation
 type PackageNameViolation struct {
-	Package       string  `json:"package"`
-	Directory     string  `json:"directory"`
-	ViolationType string  `json:"violation_type"`
-	Description   string  `json:"description"`
-	SuggestedName string  `json:"suggested_name"`
-	Severity      string  `json:"severity"`
-	ItemName      string  `json:"item_name,omitempty"`
-	Metric        string  `json:"metric,omitempty"`
-	ActualValue   float64 `json:"actual_value,omitempty"`
-	Threshold     float64 `json:"threshold,omitempty"`
+	Package       string        `json:"package"`
+	Directory     string        `json:"directory"`
+	ViolationType string        `json:"violation_type"`
+	Description   string        `json:"description"`
+	SuggestedName string        `json:"suggested_name"`
+	Severity      SeverityLevel `json:"severity"`
+	ItemName      string        `json:"item_name,omitempty"`
+	Metric        string        `json:"metric,omitempty"`
+	ActualValue   float64       `json:"actual_value,omitempty"`
+	Threshold     float64       `json:"threshold,omitempty"`
 }
 
 // Organization Analysis Types
@@ -671,34 +671,34 @@ type OrganizationMetrics struct {
 
 // OversizedFile represents a file that exceeds recommended size thresholds
 type OversizedFile struct {
-	File              string      `json:"file"`
-	Lines             LineMetrics `json:"lines"`
-	FunctionCount     int         `json:"function_count"`
-	TypeCount         int         `json:"type_count"`
-	MaintenanceBurden float64     `json:"maintenance_burden"`
-	Severity          string      `json:"severity"`
-	Suggestions       []string    `json:"suggestions"`
+	File              string        `json:"file"`
+	Lines             LineMetrics   `json:"lines"`
+	FunctionCount     int           `json:"function_count"`
+	TypeCount         int           `json:"type_count"`
+	MaintenanceBurden float64       `json:"maintenance_burden"`
+	Severity          SeverityLevel `json:"severity"`
+	Suggestions       []string      `json:"suggestions"`
 }
 
 // OversizedPackage represents a package that may be too large
 type OversizedPackage struct {
-	Package         string   `json:"package"`
-	FileCount       int      `json:"file_count"`
-	ExportedSymbols int      `json:"exported_symbols"`
-	TotalFunctions  int      `json:"total_functions"`
-	CohesionScore   float64  `json:"cohesion_score"`
-	IsMegaPackage   bool     `json:"is_mega_package"`
-	Severity        string   `json:"severity"`
-	Suggestions     []string `json:"suggestions"`
+	Package         string        `json:"package"`
+	FileCount       int           `json:"file_count"`
+	ExportedSymbols int           `json:"exported_symbols"`
+	TotalFunctions  int           `json:"total_functions"`
+	CohesionScore   float64       `json:"cohesion_score"`
+	IsMegaPackage   bool          `json:"is_mega_package"`
+	Severity        SeverityLevel `json:"severity"`
+	Suggestions     []string      `json:"suggestions"`
 }
 
 // DeepDirectory represents a directory structure that may be too nested
 type DeepDirectory struct {
-	Path       string `json:"path"`
-	Depth      int    `json:"depth"`
-	FileCount  int    `json:"file_count"`
-	Severity   string `json:"severity"`
-	Suggestion string `json:"suggestion"`
+	Path       string        `json:"path"`
+	Depth      int           `json:"depth"`
+	FileCount  int           `json:"file_count"`
+	Severity   SeverityLevel `json:"severity"`
+	Suggestion string        `json:"suggestion"`
 }
 
 // FanInPackage represents a package with high incoming dependencies (hub)
@@ -858,13 +858,17 @@ const (
 )
 
 // SeverityLevel represents the severity classification for issues and warnings.
+// - violation: Threshold breach requiring immediate attention
+// - warning: Near-threshold condition that may become a violation
+// - info: Advisory information without threshold breach
+// - critical: Severe issues requiring urgent remediation (deprecated, use violation)
 type SeverityLevel string
 
 const (
-	SeverityLevelInfo     SeverityLevel = "info"
-	SeverityLevelWarning  SeverityLevel = "warning"
-	SeverityLevelError    SeverityLevel = "error"
-	SeverityLevelCritical SeverityLevel = "critical"
+	SeverityLevelInfo      SeverityLevel = "info"
+	SeverityLevelWarning   SeverityLevel = "warning"
+	SeverityLevelViolation SeverityLevel = "violation"
+	SeverityLevelCritical  SeverityLevel = "critical" // Deprecated: Use SeverityLevelViolation
 )
 
 // TrendDirection represents the overall direction of a metric trend over time.
@@ -1088,19 +1092,19 @@ type BurdenMetrics struct {
 
 // MagicNumber represents a detected magic number or string
 type MagicNumber struct {
-	File        string  `json:"file"`
-	Line        int     `json:"line"`
-	Column      int     `json:"column"`
-	Value       string  `json:"value"`
-	Type        string  `json:"type"`
-	Context     string  `json:"context"`
-	Function    string  `json:"function"`
-	Severity    string  `json:"severity"`
-	Suggestion  string  `json:"suggestion"`
-	ItemName    string  `json:"item_name,omitempty"`
-	Metric      string  `json:"metric,omitempty"`
-	ActualValue float64 `json:"actual_value,omitempty"`
-	Threshold   float64 `json:"threshold,omitempty"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	Column      int           `json:"column"`
+	Value       string        `json:"value"`
+	Type        string        `json:"type"`
+	Context     string        `json:"context"`
+	Function    string        `json:"function"`
+	Severity    SeverityLevel `json:"severity"`
+	Suggestion  string        `json:"suggestion"`
+	ItemName    string        `json:"item_name,omitempty"`
+	Metric      string        `json:"metric,omitempty"`
+	ActualValue float64       `json:"actual_value,omitempty"`
+	Threshold   float64       `json:"threshold,omitempty"`
 }
 
 // DeadCodeMetrics contains dead code detection results
@@ -1113,82 +1117,82 @@ type DeadCodeMetrics struct {
 
 // UnreferencedSymbol represents an unreferenced unexported symbol
 type UnreferencedSymbol struct {
-	Name        string  `json:"name"`
-	File        string  `json:"file"`
-	Line        int     `json:"line"`
-	Type        string  `json:"type"`
-	Package     string  `json:"package"`
-	Severity    string  `json:"severity,omitempty"`
-	Suggestion  string  `json:"suggestion,omitempty"`
-	ItemName    string  `json:"item_name,omitempty"`
-	Metric      string  `json:"metric,omitempty"`
-	ActualValue float64 `json:"actual_value,omitempty"`
-	Threshold   float64 `json:"threshold,omitempty"`
+	Name        string        `json:"name"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	Type        string        `json:"type"`
+	Package     string        `json:"package"`
+	Severity    SeverityLevel `json:"severity,omitempty"`
+	Suggestion  string        `json:"suggestion,omitempty"`
+	ItemName    string        `json:"item_name,omitempty"`
+	Metric      string        `json:"metric,omitempty"`
+	ActualValue float64       `json:"actual_value,omitempty"`
+	Threshold   float64       `json:"threshold,omitempty"`
 }
 
 // UnreachableBlock represents unreachable code after control flow statements
 type UnreachableBlock struct {
-	File        string  `json:"file"`
-	StartLine   int     `json:"start_line"`
-	EndLine     int     `json:"end_line"`
-	Function    string  `json:"function"`
-	Reason      string  `json:"reason"`
-	Lines       int     `json:"lines"`
-	Severity    string  `json:"severity,omitempty"`
-	Suggestion  string  `json:"suggestion,omitempty"`
-	ItemName    string  `json:"item_name,omitempty"`
-	Metric      string  `json:"metric,omitempty"`
-	ActualValue float64 `json:"actual_value,omitempty"`
-	Threshold   float64 `json:"threshold,omitempty"`
+	File        string        `json:"file"`
+	StartLine   int           `json:"start_line"`
+	EndLine     int           `json:"end_line"`
+	Function    string        `json:"function"`
+	Reason      string        `json:"reason"`
+	Lines       int           `json:"lines"`
+	Severity    SeverityLevel `json:"severity,omitempty"`
+	Suggestion  string        `json:"suggestion,omitempty"`
+	ItemName    string        `json:"item_name,omitempty"`
+	Metric      string        `json:"metric,omitempty"`
+	ActualValue float64       `json:"actual_value,omitempty"`
+	Threshold   float64       `json:"threshold,omitempty"`
 }
 
 // SignatureIssue represents a function with excessive parameters or returns
 type SignatureIssue struct {
-	Function       string   `json:"function"`
-	File           string   `json:"file"`
-	Line           int      `json:"line"`
-	ParameterCount int      `json:"parameter_count"`
-	ReturnCount    int      `json:"return_count"`
-	BoolParams     []string `json:"bool_params,omitempty"`
-	Severity       string   `json:"severity"`
-	Suggestion     string   `json:"suggestion"`
-	ItemName       string   `json:"item_name,omitempty"`
-	Metric         string   `json:"metric,omitempty"`
-	ActualValue    float64  `json:"actual_value,omitempty"`
-	Threshold      float64  `json:"threshold,omitempty"`
+	Function       string        `json:"function"`
+	File           string        `json:"file"`
+	Line           int           `json:"line"`
+	ParameterCount int           `json:"parameter_count"`
+	ReturnCount    int           `json:"return_count"`
+	BoolParams     []string      `json:"bool_params,omitempty"`
+	Severity       SeverityLevel `json:"severity"`
+	Suggestion     string        `json:"suggestion"`
+	ItemName       string        `json:"item_name,omitempty"`
+	Metric         string        `json:"metric,omitempty"`
+	ActualValue    float64       `json:"actual_value,omitempty"`
+	Threshold      float64       `json:"threshold,omitempty"`
 }
 
 // NestingIssue represents deep nesting in a function
 type NestingIssue struct {
-	Function    string  `json:"function"`
-	File        string  `json:"file"`
-	Line        int     `json:"line"`
-	MaxDepth    int     `json:"max_depth"`
-	Location    string  `json:"location"`
-	Severity    string  `json:"severity"`
-	Suggestion  string  `json:"suggestion"`
-	ItemName    string  `json:"item_name,omitempty"`
-	Metric      string  `json:"metric,omitempty"`
-	ActualValue float64 `json:"actual_value,omitempty"`
-	Threshold   float64 `json:"threshold,omitempty"`
+	Function    string        `json:"function"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	MaxDepth    int           `json:"max_depth"`
+	Location    string        `json:"location"`
+	Severity    SeverityLevel `json:"severity"`
+	Suggestion  string        `json:"suggestion"`
+	ItemName    string        `json:"item_name,omitempty"`
+	Metric      string        `json:"metric,omitempty"`
+	ActualValue float64       `json:"actual_value,omitempty"`
+	Threshold   float64       `json:"threshold,omitempty"`
 }
 
 // FeatureEnvyIssue represents a method with excessive external references
 type FeatureEnvyIssue struct {
-	Method         string  `json:"method"`
-	File           string  `json:"file"`
-	Line           int     `json:"line"`
-	ReceiverType   string  `json:"receiver_type"`
-	SelfReferences int     `json:"self_references"`
-	ExternalType   string  `json:"external_type"`
-	ExternalRefs   int     `json:"external_references"`
-	Ratio          float64 `json:"ratio"`
-	Severity       string  `json:"severity"`
-	SuggestedMove  string  `json:"suggested_move"`
-	ItemName       string  `json:"item_name,omitempty"`
-	Metric         string  `json:"metric,omitempty"`
-	ActualValue    float64 `json:"actual_value,omitempty"`
-	Threshold      float64 `json:"threshold,omitempty"`
+	Method         string        `json:"method"`
+	File           string        `json:"file"`
+	Line           int           `json:"line"`
+	ReceiverType   string        `json:"receiver_type"`
+	SelfReferences int           `json:"self_references"`
+	ExternalType   string        `json:"external_type"`
+	ExternalRefs   int           `json:"external_references"`
+	Ratio          float64       `json:"ratio"`
+	Severity       SeverityLevel `json:"severity"`
+	SuggestedMove  string        `json:"suggested_move"`
+	ItemName       string        `json:"item_name,omitempty"`
+	Metric         string        `json:"metric,omitempty"`
+	ActualValue    float64       `json:"actual_value,omitempty"`
+	Threshold      float64       `json:"threshold,omitempty"`
 }
 
 // ScoringMetrics holds maintenance burden index scores
@@ -1238,12 +1242,12 @@ type SuggestionInfo struct {
 
 // PerformanceAntipattern represents a detected performance anti-pattern
 type PerformanceAntipattern struct {
-	Type        string `json:"type"`
-	Description string `json:"description"`
-	Severity    string `json:"severity"`
-	File        string `json:"file"`
-	Line        int    `json:"line"`
-	Suggestion  string `json:"suggestion"`
+	Type        string        `json:"type"`
+	Description string        `json:"description"`
+	Severity    SeverityLevel `json:"severity"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	Suggestion  string        `json:"suggestion"`
 }
 
 // TestCoverageMetrics represents test coverage correlation analysis
@@ -1266,12 +1270,12 @@ type HighRiskFunction struct {
 
 // CoverageGap represents a coverage gap in the codebase
 type CoverageGap struct {
-	Name        string  `json:"name"`
-	File        string  `json:"file"`
-	Line        int     `json:"line"`
-	Complexity  int     `json:"complexity"`
-	Coverage    float64 `json:"coverage"`
-	GapSeverity string  `json:"gap_severity"`
+	Name        string        `json:"name"`
+	File        string        `json:"file"`
+	Line        int           `json:"line"`
+	Complexity  int           `json:"complexity"`
+	Coverage    float64       `json:"coverage"`
+	GapSeverity SeverityLevel `json:"gap_severity"`
 }
 
 // TestQualityMetrics represents test suite quality assessment

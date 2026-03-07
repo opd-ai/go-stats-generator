@@ -98,7 +98,7 @@ func (cr *ConsoleReporter) getSeverityIcon(severity metrics.SeverityLevel) strin
 	switch severity {
 	case metrics.SeverityLevelCritical:
 		return "🚨"
-	case metrics.SeverityLevelError:
+	case metrics.SeverityLevelViolation:
 		return "❌"
 	case metrics.SeverityLevelWarning:
 		return "⚠️"

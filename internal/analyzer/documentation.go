@@ -44,13 +44,13 @@ func NewDocumentationAnalyzer(fset *token.FileSet, cfg *DocumentationConfig) *Do
 		cfg:             cfg,
 		annotationRegex: regexp.MustCompile(`(?i)(TODO|FIXME|HACK|BUG|XXX|DEPRECATED|NOTE)[\s:]+(.*)`),
 		severityClassifier: map[string]string{
-			"FIXME":      "critical",
-			"BUG":        "critical",
-			"HACK":       "high",
-			"TODO":       "medium",
-			"XXX":        "medium",
-			"DEPRECATED": "low",
-			"NOTE":       "low",
+			"FIXME":      string(metrics.SeverityLevelCritical),
+			"BUG":        string(metrics.SeverityLevelCritical),
+			"HACK":       string(metrics.SeverityLevelViolation),
+			"TODO":       string(metrics.SeverityLevelWarning),
+			"XXX":        string(metrics.SeverityLevelWarning),
+			"DEPRECATED": string(metrics.SeverityLevelInfo),
+			"NOTE":       string(metrics.SeverityLevelInfo),
 		},
 	}
 }
@@ -200,11 +200,11 @@ func (d *DocumentationAnalyzer) extractAnnotation(comment string) (category, des
 }
 
 // getSeverity returns severity classification for an annotation
-func (d *DocumentationAnalyzer) getSeverity(category string) string {
+func (d *DocumentationAnalyzer) getSeverity(category string) metrics.SeverityLevel {
 	if severity, ok := d.severityClassifier[strings.ToUpper(category)]; ok {
-		return severity
+		return metrics.SeverityLevel(severity)
 	}
-	return "low"
+	return metrics.SeverityLevelInfo
 }
 
 // analyzePackageDocs checks for package-level documentation

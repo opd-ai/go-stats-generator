@@ -136,11 +136,11 @@ func (ba *BurdenAnalyzer) createMagicNumber(lit *ast.BasicLit, file *ast.File, f
 }
 
 // getMagicNumberSeverityAndSuggestion determines severity and suggestion for magic numbers
-func (ba *BurdenAnalyzer) getMagicNumberSeverityAndSuggestion(typ, value string) (string, string) {
+func (ba *BurdenAnalyzer) getMagicNumberSeverityAndSuggestion(typ, value string) (metrics.SeverityLevel, string) {
 	if typ == "string" {
-		return "info", "Consider extracting string literal into a const if reused or semantically meaningful"
+		return metrics.SeverityLevelInfo, "Consider extracting string literal into a const if reused or semantically meaningful"
 	}
-	return "warning", fmt.Sprintf("Extract %s literal '%s' into a named constant for better maintainability", typ, value)
+	return metrics.SeverityLevelWarning, fmt.Sprintf("Extract %s literal '%s' into a named constant for better maintainability", typ, value)
 }
 
 // extractContext finds the statement context for a literal by inspecting the AST
@@ -649,14 +649,14 @@ func (ba *BurdenAnalyzer) countReturns(fnType *ast.FuncType) int {
 }
 
 // calculateSeverity determines severity level based on parameter and return count thresholds
-func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, maxReturns int) string {
+func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, maxReturns int) metrics.SeverityLevel {
 	if paramCount > maxParams*2 || returnCount > maxReturns*2 {
-		return "high"
+		return metrics.SeverityLevelCritical
 	}
 	if paramCount > maxParams || returnCount > maxReturns {
-		return "medium"
+		return metrics.SeverityLevelWarning
 	}
-	return "low"
+	return metrics.SeverityLevelInfo
 }
 
 // DetectDeepNesting identifies functions with excessive nesting levels that harm readability
@@ -680,9 +680,9 @@ func (ba *BurdenAnalyzer) DetectDeepNesting(fn *ast.FuncDecl, maxNesting int) *m
 	locPos := ba.fset.Position(deepestLoc)
 
 	// Determine severity based on depth
-	severity := "warning"
+	severity := metrics.SeverityLevelWarning
 	if maxDepth > maxNesting+3 {
-		severity = "violation"
+		severity = metrics.SeverityLevelViolation
 	}
 
 	return &metrics.NestingIssue{
@@ -834,9 +834,9 @@ func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ra
 
 	// Determine severity based on ratio
 	envyRatio := float64(maxExtCount) / float64(max(selfRefs, 1))
-	severity := "warning"
+	severity := metrics.SeverityLevelWarning
 	if envyRatio > 3.0 {
-		severity = "violation"
+		severity = metrics.SeverityLevelViolation
 	}
 
 	return &metrics.FeatureEnvyIssue{

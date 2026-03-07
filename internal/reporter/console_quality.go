@@ -214,13 +214,15 @@ func (cr *ConsoleReporter) writeFileNameViolations(output io.Writer, violations 
 }
 
 // severityWeight returns numeric weight for severity sorting
-func severityWeight(severity string) int {
+func severityWeight(severity metrics.SeverityLevel) int {
 	switch severity {
-	case "high":
+	case metrics.SeverityLevelCritical:
+		return 4
+	case metrics.SeverityLevelViolation:
 		return 3
-	case "medium":
+	case metrics.SeverityLevelWarning:
 		return 2
-	case "low":
+	case metrics.SeverityLevelInfo:
 		return 1
 	default:
 		return 0

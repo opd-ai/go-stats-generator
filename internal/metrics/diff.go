@@ -453,7 +453,7 @@ func comparePackageCoupling(basePkg, currPkg PackageMetrics, config ThresholdCon
 func assignPackageCouplingImpact(change *MetricChange, currPkg PackageMetrics, delta Delta, config ThresholdConfig) {
 	if currPkg.CouplingScore > config.PackageMetrics.MaxCoupling {
 		change.Impact = ImpactLevelCritical
-		change.Severity = SeverityLevelError
+		change.Severity = SeverityLevelViolation
 		change.Suggestion = "Package coupling exceeds threshold, reduce dependencies"
 	} else {
 		change.Impact = determineImpactLevel(delta)
@@ -722,7 +722,7 @@ func determineSeverityLevel(delta Delta) SeverityLevel {
 	if delta.Magnitude == ChangeMagnitudeCritical {
 		return SeverityLevelCritical
 	} else if delta.Magnitude == ChangeMagnitudeMajor {
-		return SeverityLevelError
+		return SeverityLevelViolation
 	} else if delta.Magnitude == ChangeMagnitudeSignificant {
 		return SeverityLevelWarning
 	}
@@ -735,7 +735,7 @@ func isRegression(change MetricChange, config ThresholdConfig) bool {
 	return change.Delta.Direction == ChangeDirectionIncrease &&
 		change.Delta.Significant &&
 		(change.Severity == SeverityLevelWarning ||
-			change.Severity == SeverityLevelError ||
+			change.Severity == SeverityLevelViolation ||
 			change.Severity == SeverityLevelCritical)
 }
 
@@ -790,7 +790,7 @@ func calculateRegressionPriority(change MetricChange) int {
 	switch change.Severity {
 	case SeverityLevelCritical:
 		priority += 8
-	case SeverityLevelError:
+	case SeverityLevelViolation:
 		priority += 6
 	case SeverityLevelWarning:
 		priority += 4
@@ -900,7 +900,7 @@ func createFileMBIRegression(fileScore FileScore, baseScore float64, delta Delta
 	priority := 5
 
 	if delta.Absolute >= config.BurdenMetrics.FileMBIThreshold*2 {
-		severity = SeverityLevelError
+		severity = SeverityLevelViolation
 		impact = ImpactLevelHigh
 		priority = 7
 	}
@@ -954,7 +954,7 @@ func createPackageMBIRegression(pkgScore PackageScore, baseScore float64, delta 
 	priority := 4
 
 	if delta.Absolute >= config.BurdenMetrics.PackageMBIThreshold*2 {
-		severity = SeverityLevelError
+		severity = SeverityLevelViolation
 		impact = ImpactLevelHigh
 		priority = 6
 	}
@@ -994,7 +994,7 @@ func detectDuplicationRegression(baseline, current Report, config ThresholdConfi
 		NewValue:    current.Duplication.DuplicationRatio,
 		Delta:       delta,
 		Impact:      ImpactLevelHigh,
-		Severity:    SeverityLevelError,
+		Severity:    SeverityLevelViolation,
 		Threshold:   config.BurdenMetrics.MaxDuplicationRatio,
 		Suggestion:  "Deduplicate code using helper functions or interfaces",
 		Priority:    7,

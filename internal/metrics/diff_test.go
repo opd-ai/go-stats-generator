@@ -108,7 +108,7 @@ func TestDetectBurdenRegressions(t *testing.T) {
 			},
 			expectedCount:     1,
 			expectedTypes:     []RegressionType{DuplicationRegression},
-			expectedSeverity:  []SeverityLevel{SeverityLevelError},
+			expectedSeverity:  []SeverityLevel{SeverityLevelViolation},
 			expectedLocations: []string{"global"},
 		},
 		{

@@ -303,11 +303,11 @@ func (pa *PlacementAnalyzer) createMisplacedIssue(symbol, defFile, bestFile stri
 }
 
 // calculateSeverity determines issue severity based on affinity difference
-func (pa *PlacementAnalyzer) calculateSeverity(bestAffinity, currentAffinity float64) string {
+func (pa *PlacementAnalyzer) calculateSeverity(bestAffinity, currentAffinity float64) metrics.SeverityLevel {
 	if bestAffinity-currentAffinity > 2*pa.affinityMargin {
-		return "high"
+		return metrics.SeverityLevelCritical
 	}
-	return "medium"
+	return metrics.SeverityLevelWarning
 }
 
 // AnalyzeMethodPlacement checks if methods are defined in the same file as their receiver
@@ -347,11 +347,11 @@ func (pa *PlacementAnalyzer) calculateMethodDistance(methodFile, receiverFile st
 }
 
 // determinePlacementSeverity determines severity based on distance
-func (pa *PlacementAnalyzer) determinePlacementSeverity(distance string) string {
+func (pa *PlacementAnalyzer) determinePlacementSeverity(distance string) metrics.SeverityLevel {
 	if distance == "different_package" {
-		return "high"
+		return metrics.SeverityLevelCritical
 	}
-	return "medium"
+	return metrics.SeverityLevelWarning
 }
 
 // AnalyzeFileCohesion identifies files with low internal cohesion based on
@@ -399,14 +399,14 @@ func (pa *PlacementAnalyzer) countFileReferences(file string) (intraRefs, totalR
 }
 
 // determineCohesionSeverity calculates severity based on cohesion score
-func (pa *PlacementAnalyzer) determineCohesionSeverity(cohesion float64) string {
+func (pa *PlacementAnalyzer) determineCohesionSeverity(cohesion float64) metrics.SeverityLevel {
 	if cohesion < pa.minCohesion/3 {
-		return "high"
+		return metrics.SeverityLevelCritical
 	}
 	if cohesion < pa.minCohesion/2 {
-		return "medium"
+		return metrics.SeverityLevelWarning
 	}
-	return "low"
+	return metrics.SeverityLevelInfo
 }
 
 // calculateCohesion computes the cohesion score for a file

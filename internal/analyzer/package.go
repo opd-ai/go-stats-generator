@@ -297,15 +297,15 @@ func (pa *PackageAnalyzer) findCycleStart(dep string, path []string) int {
 }
 
 // calculateCycleSeverity determines how problematic a circular dependency is
-func (pa *PackageAnalyzer) calculateCycleSeverity(cycle []string) string {
+func (pa *PackageAnalyzer) calculateCycleSeverity(cycle []string) metrics.SeverityLevel {
 	// Count unique packages in the cycle (exclude the closing duplicate)
 	uniquePackages := len(cycle) - 1
 	if uniquePackages <= 2 {
-		return "low"
+		return metrics.SeverityLevelInfo
 	} else if uniquePackages <= 4 {
-		return "medium"
+		return metrics.SeverityLevelWarning
 	}
-	return "high"
+	return metrics.SeverityLevelCritical
 }
 
 // buildDependencyGraph creates a representation of the dependency relationships

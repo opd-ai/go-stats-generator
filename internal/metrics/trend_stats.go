@@ -33,7 +33,7 @@ type RegressionResult struct {
 	ExpectedValue     float64         `json:"expected_value"`     // Based on trend
 	PercentDeviation  float64         `json:"percent_deviation"`  // Positive = worse than expected
 	Classification    string          `json:"classification"`     // "regression" / "improvement" / "stable"
-	Severity          string          `json:"severity"`           // "low" / "medium" / "high" / "critical"
+	Severity          SeverityLevel   `json:"severity"`           // "low" / "medium" / "high" / "critical"
 	PValue            float64         `json:"p_value"`            // Statistical significance
 	SignificanceLevel float64         `json:"significance_level"` // Threshold used (e.g., 0.05)
 	DetectedAt        time.Time       `json:"detected_at"`

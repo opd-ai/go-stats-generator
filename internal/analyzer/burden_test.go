@@ -266,7 +266,7 @@ func TestAnalyzeSignatureComplexity(t *testing.T) {
 		maxParams      int
 		maxReturns     int
 		wantIssue      bool
-		wantSeverity   string
+		wantSeverity   metrics.SeverityLevel
 		wantParamCount int
 		wantRetCount   int
 		wantBoolParams int

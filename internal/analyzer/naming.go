@@ -266,7 +266,7 @@ func (na *NamingAnalyzer) toSnakeCase(s string) string {
 func (na *NamingAnalyzer) ComputeFileNamingScore(violations []metrics.FileNameViolation, totalFiles int) float64 {
 	severities := make([]string, len(violations))
 	for i, v := range violations {
-		severities[i] = v.Severity
+		severities[i] = string(v.Severity)
 	}
 	return computeQualityScore(severities, totalFiles)
 }
@@ -625,7 +625,7 @@ func (na *NamingAnalyzer) isAllowedFunctionPrefix(functionName string) bool {
 func (na *NamingAnalyzer) ComputeIdentifierQualityScore(violations []metrics.IdentifierViolation, totalIdentifiers int) float64 {
 	severities := make([]string, len(violations))
 	for i, v := range violations {
-		severities[i] = v.Severity
+		severities[i] = string(v.Severity)
 	}
 	return computeQualityScore(severities, totalIdentifiers)
 }
@@ -844,7 +844,7 @@ func (na *NamingAnalyzer) checkDirectoryMismatch(pkgName, dirName, filePath stri
 func (na *NamingAnalyzer) ComputePackageNamingScore(violations []metrics.PackageNameViolation, totalPackages int) float64 {
 	severities := make([]string, len(violations))
 	for i, v := range violations {
-		severities[i] = v.Severity
+		severities[i] = string(v.Severity)
 	}
 	return computeQualityScore(severities, totalPackages)
 }

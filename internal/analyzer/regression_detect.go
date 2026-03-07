@@ -62,17 +62,17 @@ func classifyDeviation(deviation, threshold float64) string {
 }
 
 // calculateSeverity assigns severity level based on deviation magnitude.
-func calculateSeverity(absDeviation, threshold float64) string {
+func calculateSeverity(absDeviation, threshold float64) metrics.SeverityLevel {
 	if absDeviation < threshold {
-		return "low"
+		return metrics.SeverityLevelInfo
 	}
 	if absDeviation < threshold*2 {
-		return "medium"
+		return metrics.SeverityLevelWarning
 	}
 	if absDeviation < threshold*3 {
-		return "high"
+		return metrics.SeverityLevelViolation
 	}
-	return "critical"
+	return metrics.SeverityLevelCritical
 }
 
 // calculatePValue estimates statistical significance of the deviation.

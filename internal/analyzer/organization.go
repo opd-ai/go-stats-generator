@@ -198,7 +198,7 @@ func (oa *OrganizationAnalyzer) isOversized(lines metrics.LineMetrics, funcCount
 }
 
 // getSeverity determines severity level
-func (oa *OrganizationAnalyzer) getSeverity(lines metrics.LineMetrics, funcCount, typeCount int, config OrganizationConfig) string {
+func (oa *OrganizationAnalyzer) getSeverity(lines metrics.LineMetrics, funcCount, typeCount int, config OrganizationConfig) metrics.SeverityLevel {
 	criticalCount := 0
 
 	if lines.Total > config.MaxFileLines*2 {
@@ -212,12 +212,12 @@ func (oa *OrganizationAnalyzer) getSeverity(lines metrics.LineMetrics, funcCount
 	}
 
 	if criticalCount >= 2 {
-		return "critical"
+		return metrics.SeverityLevelCritical
 	}
 	if criticalCount == 1 {
-		return "high"
+		return metrics.SeverityLevelViolation
 	}
-	return "medium"
+	return metrics.SeverityLevelWarning
 }
 
 // getSuggestions generates improvement suggestions
@@ -287,9 +287,9 @@ func (oa *OrganizationAnalyzer) isMegaPackage(pkg *PackageInfo) bool {
 }
 
 // getPackageSeverity determines severity level
-func (oa *OrganizationAnalyzer) getPackageSeverity(pkg *PackageInfo, config OrganizationConfig) string {
+func (oa *OrganizationAnalyzer) getPackageSeverity(pkg *PackageInfo, config OrganizationConfig) metrics.SeverityLevel {
 	if oa.isMegaPackage(pkg) {
-		return "critical"
+		return metrics.SeverityLevelCritical
 	}
 
 	violations := 0
@@ -301,12 +301,12 @@ func (oa *OrganizationAnalyzer) getPackageSeverity(pkg *PackageInfo, config Orga
 	}
 
 	if violations >= 2 {
-		return "critical"
+		return metrics.SeverityLevelCritical
 	}
 	if violations == 1 {
-		return "high"
+		return metrics.SeverityLevelViolation
 	}
-	return "medium"
+	return metrics.SeverityLevelWarning
 }
 
 // getPackageSuggestions generates package improvement suggestions
@@ -392,15 +392,15 @@ func (oa *OrganizationAnalyzer) buildDeepDirectories(depthMap map[string]*direct
 }
 
 // getDepthSeverity determines depth severity
-func (oa *OrganizationAnalyzer) getDepthSeverity(depth int, config OrganizationConfig) string {
+func (oa *OrganizationAnalyzer) getDepthSeverity(depth int, config OrganizationConfig) metrics.SeverityLevel {
 	threshold := float64(config.MaxDirectoryDepth)
 	if float64(depth) > threshold*2 {
-		return "critical"
+		return metrics.SeverityLevelCritical
 	}
 	if float64(depth) > threshold*1.5 {
-		return "high"
+		return metrics.SeverityLevelViolation
 	}
-	return "medium"
+	return metrics.SeverityLevelWarning
 }
 
 // getDepthSuggestion generates depth suggestion

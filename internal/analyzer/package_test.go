@@ -318,7 +318,7 @@ func TestCircularDependencyDetection(t *testing.T) {
 		name         string
 		dependencies map[string][]string
 		wantCycles   int
-		wantSeverity string
+		wantSeverity metrics.SeverityLevel
 	}{
 		{
 			name: "simple two-package cycle",
@@ -327,7 +327,7 @@ func TestCircularDependencyDetection(t *testing.T) {
 				"pkg2": {"pkg1"},
 			},
 			wantCycles:   1,
-			wantSeverity: "low",
+			wantSeverity: metrics.SeverityLevelInfo,
 		},
 		{
 			name: "three-package cycle",
@@ -337,7 +337,7 @@ func TestCircularDependencyDetection(t *testing.T) {
 				"pkg3": {"pkg1"},
 			},
 			wantCycles:   1,
-			wantSeverity: "medium",
+			wantSeverity: metrics.SeverityLevelWarning,
 		},
 		{
 			name: "complex multi-cycle",
@@ -352,7 +352,7 @@ func TestCircularDependencyDetection(t *testing.T) {
 				"pkg8": {"pkg4"},
 			},
 			wantCycles:   2,
-			wantSeverity: "high",
+			wantSeverity: metrics.SeverityLevelViolation,
 		},
 		{
 			name: "no cycles",
