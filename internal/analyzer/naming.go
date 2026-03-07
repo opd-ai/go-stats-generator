@@ -38,83 +38,60 @@ type identifierContext struct {
 // overly abbreviated names. Essential for code readability and Go style compliance assessment.
 func NewNamingAnalyzer() *NamingAnalyzer {
 	return &NamingAnalyzer{
-		genericFileNames: map[string]bool{
-			"utils.go":     true,
-			"util.go":      true,
-			"helpers.go":   true,
-			"helper.go":    true,
-			"misc.go":      true,
-			"common.go":    true,
-			"shared.go":    true,
-			"base.go":      true,
-			"core.go":      true,
-			"lib.go":       true,
-			"types.go":     true, // too generic in most contexts
-			"constants.go": true,
-			"errors.go":    true, // better to be specific
-		},
-		snakeCaseRegex: regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*(_test)?\.go$`),
-		acronyms: map[string]string{
-			"url":   "URL",
-			"http":  "HTTP",
-			"https": "HTTPS",
-			"id":    "ID",
-			"api":   "API",
-			"json":  "JSON",
-			"xml":   "XML",
-			"sql":   "SQL",
-			"html":  "HTML",
-			"css":   "CSS",
-			"eof":   "EOF",
-			"ip":    "IP",
-			"tcp":   "TCP",
-			"udp":   "UDP",
-			"rpc":   "RPC",
-			"tls":   "TLS",
-			"ssl":   "SSL",
-			"grpc":  "GRPC",
-			"ui":    "UI",
-			"uri":   "URI",
-			"uuid":  "UUID",
-			"ascii": "ASCII",
-			"utf":   "UTF",
-		},
-		genericPackages: map[string]bool{
-			"util":    true,
-			"utils":   true,
-			"common":  true,
-			"base":    true,
-			"shared":  true,
-			"lib":     true,
-			"core":    true,
-			"misc":    true,
-			"helpers": true,
-			"helper":  true,
-		},
-		stdLibPackages: map[string]bool{
-			"fmt":     true,
-			"http":    true,
-			"io":      true,
-			"os":      true,
-			"net":     true,
-			"sync":    true,
-			"time":    true,
-			"strings": true,
-			"bytes":   true,
-			"errors":  true,
-			"context": true,
-			"testing": true,
-			"regexp":  true,
-			"sort":    true,
-			"path":    true,
-			"log":     true,
-			"json":    true,
-			"xml":     true,
-			"sql":     true,
-			"html":    true,
-			"url":     true,
-		},
+		genericFileNames: buildGenericFileNames(),
+		snakeCaseRegex:   regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*(_test)?\.go$`),
+		acronyms:         buildAcronymMap(),
+		genericPackages:  buildGenericPackages(),
+		stdLibPackages:   buildStdLibPackages(),
 		packageNameRegex: regexp.MustCompile(`^[a-z][a-z0-9]*$`),
+	}
+}
+
+func buildGenericFileNames() map[string]bool {
+	return map[string]bool{
+		"utils.go":     true,
+		"util.go":      true,
+		"helpers.go":   true,
+		"helper.go":    true,
+		"misc.go":      true,
+		"common.go":    true,
+		"shared.go":    true,
+		"base.go":      true,
+		"core.go":      true,
+		"lib.go":       true,
+		"types.go":     true,
+		"constants.go": true,
+		"errors.go":    true,
+	}
+}
+
+func buildAcronymMap() map[string]string {
+	return map[string]string{
+		"url": "URL", "http": "HTTP", "https": "HTTPS", "id": "ID",
+		"api": "API", "json": "JSON", "xml": "XML", "sql": "SQL",
+		"html": "HTML", "css": "CSS", "eof": "EOF", "ip": "IP",
+		"tcp": "TCP", "udp": "UDP", "rpc": "RPC", "tls": "TLS",
+		"ssl": "SSL", "grpc": "GRPC", "ui": "UI", "uri": "URI",
+		"uuid": "UUID", "ascii": "ASCII", "utf": "UTF",
+	}
+}
+
+func buildGenericPackages() map[string]bool {
+	return map[string]bool{
+		"util": true, "utils": true, "common": true, "base": true,
+		"shared": true, "lib": true, "core": true, "misc": true,
+		"helpers": true, "helper": true,
+	}
+}
+
+func buildStdLibPackages() map[string]bool {
+	return map[string]bool{
+		"fmt": true, "http": true, "io": true, "os": true,
+		"net": true, "sync": true, "time": true, "strings": true,
+		"bytes": true, "errors": true, "context": true, "testing": true,
+		"regexp": true, "sort": true, "path": true, "log": true,
+		"json": true, "xml": true, "sql": true, "html": true,
+		"url": true,
 	}
 }
 

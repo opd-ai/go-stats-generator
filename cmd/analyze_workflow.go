@@ -321,64 +321,92 @@ func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 // progressively enriched by analyzer components throughout the workflow execution.
 func createInitialReport(targetDir string, startTime time.Time, fileCount int) *metrics.Report {
 	return &metrics.Report{
-		Metadata: metrics.ReportMetadata{
-			Repository:     targetDir,
-			GeneratedAt:    time.Now(),
-			AnalysisTime:   time.Since(startTime),
-			FilesProcessed: fileCount,
-			ToolVersion:    "1.0.0",
+		Metadata: createReportMetadata(targetDir, startTime, fileCount),
+		Patterns: createInitialPatterns(),
+		Burden:   createInitialBurden(),
+		Scores:   createInitialScores(),
+	}
+}
+
+func createReportMetadata(targetDir string, startTime time.Time, fileCount int) metrics.ReportMetadata {
+	return metrics.ReportMetadata{
+		Repository:     targetDir,
+		GeneratedAt:    time.Now(),
+		AnalysisTime:   time.Since(startTime),
+		FilesProcessed: fileCount,
+		ToolVersion:    "1.0.0",
+	}
+}
+
+func createInitialPatterns() metrics.PatternMetrics {
+	return metrics.PatternMetrics{
+		DesignPatterns:      createInitialDesignPatterns(),
+		ConcurrencyPatterns: createInitialConcurrencyPatterns(),
+		AntiPatterns:        createInitialAntiPatterns(),
+	}
+}
+
+func createInitialDesignPatterns() metrics.DesignPatternMetrics {
+	return metrics.DesignPatternMetrics{
+		Singleton: []metrics.PatternInstance{},
+		Factory:   []metrics.PatternInstance{},
+		Builder:   []metrics.PatternInstance{},
+		Observer:  []metrics.PatternInstance{},
+		Strategy:  []metrics.PatternInstance{},
+	}
+}
+
+func createInitialConcurrencyPatterns() metrics.ConcurrencyPatternMetrics {
+	return metrics.ConcurrencyPatternMetrics{
+		WorkerPools: []metrics.PatternInstance{},
+		Pipelines:   []metrics.PatternInstance{},
+		FanOut:      []metrics.PatternInstance{},
+		FanIn:       []metrics.PatternInstance{},
+		Semaphores:  []metrics.PatternInstance{},
+		Goroutines: metrics.GoroutineMetrics{
+			Instances:      []metrics.GoroutineInstance{},
+			GoroutineLeaks: []metrics.GoroutineLeakWarning{},
 		},
-		Patterns: metrics.PatternMetrics{
-			DesignPatterns: metrics.DesignPatternMetrics{
-				Singleton: []metrics.PatternInstance{},
-				Factory:   []metrics.PatternInstance{},
-				Builder:   []metrics.PatternInstance{},
-				Observer:  []metrics.PatternInstance{},
-				Strategy:  []metrics.PatternInstance{},
-			},
-			ConcurrencyPatterns: metrics.ConcurrencyPatternMetrics{
-				WorkerPools: []metrics.PatternInstance{},
-				Pipelines:   []metrics.PatternInstance{},
-				FanOut:      []metrics.PatternInstance{},
-				FanIn:       []metrics.PatternInstance{},
-				Semaphores:  []metrics.PatternInstance{},
-				Goroutines: metrics.GoroutineMetrics{
-					Instances:      []metrics.GoroutineInstance{},
-					GoroutineLeaks: []metrics.GoroutineLeakWarning{},
-				},
-				Channels: metrics.ChannelMetrics{
-					Instances: []metrics.ChannelInstance{},
-				},
-				SyncPrims: metrics.SyncPrimitives{
-					Mutexes:    []metrics.SyncPrimitiveInstance{},
-					RWMutexes:  []metrics.SyncPrimitiveInstance{},
-					WaitGroups: []metrics.SyncPrimitiveInstance{},
-					Once:       []metrics.SyncPrimitiveInstance{},
-					Cond:       []metrics.SyncPrimitiveInstance{},
-					Atomic:     []metrics.SyncPrimitiveInstance{},
-				},
-			},
-			AntiPatterns: metrics.AntiPatternMetrics{
-				GodObjects:   []metrics.AntiPatternWarning{},
-				LongMethods:  []metrics.AntiPatternWarning{},
-				DeepNesting:  []metrics.AntiPatternWarning{},
-				MagicNumbers: []metrics.AntiPatternWarning{},
-			},
+		Channels: metrics.ChannelMetrics{
+			Instances: []metrics.ChannelInstance{},
 		},
-		Burden: metrics.BurdenMetrics{
-			MagicNumbers:          []metrics.MagicNumber{},
-			ComplexSignatures:     []metrics.SignatureIssue{},
-			DeeplyNestedFunctions: []metrics.NestingIssue{},
-			FeatureEnvyMethods:    []metrics.FeatureEnvyIssue{},
-			DeadCode: metrics.DeadCodeMetrics{
-				UnreferencedFunctions: []metrics.UnreferencedSymbol{},
-				UnreachableCode:       []metrics.UnreachableBlock{},
-			},
+		SyncPrims: metrics.SyncPrimitives{
+			Mutexes:    []metrics.SyncPrimitiveInstance{},
+			RWMutexes:  []metrics.SyncPrimitiveInstance{},
+			WaitGroups: []metrics.SyncPrimitiveInstance{},
+			Once:       []metrics.SyncPrimitiveInstance{},
+			Cond:       []metrics.SyncPrimitiveInstance{},
+			Atomic:     []metrics.SyncPrimitiveInstance{},
 		},
-		Scores: metrics.ScoringMetrics{
-			FileScores:    []metrics.FileScore{},
-			PackageScores: []metrics.PackageScore{},
+	}
+}
+
+func createInitialAntiPatterns() metrics.AntiPatternMetrics {
+	return metrics.AntiPatternMetrics{
+		GodObjects:   []metrics.AntiPatternWarning{},
+		LongMethods:  []metrics.AntiPatternWarning{},
+		DeepNesting:  []metrics.AntiPatternWarning{},
+		MagicNumbers: []metrics.AntiPatternWarning{},
+	}
+}
+
+func createInitialBurden() metrics.BurdenMetrics {
+	return metrics.BurdenMetrics{
+		MagicNumbers:          []metrics.MagicNumber{},
+		ComplexSignatures:     []metrics.SignatureIssue{},
+		DeeplyNestedFunctions: []metrics.NestingIssue{},
+		FeatureEnvyMethods:    []metrics.FeatureEnvyIssue{},
+		DeadCode: metrics.DeadCodeMetrics{
+			UnreferencedFunctions: []metrics.UnreferencedSymbol{},
+			UnreachableCode:       []metrics.UnreachableBlock{},
 		},
+	}
+}
+
+func createInitialScores() metrics.ScoringMetrics {
+	return metrics.ScoringMetrics{
+		FileScores:    []metrics.FileScore{},
+		PackageScores: []metrics.PackageScore{},
 	}
 }
 

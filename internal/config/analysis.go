@@ -207,103 +207,151 @@ type StorageConfig struct {
 // DefaultConfig sets analysis, output, performance, filtering, and storage settings.
 func DefaultConfig() *Config {
 	return &Config{
-		Analysis: AnalysisConfig{
-			IncludeFunctions:         true,
-			IncludeStructs:           true,
-			IncludeInterfaces:        true,
-			IncludePatterns:          true,
-			IncludeComplexity:        true,
-			IncludeDocumentation:     true,
-			IncludeGenerics:          true,
-			MaxFunctionLength:        30,
-			MaxCyclomaticComplexity:  10,
-			MaxStructFields:          20,
-			MinDocumentationCoverage: 0.7,
-			MinPackageDocCoverage:    0.4,
-			Duplication: DuplicationConfig{
-				MinBlockLines:       6,
-				SimilarityThreshold: 0.80,
-				IgnoreTestFiles:     false,
-			},
-			Naming: NamingConfig{
-				FlagGenericFilenames: true,
-				FlagStuttering:       true,
-				MinNameLength:        2,
-			},
-			Placement: PlacementConfig{
-				AffinityMargin: 0.25,
-				MinCohesion:    0.3,
-			},
-			Documentation: DocumentationConfig{
-				RequireExportedDoc:  true,
-				RequirePackageDoc:   true,
-				StaleAnnotationDays: 180,
-				MinCommentWords:     5,
-			},
-			Organization: OrganizationConfig{
-				MaxFileLines:       500,
-				MaxFileFunctions:   20,
-				MaxFileTypes:       5,
-				MaxPackageFiles:    20,
-				MaxExportedSymbols: 50,
-				MaxDirectoryDepth:  5,
-				MaxFileImports:     15,
-			},
-			Burden: BurdenConfig{
-				MaxParams:         5,
-				MaxReturns:        3,
-				MaxNesting:        4,
-				FeatureEnvyRatio:  2.0,
-				IgnoreBenignMagic: true,
-			},
-			Scoring: ScoringConfig{
-				Weights: ScoringWeights{
-					Duplication:   0.20,
-					Naming:        0.10,
-					Placement:     0.15,
-					Documentation: 0.15,
-					Organization:  0.15,
-					Burden:        0.25,
-				},
-				MaxBurdenScore: 70.0,
-			},
+		Analysis:    defaultAnalysisConfig(),
+		Output:      defaultOutputConfig(),
+		Performance: defaultPerformanceConfig(),
+		Filters:     defaultFilterConfig(),
+		Storage:     defaultStorageConfig(),
+	}
+}
+
+func defaultAnalysisConfig() AnalysisConfig {
+	return AnalysisConfig{
+		IncludeFunctions:         true,
+		IncludeStructs:           true,
+		IncludeInterfaces:        true,
+		IncludePatterns:          true,
+		IncludeComplexity:        true,
+		IncludeDocumentation:     true,
+		IncludeGenerics:          true,
+		MaxFunctionLength:        30,
+		MaxCyclomaticComplexity:  10,
+		MaxStructFields:          20,
+		MinDocumentationCoverage: 0.7,
+		MinPackageDocCoverage:    0.4,
+		Duplication:              defaultDuplicationConfig(),
+		Naming:                   defaultNamingConfig(),
+		Placement:                defaultPlacementConfig(),
+		Documentation:            defaultDocumentationConfig(),
+		Organization:             defaultOrganizationConfig(),
+		Burden:                   defaultBurdenConfig(),
+		Scoring:                  defaultScoringConfig(),
+	}
+}
+
+func defaultDuplicationConfig() DuplicationConfig {
+	return DuplicationConfig{
+		MinBlockLines:       6,
+		SimilarityThreshold: 0.80,
+		IgnoreTestFiles:     false,
+	}
+}
+
+func defaultNamingConfig() NamingConfig {
+	return NamingConfig{
+		FlagGenericFilenames: true,
+		FlagStuttering:       true,
+		MinNameLength:        2,
+	}
+}
+
+func defaultPlacementConfig() PlacementConfig {
+	return PlacementConfig{
+		AffinityMargin: 0.25,
+		MinCohesion:    0.3,
+	}
+}
+
+func defaultDocumentationConfig() DocumentationConfig {
+	return DocumentationConfig{
+		RequireExportedDoc:  true,
+		RequirePackageDoc:   true,
+		StaleAnnotationDays: 180,
+		MinCommentWords:     5,
+	}
+}
+
+func defaultOrganizationConfig() OrganizationConfig {
+	return OrganizationConfig{
+		MaxFileLines:       500,
+		MaxFileFunctions:   20,
+		MaxFileTypes:       5,
+		MaxPackageFiles:    20,
+		MaxExportedSymbols: 50,
+		MaxDirectoryDepth:  5,
+		MaxFileImports:     15,
+	}
+}
+
+func defaultBurdenConfig() BurdenConfig {
+	return BurdenConfig{
+		MaxParams:         5,
+		MaxReturns:        3,
+		MaxNesting:        4,
+		FeatureEnvyRatio:  2.0,
+		IgnoreBenignMagic: true,
+	}
+}
+
+func defaultScoringConfig() ScoringConfig {
+	return ScoringConfig{
+		Weights: ScoringWeights{
+			Duplication:   0.20,
+			Naming:        0.10,
+			Placement:     0.15,
+			Documentation: 0.15,
+			Organization:  0.15,
+			Burden:        0.25,
 		},
-		Output: OutputConfig{
-			Format:          FormatConsole,
-			Destination:     "stdout",
-			UseColors:       true,
-			ShowProgress:    true,
-			Verbose:         false,
-			IncludeOverview: true,
-			IncludeDetails:  true,
-			IncludeExamples: false,
-			SortBy:          "complexity",
-			Limit:           100,
-		},
-		Performance: PerformanceConfig{
-			WorkerCount:     runtime.NumCPU(),
-			MaxMemoryMB:     1024,
-			Timeout:         time.Minute * 10,
-			EnableProfiling: false,
-			EnableCache:     true,
-			CacheDirectory:  ".go-stats-generator-cache",
-		},
-		Filters: FilterConfig{
-			IncludePatterns: []string{"**/*.go"},
-			ExcludePatterns: []string{},
-			IncludePackages: []string{},
-			ExcludePackages: []string{},
-			MaxFileSizeKB:   1024,
-			SkipVendor:      true,
-			SkipTestFiles:   false,
-			SkipGenerated:   true,
-		},
-		Storage: StorageConfig{
-			Type:         "sqlite",
-			Path:         "metrics.db",
-			Compression:  true,
-			MaxSnapshots: 50,
-			MaxAge:       30 * 24 * time.Hour, // 30 days
-		},
+		MaxBurdenScore: 70.0,
+	}
+}
+
+func defaultOutputConfig() OutputConfig {
+	return OutputConfig{
+		Format:          FormatConsole,
+		Destination:     "stdout",
+		UseColors:       true,
+		ShowProgress:    true,
+		Verbose:         false,
+		IncludeOverview: true,
+		IncludeDetails:  true,
+		IncludeExamples: false,
+		SortBy:          "complexity",
+		Limit:           100,
+	}
+}
+
+func defaultPerformanceConfig() PerformanceConfig {
+	return PerformanceConfig{
+		WorkerCount:     runtime.NumCPU(),
+		MaxMemoryMB:     1024,
+		Timeout:         time.Minute * 10,
+		EnableProfiling: false,
+		EnableCache:     true,
+		CacheDirectory:  ".go-stats-generator-cache",
+	}
+}
+
+func defaultFilterConfig() FilterConfig {
+	return FilterConfig{
+		IncludePatterns: []string{"**/*.go"},
+		ExcludePatterns: []string{},
+		IncludePackages: []string{},
+		ExcludePackages: []string{},
+		MaxFileSizeKB:   1024,
+		SkipVendor:      true,
+		SkipTestFiles:   false,
+		SkipGenerated:   true,
+	}
+}
+
+func defaultStorageConfig() StorageConfig {
+	return StorageConfig{
+		Type:         "sqlite",
+		Path:         "metrics.db",
+		Compression:  true,
+		MaxSnapshots: 50,
+		MaxAge:       30 * 24 * time.Hour, // 30 days
 	}
 }
