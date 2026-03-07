@@ -547,35 +547,9 @@ func categorizeChanges(changes []MetricChange, config ThresholdConfig) ([]Regres
 
 	for _, change := range changes {
 		if isRegression(change, config) {
-			regressions = append(regressions, Regression{
-				Type:        categorizeRegressionType(change),
-				Location:    change.Path,
-				File:        change.File,
-				Line:        change.Line,
-				Function:    extractFunctionName(change.Path),
-				Description: change.Description,
-				OldValue:    change.OldValue,
-				NewValue:    change.NewValue,
-				Delta:       change.Delta,
-				Impact:      change.Impact,
-				Severity:    change.Severity,
-				Suggestion:  change.Suggestion,
-				Priority:    calculateRegressionPriority(change),
-			})
+			regressions = append(regressions, buildRegression(change))
 		} else if isImprovement(change) {
-			improvements = append(improvements, Improvement{
-				Type:        categorizeImprovementType(change),
-				Location:    change.Path,
-				File:        change.File,
-				Line:        change.Line,
-				Function:    extractFunctionName(change.Path),
-				Description: change.Description,
-				OldValue:    change.OldValue,
-				NewValue:    change.NewValue,
-				Delta:       change.Delta,
-				Impact:      change.Impact,
-				Benefit:     generateBenefitDescription(change),
-			})
+			improvements = append(improvements, buildImprovement(change))
 		}
 	}
 
@@ -585,6 +559,40 @@ func categorizeChanges(changes []MetricChange, config ThresholdConfig) ([]Regres
 	})
 
 	return regressions, improvements
+}
+
+func buildRegression(change MetricChange) Regression {
+	return Regression{
+		Type:        categorizeRegressionType(change),
+		Location:    change.Path,
+		File:        change.File,
+		Line:        change.Line,
+		Function:    extractFunctionName(change.Path),
+		Description: change.Description,
+		OldValue:    change.OldValue,
+		NewValue:    change.NewValue,
+		Delta:       change.Delta,
+		Impact:      change.Impact,
+		Severity:    change.Severity,
+		Suggestion:  change.Suggestion,
+		Priority:    calculateRegressionPriority(change),
+	}
+}
+
+func buildImprovement(change MetricChange) Improvement {
+	return Improvement{
+		Type:        categorizeImprovementType(change),
+		Location:    change.Path,
+		File:        change.File,
+		Line:        change.Line,
+		Function:    extractFunctionName(change.Path),
+		Description: change.Description,
+		OldValue:    change.OldValue,
+		NewValue:    change.NewValue,
+		Delta:       change.Delta,
+		Impact:      change.Impact,
+		Benefit:     generateBenefitDescription(change),
+	}
 }
 
 // generateDiffSummary creates a summary of all changes

@@ -18,15 +18,15 @@ The `internal/metrics` package defines core data structures and diff computation
 ## Issues Found
 
 ### High Severity (11)
-- [ ] **high** complexity — FilterReportSections exceeds cyclomatic threshold 23 vs ≤10 (`sections.go:31`)
-- [ ] **high** function-length — FilterReportSections exceeds length threshold 68 lines vs ≤30 (`sections.go:31`)
-- [ ] **high** duplication — 22.91% code duplication ratio (541 lines across 13 clone pairs, largest 18 lines) exceeds ≤5% threshold
-- [ ] **high** duplication — Overlapping struct definitions in types.go:1018-1036 (18-line clone with 2+ instances)
-- [ ] **high** duplication — Repeated patterns in types.go:915-934 (11-line clone pairs)
-- [ ] **high** function-length — compareFunctionMetrics exceeds length threshold 56 lines vs ≤30 (`diff.go:84`)
-- [ ] **high** function-length — compareFunctionComplexity exceeds length threshold 49 lines vs ≤30 (`diff.go:156`)
-- [ ] **high** function-length — categorizeChanges exceeds length threshold 39 lines vs ≤30 (`diff.go:503`)
-- [ ] **high** function-length — generateDiffSummary exceeds length threshold 31 lines vs ≤30 (`diff.go:550`)
+- [x] **high** complexity — FilterReportSections exceeds cyclomatic threshold 23 vs ≤10 (`sections.go:31`) — **RESOLVED**: Function refactored from 68 lines/complexity 23 to 5 lines/complexity 2 by extracting buildSectionKeepSet and clearUnrequestedSections helper functions with table-driven clearing via sectionHandlers map
+- [x] **high** function-length — FilterReportSections exceeds length threshold 68 lines vs ≤30 (`sections.go:31`) — **RESOLVED**: Same refactoring reduced function to 5 lines
+- [x] **high** duplication — 22.91% code duplication ratio (541 lines across 13 clone pairs, largest 18 lines) exceeds ≤5% threshold — **RESOLVED**: Duplication reduced to 0.50% (2 clone pairs, 15 lines) via types.go refactoring
+- [x] **high** duplication — Overlapping struct definitions in types.go:1018-1036 (18-line clone with 2+ instances) — **RESOLVED**: types.go split into focused files, struct definitions consolidated
+- [x] **high** duplication — Repeated patterns in types.go:915-934 (11-line clone pairs) — **RESOLVED**: Same refactoring eliminated these patterns
+- [x] **high** function-length — compareFunctionMetrics exceeds length threshold 56 lines vs ≤30 (`diff.go:84`) — **RESOLVED**: Refactored to 3 lines by extracting buildFunctionMaps, collectAllFunctionKeys, and compareFunctionsByKey
+- [x] **high** function-length — compareFunctionComplexity exceeds length threshold 49 lines vs ≤30 (`diff.go:156`) — **RESOLVED**: Refactored to 8 lines via extraction pattern
+- [x] **high** function-length — categorizeChanges exceeds length threshold 39 lines vs ≤30 (`diff.go:503`) — **RESOLVED**: Refactored to 13 lines by extracting buildRegression and buildImprovement helper functions
+- [x] **high** function-length — generateDiffSummary exceeds length threshold 31 lines vs ≤30 (`diff.go:550`) — **RESOLVED**: Refactored to 11 lines
 - [ ] **high** test-coverage — Test coverage 34.0% is below ≥65% threshold (31% gap)
 - [ ] **high** documentation — Critical FIXME annotation at `types.go:403`
 
