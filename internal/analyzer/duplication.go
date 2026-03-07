@@ -728,8 +728,8 @@ func checkRangeInSorted(start, end int, sorted []claimedRange) bool {
 		return sorted[i].start > start
 	}) - 1
 
-	return isContainedInRange(idx, start, end, sorted) || 
-	       isContainedInRange(idx+1, start, end, sorted)
+	return isContainedInRange(idx, start, end, sorted) ||
+		isContainedInRange(idx+1, start, end, sorted)
 }
 
 // isContainedInRange checks if start-end is contained in sorted[idx] if idx is valid.
