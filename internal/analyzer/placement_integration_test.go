@@ -4,12 +4,19 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// skipTestFiles returns a filter function that excludes test files
+func skipTestFiles(info os.FileInfo) bool {
+	return !strings.HasSuffix(info.Name(), "_test.go")
+}
 
 func TestPlacementAnalyzer_Integration_MisplacedFunction(t *testing.T) {
 	// Test fixture: testdata/placement/misplaced_function/
@@ -17,7 +24,7 @@ func TestPlacementAnalyzer_Integration_MisplacedFunction(t *testing.T) {
 	// because it heavily references Database which is defined in database.go
 
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/misplaced_function", nil, parser.ParseComments)
+	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/misplaced_function", skipTestFiles, parser.ParseComments)
 	require.NoError(t, err)
 	require.Len(t, pkgs, 1)
 
@@ -58,7 +65,7 @@ func TestPlacementAnalyzer_Integration_MisplacedMethod(t *testing.T) {
 	// but should be in user.go with the User type definition
 
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/misplaced_method", nil, parser.ParseComments)
+	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/misplaced_method", skipTestFiles, parser.ParseComments)
 	require.NoError(t, err)
 	require.Len(t, pkgs, 1)
 
@@ -104,7 +111,7 @@ func TestPlacementAnalyzer_Integration_LowCohesion(t *testing.T) {
 	// File should have low cohesion score
 
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/low_cohesion", nil, parser.ParseComments)
+	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/low_cohesion", skipTestFiles, parser.ParseComments)
 	require.NoError(t, err)
 	require.Len(t, pkgs, 1)
 
@@ -143,7 +150,7 @@ func TestPlacementAnalyzer_Integration_HighCohesion(t *testing.T) {
 	// File should have high cohesion score (>0.3) and NOT be flagged
 
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/high_cohesion", nil, parser.ParseComments)
+	pkgs, err := parser.ParseDir(fset, "../../testdata/placement/high_cohesion", skipTestFiles, parser.ParseComments)
 	require.NoError(t, err)
 	require.Len(t, pkgs, 1)
 
@@ -212,7 +219,7 @@ func TestPlacementAnalyzer_Integration_AllScenarios(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			fset := token.NewFileSet()
-			pkgs, err := parser.ParseDir(fset, tc.dir, nil, parser.ParseComments)
+			pkgs, err := parser.ParseDir(fset, tc.dir, skipTestFiles, parser.ParseComments)
 			require.NoError(t, err)
 
 			var files []*ast.File
