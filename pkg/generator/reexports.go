@@ -4,7 +4,7 @@ import "github.com/opd-ai/go-stats-generator/internal/metrics"
 
 // Re-export commonly used types for public API
 
-// Report represents a complete analysis report
+// Report represents a complete analysis report with comprehensive metrics and trend data.
 type Report = metrics.Report
 
 // FunctionMetrics contains detailed function analysis

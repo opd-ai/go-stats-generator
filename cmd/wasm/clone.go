@@ -281,6 +281,11 @@ type jsProgressWriter struct {
 	cb js.Value
 }
 
+// Write implements io.Writer by converting byte slices to progress messages sent to JavaScript.
+// It extracts the message text from p, trims whitespace, and invokes the JavaScript progress callback
+// with the message (but no percent update, indicated by -1). This allows go-git's standard progress
+// output to be forwarded to the browser UI during clone operations. Always returns len(p) to signal
+// successful processing of the entire buffer.
 func (w *jsProgressWriter) Write(p []byte) (int, error) {
 	msg := strings.TrimSpace(string(p))
 	if msg != "" {

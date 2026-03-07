@@ -237,9 +237,8 @@ func (oa *OrganizationAnalyzer) getSuggestions(lines metrics.LineMetrics, funcCo
 	return suggestions
 }
 
-// PackageInfo holds aggregated package data for organization analysis.
-// PackageInfo tracks the package name, associated files, exported symbol count,
-// total functions, and cohesion score used in package size analysis.
+// PackageInfo holds aggregated package data for organization analysis, tracking the package name,
+// associated files, exported symbol count, total functions, and cohesion score for package size analysis.
 type PackageInfo struct {
 	Name            string
 	Files           []string

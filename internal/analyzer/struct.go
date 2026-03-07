@@ -8,10 +8,9 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
-// StructAnalyzer analyzes struct declarations in Go source code
-// It categorizes fields by type, analyzes embedded types, calculates
-// complexity metrics, and discovers associated methods according to the
-// project's requirements for detailed struct member categorization.
+// StructAnalyzer analyzes struct declarations in Go source code, categorizing fields by type,
+// analyzing embedded types, calculating complexity metrics, and discovering associated methods
+// according to the project's requirements for detailed struct member categorization.
 type StructAnalyzer struct {
 	fset             *token.FileSet
 	functionAnalyzer *FunctionAnalyzer

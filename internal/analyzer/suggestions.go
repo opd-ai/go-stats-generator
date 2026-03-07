@@ -7,9 +7,8 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
-// ActionType represents the type of refactoring action suggested.
-// ActionType corresponds to a specific code improvement strategy
-// that can be applied to reduce maintenance burden.
+// ActionType represents the type of refactoring action suggested and corresponds to a specific
+// code improvement strategy that can be applied to reduce maintenance burden.
 type ActionType string
 
 const (
@@ -27,9 +26,8 @@ const (
 	ActionDeduplicate ActionType = "deduplicate"
 )
 
-// EffortLevel represents estimated implementation effort.
-// EffortLevel classification helps prioritize suggestions based on
-// available time and resources.
+// EffortLevel represents estimated implementation effort and classification helps prioritize
+// suggestions based on available time and resources (low: <1h/<30 LoC, medium: 1-4h/30-100 LoC, high: >4h/>100 LoC).
 type EffortLevel string
 
 const (
@@ -41,10 +39,9 @@ const (
 	EffortHigh EffortLevel = "high" // >4 hours, >100 LoC
 )
 
-// RefactoringSuggestion represents an actionable code improvement.
-// RefactoringSuggestion includes impact estimates, effort classification,
-// and prioritization metrics to help developers make informed decisions
-// about which technical debt to address first.
+// RefactoringSuggestion represents an actionable code improvement with impact estimates, effort
+// classification, and prioritization metrics to help developers make informed decisions about
+// which technical debt to address first based on impact-to-effort ratio (ROI).
 type RefactoringSuggestion struct {
 	Action        ActionType  `json:"action"`         // Type of refactoring action
 	Target        string      `json:"target"`         // File, function, or symbol affected
@@ -57,9 +54,8 @@ type RefactoringSuggestion struct {
 	AffectedLines int         `json:"affected_lines"` // Estimated lines changed
 }
 
-// SuggestionGenerator creates prioritized refactoring suggestions.
-// SuggestionGenerator analyzes metrics reports and generates actionable recommendations
-// sorted by impact-to-effort ratio to maximize return on investment.
+// SuggestionGenerator creates prioritized refactoring suggestions by analyzing metrics reports
+// and generating actionable recommendations sorted by impact-to-effort ratio to maximize ROI.
 type SuggestionGenerator struct {
 	scorer *ScoringAnalyzer
 }

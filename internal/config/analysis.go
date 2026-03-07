@@ -14,9 +14,8 @@ type Config struct {
 	Storage     StorageConfig     `mapstructure:"storage" json:"storage"`
 }
 
-// AnalysisConfig controls what gets analyzed and defines threshold limits
-// AnalysisConfig includes settings for functions, structs, interfaces,
-// patterns, complexity, documentation, and generics analysis.
+// AnalysisConfig controls what gets analyzed and defines threshold limits for functions, structs,
+// interfaces, patterns, complexity, documentation, and generics analysis with configurable settings.
 type AnalysisConfig struct {
 	IncludeFunctions     bool `mapstructure:"include_functions" json:"include_functions"`
 	IncludeStructs       bool `mapstructure:"include_structs" json:"include_structs"`
@@ -98,7 +97,7 @@ type PlacementConfig struct {
 	MinCohesion    float64 `mapstructure:"min_cohesion" json:"min_cohesion"`
 }
 
-// DocumentationConfig controls documentation analysis
+// DocumentationConfig controls documentation analysis for exported symbols and package comments.
 type DocumentationConfig struct {
 	RequireExportedDoc  bool `mapstructure:"require_exported_doc" json:"require_exported_doc"`
 	RequirePackageDoc   bool `mapstructure:"require_package_doc" json:"require_package_doc"`
@@ -159,7 +158,7 @@ const (
 	FormatMarkdown OutputFormat = "markdown"
 )
 
-// PerformanceConfig controls performance-related settings
+// PerformanceConfig controls performance-related settings for workers, caching, and profiling.
 type PerformanceConfig struct {
 	WorkerCount int `mapstructure:"worker_count" json:"worker_count"`
 	// MaxMemoryMB is reserved for future memory enforcement features (currently not enforced)

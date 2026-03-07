@@ -39,7 +39,7 @@ type ReportMetadata struct {
 	GoVersion      string        `json:"go_version"`
 }
 
-// OverviewMetrics provides high-level statistics
+// OverviewMetrics provides high-level statistics for total lines, functions, and structural elements.
 type OverviewMetrics struct {
 	TotalLinesOfCode int `json:"total_lines_of_code"`
 	TotalFunctions   int `json:"total_functions"`
@@ -50,7 +50,7 @@ type OverviewMetrics struct {
 	TotalFiles       int `json:"total_files"`
 }
 
-// LineMetrics represents line counting information
+// LineMetrics represents line counting information for total, code, comments, and blank lines.
 type LineMetrics struct {
 	Total    int `json:"total"`
 	Code     int `json:"code"`
@@ -58,7 +58,7 @@ type LineMetrics struct {
 	Blank    int `json:"blank"`
 }
 
-// FunctionMetrics contains detailed function analysis
+// FunctionMetrics contains detailed function analysis including complexity, signature, and documentation metrics.
 type FunctionMetrics struct {
 	Name          string            `json:"name"`
 	Package       string            `json:"package"`
@@ -73,7 +73,7 @@ type FunctionMetrics struct {
 	Documentation DocumentationInfo `json:"documentation"`
 }
 
-// FunctionSignature represents function signature complexity
+// FunctionSignature represents function signature complexity including parameters, returns, and generic constraints.
 type FunctionSignature struct {
 	ParameterCount  int            `json:"parameter_count"`
 	ReturnCount     int            `json:"return_count"`
@@ -90,7 +90,7 @@ type GenericParam struct {
 	Constraints []string `json:"constraints"`
 }
 
-// ComplexityScore represents various complexity measurements
+// ComplexityScore represents various complexity measurements including cyclomatic, cognitive, and nesting depth.
 type ComplexityScore struct {
 	Cyclomatic   int     `json:"cyclomatic"`
 	Cognitive    int     `json:"cognitive"`
@@ -98,7 +98,7 @@ type ComplexityScore struct {
 	Overall      float64 `json:"overall"`
 }
 
-// DocumentationInfo contains documentation quality metrics
+// DocumentationInfo contains documentation quality metrics including comment presence, length, and quality score.
 type DocumentationInfo struct {
 	HasComment    bool    `json:"has_comment"`
 	CommentLength int     `json:"comment_length"`
@@ -106,7 +106,7 @@ type DocumentationInfo struct {
 	QualityScore  float64 `json:"quality_score"`
 }
 
-// StructMetrics contains detailed struct analysis
+// StructMetrics contains detailed struct analysis including fields, embedded types, methods, and complexity.
 type StructMetrics struct {
 	Name          string            `json:"name"`
 	Package       string            `json:"package"`
@@ -145,7 +145,7 @@ type EmbeddedType struct {
 	IsExported bool   `json:"is_exported"`
 }
 
-// MethodInfo represents method information
+// MethodInfo represents method information including receiver type, signature, and complexity metrics.
 type MethodInfo struct {
 	Name          string            `json:"name"`
 	IsExported    bool              `json:"is_exported"`
@@ -156,7 +156,7 @@ type MethodInfo struct {
 	Documentation DocumentationInfo `json:"documentation"`
 }
 
-// InterfaceMetrics contains interface analysis
+// InterfaceMetrics contains interface analysis including methods, embedding depth, and implementation tracking.
 type InterfaceMetrics struct {
 	Name                string            `json:"name"`
 	Package             string            `json:"package"`
@@ -180,7 +180,7 @@ type InterfaceMethod struct {
 	Signature FunctionSignature `json:"signature"`
 }
 
-// PackageMetrics contains package-level analysis
+// PackageMetrics contains package-level analysis for dependencies, cohesion, and coupling metrics.
 type PackageMetrics struct {
 	Name          string            `json:"name"`
 	Path          string            `json:"path"`
@@ -220,7 +220,7 @@ type PatternMetrics struct {
 	AntiPatterns        AntiPatternMetrics        `json:"anti_patterns"`
 }
 
-// DesignPatternMetrics tracks various design patterns
+// DesignPatternMetrics tracks various design patterns including singleton, factory, builder, observer, and strategy.
 type DesignPatternMetrics struct {
 	Singleton []PatternInstance `json:"singleton"`
 	Factory   []PatternInstance `json:"factory"`
@@ -229,7 +229,7 @@ type DesignPatternMetrics struct {
 	Strategy  []PatternInstance `json:"strategy"`
 }
 
-// ConcurrencyPatternMetrics tracks concurrency patterns
+// ConcurrencyPatternMetrics tracks concurrency patterns including worker pools, pipelines, and synchronization primitives.
 type ConcurrencyPatternMetrics struct {
 	WorkerPools []PatternInstance `json:"worker_pools"`
 	Pipelines   []PatternInstance `json:"pipelines"`
@@ -241,7 +241,7 @@ type ConcurrencyPatternMetrics struct {
 	SyncPrims   SyncPrimitives    `json:"sync_primitives"`
 }
 
-// GoroutineMetrics tracks goroutine usage patterns
+// GoroutineMetrics tracks goroutine usage patterns including total count, anonymous vs named, and leak warnings.
 type GoroutineMetrics struct {
 	TotalCount     int                    `json:"total_count"`
 	AnonymousCount int                    `json:"anonymous_count"`
@@ -260,7 +260,7 @@ type ChannelMetrics struct {
 	Instances        []ChannelInstance `json:"instances"`
 }
 
-// SyncPrimitives tracks synchronization primitive usage
+// SyncPrimitives tracks synchronization primitive usage including mutexes, wait groups, and atomic operations.
 type SyncPrimitives struct {
 	Mutexes    []SyncPrimitiveInstance `json:"mutexes"`
 	RWMutexes  []SyncPrimitiveInstance `json:"rw_mutexes"`
@@ -467,7 +467,7 @@ type GenericTypeParameters struct {
 	Complexity  []GenericComplexity `json:"complexity"`
 }
 
-// GenericInstantiations tracks generic instantiations
+// GenericInstantiations tracks generic instantiations for functions, types, and methods with type parameters.
 type GenericInstantiations struct {
 	Functions []GenericInstantiation `json:"functions"`
 	Types     []GenericInstantiation `json:"types"`
@@ -495,7 +495,7 @@ type GenericInstantiation struct {
 
 // Duplication Analysis Types
 
-// DuplicationMetrics contains code duplication analysis results
+// DuplicationMetrics contains code duplication analysis results for clone pair detection and size tracking.
 type DuplicationMetrics struct {
 	ClonePairs       int         `json:"clone_pairs"`
 	DuplicatedLines  int         `json:"duplicated_lines"`
@@ -615,7 +615,7 @@ type PackageNameViolation struct {
 
 // Organization Analysis Types
 
-// OrganizationMetrics contains organizational structure and health analysis
+// OrganizationMetrics contains organizational structure and health analysis for package stability assessment.
 type OrganizationMetrics struct {
 	OversizedFiles      []OversizedFile    `json:"oversized_files"`
 	OversizedPackages   []OversizedPackage `json:"oversized_packages"`
@@ -679,7 +679,7 @@ type FanOutPackage struct {
 
 // Diff and Historical Analysis Types
 
-// MetricsSnapshot represents a complete snapshot of code metrics at a point in time
+// MetricsSnapshot represents a complete snapshot of code metrics at a point in time for baseline comparison.
 type MetricsSnapshot struct {
 	ID       string           `json:"id"`
 	Report   Report           `json:"report"`
@@ -783,7 +783,7 @@ type Improvement struct {
 
 // Enum types for classification
 
-// ChangeDirection represents the direction of a metric change between snapshots.
+// ChangeDirection represents the direction of a metric change between snapshots for trend analysis.
 type ChangeDirection string
 
 const (
@@ -942,7 +942,7 @@ func DefaultThresholdConfig() ThresholdConfig {
 
 // Trend Analysis Types
 
-// TrendAnalysis represents trend analysis across multiple data points
+// TrendAnalysis represents trend analysis across multiple data points for forecasting and velocity tracking.
 type TrendAnalysis struct {
 	Metric       string           `json:"metric"`
 	Direction    TrendDirection   `json:"direction"`

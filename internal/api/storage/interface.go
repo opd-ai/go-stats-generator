@@ -10,8 +10,8 @@ type AnalysisResult struct {
 	Error  error
 }
 
-// ResultStore defines the interface for storing and retrieving analysis results.
-// Implementations must be thread-safe.
+// ResultStore defines the interface for storing and retrieving analysis results with thread-safe
+// operations for Store, Get, List, and Delete methods to manage analysis result lifecycle.
 type ResultStore interface {
 	// Store saves an analysis result.
 	Store(result *AnalysisResult)

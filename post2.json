@@ -1,0 +1,231 @@
+{
+  "metadata": {
+    "repository": "/home/user/go/src/github.com/opd-ai/go-stats-generator",
+    "generated_at": "2026-03-07T04:03:35.067758592-05:00",
+    "analysis_time": 661567923,
+    "files_processed": 112,
+    "tool_version": "1.0.0",
+    "go_version": ""
+  },
+  "overview": {
+    "total_lines_of_code": 14362,
+    "total_functions": 650,
+    "total_methods": 828,
+    "total_structs": 249,
+    "total_interfaces": 8,
+    "total_packages": 22,
+    "total_files": 112
+  },
+  "functions": null,
+  "structs": null,
+  "interfaces": null,
+  "packages": null,
+  "circular_dependencies": null,
+  "patterns": {
+    "design_patterns": {
+      "singleton": null,
+      "factory": null,
+      "builder": null,
+      "observer": null,
+      "strategy": null
+    },
+    "concurrency_patterns": {
+      "worker_pools": null,
+      "pipelines": null,
+      "fan_out": null,
+      "fan_in": null,
+      "semaphores": null,
+      "goroutines": {
+        "total_count": 0,
+        "anonymous_count": 0,
+        "named_count": 0,
+        "potential_leaks": null,
+        "instances": null
+      },
+      "channels": {
+        "total_count": 0,
+        "buffered_count": 0,
+        "unbuffered_count": 0,
+        "directional_count": 0,
+        "instances": null
+      },
+      "sync_primitives": {
+        "mutexes": null,
+        "rw_mutexes": null,
+        "wait_groups": null,
+        "once": null,
+        "cond": null,
+        "atomic": null
+      }
+    },
+    "anti_patterns": {
+      "god_objects": null,
+      "long_methods": null,
+      "deep_nesting": null,
+      "magic_numbers": null
+    }
+  },
+  "complexity": {
+    "average_function_complexity": 0,
+    "average_struct_complexity": 0,
+    "highest_complexity": null,
+    "complexity_distribution": null
+  },
+  "documentation": {
+    "coverage": {
+      "packages": 59.09090909090909,
+      "functions": 77.84810126582279,
+      "types": 70.49808429118774,
+      "methods": 84.21052631578947,
+      "overall": 76.18213660245185
+    },
+    "quality": {
+      "average_length": 78.89992181391712,
+      "code_examples": 1,
+      "inline_comments": 3227,
+      "block_comments": 0,
+      "quality_score": 52.47285464098074
+    },
+    "todo_comments": [
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/metrics/report.go",
+        "line": 395,
+        "description": "comment"
+      }
+    ],
+    "fixme_comments": [
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/metrics/report.go",
+        "line": 403,
+        "description": "comment",
+        "severity": "critical"
+      }
+    ],
+    "hack_comments": [
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/metrics/report.go",
+        "line": 412,
+        "description": "comment",
+        "reason": "comment"
+      }
+    ],
+    "bug_comments": [
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/metrics/report.go",
+        "line": 421,
+        "description": "comment",
+        "severity": "critical"
+      }
+    ],
+    "xxx_comments": [
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/metrics/report.go",
+        "line": 430,
+        "description": "comment"
+      }
+    ],
+    "deprecated_comments": [
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/api/storage.go",
+        "line": 1,
+        "description": "This file is kept for backward compatibility."
+      },
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/metrics/report.go",
+        "line": 438,
+        "description": "comment"
+      }
+    ],
+    "note_comments": [
+      {
+        "file": "/home/user/go/src/github.com/opd-ai/go-stats-generator/internal/metrics/report.go",
+        "line": 447,
+        "description": "comment"
+      }
+    ],
+    "stale_annotations": 0,
+    "annotations_by_category": {
+      "BUG": 1,
+      "DEPRECATED": 2,
+      "FIXME": 1,
+      "HACK": 1,
+      "NOTE": 1,
+      "TODO": 1,
+      "XXX": 1
+    }
+  },
+  "generics": {
+    "type_parameters": {
+      "count": 0,
+      "constraints": null,
+      "complexity": null
+    },
+    "instantiations": {
+      "functions": null,
+      "types": null,
+      "methods": null
+    },
+    "constraint_usage": null,
+    "complexity_score": 0
+  },
+  "duplication": {
+    "clone_pairs": 0,
+    "duplicated_lines": 0,
+    "duplication_ratio": 0,
+    "largest_clone_size": 0,
+    "clones": null
+  },
+  "naming": {
+    "file_name_violations": 0,
+    "identifier_violations": 0,
+    "package_name_violations": 0,
+    "overall_naming_score": 0,
+    "file_name_issues": null,
+    "identifier_issues": null,
+    "package_name_issues": null
+  },
+  "placement": {
+    "misplaced_functions": 0,
+    "misplaced_methods": 0,
+    "low_cohesion_files": 0,
+    "avg_file_cohesion": 0,
+    "function_issues": null,
+    "method_issues": null,
+    "cohesion_issues": null
+  },
+  "organization": {
+    "oversized_files": null,
+    "oversized_packages": null,
+    "deep_directories": null,
+    "high_fan_in_packages": null,
+    "high_fan_out_packages": null,
+    "avg_package_instability": 0
+  },
+  "burden": {
+    "magic_numbers": null,
+    "dead_code": {
+      "unreferenced_functions": null,
+      "unreachable_code": null,
+      "total_dead_lines": 0,
+      "dead_code_percent": 0
+    },
+    "complex_signatures": null,
+    "deeply_nested_functions": null,
+    "feature_envy_methods": null
+  },
+  "scores": {
+    "file_scores": null,
+    "package_scores": null
+  },
+  "test_coverage": {
+    "function_coverage_rate": 0,
+    "complexity_coverage_rate": 0,
+    "high_risk_functions": null,
+    "coverage_gaps": null
+  },
+  "test_quality": {
+    "total_tests": 0,
+    "avg_assertions_per_test": 0,
+    "test_files": null
+  }
+}
