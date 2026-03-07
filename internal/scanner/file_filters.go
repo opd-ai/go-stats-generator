@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -65,7 +67,13 @@ func (d *Discoverer) matchesIncludePatterns(fileInfo FileInfo) bool {
 // matchesExcludePatterns checks if file matches any exclude patterns
 func (d *Discoverer) matchesExcludePatterns(fileInfo FileInfo) bool {
 	for _, pattern := range d.config.ExcludePatterns {
-		if matched, _ := filepath.Match(pattern, fileInfo.RelPath); matched {
+		matched, err := filepath.Match(pattern, fileInfo.RelPath)
+		if err != nil {
+			// Invalid pattern - warn but continue (treat as non-matching)
+			fmt.Fprintf(os.Stderr, "Warning: invalid exclude pattern %q: %v\n", pattern, err)
+			continue
+		}
+		if matched {
 			return true
 		}
 	}
@@ -106,7 +114,12 @@ func (d *Discoverer) patternMatches(pattern, relPath string) bool {
 		return strings.HasSuffix(relPath, ".go")
 	}
 
-	matched, _ := filepath.Match(pattern, relPath)
+	matched, err := filepath.Match(pattern, relPath)
+	if err != nil {
+		// Invalid pattern - warn but continue (treat as non-matching)
+		fmt.Fprintf(os.Stderr, "Warning: invalid pattern %q: %v\n", pattern, err)
+		return false
+	}
 	return matched
 }
 

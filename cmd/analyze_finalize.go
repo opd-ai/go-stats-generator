@@ -769,7 +769,12 @@ func resolveCoveragePath(path string) string {
 	if filepath.IsAbs(path) {
 		return path
 	}
-	wd, _ := os.Getwd()
+	wd, err := os.Getwd()
+	if err != nil {
+		// If we can't get working directory, return the relative path as-is
+		// Caller will handle any path resolution errors
+		return path
+	}
 	return filepath.Join(wd, path)
 }
 
@@ -783,7 +788,11 @@ func logCoverageResults(report *metrics.Report, cfg *config.Config) {
 
 // analyzeTestQualityMetrics performs test quality analysis
 func analyzeTestQualityMetrics(report *metrics.Report, cfg *config.Config) {
-	repoPath, _ := os.Getwd()
+	repoPath, err := os.Getwd()
+	if err != nil {
+		logVerbose(cfg, "Warning: failed to get working directory for test quality analysis: %v\n", err)
+		return
+	}
 	testQuality, err := analyzer.AnalyzeTestQuality(repoPath)
 	if err != nil {
 		logVerbose(cfg, "Warning: failed to analyze test quality: %v\n", err)

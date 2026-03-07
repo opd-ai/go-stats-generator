@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
@@ -60,7 +61,12 @@ func (p *Postgres) Store(result *AnalysisResult) {
 	var errorText *string
 
 	if result.Report != nil {
-		reportJSON, _ = json.Marshal(result.Report)
+		var err error
+		reportJSON, err = json.Marshal(result.Report)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "postgres: failed to marshal report for %s: %v\n", result.ID, err)
+			return
+		}
 	}
 	if result.Error != nil {
 		errStr := result.Error.Error()
@@ -75,7 +81,10 @@ func (p *Postgres) Store(result *AnalysisResult) {
 		report = EXCLUDED.report,
 		error = EXCLUDED.error`
 
-	p.db.Exec(query, result.ID, result.Status, reportJSON, errorText)
+	_, err := p.db.Exec(query, result.ID, result.Status, reportJSON, errorText)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "postgres: failed to store analysis result %s: %v\n", result.ID, err)
+	}
 }
 
 // Get retrieves an analysis result by ID.
@@ -191,7 +200,10 @@ func (p *Postgres) Delete(id string) bool {
 func (p *Postgres) Clear() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.db.Exec(`DELETE FROM analysis_results`)
+	_, err := p.db.Exec(`DELETE FROM analysis_results`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "postgres: failed to clear analysis results: %v\n", err)
+	}
 }
 
 // Close closes the database connection.

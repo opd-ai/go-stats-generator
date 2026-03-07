@@ -683,7 +683,10 @@ func (s *SQLiteStorage) deleteByAge(ctx context.Context, policy RetentionPolicy)
 		return 0, fmt.Errorf("failed to delete old snapshots: %w", err)
 	}
 
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get deleted row count: %w", err)
+	}
 	return affected, nil
 }
 
@@ -710,7 +713,10 @@ func (s *SQLiteStorage) deleteByCount(ctx context.Context, policy RetentionPolic
 		return 0, fmt.Errorf("failed to delete excess snapshots: %w", err)
 	}
 
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get deleted row count: %w", err)
+	}
 	return affected, nil
 }
 
