@@ -205,6 +205,53 @@ File naming violations (13 items):
 3. **Test duplication** — 175 test functions exceed 30 lines; adopt table-driven test patterns to reduce length and duplication simultaneously
 4. **Test complexity** — 21 test functions exceed cyclomatic complexity 10; use test helper functions and subtests to reduce branching
 
+### Priority 4: LLM Slop Detection and Remediation Features
+
+These features are described in `docs/LLM_SLOP_PREVENTION.md` and represent the tool's evolution into a comprehensive LLM code quality firewall. Items are grouped by implementation complexity.
+
+#### 4A. Go-Specific Slop Pattern Detections (New Analyzers)
+
+The following slop patterns are documented in the anti-slop architecture but not yet implemented as dedicated detectors. Each should produce structured JSON output with file, line, metric, actual_value, threshold, severity, and suggestion fields.
+
+1. **Bare error return detection** — Detect `if err != nil { return err }` without `fmt.Errorf` wrapping. Flag bare `return err` statements that lack error context annotation. Priority: high (most common LLM slop pattern in Go)
+2. **`interface{}` / `any` overuse detection** — Measure empty interface parameter and return density per function/package. Flag usage outside genuinely generic utility functions. Threshold: configurable max `any` parameter ratio
+3. **`init()` proliferation detection** — Count `init()` functions per package and measure their cyclomatic complexity. Flag packages with multiple `init()` functions or complex initialization logic. Threshold: configurable max `init()` count per package
+4. **Naked return detection in long functions** — Detect named returns with naked `return` in functions exceeding a line threshold (~10 lines). Short functions with named returns are idiomatic; long functions with naked returns harm readability
+5. **`panic()` in library code detection** — Flag `panic()` and `log.Fatal()` calls in non-`main` packages (excluding `init()` functions). Library code should return errors, not terminate the process
+6. **Giant `switch`/`if-else` chain detection** — Count branches per switch/if-else statement. Flag statements exceeding a configurable branch threshold. Suggest dispatch maps or strategy patterns as alternatives
+7. **Unused receiver name detection** — Identify method receivers that are never referenced in the method body. Suggest converting to a plain function or using `_` as the receiver name
+8. **Test-only export detection** — Detect exported symbols with zero cross-package references outside `_test.go` files. Suggest using `export_test.go` patterns or restructuring to test via the public API
+
+**Acceptance criteria**: Each detector produces structured violations in the JSON report with actionable suggestions. All detectors are configurable via CLI flags and `.go-stats-generator.yaml`.
+
+#### 4B. Structured Remediation Output (LLM Feedback Loop)
+
+Enhance JSON output so every violation includes the full set of fields needed for automated LLM remediation:
+
+1. **Uniform violation schema** — Ensure all violation types (complexity, naming, duplication, burden, concurrency) emit: `file`, `line`, `item_name`, `metric`, `actual_value`, `threshold`, `severity`, `suggestion`
+2. **Severity classification** — Standardize severity levels (`violation` for threshold breaches, `warning` for near-threshold, `info` for advisory) across all analyzers
+3. **Machine-readable suggestion field** — Add actionable, LLM-consumable remediation hints to every violation (e.g., "Extract switch cases into named helper functions or use a dispatch map")
+4. **Remediation priority scoring** — Sort violations by maintenance burden score descending so LLMs address highest-impact issues first
+
+**Acceptance criteria**: `go-stats-generator analyze . --format json` output can be directly consumed by an LLM with zero additional parsing or interpretation.
+
+#### 4C. CI/CD Quality Gate Enhancements
+
+1. **Threshold exit code documentation** — Document exit code semantics (0 = pass, 1 = violation, 2 = error) in `--help` output and man pages
+2. **Per-analyzer threshold flags** — Add threshold flags for new slop detectors: `--max-bare-error-ratio`, `--max-any-param-ratio`, `--max-init-per-package`, `--max-switch-branches`, `--max-naked-return-length`
+3. **GitHub Actions reusable workflow** — Publish a reusable workflow (`action.yml`) so teams can add `uses: opd-ai/go-stats-generator@v0.1.0` to their CI without writing custom steps
+4. **SARIF output format** — Add `--format sarif` to integrate with GitHub Code Scanning and other SARIF-compatible dashboards
+
+**Acceptance criteria**: `--enforce-thresholds` blocks merges on any slop regression, with structured output explaining exactly what regressed.
+
+#### 4D. Cross-Language Alignment (`rust-stats-generator`)
+
+1. **Shared JSON schema specification** — Formalize the shared metric schema (complexity, duplication, doc coverage, naming, organization, burden) as a versioned JSON Schema so both `go-stats-generator` and `rust-stats-generator` emit compatible output
+2. **Unified dashboard support** — Ensure JSON output from both tools can feed a single dashboard with language as a dimension
+3. **Shared threshold configuration** — Support a common `.stats-generator.yaml` format that both tools can read, with language-specific extension sections
+
+**Acceptance criteria**: A CI pipeline using both tools can share threshold logic and feed a single quality dashboard.
+
 ## SECURITY SCOPE CLARIFICATION
 
 - Analysis focuses on application-layer security only
