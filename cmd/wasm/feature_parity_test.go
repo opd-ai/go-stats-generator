@@ -132,14 +132,14 @@ func runWASMAnalysis(t *testing.T, files []MemoryFile, rootDir string) *metrics.
 
 	// Create temporary directory to simulate WASM analysis
 	tmpDir := filepath.Join(os.TempDir(), "wasm_sim")
-	os.MkdirAll(tmpDir, 0755)
+	os.MkdirAll(tmpDir, 0o755)
 	defer os.RemoveAll(tmpDir)
 
 	// Write files to temp directory
 	for _, f := range files {
 		targetPath := filepath.Join(tmpDir, f.Path)
-		os.MkdirAll(filepath.Dir(targetPath), 0755)
-		err := os.WriteFile(targetPath, []byte(f.Content), 0644)
+		os.MkdirAll(filepath.Dir(targetPath), 0o755)
+		err := os.WriteFile(targetPath, []byte(f.Content), 0o644)
 		require.NoError(t, err)
 	}
 
@@ -292,7 +292,7 @@ func makeFunctionMap(functions []metrics.FunctionMetrics) map[string]metrics.Fun
 // TestWASMJSONOutputFormat verifies WASM can produce valid JSON output
 func TestWASMJSONOutputFormat(t *testing.T) {
 	testDataPath := "../../testdata/simple"
-	
+
 	cfg := config.DefaultConfig()
 	analyzer := generator.NewAnalyzerWithConfig(cfg)
 
@@ -316,9 +316,9 @@ func TestWASMJSONOutputFormat(t *testing.T) {
 func TestWASMEmptyInput(t *testing.T) {
 	// Create empty temp directory
 	tmpDir := filepath.Join(os.TempDir(), "empty_test")
-	os.MkdirAll(tmpDir, 0755)
+	os.MkdirAll(tmpDir, 0o755)
 	defer os.RemoveAll(tmpDir)
-	
+
 	cfg := config.DefaultConfig()
 	analyzer := generator.NewAnalyzerWithConfig(cfg)
 
@@ -333,13 +333,13 @@ func TestWASMEmptyInput(t *testing.T) {
 func TestWASMInvalidInput(t *testing.T) {
 	// Create temp file with invalid Go code
 	tmpDir := filepath.Join(os.TempDir(), "invalid_test")
-	os.MkdirAll(tmpDir, 0755)
+	os.MkdirAll(tmpDir, 0o755)
 	defer os.RemoveAll(tmpDir)
-	
+
 	invalidFile := filepath.Join(tmpDir, "invalid.go")
-	err := os.WriteFile(invalidFile, []byte("package invalid\n\nthis is not valid go code!"), 0644)
+	err := os.WriteFile(invalidFile, []byte("package invalid\n\nthis is not valid go code!"), 0o644)
 	require.NoError(t, err)
-	
+
 	cfg := config.DefaultConfig()
 	analyzer := generator.NewAnalyzerWithConfig(cfg)
 
