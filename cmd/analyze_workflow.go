@@ -228,6 +228,7 @@ type AnalyzerSet struct {
 	Interface     *analyzer.InterfaceAnalyzer
 	Package       *analyzer.PackageAnalyzer
 	Concurrency   *analyzer.ConcurrencyAnalyzer
+	Pattern       *analyzer.PatternAnalyzer
 	Duplication   *analyzer.DuplicationAnalyzer
 	Naming        *analyzer.NamingAnalyzer
 	Placement     *analyzer.PlacementAnalyzer
@@ -310,6 +311,7 @@ func createAnalyzers(fileSet *token.FileSet, cfg *config.Config) *AnalyzerSet {
 		Interface:     analyzer.NewInterfaceAnalyzer(fileSet),
 		Package:       analyzer.NewPackageAnalyzer(fileSet),
 		Concurrency:   analyzer.NewConcurrencyAnalyzer(fileSet),
+		Pattern:       analyzer.NewPatternAnalyzer(fileSet),
 		Duplication:   analyzer.NewDuplicationAnalyzer(fileSet),
 		Naming:        analyzer.NewNamingAnalyzer(),
 		Placement:     analyzer.NewPlacementAnalyzer(cfg.Analysis.Placement.AffinityMargin, cfg.Analysis.Placement.MinCohesion),
@@ -336,6 +338,13 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 			ToolVersion:    "1.0.0",
 		},
 		Patterns: metrics.PatternMetrics{
+			DesignPatterns: metrics.DesignPatternMetrics{
+				Singleton: []metrics.PatternInstance{},
+				Factory:   []metrics.PatternInstance{},
+				Builder:   []metrics.PatternInstance{},
+				Observer:  []metrics.PatternInstance{},
+				Strategy:  []metrics.PatternInstance{},
+			},
 			ConcurrencyPatterns: metrics.ConcurrencyPatternMetrics{
 				WorkerPools: []metrics.PatternInstance{},
 				Pipelines:   []metrics.PatternInstance{},
@@ -357,6 +366,12 @@ func createInitialReport(targetDir string, startTime time.Time, fileCount int) *
 					Cond:       []metrics.SyncPrimitiveInstance{},
 					Atomic:     []metrics.SyncPrimitiveInstance{},
 				},
+			},
+			AntiPatterns: metrics.AntiPatternMetrics{
+				GodObjects:   []metrics.AntiPatternWarning{},
+				LongMethods:  []metrics.AntiPatternWarning{},
+				DeepNesting:  []metrics.AntiPatternWarning{},
+				MagicNumbers: []metrics.AntiPatternWarning{},
 			},
 		},
 		Burden: metrics.BurdenMetrics{
@@ -438,6 +453,7 @@ func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collecte
 	collectStructuralMetrics(result, analyzers, collectedMetrics, cfg)
 	analyzePackageStructure(result, analyzers, cfg)
 	analyzeConcurrencyPatterns(result, analyzers, report, cfg)
+	analyzeDesignPatterns(result, analyzers, report, cfg)
 	analyzeBurdenIndicators(result, analyzers, report, cfg)
 }
 
@@ -480,6 +496,14 @@ func analyzeConcurrencyPatterns(result scanner.Result, analyzers *AnalyzerSet, r
 func analyzeBurdenIndicators(result scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) {
 	if err := analyzeBurdenInFile(analyzers.Burden, result, report, cfg); err != nil && cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze burden in %s: %v\n",
+			result.FileInfo.Path, err)
+	}
+}
+
+// analyzeDesignPatterns analyzes design patterns in a file
+func analyzeDesignPatterns(result scanner.Result, analyzers *AnalyzerSet, report *metrics.Report, cfg *config.Config) {
+	if err := analyzeDesignPatternsInFile(analyzers.Pattern, result, report, cfg); err != nil && cfg.Output.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to analyze design patterns in %s: %v\n",
 			result.FileInfo.Path, err)
 	}
 }
@@ -629,4 +653,24 @@ func analyzeFeatureEnvy(burdenAnalyzer *analyzer.BurdenAnalyzer, fn *ast.FuncDec
 	if envyIssue := burdenAnalyzer.DetectFeatureEnvy(fn, file, cfg.Analysis.Burden.FeatureEnvyRatio); envyIssue != nil {
 		report.Burden.FeatureEnvyMethods = append(report.Burden.FeatureEnvyMethods, *envyIssue)
 	}
+}
+
+// analyzeDesignPatternsInFile analyzes design patterns in a single file
+func analyzeDesignPatternsInFile(patternAnalyzer *analyzer.PatternAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) error {
+	designPatterns, err := patternAnalyzer.AnalyzePatterns(result.File, result.FileInfo.Package, result.FileInfo.RelPath)
+	if err != nil {
+		return err
+	}
+
+	aggregateDesignPatternMetrics(report, &designPatterns)
+	return nil
+}
+
+// aggregateDesignPatternMetrics aggregates design pattern metrics into the report
+func aggregateDesignPatternMetrics(report *metrics.Report, patterns *metrics.DesignPatternMetrics) {
+	report.Patterns.DesignPatterns.Singleton = append(report.Patterns.DesignPatterns.Singleton, patterns.Singleton...)
+	report.Patterns.DesignPatterns.Factory = append(report.Patterns.DesignPatterns.Factory, patterns.Factory...)
+	report.Patterns.DesignPatterns.Builder = append(report.Patterns.DesignPatterns.Builder, patterns.Builder...)
+	report.Patterns.DesignPatterns.Observer = append(report.Patterns.DesignPatterns.Observer, patterns.Observer...)
+	report.Patterns.DesignPatterns.Strategy = append(report.Patterns.DesignPatterns.Strategy, patterns.Strategy...)
 }
