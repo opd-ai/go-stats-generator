@@ -113,7 +113,7 @@ func runCreateBaseline(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create and store snapshot
-	snapshot := createMetricsSnapshot(baselineID, report)
+	snapshot := createSnapshot(baselineID, report)
 	if err := storeSnapshotWithRetry(storageBackend, snapshot); err != nil {
 		return err
 	}
@@ -216,8 +216,8 @@ func convertToStorageConfig(cfg config.StorageConfig) storage.StorageConfig {
 	return storageConfig
 }
 
-// createMetricsSnapshot builds a snapshot with metadata from the analysis report
-func createMetricsSnapshot(baselineID string, report *metrics.Report) metrics.MetricsSnapshot {
+// createSnapshot builds a snapshot with metadata from the analysis report
+func createSnapshot(baselineID string, report *metrics.Report) metrics.Snapshot {
 	metadata := metrics.SnapshotMetadata{
 		Timestamp:   time.Now(),
 		GitBranch:   getCurrentBranch(),
@@ -226,7 +226,7 @@ func createMetricsSnapshot(baselineID string, report *metrics.Report) metrics.Me
 		Tags:        convertToTagMap(tags),
 	}
 
-	return metrics.MetricsSnapshot{
+	return metrics.Snapshot{
 		ID:       baselineID,
 		Report:   *report,
 		Metadata: metadata,
@@ -234,7 +234,7 @@ func createMetricsSnapshot(baselineID string, report *metrics.Report) metrics.Me
 }
 
 // storeSnapshotWithRetry stores the snapshot, retrying with overwrite if necessary
-func storeSnapshotWithRetry(storageBackend storage.MetricsStorage, snapshot metrics.MetricsSnapshot) error {
+func storeSnapshotWithRetry(storageBackend storage.MetricsStorage, snapshot metrics.Snapshot) error {
 	ctx := context.Background()
 	err := storageBackend.Store(ctx, snapshot, snapshot.Metadata)
 	if err == nil {
@@ -258,7 +258,7 @@ func storeSnapshotWithRetry(storageBackend storage.MetricsStorage, snapshot metr
 }
 
 // outputBaselineResult writes the creation result in the specified format
-func outputBaselineResult(snapshot metrics.MetricsSnapshot) error {
+func outputBaselineResult(snapshot metrics.Snapshot) error {
 	if outputFormat == "console" {
 		return outputConsoleBaselineResult(snapshot)
 	}
@@ -266,7 +266,7 @@ func outputBaselineResult(snapshot metrics.MetricsSnapshot) error {
 }
 
 // outputConsoleBaselineResult writes a human-readable baseline creation result
-func outputConsoleBaselineResult(snapshot metrics.MetricsSnapshot) error {
+func outputConsoleBaselineResult(snapshot metrics.Snapshot) error {
 	fmt.Printf("✓ Baseline snapshot created successfully\n")
 	fmt.Printf("  ID: %s\n", snapshot.ID)
 	fmt.Printf("  Timestamp: %s\n", snapshot.Metadata.Timestamp.Format("2006-01-02 15:04:05"))
@@ -280,7 +280,7 @@ func outputConsoleBaselineResult(snapshot metrics.MetricsSnapshot) error {
 }
 
 // outputJSONBaselineResult writes the baseline creation result as JSON
-func outputJSONBaselineResult(snapshot metrics.MetricsSnapshot) error {
+func outputJSONBaselineResult(snapshot metrics.Snapshot) error {
 	output := map[string]interface{}{
 		"status":   "success",
 		"baseline": snapshot,

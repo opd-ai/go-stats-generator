@@ -30,7 +30,7 @@ func DefaultDiffOptions() DiffOptions {
 // It compares function-level metrics (complexity, length, documentation) between baseline and current snapshots, categorizing changes into
 // regressions (quality degradation), improvements (quality enhancement), and neutral modifications. The comparison applies configured thresholds
 // to determine violation severity and calculates aggregate quality deltas. Used by the "diff" command for baseline comparison workflows.
-func CompareSnapshots(baseline, current MetricsSnapshot, config ThresholdConfig) (*ComplexityDiff, error) {
+func CompareSnapshots(baseline, current Snapshot, config ThresholdConfig) (*ComplexityDiff, error) {
 	if baseline.ID == "" || current.ID == "" {
 		return nil, fmt.Errorf("both baseline and current snapshots must have valid IDs")
 	}

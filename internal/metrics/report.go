@@ -679,8 +679,8 @@ type FanOutPackage struct {
 
 // Diff and Historical Analysis Types
 
-// MetricsSnapshot represents a complete snapshot of code metrics at a point in time for baseline comparison.
-type MetricsSnapshot struct {
+// Snapshot represents a complete snapshot of code metrics at a point in time for baseline comparison.
+type Snapshot struct {
 	ID       string           `json:"id"`
 	Report   Report           `json:"report"`
 	Metadata SnapshotMetadata `json:"metadata"`
@@ -700,8 +700,8 @@ type SnapshotMetadata struct {
 
 // ComplexityDiff represents comprehensive diff between two metrics snapshots
 type ComplexityDiff struct {
-	Baseline     MetricsSnapshot `json:"baseline"`
-	Current      MetricsSnapshot `json:"current"`
+	Baseline     Snapshot `json:"baseline"`
+	Current      Snapshot `json:"current"`
 	Summary      DiffSummary     `json:"summary"`
 	Changes      []MetricChange  `json:"changes"`
 	Regressions  []Regression    `json:"regressions"`

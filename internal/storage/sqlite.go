@@ -238,7 +238,7 @@ func extractBurdenMetrics(report metrics.Report) (mbiAvg, dupRatio, docCov float
 }
 
 // Store saves a metrics snapshot with metadata
-func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.MetricsSnapshot, metadata metrics.SnapshotMetadata) error {
+func (s *SQLiteStorage) Store(ctx context.Context, snapshot metrics.Snapshot, metadata metrics.SnapshotMetadata) error {
 	compressedData, err := s.prepareSnapshotData(snapshot.Report)
 	if err != nil {
 		return err
@@ -284,7 +284,7 @@ func (s *SQLiteStorage) prepareSnapshotData(report metrics.Report) ([]byte, erro
 // insertSnapshotRecord inserts a new snapshot record into the database with metadata fields (timestamp,
 // git info, author, description) and extracted burden metrics (MBI, duplication, documentation coverage,
 // violation counts). The compressed data blob and metadata are stored in a single transaction for atomicity.
-func (s *SQLiteStorage) insertSnapshotRecord(ctx context.Context, tx *sql.Tx, snapshot metrics.MetricsSnapshot,
+func (s *SQLiteStorage) insertSnapshotRecord(ctx context.Context, tx *sql.Tx, snapshot metrics.Snapshot,
 	metadata metrics.SnapshotMetadata, compressedData []byte,
 ) error {
 	mbiAvg, dupRatio, docCov, complexViolations, namingViolations := extractBurdenMetrics(snapshot.Report)
@@ -342,8 +342,8 @@ func (s *SQLiteStorage) insertSnapshotTags(ctx context.Context, tx *sql.Tx, snap
 // It deserializes compressed snapshot data, reconstructs the full metrics report structure, and populates metadata
 // fields (timestamp, git commit, tags). Used by diff and trend commands to load historical baselines for comparison.
 // Returns error if snapshot doesn't exist or if data deserialization fails due to schema version mismatch.
-func (s *SQLiteStorage) Retrieve(ctx context.Context, id string) (metrics.MetricsSnapshot, error) {
-	var snapshot metrics.MetricsSnapshot
+func (s *SQLiteStorage) Retrieve(ctx context.Context, id string) (metrics.Snapshot, error) {
+	var snapshot metrics.Snapshot
 
 	compressedData, metadata, err := s.fetchSnapshotData(ctx, id, &snapshot)
 	if err != nil {
@@ -368,7 +368,7 @@ func (s *SQLiteStorage) Retrieve(ctx context.Context, id string) (metrics.Metric
 }
 
 // fetchSnapshotData retrieves snapshot data and metadata from the database
-func (s *SQLiteStorage) fetchSnapshotData(ctx context.Context, id string, snapshot *metrics.MetricsSnapshot) ([]byte, metrics.SnapshotMetadata, error) {
+func (s *SQLiteStorage) fetchSnapshotData(ctx context.Context, id string, snapshot *metrics.Snapshot) ([]byte, metrics.SnapshotMetadata, error) {
 	var metadata metrics.SnapshotMetadata
 	var compressedData []byte
 	var gitCommit, gitBranch, gitTag, version, author, description sql.NullString
@@ -769,21 +769,21 @@ func (s *SQLiteStorage) reportCleanupResults(deletedCount int64) {
 }
 
 // GetLatest returns the most recent snapshot
-func (s *SQLiteStorage) GetLatest(ctx context.Context) (metrics.MetricsSnapshot, error) {
+func (s *SQLiteStorage) GetLatest(ctx context.Context) (metrics.Snapshot, error) {
 	var id string
 	row := s.db.QueryRowContext(ctx, "SELECT id FROM snapshots ORDER BY timestamp DESC LIMIT 1")
 	if err := row.Scan(&id); err != nil {
 		if err == sql.ErrNoRows {
-			return metrics.MetricsSnapshot{}, fmt.Errorf("no snapshots found")
+			return metrics.Snapshot{}, fmt.Errorf("no snapshots found")
 		}
-		return metrics.MetricsSnapshot{}, fmt.Errorf("failed to get latest snapshot: %w", err)
+		return metrics.Snapshot{}, fmt.Errorf("failed to get latest snapshot: %w", err)
 	}
 
 	return s.Retrieve(ctx, id)
 }
 
 // GetByTag returns snapshots matching a specific tag
-func (s *SQLiteStorage) GetByTag(ctx context.Context, key, value string) ([]metrics.MetricsSnapshot, error) {
+func (s *SQLiteStorage) GetByTag(ctx context.Context, key, value string) ([]metrics.Snapshot, error) {
 	filter := SnapshotFilter{
 		Tags: map[string]string{key: value},
 	}
@@ -793,7 +793,7 @@ func (s *SQLiteStorage) GetByTag(ctx context.Context, key, value string) ([]metr
 		return nil, err
 	}
 
-	var snapshots []metrics.MetricsSnapshot
+	var snapshots []metrics.Snapshot
 	for _, info := range infos {
 		snapshot, err := s.Retrieve(ctx, info.ID)
 		if err != nil {

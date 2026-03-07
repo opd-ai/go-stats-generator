@@ -682,8 +682,8 @@ func TestJSONStorage_Close(t *testing.T) {
 
 // Helper functions
 
-func createTestSnapshot(id string) metrics.MetricsSnapshot {
-	return metrics.MetricsSnapshot{
+func createTestSnapshot(id string) metrics.Snapshot {
+	return metrics.Snapshot{
 		ID: id,
 		Report: metrics.Report{
 			Overview: metrics.OverviewMetrics{

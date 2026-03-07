@@ -84,13 +84,13 @@ func TestHTMLReporter_TemplateFieldsCorrect(t *testing.T) {
 func TestHTMLReporter_DiffTemplateFieldsCorrect(t *testing.T) {
 	// Create test diff data that exercises the corrected template fields
 	diff := &metrics.ComplexityDiff{
-		Baseline: metrics.MetricsSnapshot{
+		Baseline: metrics.Snapshot{
 			ID: "baseline",
 			Metadata: metrics.SnapshotMetadata{
 				Timestamp: time.Now().Add(-time.Hour),
 			},
 		},
-		Current: metrics.MetricsSnapshot{
+		Current: metrics.Snapshot{
 			ID: "current",
 			Metadata: metrics.SnapshotMetadata{
 				Timestamp: time.Now(),

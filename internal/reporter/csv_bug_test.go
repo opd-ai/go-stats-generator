@@ -70,8 +70,8 @@ func TestCSVReporter_WriteDiff(t *testing.T) {
 
 	// Create a minimal diff for testing
 	diff := &metrics.ComplexityDiff{
-		Baseline: metrics.MetricsSnapshot{},
-		Current:  metrics.MetricsSnapshot{},
+		Baseline: metrics.Snapshot{},
+		Current:  metrics.Snapshot{},
 		Summary: metrics.DiffSummary{
 			TotalChanges:     5,
 			RegressionCount:  1,

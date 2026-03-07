@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestSQLiteSnapshot(id string) metrics.MetricsSnapshot {
-	return metrics.MetricsSnapshot{
+func createTestSQLiteSnapshot(id string) metrics.Snapshot {
+	return metrics.Snapshot{
 		ID: id,
 		Report: metrics.Report{
 			Overview: metrics.OverviewMetrics{

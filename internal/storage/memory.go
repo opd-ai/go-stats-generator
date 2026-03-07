@@ -21,7 +21,7 @@ type MemoryStorage struct {
 
 // storedSnapshot wraps snapshot data with metadata
 type storedSnapshot struct {
-	snapshot metrics.MetricsSnapshot
+	snapshot metrics.Snapshot
 	metadata metrics.SnapshotMetadata
 	stored   time.Time
 }
@@ -36,7 +36,7 @@ func NewMemoryStorage() *MemoryStorage {
 }
 
 // Store saves a metrics snapshot in memory
-func (m *MemoryStorage) Store(ctx context.Context, snapshot metrics.MetricsSnapshot, metadata metrics.SnapshotMetadata) error {
+func (m *MemoryStorage) Store(ctx context.Context, snapshot metrics.Snapshot, metadata metrics.SnapshotMetadata) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -57,13 +57,13 @@ func (m *MemoryStorage) Store(ctx context.Context, snapshot metrics.MetricsSnaps
 // It returns a direct reference to the stored snapshot (not a deep copy), so callers should treat returned data as read-only.
 // Primarily used in testing scenarios and development workflows where baseline persistence is not required.
 // Returns error if the snapshot ID doesn't exist in the memory map.
-func (m *MemoryStorage) Retrieve(ctx context.Context, id string) (metrics.MetricsSnapshot, error) {
+func (m *MemoryStorage) Retrieve(ctx context.Context, id string) (metrics.Snapshot, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	stored, ok := m.snapshots[id]
 	if !ok {
-		return metrics.MetricsSnapshot{}, fmt.Errorf("snapshot not found: %s", id)
+		return metrics.Snapshot{}, fmt.Errorf("snapshot not found: %s", id)
 	}
 
 	return stored.snapshot, nil
@@ -227,12 +227,12 @@ func contains(slice []string, str string) bool {
 }
 
 // GetLatest returns the most recent snapshot
-func (m *MemoryStorage) GetLatest(ctx context.Context) (metrics.MetricsSnapshot, error) {
+func (m *MemoryStorage) GetLatest(ctx context.Context) (metrics.Snapshot, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	if len(m.snapshots) == 0 {
-		return metrics.MetricsSnapshot{}, fmt.Errorf("no snapshots available")
+		return metrics.Snapshot{}, fmt.Errorf("no snapshots available")
 	}
 
 	var latest *storedSnapshot
@@ -246,11 +246,11 @@ func (m *MemoryStorage) GetLatest(ctx context.Context) (metrics.MetricsSnapshot,
 }
 
 // GetByTag returns snapshots matching a specific tag
-func (m *MemoryStorage) GetByTag(ctx context.Context, key, value string) ([]metrics.MetricsSnapshot, error) {
+func (m *MemoryStorage) GetByTag(ctx context.Context, key, value string) ([]metrics.Snapshot, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var result []metrics.MetricsSnapshot
+	var result []metrics.Snapshot
 
 	for _, stored := range m.snapshots {
 		if tagValue, ok := stored.metadata.Tags[key]; ok && tagValue == value {

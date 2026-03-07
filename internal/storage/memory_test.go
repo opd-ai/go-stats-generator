@@ -17,7 +17,7 @@ func TestMemoryStorage_StoreAndRetrieve(t *testing.T) {
 
 	ctx := context.Background()
 
-	snapshot := metrics.MetricsSnapshot{
+	snapshot := metrics.Snapshot{
 		ID: "test-123",
 		Report: metrics.Report{
 			Overview: metrics.OverviewMetrics{
@@ -47,7 +47,7 @@ func TestMemoryStorage_StoreEmptyID(t *testing.T) {
 
 	ctx := context.Background()
 
-	snapshot := metrics.MetricsSnapshot{
+	snapshot := metrics.Snapshot{
 		ID: "",
 	}
 	metadata := metrics.SnapshotMetadata{}
@@ -75,7 +75,7 @@ func TestMemoryStorage_List(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 5; i++ {
-		snapshot := metrics.MetricsSnapshot{
+		snapshot := metrics.Snapshot{
 			ID: fmt.Sprintf("snap-%d", i),
 		}
 		metadata := metrics.SnapshotMetadata{
@@ -110,7 +110,7 @@ func TestMemoryStorage_ListWithFilter(t *testing.T) {
 	}
 
 	for _, s := range snapshots {
-		snapshot := metrics.MetricsSnapshot{ID: s.id}
+		snapshot := metrics.Snapshot{ID: s.id}
 		metadata := metrics.SnapshotMetadata{
 			Timestamp: s.when,
 			GitBranch: s.branch,
@@ -133,7 +133,7 @@ func TestMemoryStorage_ListWithLimit(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 10; i++ {
-		snapshot := metrics.MetricsSnapshot{
+		snapshot := metrics.Snapshot{
 			ID: fmt.Sprintf("snap-%d", i),
 		}
 		metadata := metrics.SnapshotMetadata{
@@ -155,7 +155,7 @@ func TestMemoryStorage_Delete(t *testing.T) {
 
 	ctx := context.Background()
 
-	snapshot := metrics.MetricsSnapshot{ID: "test-delete"}
+	snapshot := metrics.Snapshot{ID: "test-delete"}
 	metadata := metrics.SnapshotMetadata{Timestamp: time.Now()}
 
 	err := storage.Store(ctx, snapshot, metadata)
@@ -186,7 +186,7 @@ func TestMemoryStorage_Cleanup(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 
-	oldSnapshot := metrics.MetricsSnapshot{ID: "old"}
+	oldSnapshot := metrics.Snapshot{ID: "old"}
 	oldMetadata := metrics.SnapshotMetadata{
 		Timestamp: now.Add(-48 * time.Hour),
 	}
@@ -196,7 +196,7 @@ func TestMemoryStorage_Cleanup(t *testing.T) {
 		stored:   now.Add(-48 * time.Hour),
 	}
 
-	newSnapshot := metrics.MetricsSnapshot{ID: "new"}
+	newSnapshot := metrics.Snapshot{ID: "new"}
 	newMetadata := metrics.SnapshotMetadata{
 		Timestamp: now,
 	}
@@ -224,7 +224,7 @@ func TestMemoryStorage_CleanupMaxCount(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 5; i++ {
-		snapshot := metrics.MetricsSnapshot{
+		snapshot := metrics.Snapshot{
 			ID: fmt.Sprintf("snap-%d", i),
 		}
 		storage.snapshots[snapshot.ID] = &storedSnapshot{
@@ -256,7 +256,7 @@ func TestMemoryStorage_GetLatest(t *testing.T) {
 	now := time.Now()
 
 	for i := 0; i < 3; i++ {
-		snapshot := metrics.MetricsSnapshot{
+		snapshot := metrics.Snapshot{
 			ID: fmt.Sprintf("snap-%d", i),
 		}
 		metadata := metrics.SnapshotMetadata{
@@ -288,7 +288,7 @@ func TestMemoryStorage_GetByTag(t *testing.T) {
 
 	ctx := context.Background()
 
-	snap1 := metrics.MetricsSnapshot{ID: "snap-1"}
+	snap1 := metrics.Snapshot{ID: "snap-1"}
 	meta1 := metrics.SnapshotMetadata{
 		Timestamp: time.Now(),
 		Tags:      map[string]string{"env": "prod"},
@@ -296,7 +296,7 @@ func TestMemoryStorage_GetByTag(t *testing.T) {
 	err := storage.Store(ctx, snap1, meta1)
 	require.NoError(t, err)
 
-	snap2 := metrics.MetricsSnapshot{ID: "snap-2"}
+	snap2 := metrics.Snapshot{ID: "snap-2"}
 	meta2 := metrics.SnapshotMetadata{
 		Timestamp: time.Now(),
 		Tags:      map[string]string{"env": "dev"},
@@ -319,7 +319,7 @@ func TestMemoryStorage_ConcurrentAccess(t *testing.T) {
 	done := make(chan bool)
 	for i := 0; i < 10; i++ {
 		go func(id int) {
-			snapshot := metrics.MetricsSnapshot{
+			snapshot := metrics.Snapshot{
 				ID: fmt.Sprintf("snap-%d", id),
 			}
 			metadata := metrics.SnapshotMetadata{

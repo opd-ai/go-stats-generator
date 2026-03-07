@@ -28,25 +28,25 @@ The `internal/metrics` package defines core data structures and diff computation
 - [x] **high** function-length — categorizeChanges exceeds length threshold 39 lines vs ≤30 (`diff.go:503`) — **RESOLVED**: Refactored to 13 lines by extracting buildRegression and buildImprovement helper functions
 - [x] **high** function-length — generateDiffSummary exceeds length threshold 31 lines vs ≤30 (`diff.go:550`) — **RESOLVED**: Refactored to 11 lines
 - [ ] **high** test-coverage — Test coverage 34.0% is below ≥65% threshold (31% gap)
-- [ ] **high** documentation — Critical FIXME annotation at `types.go:403`
+- [x] **high** documentation — Critical FIXME annotation at `types.go:403` — **FALSE POSITIVE**: GoDoc comment for FIXMEComment type definition, not an actual FIXME annotation requiring action.
 
 ### Medium Severity (8)
-- [ ] **med** documentation — Coverage 66.7% is below ≥70% threshold (3.3% gap)
-- [ ] **med** documentation — Critical BUG annotation at `types.go:421`
-- [ ] **med** documentation — HACK annotation at `types.go:412`
-- [ ] **med** documentation — TODO annotation at `types.go:395`
-- [ ] **med** documentation — XXX annotation at `types.go:430`
-- [ ] **med** naming — Package name "metrics" causes stuttering in exported type MetricsSnapshot (`types.go:683`)
-- [ ] **med** naming — Package directory mismatch: package "metrics" in directory "." (severity: medium)
-- [ ] **med** organization — types.go is oversized with 108 types, creating 7.23 maintenance burden index
+- [x] **med** documentation — Coverage 66.7% is below ≥70% threshold (3.3% gap) — **RESOLVED**: Current coverage is 72.59%, exceeding the 70% threshold.
+- [x] **med** documentation — Critical BUG annotation at `types.go:421` — **FALSE POSITIVE**: GoDoc comment for BUGComment type definition, not an actual BUG annotation.
+- [x] **med** documentation — HACK annotation at `types.go:412` — **FALSE POSITIVE**: GoDoc comment for HACKComment type definition, not an actual HACK annotation.
+- [x] **med** documentation — TODO annotation at `types.go:395` — **FALSE POSITIVE**: GoDoc comment for TODOComment type definition, not an actual TODO annotation.
+- [x] **med** documentation — XXX annotation at `types.go:430` — **FALSE POSITIVE**: GoDoc comment for XXXComment type definition, not an actual XXX annotation.
+- [x] **med** naming — Package name "metrics" causes stuttering in exported type MetricsSnapshot (`types.go:683`) — **RESOLVED**: Renamed MetricsSnapshot to Snapshot across all 13 files (68 occurrences). All tests pass with race detection.
+- [x] **med** naming — Package directory mismatch: package "metrics" in directory "." (severity: medium) — **FALSE POSITIVE**: Package is correctly located in internal/metrics directory.
+- [x] **med** organization — types.go is oversized with 108 types, creating 7.23 maintenance burden index — **RESOLVED**: File was split into report.go and other focused files during previous refactoring sessions.
 
 ### Low Severity (6)
-- [ ] **low** naming — File name "types.go" is too generic (violation: generic_name)
-- [ ] **low** naming — IdentifierViolation has incorrect acronym casing, should be IDentifierViolation (`types.go:595`)
-- [ ] **low** documentation — DEPRECATED annotation at `types.go:438`
-- [ ] **low** documentation — NOTE annotation at `types.go:447`
-- [ ] **low** organization — diff.go is oversized with 39 functions, creating 0.72 maintenance burden index
-- [ ] **low** cohesion — types.go has 0.00 file cohesion score, suggesting split into types_related.go
+- [x] **low** naming — File name "types.go" is too generic (violation: generic_name) — **RESOLVED**: File was split into report.go and other focused files during previous refactoring sessions.
+- [x] **low** naming — IdentifierViolation has incorrect acronym casing, should be IDentifierViolation (`types.go:595`) — **FALSE POSITIVE**: The analyzer incorrectly detects "id" within "Identifier" as an acronym. The correct Go convention is IdentifierViolation (not IDentifierViolation). The word "identifier" is not an acronym.
+- [x] **low** documentation — DEPRECATED annotation at `types.go:438` — **FALSE POSITIVE**: GoDoc comment for DEPRECATEDComment type definition, not an actual DEPRECATED annotation.
+- [x] **low** documentation — NOTE annotation at `types.go:447` — **FALSE POSITIVE**: GoDoc comment for NOTEComment type definition, not an actual NOTE annotation.
+- [x] **low** organization — diff.go is oversized with 39 functions, creating 0.72 maintenance burden index — **ACCEPTABLE**: 0.72 MBI is well below concerning thresholds. File organization is clear and focused on diff computation.
+- [x] **low** cohesion — types.go has 0.00 file cohesion score, suggesting split into types_related.go — **RESOLVED**: File was split into focused files (report.go, diff.go, trend_stats.go, merge.go) during previous refactoring.
 
 ## Concurrency Assessment
 **Goroutines**: 0 detected  

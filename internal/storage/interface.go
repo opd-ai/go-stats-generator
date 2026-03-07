@@ -11,10 +11,10 @@ import (
 // MetricsStorage defines the interface for storing and retrieving historical metrics
 type MetricsStorage interface {
 	// Store saves a metrics snapshot with metadata
-	Store(ctx context.Context, snapshot metrics.MetricsSnapshot, metadata metrics.SnapshotMetadata) error
+	Store(ctx context.Context, snapshot metrics.Snapshot, metadata metrics.SnapshotMetadata) error
 
 	// Retrieve gets a specific snapshot by ID
-	Retrieve(ctx context.Context, id string) (metrics.MetricsSnapshot, error)
+	Retrieve(ctx context.Context, id string) (metrics.Snapshot, error)
 
 	// List returns available snapshots with optional filtering
 	List(ctx context.Context, filter SnapshotFilter) ([]SnapshotInfo, error)
@@ -26,10 +26,10 @@ type MetricsStorage interface {
 	Cleanup(ctx context.Context, policy RetentionPolicy) error
 
 	// GetLatest returns the most recent snapshot
-	GetLatest(ctx context.Context) (metrics.MetricsSnapshot, error)
+	GetLatest(ctx context.Context) (metrics.Snapshot, error)
 
 	// GetByTag returns snapshots matching a specific tag
-	GetByTag(ctx context.Context, key, value string) ([]metrics.MetricsSnapshot, error)
+	GetByTag(ctx context.Context, key, value string) ([]metrics.Snapshot, error)
 
 	// Close releases storage resources
 	Close() error

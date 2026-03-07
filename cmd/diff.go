@@ -98,13 +98,13 @@ func loadBothReports(baselineFile, comparisonFile string) (*metrics.Report, *met
 
 // generateDiffReport creates snapshots and generates diff.
 func generateDiffReport(baseline, comparison *metrics.Report) (*metrics.ComplexityDiff, error) {
-	baselineSnapshot := metrics.MetricsSnapshot{
+	baselineSnapshot := metrics.Snapshot{
 		ID:       "baseline",
 		Report:   *baseline,
 		Metadata: metrics.SnapshotMetadata{Timestamp: baseline.Metadata.GeneratedAt},
 	}
 
-	comparisonSnapshot := metrics.MetricsSnapshot{
+	comparisonSnapshot := metrics.Snapshot{
 		ID:       "current",
 		Report:   *comparison,
 		Metadata: metrics.SnapshotMetadata{Timestamp: comparison.Metadata.GeneratedAt},

@@ -45,7 +45,7 @@ func NewJSONStorageImpl(config JSONConfig) (*JSONStorage, error) {
 }
 
 // Store saves a metrics snapshot as a JSON file
-func (j *JSONStorage) Store(ctx context.Context, snapshot metrics.MetricsSnapshot, metadata metrics.SnapshotMetadata) error {
+func (j *JSONStorage) Store(ctx context.Context, snapshot metrics.Snapshot, metadata metrics.SnapshotMetadata) error {
 	// Create snapshot file structure
 	fileData := snapshotFile{
 		ID:       snapshot.ID,
@@ -77,23 +77,23 @@ func (j *JSONStorage) Store(ctx context.Context, snapshot metrics.MetricsSnapsho
 }
 
 // Retrieve reads a snapshot from a JSON file by ID
-func (j *JSONStorage) Retrieve(ctx context.Context, id string) (metrics.MetricsSnapshot, error) {
+func (j *JSONStorage) Retrieve(ctx context.Context, id string) (metrics.Snapshot, error) {
 	// Try compressed version first, then uncompressed
 	filename := j.getFilename(id)
 	filepath := filepath.Join(j.config.Directory, filename)
 
 	data, err := j.readFile(filepath)
 	if err != nil {
-		return metrics.MetricsSnapshot{}, fmt.Errorf("snapshot not found: %s", id)
+		return metrics.Snapshot{}, fmt.Errorf("snapshot not found: %s", id)
 	}
 
 	// Parse JSON
 	var fileData snapshotFile
 	if err := json.Unmarshal(data, &fileData); err != nil {
-		return metrics.MetricsSnapshot{}, fmt.Errorf("failed to parse snapshot: %w", err)
+		return metrics.Snapshot{}, fmt.Errorf("failed to parse snapshot: %w", err)
 	}
 
-	return metrics.MetricsSnapshot{
+	return metrics.Snapshot{
 		ID:       fileData.ID,
 		Report:   fileData.Report,
 		Metadata: fileData.Metadata,
@@ -331,21 +331,21 @@ func (j *JSONStorage) executeCleanupDeletions(ctx context.Context, toDelete []st
 }
 
 // GetLatest returns the most recent snapshot
-func (j *JSONStorage) GetLatest(ctx context.Context) (metrics.MetricsSnapshot, error) {
+func (j *JSONStorage) GetLatest(ctx context.Context) (metrics.Snapshot, error) {
 	snapshots, err := j.List(ctx, SnapshotFilter{Limit: 1})
 	if err != nil {
-		return metrics.MetricsSnapshot{}, err
+		return metrics.Snapshot{}, err
 	}
 
 	if len(snapshots) == 0 {
-		return metrics.MetricsSnapshot{}, fmt.Errorf("no snapshots found")
+		return metrics.Snapshot{}, fmt.Errorf("no snapshots found")
 	}
 
 	return j.Retrieve(ctx, snapshots[0].ID)
 }
 
 // GetByTag returns snapshots matching a specific tag
-func (j *JSONStorage) GetByTag(ctx context.Context, key, value string) ([]metrics.MetricsSnapshot, error) {
+func (j *JSONStorage) GetByTag(ctx context.Context, key, value string) ([]metrics.Snapshot, error) {
 	filter := SnapshotFilter{
 		Tags: map[string]string{key: value},
 	}
@@ -355,7 +355,7 @@ func (j *JSONStorage) GetByTag(ctx context.Context, key, value string) ([]metric
 		return nil, err
 	}
 
-	var snapshots []metrics.MetricsSnapshot
+	var snapshots []metrics.Snapshot
 	for _, info := range infos {
 		snapshot, err := j.Retrieve(ctx, info.ID)
 		if err != nil {
