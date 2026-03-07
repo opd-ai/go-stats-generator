@@ -504,10 +504,13 @@ github.com/opd-ai/go-stats-generator/
 
 ## Performance
 
-- **Large Codebases**: Designed for repositories with many Go files
-- **Memory Efficient**: Processes files using configurable worker pools
-- **Concurrent**: Configurable worker pools (default: number of CPU cores)
-- **Fast**: Completes analysis of most projects efficiently
+- **Fast Analysis**: 987 files/second on modern hardware (AMD Ryzen 7 7735HS)
+- **Memory Efficient**: ~62 KB peak memory per file analyzed
+- **Concurrent Processing**: Configurable worker pools (default: number of CPU cores)
+- **Scalable**: Sub-second analysis for typical projects (<1,000 files)
+- **Benchmarked**: Comprehensive performance tests validate throughput and memory usage
+
+For detailed benchmark results and scaling projections, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ## Development
 
