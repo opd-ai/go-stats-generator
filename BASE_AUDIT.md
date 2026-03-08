@@ -68,18 +68,9 @@ Generate an audit document in the repository root:
 ## Remediation Standards
 Every finding MUST include a **Remediation** section that meets these requirements:
 
-1. **Production-ready**: The recommended fix must be a complete, deployable solution — not a sketch, placeholder, or partial workaround. If the fix requires multiple steps, list all of them.
-2. **No half measures**: Do not recommend "consider doing X" or "investigate Y." State exactly what to change, in which file, and how. If a function needs refactoring, specify which code blocks to extract into new functions and what signatures those functions should have. If error handling is missing, show the exact error propagation path.
-3. **No missing features**: If the remediation requires new code (helper functions, types, tests), describe all of it. Do not leave gaps for the implementer to fill in. Include validation steps (`go test`, `go vet`, `go-stats-generator diff`) that prove the fix is complete.
-4. **Respect project idioms**: Recommendations must follow the existing codebase's conventions for error handling, naming, package structure, and testing patterns. Study the codebase before prescribing solutions.
-5. **Verifiable**: Every remediation must include a concrete validation command or check that confirms the fix works. Example: "Run `go test -race ./pkg/...` and verify zero failures" or "Run `go-stats-generator analyze . --format json | jq '.complexity'` and confirm average < 10."
-
-### Remediation Template
-Each finding's remediation should follow this structure:
-- **What**: Specific file(s) and function(s) to change
-- **How**: Exact changes required (refactoring steps, new code, configuration)
-- **Why**: Metric evidence justifying the change
-- **Validate**: Command(s) to confirm the fix is correct and complete
+1. **Complete solutions**: State the full fix — what to change and where. Do not recommend "consider doing X" or "investigate Y." Every remediation must be actionable as-is with no gaps for the implementer to fill in.
+2. **Respect project idioms**: Recommendations must follow the existing codebase's conventions for error handling, naming, package structure, and testing patterns.
+3. **Verifiable**: Every remediation must include a validation command or check that confirms the fix works (e.g., `go test -race ./pkg/...`, `go-stats-generator analyze . --format json | jq '.complexity'`).
 
 ## Constraints
 - Output ONLY the audit report — no code changes permitted.
