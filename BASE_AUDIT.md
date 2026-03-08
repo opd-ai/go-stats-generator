@@ -44,7 +44,7 @@ Generate an audit document in the repository root:
 [Overall health, count of findings by severity]
 ## Findings
 ### CRITICAL
-- [ ] [Finding title] — [file:line] — [description with evidence]
+- [ ] [Finding title] — [file:line] — [description with evidence] — **Remediation:** [complete, production-ready fix with specific steps]
 ### HIGH / MEDIUM / LOW
 - [ ] ...
 ## Metrics Snapshot
@@ -65,12 +65,29 @@ Generate an audit document in the repository root:
 - Doc coverage minimum: 70%
 - High-risk function: cyclomatic >15 OR length >50 OR params >7
 
+## Remediation Standards
+Every finding MUST include a **Remediation** section that meets these requirements:
+
+1. **Production-ready**: The recommended fix must be a complete, deployable solution — not a sketch, placeholder, or partial workaround. If the fix requires multiple steps, list all of them.
+2. **No half measures**: Do not recommend "consider doing X" or "investigate Y." State exactly what to change, in which file, and how. If a function needs refactoring, specify the extraction points and resulting function signatures. If error handling is missing, show the exact error propagation path.
+3. **No missing features**: If the remediation requires new code (helper functions, types, tests), describe all of it. Do not leave gaps for the implementer to fill in. Include validation steps (`go test`, `go vet`, `go-stats-generator diff`) that prove the fix is complete.
+4. **Respect project idioms**: Recommendations must follow the existing codebase's conventions for error handling, naming, package structure, and testing patterns. Study the codebase before prescribing solutions.
+5. **Verifiable**: Every remediation must include a concrete validation command or check that confirms the fix works. Example: "Run `go test -race ./pkg/...` and verify zero failures" or "Run `go-stats-generator analyze . --format json | jq '.complexity'` and confirm average < 10."
+
+### Remediation Template
+Each finding's remediation should follow this structure:
+- **What**: Specific file(s) and function(s) to change
+- **How**: Exact changes required (refactoring steps, new code, configuration)
+- **Why**: Metric evidence justifying the change
+- **Validate**: Command(s) to confirm the fix is correct and complete
+
 ## Constraints
 - Output ONLY the audit report — no code changes permitted.
 - Use `go-stats-generator` metrics as primary evidence source.
 - Verify against the currently installed binary, not an older cached version.
 - Every finding must reference a specific file and line number.
 - All findings must use unchecked `- [ ]` checkboxes for downstream processing.
+- Every finding must include a production-ready remediation — findings without actionable fixes are incomplete.
 - If a prior audit exists, diff findings against it and note new vs. known issues.
 
 ## Tiebreaker
