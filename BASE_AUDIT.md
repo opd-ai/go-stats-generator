@@ -68,7 +68,7 @@ Generate an audit document in the repository root:
 ## Remediation Standards
 Every finding MUST include a **Remediation** section that meets these requirements:
 
-1. **Complete solutions**: State the full fix — what to change and where. Do not recommend "consider doing X" or "investigate Y." Every remediation must be actionable as-is with no gaps for the implementer to fill in.
+1. **Complete solutions**: State the full fix — what to change and where. Do not recommend "consider doing X" or "investigate Y." Every remediation must be actionable as-is with no gaps for the implementer to fill in. "Documented Limitations" are forbidden.
 2. **Respect project idioms**: Recommendations must follow the existing codebase's conventions for error handling, naming, package structure, and testing patterns.
 3. **Verifiable**: Every remediation must include a validation command or check that confirms the fix works (e.g., `go test -race ./pkg/...`, `go-stats-generator analyze . --format json | jq '.complexity'`).
 
