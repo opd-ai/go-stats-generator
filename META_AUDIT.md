@@ -33,7 +33,7 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ### Phase 2: Analyze
 ```bash
-go-stats-generator analyze ./<package> --skip-tests --format json --output pkg-audit.json --sections functions,documentation,patterns,duplication,interfaces,structs,packages
+go-stats-generator analyze ./<package> --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages
 go test -race -count=1 ./<package>/...
 go vet ./<package>/...
 ```
