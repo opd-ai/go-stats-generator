@@ -44,11 +44,9 @@ Keep research brief (≤10 minutes). Record only findings relevant to the packag
 go-stats-generator analyze ./<package> --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages
 go test -race -count=1 ./<package>/...
 go vet ./<package>/...
-# When go vet or linters report warnings, read the comments surrounding the flagged code.
-# If a comment explicitly acknowledges the warning (e.g., //nolint:, an explanatory comment
-# justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged
-# false positive — do not report it as a new finding.
 ```
+
+When `go vet` or linters report warnings, read the comments surrounding the flagged code. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged false positive — do not report it as a new finding.
 
 ### Phase 4: Goal-Focused Audit
 Evaluate the selected package against its role in achieving the project's stated goals:
