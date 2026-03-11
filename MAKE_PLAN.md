@@ -99,6 +99,7 @@ Write the completed plan to **`PLAN.md` in the repository root** (the directory 
 - Each step must have a validation command using `go-stats-generator` or `go test`.
 - Steps must be ordered by dependency, then by descending impact on stated goals.
 - **Plan what the project needs to achieve its own goals**, not what an arbitrary checklist says.
+- When `go vet` or linters report warnings, read the comments surrounding the flagged code. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged false positive — do not plan work to "fix" it.
 - Plans should reflect the project's own priorities and conventions.
 - Every step is independently actionable by a developer — no step requires information that is undefined.
 - Dependencies between steps are explicit.

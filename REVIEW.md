@@ -52,6 +52,8 @@ For each stated goal or feature claim discovered in Phase 0, evaluate:
 
 Run `go test -race ./...` and `go vet ./...` to confirm baseline health.
 
+When `go vet` or linters report warnings, read the comments surrounding the flagged code before reporting a finding. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking the known issue), treat it as an acknowledged false positive and do not report it as a new finding.
+
 Use the project's own conventions and architecture as the standard — do not impose external standards that the project does not claim to follow.
 
 ### Phase 4: Generate ROADMAP.md

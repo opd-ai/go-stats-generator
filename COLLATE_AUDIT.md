@@ -48,6 +48,7 @@ Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `
 5. Deduplicate findings that appear in multiple audit files (keep the highest severity version).
 6. Tag each finding with which stated project goal it affects (if any).
 7. Flag any finding that describes a confirmed or likely bug (logic error, nil dereference, resource leak, race condition). Bugs on critical paths should be escalated to at least HIGH severity.
+8. When `go vet` or linter warnings appear in findings, check whether the surrounding code has comments that explicitly acknowledge the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking the issue). If so, mark the finding as an acknowledged false positive and do not escalate it.
 
 ### Phase 4: Generate Consolidated Audit and Gaps
 

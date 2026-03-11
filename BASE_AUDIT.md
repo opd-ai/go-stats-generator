@@ -58,7 +58,7 @@ Delete `/tmp/audit-baseline.json` when done — the only persistent outputs are 
    - Packages with <70% doc coverage may have undocumented behavioral differences.
    - Check `.duplication` for copy-paste that may have introduced drift.
 
-4. Run `go test -race ./...` and `go vet ./...` to confirm baseline health.
+4. Run `go test -race ./...` and `go vet ./...` to confirm baseline health. When `go vet` or linters report warnings, read the comments surrounding the flagged code. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged false positive — do not report it as a new finding.
 
 ### Phase 4: Report
 Generate **`AUDIT.md`** in the repository root:

@@ -113,6 +113,7 @@ Generate **`GAPS.md`**:
 - Every finding must reference a specific file and line number.
 - All findings must use unchecked `- [ ]` checkboxes.
 - Evaluate test quality in terms of how well tests verify the project's **stated goals**, not arbitrary coverage targets.
+- When `go vet` or linters report warnings in test code, read the comments surrounding the flagged code. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged false positive — do not report it as a new finding.
 - Recommend table-driven tests and `t.Helper()` extraction as primary remediation patterns.
 
 ## Tiebreaker

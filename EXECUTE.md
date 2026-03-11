@@ -2,6 +2,7 @@
 
 ## Execution Mode
 **Autonomous action** — implement the task fully, validate with tests and diff.
+This prompt operates on a **third-party Go project**, not on go-stats-generator itself. Every decision must serve the target project's own stated goals and conventions.
 
 ## Prerequisite
 ```bash

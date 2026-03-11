@@ -65,7 +65,7 @@ Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `
    - Verify correctness in ascending level order.
 
 5. Cross-reference with `.duplication.clone_pairs` and `.documentation` for additional findings.
-6. Run `go test -race ./...` and `go vet ./...` for baseline health.
+6. Run `go test -race ./...` and `go vet ./...` for baseline health. When `go vet` or linters report warnings, read the comments surrounding the flagged code. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged false positive — do not report it as a new finding.
 
 ### Phase 4: Report
 Generate **`AUDIT.md`**:
