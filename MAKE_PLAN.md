@@ -25,8 +25,9 @@ Before generating any plan, build deep context about what the project is trying 
 
 ### Phase 1: Baseline
 ```bash
-go-stats-generator analyze . --skip-tests --format json --output metrics.json --sections functions,duplication,documentation,packages,patterns
+go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation,packages,patterns > /tmp/metrics.json
 ```
+Delete `/tmp/metrics.json` when done — the only persistent output is `PLAN.md`.
 
 ### Phase 2: Plan Generation
 1. Identify the most important unachieved goals from the project's own documentation (discovered in Phase 0).

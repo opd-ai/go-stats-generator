@@ -27,9 +27,10 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ### Phase 1: Baseline
 ```bash
-go-stats-generator analyze . --skip-tests --format json --output audit-baseline.json --sections functions,documentation,packages,patterns,duplication
+go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,duplication > /tmp/audit-baseline.json
 go-stats-generator analyze . --skip-tests
 ```
+Delete `/tmp/audit-baseline.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ### Phase 2: Goal-Achievement Audit
 1. For each stated goal or feature claim from Phase 0, perform a systematic audit:

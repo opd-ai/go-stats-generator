@@ -25,9 +25,10 @@ Before assessing anything, understand what the project is trying to accomplish:
 
 ### Phase 1: Metrics Collection
 ```bash
-go-stats-generator analyze . --skip-tests --format json --output review-metrics.json
+go-stats-generator analyze . --skip-tests --format json > /tmp/review-metrics.json
 go-stats-generator analyze . --skip-tests
 ```
+Delete `/tmp/review-metrics.json` when done — the only persistent output is `ROADMAP.md`.
 
 ### Phase 2: Goal-Achievement Assessment
 For each stated goal or feature claim discovered in Phase 0, evaluate:

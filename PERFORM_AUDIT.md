@@ -28,9 +28,10 @@ Before auditing, learn what the code is supposed to achieve:
 
 ### Phase 1: Baseline
 ```bash
-go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json --sections functions,documentation,patterns,duplication,interfaces,structs,packages
+go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages > /tmp/audit-metrics.json
 go-stats-generator analyze . --skip-tests
 ```
+Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ### Phase 2: Goal-Focused Audit
 1. For each stated goal or feature claim, trace through the codebase to verify implementation:

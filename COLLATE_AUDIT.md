@@ -24,8 +24,9 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ### Phase 1: Baseline
 ```bash
-go-stats-generator analyze . --skip-tests --format json --output audit-metrics.json --sections functions,packages,documentation,duplication
+go-stats-generator analyze . --skip-tests --format json --sections functions,packages,documentation,duplication > /tmp/audit-metrics.json
 ```
+Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ### Phase 2: Collate
 1. Find all audit-related files in the repository:

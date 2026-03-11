@@ -10,7 +10,7 @@ Write exactly two files in the audited package directory:
 
 If either file already exists, delete it and create a fresh one.
 
-Also update the root audit tracker (create if absent).
+Also update the root audit tracker **`AUDIT_TRACKER.md`** in the repository root (create if absent).
 
 ## Prerequisite
 ```bash
@@ -91,7 +91,7 @@ Create **`<package>/GAPS.md`**:
 - **Closing the Gap**: [what needs to happen]
 ```
 
-Update root audit tracker (create if absent):
+Update root audit tracker **`AUDIT_TRACKER.md`** (create if absent):
 ```markdown
 - [x] [package]: [pass_count]/[total_gates] gates passing — see [package]/AUDIT.md
 ```
@@ -102,7 +102,7 @@ Package: [name]
 Gates: [passed]/[total] passing
 Findings: [count] ([critical], [high], [medium], [low])
 Created: [package]/AUDIT.md, [package]/GAPS.md
-Updated: root audit tracker
+Updated: AUDIT_TRACKER.md
 ```
 
 ## Tiebreaker

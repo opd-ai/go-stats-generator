@@ -26,9 +26,10 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ### Phase 1: Baseline
 ```bash
-go-stats-generator analyze . --only-tests --format json --output test-audit-metrics.json --sections functions,documentation,patterns,duplication
+go-stats-generator analyze . --only-tests --format json --sections functions,documentation,patterns,duplication > /tmp/test-audit-metrics.json
 go-stats-generator analyze . --only-tests
 ```
+Delete `/tmp/test-audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ### Phase 2: Goal-Focused Test Audit
 1. For each stated project goal, verify that adequate test coverage exists:
