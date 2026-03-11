@@ -22,13 +22,20 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 2. Examine `go.mod` to understand the module structure.
 3. Note the project's conventions — findings should be evaluated in the context of the project's own stated goals, not arbitrary external standards.
 
-### Phase 1: Baseline
+### Phase 1: Online Research
+Use web search to build context that isn't available in the repository:
+1. Search for the project on GitHub — read open issues and discussions to understand known pain points and user feedback.
+2. Research key dependencies for known vulnerabilities or deprecations that may affect existing audit findings.
+
+Keep research brief (≤10 minutes). Record only findings relevant to the project's stated goals.
+
+### Phase 2: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --sections functions,packages,documentation,duplication > /tmp/audit-metrics.json
 ```
 Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
-### Phase 2: Collate
+### Phase 3: Collate
 1. Find all audit-related files in the repository:
    ```bash
    find . -name '*AUDIT*.md' -not -path './vendor/*'
@@ -41,7 +48,7 @@ Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `
 5. Deduplicate findings that appear in multiple audit files (keep the highest severity version).
 6. Tag each finding with which stated project goal it affects (if any).
 
-### Phase 3: Generate Consolidated Audit and Gaps
+### Phase 4: Generate Consolidated Audit and Gaps
 
 Generate **`AUDIT.md`**:
 ```markdown

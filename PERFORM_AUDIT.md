@@ -26,14 +26,22 @@ Before auditing, learn what the code is supposed to achieve:
 5. Note which packages are on critical paths for the project's core goals (handle user input, implement key features, manage state, perform I/O).
 6. Look for design documents, ADRs, or spec files that clarify intent beyond the README.
 
-### Phase 1: Baseline
+### Phase 1: Online Research
+Use web search to build context that isn't available in the repository:
+1. Search for the project on GitHub — read open issues, recent PRs, and community discussions to understand known pain points.
+2. Research key dependencies from `go.mod` for known vulnerabilities, deprecations, or upcoming breaking changes.
+3. Look up best practices in the project's domain to calibrate audit expectations against its stated goals.
+
+Keep research brief (≤10 minutes). Record only findings that are directly relevant to the project's stated goals.
+
+### Phase 2: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages > /tmp/audit-metrics.json
 go-stats-generator analyze . --skip-tests
 ```
 Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
-### Phase 2: Goal-Focused Audit
+### Phase 3: Goal-Focused Audit
 1. For each stated goal or feature claim, trace through the codebase to verify implementation:
    - **Is it implemented?** Find the entry point and trace execution to output.
    - **Does it work correctly?** Check boundary conditions and error paths.
@@ -58,7 +66,7 @@ Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `
 5. Cross-reference with `.duplication.clone_pairs` and `.documentation` for additional findings.
 6. Run `go test -race ./...` and `go vet ./...` for baseline health.
 
-### Phase 3: Report
+### Phase 4: Report
 Generate **`AUDIT.md`**:
 ```markdown
 # AUDIT — [date]

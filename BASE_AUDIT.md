@@ -25,14 +25,22 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 5. Identify any other documentation (API docs, user guides, design docs, `--help` output) that makes verifiable claims.
 6. Note the project's own conventions for error handling, testing, and code organization — evaluate the code against its own standards, not external ones.
 
-### Phase 1: Baseline
+### Phase 1: Online Research
+Use web search to build context that isn't available in the repository:
+1. Search for the project on GitHub — read open issues, recent PRs, and community discussions to understand known pain points.
+2. Research key dependencies from `go.mod` for known vulnerabilities, deprecations, or upcoming breaking changes.
+3. Look up best practices in the project's domain to calibrate audit expectations against its stated goals.
+
+Keep research brief (≤10 minutes). Record only findings that are directly relevant to the project's stated goals.
+
+### Phase 2: Baseline
 ```bash
 go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,duplication > /tmp/audit-baseline.json
 go-stats-generator analyze . --skip-tests
 ```
 Delete `/tmp/audit-baseline.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
-### Phase 2: Goal-Achievement Audit
+### Phase 3: Goal-Achievement Audit
 1. For each stated goal or feature claim from Phase 0, perform a systematic audit:
    - **Does the feature exist in the codebase?** Trace the execution path from entry point to output.
    - **Does it produce correct output when invoked?** Test with representative inputs.
@@ -51,7 +59,7 @@ Delete `/tmp/audit-baseline.json` when done — the only persistent outputs are 
 
 4. Run `go test -race ./...` and `go vet ./...` to confirm baseline health.
 
-### Phase 3: Report
+### Phase 4: Report
 Generate **`AUDIT.md`** in the repository root:
 
 ```markdown

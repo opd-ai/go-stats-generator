@@ -24,21 +24,29 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 2. List all Go packages: `go list ./...`
 3. Identify which packages serve which stated goals — core packages that implement key features deserve deeper scrutiny than utility packages.
 
-### Phase 1: Select Package
+### Phase 1: Online Research
+Use web search to build context that isn't available in the repository:
+1. Search for the project on GitHub — read open issues and discussions for known pain points in the package area you will audit.
+2. Research key dependencies used by the package for known vulnerabilities or deprecations.
+3. Look up best practices relevant to the package's domain (e.g., concurrency patterns, API design, parsing).
+
+Keep research brief (≤10 minutes). Record only findings relevant to the package's role in the project's stated goals.
+
+### Phase 2: Select Package
 1. Discover which packages already have audit files: `find . -name 'AUDIT.md'`
 2. Select the first unaudited package, prioritizing:
    - Packages listed in any root-level audit tracker but unchecked
    - Packages that implement the project's core stated goals
    - Packages with highest integration surface (most imports/importers)
 
-### Phase 2: Analyze
+### Phase 3: Analyze
 ```bash
 go-stats-generator analyze ./<package> --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages
 go test -race -count=1 ./<package>/...
 go vet ./<package>/...
 ```
 
-### Phase 3: Goal-Focused Audit
+### Phase 4: Goal-Focused Audit
 Evaluate the selected package against its role in achieving the project's stated goals:
 
 1. **Role clarity**: Does this package have a clear, well-defined responsibility? Does it serve one of the project's stated goals?
@@ -62,7 +70,7 @@ For each finding, create an entry with:
 - How this finding impacts the project's stated goals
 - Remediation that respects the project's idioms
 
-### Phase 4: Report
+### Phase 5: Report
 Create **`<package>/AUDIT.md`**:
 ```markdown
 # AUDIT: [package name] — [date]

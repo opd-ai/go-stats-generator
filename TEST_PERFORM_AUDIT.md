@@ -24,14 +24,22 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 4. Note whether the project uses `t.Parallel()`, `t.Cleanup()`, test suites, or integration test separation.
 5. Map which stated goals have corresponding test coverage and which do not.
 
-### Phase 1: Baseline
+### Phase 1: Online Research
+Use web search to build context that isn't available in the repository:
+1. Search for the project on GitHub — read open issues and discussions to understand known test gaps and flaky test reports.
+2. Research the project's test dependencies for known issues, deprecations, or better alternatives.
+3. Look up testing best practices in the project's domain (e.g., table-driven tests, test helpers, integration test patterns).
+
+Keep research brief (≤10 minutes). Record only findings that are directly relevant to the project's test strategy and stated goals.
+
+### Phase 2: Baseline
 ```bash
 go-stats-generator analyze . --only-tests --format json --sections functions,documentation,patterns,duplication > /tmp/test-audit-metrics.json
 go-stats-generator analyze . --only-tests
 ```
 Delete `/tmp/test-audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
-### Phase 2: Goal-Focused Test Audit
+### Phase 3: Goal-Focused Test Audit
 1. For each stated project goal, verify that adequate test coverage exists:
    - Are the critical paths for this goal tested?
    - Do tests cover the happy path, error paths, and edge cases?
@@ -50,7 +58,7 @@ Delete `/tmp/test-audit-metrics.json` when done — the only persistent outputs 
 
 4. Cross-reference with `.duplication` and `.documentation` for additional findings.
 
-### Phase 3: Report
+### Phase 4: Report
 
 Generate **`AUDIT.md`**:
 ```markdown

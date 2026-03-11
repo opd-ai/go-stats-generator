@@ -23,14 +23,23 @@ Before assessing anything, understand what the project is trying to accomplish:
 5. Check for an existing roadmap, backlog, issue tracker, or changelog that reveals maintainer priorities and planned work.
 6. Look for design documents, ADRs, or spec files that clarify intent beyond the README.
 
-### Phase 1: Metrics Collection
+### Phase 1: Online Research
+Use web search to build context that isn't available in the repository:
+1. Search for the project on GitHub — read open issues, recent PRs, and community discussions to understand known pain points and user feedback.
+2. Research key dependencies from `go.mod` for known vulnerabilities, deprecations, or upcoming breaking changes.
+3. Look up best practices and conventions in the project's domain to calibrate expectations for its stated goals.
+4. Check whether comparable tools exist — understanding the competitive landscape helps evaluate whether the project's goals are ambitious, typical, or outdated.
+
+Keep research brief (≤10 minutes). Record only findings that are directly relevant to the project's stated goals.
+
+### Phase 2: Metrics Collection
 ```bash
 go-stats-generator analyze . --skip-tests --format json > /tmp/review-metrics.json
 go-stats-generator analyze . --skip-tests
 ```
 Delete `/tmp/review-metrics.json` when done — the only persistent output is `ROADMAP.md`.
 
-### Phase 2: Goal-Achievement Assessment
+### Phase 3: Goal-Achievement Assessment
 For each stated goal or feature claim discovered in Phase 0, evaluate:
 
 1. **Does the feature exist?** Trace through the codebase to confirm the claimed functionality is implemented, not just stubbed.
@@ -45,7 +54,7 @@ Run `go test -race ./...` and `go vet ./...` to confirm baseline health.
 
 Use the project's own conventions and architecture as the standard — do not impose external standards that the project does not claim to follow.
 
-### Phase 3: Generate ROADMAP.md
+### Phase 4: Generate ROADMAP.md
 ```markdown
 # Goal-Achievement Assessment
 
