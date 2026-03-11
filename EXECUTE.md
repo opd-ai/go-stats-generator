@@ -17,16 +17,25 @@ Before executing any task, build context:
 3. Scan existing source files to identify the project's code style: error handling patterns, naming conventions, test strategy, and preferred idioms.
 4. Note any CI configuration, linter configs, or code generation patterns to respect.
 
-### Phase 1: Baseline
-```bash
-go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,duplication,documentation
-```
+### Phase 1: Online Research
+Use web search to build context before executing:
+1. Search for the project on GitHub — read open issues and recent PRs related to the task you are about to execute.
+2. Research any dependencies or APIs involved in the task for known issues or deprecations.
+3. Look up implementation best practices relevant to the specific change you will make.
 
-### Phase 2: Select and Execute Task
+Keep research brief (≤10 minutes). Record only findings that directly affect how you implement or validate the task.
+
+### Phase 2: Baseline
+```bash
+go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation > /tmp/baseline-exec.json
+```
+Delete `/tmp/baseline-exec.json` after validation is complete.
+
+### Phase 3: Select and Execute Task
 1. **Task selection** — strict file priority order, NO EXCEPTIONS:
-   - **First**: Discover any audit findings file (e.g., `AUDIT.md`, `*AUDIT*.md`). Take the first unchecked `- [ ]` item.
-   - **Second**: If no audit items remain, find the project's implementation plan (e.g., `PLAN.md`, issue tracker). Take the first incomplete step.
-   - **Third**: If no plan items remain, find the project's roadmap or backlog. Take the first incomplete item.
+   - **First**: `AUDIT.md` (or any `*AUDIT*.md`). Take the first unchecked `- [ ]` item.
+   - **Second**: `PLAN.md`. Take the first incomplete step.
+   - **Third**: `ROADMAP.md`. Take the first incomplete item.
    - Do NOT skip priority levels. Do NOT reorder.
 
 2. **Task grouping** — if the next task has logical sub-items, execute the entire group as one unit.
@@ -40,12 +49,25 @@ go-stats-generator analyze . --skip-tests --format json --output baseline.json -
 
 4. **Mark completion**: Check off completed items (`- [x]`) in the source file.
 
-### Phase 3: Validate
+### Phase 4: Validate
 ```bash
-go-stats-generator analyze . --skip-tests --format json --output post.json --sections functions,duplication,documentation
-go-stats-generator diff baseline.json post.json
+go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation > /tmp/post-exec.json
+go-stats-generator diff /tmp/baseline-exec.json /tmp/post-exec.json
 ```
-Confirm: zero regressions in complexity, duplication, or doc coverage.
+Delete `/tmp/baseline-exec.json` and `/tmp/post-exec.json` when done.
+
+Confirm ALL of the following:
+1. **No metric regressions** in complexity, duplication, or doc coverage.
+2. **Tests pass**: `go test -race ./...` and `go vet ./...` succeed.
+3. **Compliance with specification goals**: The change advances (or at minimum does not regress) the project's stated goals as documented in the README. Cross-reference with AUDIT.md/PLAN.md/ROADMAP.md to confirm the task's goal-achievement intent was fulfilled.
+
+## Success Criteria
+| Criterion | Check |
+|-----------|-------|
+| No metric regressions | `go-stats-generator diff` shows zero regressions |
+| Tests pass | `go test -race ./...` exits 0 |
+| Vet clean | `go vet ./...` exits 0 |
+| Compliance with specification goals | Change advances the project's stated goals (README) and fulfills the intent documented in AUDIT.md / PLAN.md / ROADMAP.md |
 
 ## Default Thresholds (calibrate to project baseline)
 - Max function length: 30 lines
@@ -55,9 +77,9 @@ Confirm: zero regressions in complexity, duplication, or doc coverage.
 
 ## Priority Rules
 The task priority order is absolute and non-negotiable:
-1. **Audit findings** — bug fixes and critical findings always come first
-2. **Planned steps** — implementation plan items come second
-3. **Roadmap items** — strategic improvements come last
+1. **`AUDIT.md`** — bug fixes and critical findings always come first
+2. **`PLAN.md`** — implementation plan items come second
+3. **`ROADMAP.md`** — strategic improvements come last
 
 Execute what is next, not what seems most interesting or impactful.
 
