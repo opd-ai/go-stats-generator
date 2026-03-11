@@ -1,4 +1,4 @@
-# TASK: Execute the next planned task from the project's backlog in strict priority order: audit findings first, then planned steps, then roadmap items.
+# TASK: Execute the next planned task from the target project's backlog in strict priority order: audit findings first, then planned steps, then roadmap items.
 
 ## Execution Mode
 **Autonomous action** — implement the task fully, validate with tests and diff.
@@ -10,12 +10,13 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
-### Phase 0: Understand the Project
-Before executing any task, build context:
-1. Read the project README to learn what it does, its domain, and its users.
+### Phase 0: Understand the Target Project's Goals
+Before executing any task, build deep context on the project you are working in:
+1. Read the project README thoroughly — extract every stated goal, feature claim, capability promise, performance target, and audience statement. These are the **acceptance criteria** for your work.
 2. Examine `go.mod` for module path, Go version, and key dependencies.
 3. Scan existing source files to identify the project's code style: error handling patterns, naming conventions, test strategy, and preferred idioms.
 4. Note any CI configuration, linter configs, or code generation patterns to respect.
+5. Identify which packages and functions are on critical paths for the project's stated goals — changes to these require extra care.
 
 ### Phase 1: Online Research
 Use web search to build context before executing:
@@ -40,11 +41,12 @@ Delete `/tmp/baseline-exec.json` after validation is complete.
 
 2. **Task grouping** — if the next task has logical sub-items, execute the entire group as one unit.
 
-3. **Implementation** — match the project's existing conventions:
+3. **Implementation** — match the project's existing conventions and advance its stated goals:
    - Mirror the codebase's error handling style (wrapping pattern, sentinel errors, etc.).
    - Follow the project's naming conventions and package structure.
    - Respect established function length and complexity norms (default targets: <=30 lines, cyclomatic <=10).
    - Preserve all existing public API signatures.
+   - Verify the change serves the project's stated goals — do not introduce code that contradicts or is irrelevant to what the project claims to do.
    - Run `go test -race ./...` and `go vet ./...` after implementation.
 
 4. **Mark completion**: Check off completed items (`- [x]`) in the source file.
@@ -59,7 +61,7 @@ Delete `/tmp/baseline-exec.json` and `/tmp/post-exec.json` when done.
 Confirm ALL of the following:
 1. **No metric regressions** in complexity, duplication, or doc coverage.
 2. **Tests pass**: `go test -race ./...` and `go vet ./...` succeed.
-3. **Compliance with specification goals**: The change advances (or at minimum does not regress) the project's stated goals as documented in the README. Cross-reference with AUDIT.md/PLAN.md/ROADMAP.md to confirm the task's goal-achievement intent was fulfilled.
+3. **Compliance with the project's stated goals**: The change advances (or at minimum does not regress) the project's stated goals as documented in its README. Evaluate the change against the project's **own stated goals** first, then against general engineering best practices. Cross-reference with AUDIT.md/PLAN.md/ROADMAP.md to confirm the task's goal-achievement intent was fulfilled.
 
 ## Success Criteria
 | Criterion | Check |
@@ -67,7 +69,7 @@ Confirm ALL of the following:
 | No metric regressions | `go-stats-generator diff` shows zero regressions |
 | Tests pass | `go test -race ./...` exits 0 |
 | Vet clean | `go vet ./...` exits 0 |
-| Compliance with specification goals | Change advances the project's stated goals (README) and fulfills the intent documented in AUDIT.md / PLAN.md / ROADMAP.md |
+| Compliance with the project's stated goals | Change advances the project's own stated goals (README) and fulfills the intent documented in AUDIT.md / PLAN.md / ROADMAP.md |
 
 ## Default Thresholds (calibrate to project baseline)
 - Max function length: 30 lines
