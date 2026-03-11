@@ -46,6 +46,7 @@ Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `
    - **Is it implemented?** Find the entry point and trace execution to output.
    - **Does it work correctly?** Check boundary conditions and error paths.
    - **Does it match the documentation?** Compare promised behavior to actual behavior.
+   - **Are there bugs?** Look for logic errors, nil dereferences, resource leaks, race conditions, and incorrect error handling on critical paths.
 
 2. Use `go-stats-generator` metrics to identify risk areas that threaten goal achievement:
    - **HIGH RISK**: Functions on critical goal paths with length >50 lines OR cyclomatic >15 — most likely to contain bugs that prevent goals from being met.

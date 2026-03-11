@@ -58,6 +58,12 @@ Delete `/tmp/test-audit-metrics.json` when done — the only persistent outputs 
 
 4. Cross-reference with `.duplication` and `.documentation` for additional findings.
 
+5. **Bug-masking risk**: Identify tests that may hide bugs:
+   - Tests with no assertions or only `t.Log` calls.
+   - Tests that swallow errors (e.g., `err` assigned but never checked).
+   - Tests that assert on outdated or hardcoded values instead of computed expectations.
+   - Missing negative tests for error paths on goal-critical functions.
+
 ### Phase 4: Report
 
 Generate **`AUDIT.md`**:

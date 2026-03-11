@@ -46,6 +46,7 @@ Delete `/tmp/audit-baseline.json` when done — the only persistent outputs are 
    - **Does it produce correct output when invoked?** Test with representative inputs.
    - **Are there edge cases or partial implementations?** Check boundary conditions.
    - **Does the implementation match what the documentation promises?**
+   - **Are there bugs?** Look for logic errors, off-by-one errors, nil pointer dereferences, resource leaks, race conditions, and incorrect error handling. Bugs on critical goal paths are CRITICAL severity.
 
 2. Use dependency-level analysis for systematic coverage:
    - Map import dependencies across all `.go` files.
@@ -98,7 +99,7 @@ Generate **`GAPS.md`** in the repository root:
 ## Severity Classification
 | Severity | Criteria |
 |----------|----------|
-| CRITICAL | Feature documented but non-functional, or data corruption risk |
+| CRITICAL | Feature documented but non-functional, data corruption risk, or confirmed bug on a critical path |
 | HIGH | Feature partially implemented, or high complexity with no tests |
 | MEDIUM | Edge case failures, or documentation coverage gap >20% |
 | LOW | Minor inconsistencies that don't affect stated goals |

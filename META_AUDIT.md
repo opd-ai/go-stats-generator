@@ -52,6 +52,7 @@ Evaluate the selected package against its role in achieving the project's stated
 1. **Role clarity**: Does this package have a clear, well-defined responsibility? Does it serve one of the project's stated goals?
 2. **Functional correctness**: Do the package's exported functions do what their documentation (and the project README) claims?
 3. **Implementation completeness**: Are there stubs, TODOs, or partial implementations that prevent goal achievement?
+4. **Bug detection**: Look for logic errors, nil dereferences, resource leaks, race conditions, and incorrect error handling. Run `go vet` and inspect high-complexity functions manually.
 
 Also evaluate these quality gates (thresholds are tunable defaults — adjust if the project's conventions warrant):
 
