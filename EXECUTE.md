@@ -67,7 +67,7 @@ Check off completed items (`- [x]`) in the source file. Record the task in the s
 
 #### Stopping Conditions
 Stop the loop when **any** of the following is true:
-- **Backlog exhausted**: No unchecked items remain in any priority file (`AUDIT.md`, `PLAN.md`, `ROADMAP.md`).
+- **Backlog exhausted**: All items in `AUDIT.md` and `PLAN.md` have been completed and both files have been deleted (see Task Completion Rules).
 - **Unrecoverable regression**: A task causes test or validation failures, or clearly regresses the project's stated goals, and the issue cannot be resolved quickly — revert it, log it, and stop.
 - **Context boundary**: The next task requires modifying files in a top-level package not yet touched in this session and involves a subsystem with different domain concerns (e.g., switching from data processing to HTTP handlers, or from core logic to CI configuration).
 - **High-risk threshold**: The next task involves changes to public API signatures, database schemas, or other high-blast-radius modifications that warrant isolated review.
@@ -113,7 +113,10 @@ Execute what is next, not what seems most interesting or impactful.
 ## Task Completion Rules
 - If a finding is already resolved (code matches expectation), check it off and move to the next task in the loop.
 - If a task requires information not available, note the blocker and skip to the next task in the loop.
-- After completing all items in an audit file, delete it to signal completion.
+- After completing all items in `AUDIT.md`, delete it to signal completion.
+- After completing all items in `PLAN.md`, delete it to signal completion.
+
+**Critical**: The development loop (`loop.sh`) halts only when both `AUDIT.md` and `PLAN.md` are deleted. Failure to delete these files upon completion will cause the loop to run indefinitely.
 
 ## Output Format
 ```
