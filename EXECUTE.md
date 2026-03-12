@@ -1,7 +1,7 @@
-# TASK: Execute the next planned task from the target project's backlog in strict priority order: audit findings first, then planned steps, then roadmap items.
+# TASK: Execute as many planned tasks as possible from the target project's backlog in strict priority order: audit findings first, then planned steps, then roadmap items.
 
 ## Execution Mode
-**Autonomous action** — implement the task fully, validate with tests and diff.
+**Autonomous action** — implement tasks fully, validate each with tests and diff, then continue to the next task until a stopping condition is met.
 This prompt operates on a **third-party Go project**, not on go-stats-generator itself. Every decision must serve the target project's own stated goals and conventions.
 
 ## Prerequisite
@@ -21,38 +21,61 @@ Before executing any task, build deep context on the project you are working in:
 
 ### Phase 1: Online Research
 Use web search to build context before executing:
-1. Search for the project on GitHub — read open issues and recent PRs related to the task you are about to execute.
-2. Research any dependencies or APIs involved in the task for known issues or deprecations.
-3. Look up implementation best practices relevant to the specific change you will make.
+1. Search for the project on GitHub — read open issues and recent PRs related to planned tasks.
+2. Research any dependencies or APIs involved in the upcoming tasks for known issues or deprecations.
+3. Look up implementation best practices relevant to the planned changes.
 
-Keep research brief (≤10 minutes). Record only findings that directly affect how you implement or validate the task.
+Keep research brief (≤10 minutes). Record only findings that directly affect how you implement or validate the tasks.
 
-### Phase 2: Baseline
+### Phase 2: Session Baseline
+Capture a single baseline at the start of the session. This baseline persists across all tasks and is used for the final session-level diff.
 ```bash
 go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation > /tmp/baseline-exec.json
 ```
-Delete `/tmp/baseline-exec.json` after validation is complete.
+Delete `/tmp/baseline-exec.json` only after the final session validation is complete.
 
-### Phase 3: Select and Execute Task
-1. **Task selection** — strict file priority order, NO EXCEPTIONS:
-   - **First**: `AUDIT.md` (or any `*AUDIT*.md`). Take the first unchecked `- [ ]` item.
-   - **Second**: `PLAN.md`. Take the first incomplete step.
-   - **Third**: `ROADMAP.md`. Take the first incomplete item.
-   - Do NOT skip priority levels. Do NOT reorder.
+### Phase 3: Task Execution Loop
+Repeat the following cycle for each task until a **stopping condition** is met:
 
-2. **Task grouping** — if the next task has logical sub-items, execute the entire group as one unit.
+#### 3a. Select Task
+Strict file priority order, NO EXCEPTIONS:
+- **First**: `AUDIT.md` (or any `*AUDIT*.md`). Take the first unchecked `- [ ]` item.
+- **Second**: `PLAN.md`. Take the first incomplete step.
+- **Third**: `ROADMAP.md`. Take the first incomplete item.
+- Do NOT skip priority levels. Do NOT reorder.
 
-3. **Implementation** — match the project's existing conventions and advance its stated goals:
-   - Mirror the codebase's error handling style (wrapping pattern, sentinel errors, etc.).
-   - Follow the project's naming conventions and package structure.
-   - Respect established function length and complexity norms (default targets: <=30 lines, cyclomatic <=10).
-   - Preserve all existing public API signatures.
-   - Verify the change serves the project's stated goals — do not introduce code that contradicts or is irrelevant to what the project claims to do.
-   - Run `go test -race ./...` and `go vet ./...` after implementation.
+If the next task has logical sub-items, execute the entire group as one unit.
 
-4. **Mark completion**: Check off completed items (`- [x]`) in the source file.
+#### 3b. Implement
+Match the project's existing conventions and advance its stated goals:
+- Mirror the codebase's error handling style (wrapping pattern, sentinel errors, etc.).
+- Follow the project's naming conventions and package structure.
+- Respect established function length and complexity norms (default targets: <=30 lines, cyclomatic <=10).
+- Preserve all existing public API signatures.
+- Verify the change serves the project's stated goals — do not introduce code that contradicts or is irrelevant to what the project claims to do.
 
-### Phase 4: Validate
+#### 3c. Per-Task Validation
+After each task, confirm:
+1. `go test -race ./...` exits 0.
+2. `go vet ./...` exits 0.
+3. The change advances (or does not regress) the project's stated goals.
+
+If per-task validation fails, fix the issue before continuing. If the fix would require modifying files outside the task's scope or adding more than 20 lines of unplanned code, revert the task changes, note the blocker, and proceed to the next task.
+
+#### 3d. Mark Completion
+Check off completed items (`- [x]`) in the source file. Record the task in the session log for the final output.
+
+#### Stopping Conditions
+Stop the loop when **any** of the following is true:
+- **Backlog exhausted**: No unchecked items remain in any priority file (`AUDIT.md`, `PLAN.md`, `ROADMAP.md`).
+- **Unrecoverable regression**: A task introduces a metric regression or test failure that cannot be resolved quickly — revert it, log it, and stop.
+- **Context boundary**: The next task requires modifying files in a top-level package not yet touched in this session and involves a subsystem with different domain concerns (e.g., switching from data processing to HTTP handlers, or from core logic to CI configuration).
+- **High-risk threshold**: The next task involves changes to public API signatures, database schemas, or other high-blast-radius modifications that warrant isolated review.
+
+When no stopping condition is met and you are unsure whether to continue, execute one more task rather than stopping early. Prefer completing more work per session.
+
+### Phase 4: Session Validation
+After the loop ends, perform a final session-level validation against the original baseline:
 ```bash
 go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation > /tmp/post-exec.json
 go-stats-generator diff /tmp/baseline-exec.json /tmp/post-exec.json
@@ -60,17 +83,18 @@ go-stats-generator diff /tmp/baseline-exec.json /tmp/post-exec.json
 Delete `/tmp/baseline-exec.json` and `/tmp/post-exec.json` when done.
 
 Confirm ALL of the following:
-1. **No metric regressions** in complexity, duplication, or doc coverage.
+1. **No metric regressions** in complexity, duplication, or doc coverage relative to the session baseline.
 2. **Tests pass**: `go test -race ./...` and `go vet ./...` succeed.
-3. **Compliance with the project's stated goals**: The change advances (or at minimum does not regress) the project's stated goals as documented in its README. Evaluate the change against the project's **own stated goals** first, then against general engineering best practices. Cross-reference with AUDIT.md/PLAN.md/ROADMAP.md to confirm the task's goal-achievement intent was fulfilled.
+3. **Compliance with the project's stated goals**: The cumulative changes advance (or at minimum do not regress) the project's stated goals as documented in its README. Evaluate changes against the project's **own stated goals** first, then against general engineering best practices. Cross-reference with AUDIT.md/PLAN.md/ROADMAP.md to confirm each task's goal-achievement intent was fulfilled.
 
 ## Success Criteria
 | Criterion | Check |
 |-----------|-------|
-| No metric regressions | `go-stats-generator diff` shows zero regressions |
+| No metric regressions | `go-stats-generator diff` shows zero regressions across the entire session |
 | Tests pass | `go test -race ./...` exits 0 |
 | Vet clean | `go vet ./...` exits 0 |
-| Compliance with the project's stated goals | Change advances the project's own stated goals (README) and fulfills the intent documented in AUDIT.md / PLAN.md / ROADMAP.md |
+| At least one task completed | Session completed ≥1 task successfully |
+| Compliance with the project's stated goals | Changes advance the project's own stated goals (README) and fulfill the intent documented in AUDIT.md / PLAN.md / ROADMAP.md |
 
 ## Default Thresholds (calibrate to project baseline)
 - Max function length: 30 lines
@@ -87,17 +111,40 @@ The task priority order is absolute and non-negotiable:
 Execute what is next, not what seems most interesting or impactful.
 
 ## Task Completion Rules
-- If a finding is already resolved (code matches expectation), check it off and move to the next.
-- If a task requires information not available, note the blocker and skip to the next task.
+- If a finding is already resolved (code matches expectation), check it off and move to the next task in the loop.
+- If a task requires information not available, note the blocker and skip to the next task in the loop.
 - After completing all items in an audit file, delete it to signal completion.
 
 ## Output Format
 ```
+## Session Summary
+Tasks completed: [N]
+Tasks skipped: [N] (with reasons)
+Tasks reverted: [N] (with reasons)
+
+## Task Log
+
+### Task 1
 Source: [audit file | plan file | roadmap file]
 Task: [description]
 Files modified: [list]
 Tests: PASS
-Diff: [summary of changes]
+Result: COMPLETED
+
+### Task 2
+Source: [audit file | plan file | roadmap file]
+Task: [description]
+Files modified: [list]
+Tests: PASS
+Result: COMPLETED
+
+...
+
+## Session Diff
+[go-stats-generator diff summary comparing session baseline to final state]
+
+## Stop Reason
+[backlog exhausted | unrecoverable regression | context boundary | high-risk threshold]
 ```
 
 ## Tiebreaker
