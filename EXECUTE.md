@@ -68,7 +68,7 @@ Check off completed items (`- [x]`) in the source file. Record the task in the s
 #### Stopping Conditions
 Stop the loop when **any** of the following is true:
 - **Backlog exhausted**: No unchecked items remain in any priority file (`AUDIT.md`, `PLAN.md`, `ROADMAP.md`).
-- **Unrecoverable regression**: A task introduces a metric regression or test failure that cannot be resolved quickly — revert it, log it, and stop.
+- **Unrecoverable regression**: A task causes test or validation failures, or clearly regresses the project's stated goals, and the issue cannot be resolved quickly — revert it, log it, and stop.
 - **Context boundary**: The next task requires modifying files in a top-level package not yet touched in this session and involves a subsystem with different domain concerns (e.g., switching from data processing to HTTP handlers, or from core logic to CI configuration).
 - **High-risk threshold**: The next task involves changes to public API signatures, database schemas, or other high-blast-radius modifications that warrant isolated review.
 
