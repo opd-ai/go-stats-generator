@@ -120,7 +120,7 @@ delegate() {
 run_tests() {
     log "Running tests..."
     set +e
-    go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
+    xvfb-run go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
     local rc=${PIPESTATUS[0]}
     set -e
 
