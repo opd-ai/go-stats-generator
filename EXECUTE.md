@@ -4,6 +4,8 @@
 **Autonomous action** — implement tasks fully, validate each with tests and diff, then continue to the next task until a stopping condition is met.
 This prompt operates on a **third-party Go project**, not on go-stats-generator itself. Every decision must serve the target project's own stated goals and conventions.
 
+**IMPORTANT** some tests may require a display. If a display is not available, use `xvfb-run`.
+
 ## Prerequisite
 ```bash
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
