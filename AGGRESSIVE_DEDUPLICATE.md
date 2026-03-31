@@ -1,4 +1,4 @@
-# TASK: Identify and consolidate ALL code clone groups below duplication thresholds — no cap per session.
+# TASK: Identify and consolidate ALL code clone groups above duplication thresholds — no cap per session.
 
 ## Execution Mode
 **Autonomous action** — deduplicate every clone group above threshold, validate with tests and diff. Do not stop at a fixed count; continue until every flagged clone group is resolved or the session's context is exhausted.
@@ -24,7 +24,7 @@ go-stats-generator analyze . --skip-tests --min-block-lines 4 --similarity-thres
 ```
 
 ### Phase 2: Build the Full Worklist
-1. Extract `.duplication.clone_pairs` sorted by line count descending (largest first for maximum impact).
+1. From `baseline.json`, extract `duplication.clones[]` and sort the clone groups by `line_count` descending (largest first for maximum impact).
 2. Do not cap the list — include all clone groups above thresholds.
 3. Classify clone groups by priority:
    - CRITICAL: >=15 lines AND >=3 instances
@@ -71,13 +71,14 @@ Confirm: duplication ratio decreased, zero regressions, all tests pass.
 
 > Thresholds are more aggressive than the standard DEDUPLICATE prompt (3% vs 5%, 4-line blocks vs 6-line, 0.75 similarity vs 0.80). Calibrate to the project's actual baseline on first run.
 
-## Clone Types
+## Clone Categories (manual / heuristic)
+These are refactoring-oriented categories you apply manually based on `go-stats-generator` duplication output. The tool itself only classifies clones as `exact`, `renamed`, or `near`; "Type-variant" is an additional pattern you identify by inspection.
 | Type | Description | Strategy |
 |------|-------------|----------|
 | Exact | Identical code blocks | Direct extraction |
 | Renamed | Same structure, different variable names | Extract with parameters |
 | Near-duplicate | Similar structure, minor logic differences | Extract with config parameter or callback |
-| Type-variant | Same logic, different types | Generic function (Go 1.18+) |
+| Type-variant (manual) | Same logic, different concrete types (not a separate clone type emitted by `go-stats-generator`) | Generic function (Go 1.18+) |
 
 ## Deduplication Rules
 - Process CRITICAL clone groups first, then HIGH, then MEDIUM.
