@@ -41,6 +41,7 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 
 ### Phase 2: Baseline
 ```bash
+set -o pipefail
 go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages > /tmp/sync-audit-metrics.json
 go-stats-generator analyze . --skip-tests
 go test -race ./... 2>&1 | tee /tmp/sync-race-results.txt
@@ -92,7 +93,7 @@ For every goroutine launch (`go func()` or `go namedFunc()`), verify:
 - [ ] The goroutine respects `context.Context` cancellation where applicable.
 - [ ] Errors from goroutines are propagated back to the caller (via channels, `errgroup`, or similar).
 - [ ] Goroutine leaks: no goroutine blocks indefinitely on a channel or lock after the parent function returns.
-- [ ] Panic recovery: goroutines that can panic have `recover()` or the caller handles the crash.
+- [ ] Panic recovery: goroutines that can panic either handle recovery within the same goroutine (for example, via a deferred `recover()` in that goroutine) or are explicitly allowed to crash the process by design.
 - [ ] Closure captures: loop variables captured by goroutine closures are either passed as parameters or explicitly copied.
 
 #### 3d. Resource Contention & Starvation
@@ -108,7 +109,7 @@ Before recording ANY finding, apply these checks:
 2. **Check for higher-level synchronization**: A seemingly unprotected access may be safe because a channel, `sync.Once`, or a higher-level lock serializes all callers. Trace upward.
 3. **Verify the goroutine model**: If a struct is documented (or provably used) as single-goroutine-only, concurrent access findings on it are false positives.
 4. **Read surrounding comments**: If a comment explicitly acknowledges a concurrency decision (e.g., `// safe: only accessed from the main goroutine`, `//nolint:`, or a TODO tracking a known issue), treat it as an acknowledged pattern — do not report it as a new finding.
-5. **Check `-race` output**: If `go test -race` passes for the package in question, downgrade any speculative race condition finding to MEDIUM at most — the dynamic race detector has higher authority than static reasoning for confirmed absence.
+5. **Check `-race` output**: If `go test -race` passes for the package in question, downgrade any speculative race condition finding to MEDIUM at most — this is empirical evidence against that specific scenario, but it does not prove the absence of races.
 6. **Confirm channel direction**: Before flagging a channel deadlock, verify the channel's direction constraints (`chan<-` vs `<-chan`) and confirm no goroutine in the call graph provides the missing send/receive.
 
 **Rule**: If you cannot demonstrate a concrete execution path that leads to the concurrency bug, do NOT report it. Speculative findings waste remediation effort.
