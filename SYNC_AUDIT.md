@@ -104,7 +104,7 @@ For every goroutine launch (`go func()` or `go namedFunc()`), verify:
 #### 3e. False-Positive Prevention (MANDATORY)
 Before recording ANY finding, apply these checks:
 
-1. **Trace the full execution path**: Confirm the problematic code is actually reachable from concurrent call sites. Code that only runs in `init()`, `main()`, or sequential test functions is not concurrent.
+1. **Trace the full execution path**: Confirm the problematic code is actually reachable from concurrent call sites. Code that only runs in `init()`, single-threaded initialization sequences, or sequential test functions is not concurrent — but note that `main()` frequently launches goroutines, so do not blanket-exclude it.
 2. **Check for higher-level synchronization**: A seemingly unprotected access may be safe because a channel, `sync.Once`, or a higher-level lock serializes all callers. Trace upward.
 3. **Verify the goroutine model**: If a struct is documented (or provably used) as single-goroutine-only, concurrent access findings on it are false positives.
 4. **Read surrounding comments**: If a comment explicitly acknowledges a concurrency decision (e.g., `// safe: only accessed from the main goroutine`, `//nolint:`, or a TODO tracking a known issue), treat it as an acknowledged pattern — do not report it as a new finding.
