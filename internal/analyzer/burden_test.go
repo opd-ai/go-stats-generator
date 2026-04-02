@@ -5,6 +5,8 @@ import (
 	"go/parser"
 	"go/token"
 	"testing"
+
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
 func TestNewBurdenAnalyzer(t *testing.T) {
@@ -292,7 +294,7 @@ func TooManyParams(a, b, c, d, e, f int) int {
 			maxParams:      5,
 			maxReturns:     3,
 			wantIssue:      true,
-			wantSeverity:   "medium",
+			wantSeverity:   metrics.SeverityLevelWarning,
 			wantParamCount: 6,
 			wantRetCount:   1,
 		},
@@ -305,7 +307,7 @@ func TooManyReturns(a int) (int, int, int, int) {
 			maxParams:      5,
 			maxReturns:     3,
 			wantIssue:      true,
-			wantSeverity:   "medium",
+			wantSeverity:   metrics.SeverityLevelWarning,
 			wantParamCount: 1,
 			wantRetCount:   4,
 		},
@@ -318,7 +320,7 @@ func WithBoolParam(value int, flag bool) int {
 			maxParams:      5,
 			maxReturns:     3,
 			wantIssue:      true,
-			wantSeverity:   "low",
+			wantSeverity:   metrics.SeverityLevelInfo,
 			wantParamCount: 2,
 			wantRetCount:   1,
 			wantBoolParams: 1,
@@ -332,7 +334,7 @@ func Extreme(a, b, c, d, e, f, g, h, i, j, k int) int {
 			maxParams:      5,
 			maxReturns:     3,
 			wantIssue:      true,
-			wantSeverity:   "high",
+			wantSeverity:   metrics.SeverityLevelViolation,
 			wantParamCount: 11,
 			wantRetCount:   1,
 		},

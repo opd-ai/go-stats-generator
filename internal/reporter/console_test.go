@@ -422,7 +422,7 @@ func TestConsoleReporter_WithPlacement(t *testing.T) {
 					CurrentFile:  "external/util.go",
 					ReceiverFile: "data.go",
 					Distance:     "different_package",
-					Severity:     "high",
+					Severity:     metrics.SeverityLevelViolation,
 				},
 				{
 					MethodName:   "Format",
@@ -440,7 +440,7 @@ func TestConsoleReporter_WithPlacement(t *testing.T) {
 					IntraFileRefs:   5,
 					TotalRefs:       33,
 					SuggestedSplits: []string{"mixed_auth.go", "mixed_db.go"},
-					Severity:        "high",
+					Severity:        metrics.SeverityLevelViolation,
 				},
 			},
 		},
@@ -521,7 +521,7 @@ func TestConsoleReporter_PlacementSorting(t *testing.T) {
 					CurrentFile:  "pkg1/b.go",
 					ReceiverFile: "pkg2/b.go",
 					Distance:     "different_package",
-					Severity:     "high",
+					Severity:     metrics.SeverityLevelViolation,
 				},
 				{
 					MethodName:   "MediumSeverity_SamePackage",

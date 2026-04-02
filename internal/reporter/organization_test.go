@@ -19,7 +19,7 @@ func TestConsoleReporter_WithOrganization(t *testing.T) {
 					FunctionCount:     25,
 					TypeCount:         8,
 					MaintenanceBurden: 75.5,
-					Severity:          "high",
+					Severity:          metrics.SeverityLevelViolation,
 				},
 			},
 			OversizedPackages: []metrics.OversizedPackage{
@@ -30,7 +30,7 @@ func TestConsoleReporter_WithOrganization(t *testing.T) {
 					TotalFunctions:  120,
 					CohesionScore:   0.35,
 					IsMegaPackage:   true,
-					Severity:        "high",
+					Severity:        metrics.SeverityLevelViolation,
 				},
 			},
 			HighFanInPackages: []metrics.FanInPackage{

@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"testing"
 
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -85,7 +86,7 @@ func TestPlacementAnalyzer_MethodPlacement(t *testing.T) {
 		files             map[string]string
 		expectedMisplaced int
 		expectedDistance  string
-		expectedSeverity  string
+		expectedSeverity  metrics.SeverityLevel
 	}{
 		{
 			name: "method in same file as receiver - no issue",
@@ -148,7 +149,7 @@ func TestPlacementAnalyzer_FileCohesion(t *testing.T) {
 		files               map[string]string
 		expectedLowCohesion int
 		checkCohesionScore  float64
-		checkSeverity       string
+		checkSeverity       metrics.SeverityLevel
 	}{
 		{
 			name: "high cohesion file - all internal references",
@@ -177,7 +178,7 @@ func Process3() { Format("test") }`,
 			},
 			expectedLowCohesion: 1,
 			checkCohesionScore:  0.0, // All external references
-			checkSeverity:       "high",
+			checkSeverity:       metrics.SeverityLevelViolation,
 		},
 	}
 
@@ -242,17 +243,17 @@ func Process() {
 
 	parsedFiles, fset := parseTestFiles(t, files)
 	analyzer := NewPlacementAnalyzer(0.25, 0.3)
-	metrics := analyzer.Analyze(parsedFiles, fset)
+	result := analyzer.Analyze(parsedFiles, fset)
 
 	// Should detect misplaced methods (methods away from receiver types)
-	assert.Equal(t, 2, metrics.MisplacedMethods, "should find 2 misplaced methods")
+	assert.Equal(t, 2, result.MisplacedMethods, "should find 2 misplaced methods")
 
 	// Verify the methods are correctly identified
 	methodNames := make(map[string]bool)
-	for _, issue := range metrics.MethodIssues {
+	for _, issue := range result.MethodIssues {
 		methodNames[issue.MethodName] = true
 		assert.Equal(t, "same_package", issue.Distance)
-		assert.Equal(t, "medium", issue.Severity)
+		assert.Equal(t, metrics.SeverityLevelWarning, issue.Severity)
 	}
 	assert.True(t, methodNames["User.Validate"] || methodNames["Product.GetPrice"])
 }

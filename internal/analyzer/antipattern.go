@@ -111,7 +111,7 @@ func (a *AntipatternAnalyzer) checkGoroutineLeak(n *ast.GoStmt, patterns *[]metr
 		*patterns = append(*patterns, metrics.PerformanceAntipattern{
 			Type:        "goroutine_leak",
 			Description: "Goroutine without context or done channel",
-			Severity:    "high",
+			Severity:    metrics.SeverityLevelViolation,
 			File:        a.fset.Position(n.Pos()).Filename,
 			Line:        a.fset.Position(n.Pos()).Line,
 			Suggestion:  "Add context.Context or done channel for graceful shutdown",
@@ -138,7 +138,7 @@ func (a *AntipatternAnalyzer) checkStringConcatInLoop(n *ast.BinaryExpr, pattern
 			*patterns = append(*patterns, metrics.PerformanceAntipattern{
 				Type:        "string_concatenation",
 				Description: "String concatenation in loop",
-				Severity:    "high",
+				Severity:    metrics.SeverityLevelViolation,
 				File:        a.fset.Position(n.Pos()).Filename,
 				Line:        a.fset.Position(n.Pos()).Line,
 				Suggestion:  "Use strings.Builder for efficient concatenation",
@@ -169,7 +169,7 @@ func (a *AntipatternAnalyzer) checkAssignForLoopAntipatterns(node *ast.AssignStm
 				*patterns = append(*patterns, metrics.PerformanceAntipattern{
 					Type:        "memory_allocation",
 					Description: "append() in loop without pre-allocation",
-					Severity:    "medium",
+					Severity:    metrics.SeverityLevelWarning,
 					File:        a.fset.Position(node.Pos()).Filename,
 					Line:        a.fset.Position(node.Pos()).Line,
 					Suggestion:  "Pre-allocate slice with make() for known capacity",
@@ -483,7 +483,7 @@ func (a *AntipatternAnalyzer) checkBareErrorReturn(ifStmt *ast.IfStmt, patterns 
 			*patterns = append(*patterns, metrics.PerformanceAntipattern{
 				Type:        "bare_error_return",
 				Description: "Error returned without context wrapping",
-				Severity:    "high",
+				Severity:    metrics.SeverityLevelViolation,
 				File:        a.fset.Position(ifStmt.Pos()).Filename,
 				Line:        a.fset.Position(ifStmt.Pos()).Line,
 				Suggestion:  "Wrap error with fmt.Errorf(\"context: %w\", err) to preserve error chain",
@@ -553,7 +553,7 @@ func (a *AntipatternAnalyzer) checkAnyOveruse(funcDecl *ast.FuncDecl) []metrics.
 		patterns = append(patterns, metrics.PerformanceAntipattern{
 			Type:        "any_overuse",
 			Description: "Excessive use of interface{}/any in function signature",
-			Severity:    "medium",
+			Severity:    metrics.SeverityLevelWarning,
 			File:        a.fset.Position(funcDecl.Pos()).Filename,
 			Line:        a.fset.Position(funcDecl.Pos()).Line,
 			Suggestion:  "Use concrete types or constrained generics instead of interface{}/any for type safety",
@@ -675,7 +675,7 @@ func (a *AntipatternAnalyzer) checkInitFunctionComplexity(funcDecl *ast.FuncDecl
 		patterns = append(patterns, metrics.PerformanceAntipattern{
 			Type:        "init_complexity",
 			Description: "init() function has high cyclomatic complexity",
-			Severity:    "medium",
+			Severity:    metrics.SeverityLevelWarning,
 			File:        a.fset.Position(funcDecl.Pos()).Filename,
 			Line:        a.fset.Position(funcDecl.Pos()).Line,
 			Suggestion:  "Simplify init() function or move complex initialization to explicit functions",
@@ -749,7 +749,7 @@ func (a *AntipatternAnalyzer) checkNakedReturnInLongFunction(funcDecl *ast.FuncD
 		patterns = append(patterns, metrics.PerformanceAntipattern{
 			Type:        "naked_return_long_function",
 			Description: "Naked return in long function with named returns",
-			Severity:    "medium",
+			Severity:    metrics.SeverityLevelWarning,
 			File:        a.fset.Position(funcDecl.Pos()).Filename,
 			Line:        a.fset.Position(funcDecl.Pos()).Line,
 			Suggestion:  "Use explicit return values in long functions to improve readability",
@@ -841,7 +841,7 @@ func (a *AntipatternAnalyzer) checkPanicInLibraryCode(funcDecl *ast.FuncDecl, is
 			patterns = append(patterns, metrics.PerformanceAntipattern{
 				Type:        "panic_in_library",
 				Description: "panic() call in library code (non-main package)",
-				Severity:    "high",
+				Severity:    metrics.SeverityLevelViolation,
 				File:        a.fset.Position(callExpr.Pos()).Filename,
 				Line:        a.fset.Position(callExpr.Pos()).Line,
 				Suggestion:  "Return error instead of panic() - library code should not terminate the process",
@@ -903,7 +903,7 @@ func (a *AntipatternAnalyzer) checkGiantBranchingChains(funcDecl *ast.FuncDecl) 
 				patterns = append(patterns, metrics.PerformanceAntipattern{
 					Type:        "giant_switch",
 					Description: "Switch statement with excessive branches",
-					Severity:    "medium",
+					Severity:    metrics.SeverityLevelWarning,
 					File:        a.fset.Position(stmt.Pos()).Filename,
 					Line:        a.fset.Position(stmt.Pos()).Line,
 					Suggestion:  "Consider using a dispatch map or strategy pattern instead of giant switch statement",
@@ -915,7 +915,7 @@ func (a *AntipatternAnalyzer) checkGiantBranchingChains(funcDecl *ast.FuncDecl) 
 				patterns = append(patterns, metrics.PerformanceAntipattern{
 					Type:        "giant_type_switch",
 					Description: "Type switch statement with excessive branches",
-					Severity:    "medium",
+					Severity:    metrics.SeverityLevelWarning,
 					File:        a.fset.Position(stmt.Pos()).Filename,
 					Line:        a.fset.Position(stmt.Pos()).Line,
 					Suggestion:  "Consider using interface methods or type-specific handlers instead of giant type switch",
@@ -932,7 +932,7 @@ func (a *AntipatternAnalyzer) checkGiantBranchingChains(funcDecl *ast.FuncDecl) 
 				patterns = append(patterns, metrics.PerformanceAntipattern{
 					Type:        "giant_if_else_chain",
 					Description: "If-else chain with excessive branches",
-					Severity:    "medium",
+					Severity:    metrics.SeverityLevelWarning,
 					File:        a.fset.Position(stmt.Pos()).Filename,
 					Line:        a.fset.Position(stmt.Pos()).Line,
 					Suggestion:  "Refactor to dispatch map, early returns, or extract condition checks into named functions",
@@ -1025,7 +1025,7 @@ func (a *AntipatternAnalyzer) checkUnusedReceiverName(funcDecl *ast.FuncDecl) []
 		patterns = append(patterns, metrics.PerformanceAntipattern{
 			Type:        "unused_receiver",
 			Description: "Method receiver is never referenced in method body",
-			Severity:    "low",
+			Severity:    metrics.SeverityLevelInfo,
 			File:        a.fset.Position(funcDecl.Pos()).Filename,
 			Line:        a.fset.Position(funcDecl.Pos()).Line,
 			Suggestion:  "Use _ as receiver name or convert to plain function if receiver is not needed",
@@ -1110,7 +1110,7 @@ func CheckTestOnlyExports(files map[string]*ast.File, fset *token.FileSet, packa
 			patterns = append(patterns, metrics.PerformanceAntipattern{
 				Type:        "test_only_export",
 				Description: fmt.Sprintf("Exported %s '%s' has zero cross-package references outside test files", info.SymbolType, symbolName),
-				Severity:    "low",
+				Severity:    metrics.SeverityLevelInfo,
 				File:        info.File,
 				Line:        info.Line,
 				Suggestion:  "Consider using export_test.go patterns, making symbol unexported, or restructuring tests to use the public API",

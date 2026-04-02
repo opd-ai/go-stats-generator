@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"testing"
 
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -144,7 +145,7 @@ func (c *Client) Self() *Client {
 					// Verify the pattern has the expected fields
 					for _, p := range patterns {
 						if p.Type == "unused_receiver" {
-							assert.Equal(t, "low", p.Severity)
+							assert.Equal(t, metrics.SeverityLevelInfo, p.Severity)
 							assert.Contains(t, p.Description, "receiver")
 							assert.Contains(t, p.Suggestion, "_")
 						}

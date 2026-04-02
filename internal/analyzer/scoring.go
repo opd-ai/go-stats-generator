@@ -371,13 +371,13 @@ func (sa *ScoringAnalyzer) getPackageBreakdown(pkg string, report *metrics.Repor
 // getRiskLevel maps a numeric score to a risk level category
 func getRiskLevel(score float64) string {
 	if score >= 70 {
-		return "critical"
+		return string(metrics.SeverityLevelCritical)
 	} else if score >= 50 {
-		return "high"
+		return string(metrics.SeverityLevelViolation)
 	} else if score >= 30 {
-		return "medium"
+		return string(metrics.SeverityLevelWarning)
 	} else if score >= 10 {
-		return "low"
+		return string(metrics.SeverityLevelInfo)
 	}
 	return "minimal"
 }

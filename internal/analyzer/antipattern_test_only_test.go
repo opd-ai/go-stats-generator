@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"testing"
 
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,7 +57,7 @@ func TestExportedFunc(t *testing.T) {
 	// Should detect ExportedFunc as test-only export
 	assert.Len(t, patterns, 1)
 	assert.Equal(t, "test_only_export", patterns[0].Type)
-	assert.Equal(t, "low", patterns[0].Severity)
+	assert.Equal(t, metrics.SeverityLevelInfo, patterns[0].Severity)
 	assert.Contains(t, patterns[0].Description, "ExportedFunc")
 	assert.Contains(t, patterns[0].Suggestion, "export_test.go")
 }

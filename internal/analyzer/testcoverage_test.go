@@ -249,12 +249,12 @@ func TestGapSeverity(t *testing.T) {
 		name       string
 		complexity int
 		coverage   float64
-		want       string
+		want       metrics.SeverityLevel
 	}{
-		{"critical gap", 10, 0.2, "critical"},
-		{"high gap", 8, 0.4, "high"},
-		{"medium gap", 3, 0.6, "medium"},
-		{"low gap", 2, 0.75, "low"},
+		{"critical gap", 10, 0.2, metrics.SeverityLevelCritical},
+		{"high gap", 8, 0.4, metrics.SeverityLevelViolation},
+		{"medium gap", 3, 0.6, metrics.SeverityLevelWarning},
+		{"low gap", 2, 0.75, metrics.SeverityLevelInfo},
 	}
 
 	for _, tt := range tests {

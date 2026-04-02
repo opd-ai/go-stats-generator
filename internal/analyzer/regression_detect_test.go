@@ -30,7 +30,7 @@ func TestDetectRegressions_StableTrend(t *testing.T) {
 	if result.Classification != "stable" {
 		t.Errorf("Expected stable classification, got %s", result.Classification)
 	}
-	if result.Severity != "low" {
+	if result.Severity != metrics.SeverityLevelInfo {
 		t.Errorf("Expected low severity for stable trend, got %s", result.Severity)
 	}
 }
@@ -115,10 +115,10 @@ func TestCalculateSeverity(t *testing.T) {
 		threshold float64
 		expected  metrics.SeverityLevel
 	}{
-		{5.0, 10.0, "low"},
-		{15.0, 10.0, "medium"},
-		{25.0, 10.0, "high"},
-		{35.0, 10.0, "critical"},
+		{5.0, 10.0, metrics.SeverityLevelInfo},
+		{15.0, 10.0, metrics.SeverityLevelWarning},
+		{25.0, 10.0, metrics.SeverityLevelViolation},
+		{35.0, 10.0, metrics.SeverityLevelCritical},
 	}
 
 	for _, tt := range tests {

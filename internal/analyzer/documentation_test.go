@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"testing"
 
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -667,7 +668,7 @@ func Example3() {}`
 	// Verify FIXME details
 	require.Len(t, result.FIXMEComments, 1)
 	assert.Equal(t, "critical bug in logic", result.FIXMEComments[0].Description)
-	assert.Equal(t, "critical", result.FIXMEComments[0].Severity)
+	assert.Equal(t, metrics.SeverityLevelCritical, result.FIXMEComments[0].Severity)
 	assert.Greater(t, result.FIXMEComments[0].Line, 0)
 
 	// Verify HACK details

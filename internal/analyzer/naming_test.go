@@ -129,7 +129,7 @@ func TestNamingAnalyzer_CheckStuttering(t *testing.T) {
 			if tt.shouldViolate {
 				require.NotNil(t, violation, "expected stuttering violation")
 				assert.Equal(t, "stuttering", violation.ViolationType)
-				assert.Equal(t, "low", violation.Severity)
+				assert.Equal(t, metrics.SeverityLevelInfo, violation.Severity)
 			} else {
 				assert.Nil(t, violation, "expected no stuttering violation")
 			}
@@ -184,7 +184,7 @@ func TestNamingAnalyzer_CheckGenericName(t *testing.T) {
 			if tt.shouldViolate {
 				require.NotNil(t, violation, "expected generic name violation")
 				assert.Equal(t, "generic_name", violation.ViolationType)
-				assert.Equal(t, "low", violation.Severity)
+				assert.Equal(t, metrics.SeverityLevelInfo, violation.Severity)
 			} else {
 				assert.Nil(t, violation, "expected no generic name violation")
 			}

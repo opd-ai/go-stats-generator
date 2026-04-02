@@ -171,7 +171,7 @@ func severityClass(severity metrics.SeverityLevel) string {
 		return "severity-info"
 	case metrics.SeverityLevelWarning:
 		return "severity-warning"
-	case metrics.SeverityLevelError:
+	case metrics.SeverityLevelViolation:
 		return "severity-error"
 	case metrics.SeverityLevelCritical:
 		return "severity-critical"

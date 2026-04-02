@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"testing"
 
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +81,7 @@ func launch() {
 	for _, p := range patterns {
 		if p.Type == "goroutine_leak" {
 			hasGoroutineLeak = true
-			assert.Equal(t, "high", p.Severity)
+			assert.Equal(t, metrics.SeverityLevelViolation, p.Severity)
 			assert.Contains(t, p.Suggestion, "context")
 		}
 	}
@@ -110,7 +111,7 @@ func readFile() error {
 	for _, p := range patterns {
 		if p.Type == "resource_leak" {
 			hasResourceLeak = true
-			assert.Equal(t, "critical", p.Severity)
+			assert.Equal(t, metrics.SeverityLevelCritical, p.Severity)
 			assert.Contains(t, p.Suggestion, "defer")
 		}
 	}
@@ -334,7 +335,7 @@ func process() error {
 			for _, p := range patterns {
 				if p.Type == "bare_error_return" {
 					bareErrorPatterns++
-					assert.Equal(t, "high", p.Severity)
+					assert.Equal(t, metrics.SeverityLevelViolation, p.Severity)
 					assert.Contains(t, p.Description, "Error returned without context")
 					assert.Contains(t, p.Suggestion, "fmt.Errorf")
 				}
@@ -421,7 +422,7 @@ func handle(a any, b interface{}, c interface{}) {
 			for _, p := range patterns {
 				if p.Type == "any_overuse" {
 					anyOverusePatterns++
-					assert.Equal(t, "medium", p.Severity)
+					assert.Equal(t, metrics.SeverityLevelWarning, p.Severity)
 					assert.Contains(t, p.Description, "interface{}/any")
 					assert.Contains(t, p.Suggestion, "concrete types")
 				}
@@ -585,7 +586,7 @@ func process(flag bool) (result int, err error) {
 			for _, p := range patterns {
 				if p.Type == "naked_return_long_function" {
 					nakedReturnPatterns++
-					assert.Equal(t, "medium", p.Severity)
+					assert.Equal(t, metrics.SeverityLevelWarning, p.Severity)
 					assert.Contains(t, p.Description, "Naked return in long function")
 					assert.Contains(t, p.Suggestion, "explicit return values")
 				}

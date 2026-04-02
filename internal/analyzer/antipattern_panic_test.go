@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"testing"
 
+	"github.com/opd-ai/go-stats-generator/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func ProcessData(data string) string {
 	for _, p := range patterns {
 		if p.Type == "panic_in_library" {
 			hasPanicPattern = true
-			assert.Equal(t, "high", p.Severity)
+			assert.Equal(t, metrics.SeverityLevelViolation, p.Severity)
 			assert.Contains(t, p.Description, "panic()")
 			assert.Contains(t, p.Suggestion, "Return error instead")
 			break
@@ -64,7 +65,7 @@ func ProcessData(data string) string {
 	for _, p := range patterns {
 		if p.Type == "log_fatal_in_library" {
 			hasLogFatalPattern = true
-			assert.Equal(t, "critical", p.Severity)
+			assert.Equal(t, metrics.SeverityLevelCritical, p.Severity)
 			assert.Contains(t, p.Description, "log.Fatal()")
 			assert.Contains(t, p.Suggestion, "Return error instead")
 			break
@@ -97,7 +98,7 @@ func ProcessData(data string) string {
 	for _, p := range patterns {
 		if p.Type == "log_fatal_in_library" {
 			hasLogFatalPattern = true
-			assert.Equal(t, "critical", p.Severity)
+			assert.Equal(t, metrics.SeverityLevelCritical, p.Severity)
 			break
 		}
 	}

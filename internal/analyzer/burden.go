@@ -651,7 +651,7 @@ func (ba *BurdenAnalyzer) countReturns(fnType *ast.FuncType) int {
 // calculateSeverity determines severity level based on parameter and return count thresholds
 func (ba *BurdenAnalyzer) calculateSeverity(paramCount, returnCount, maxParams, maxReturns int) metrics.SeverityLevel {
 	if paramCount > maxParams*2 || returnCount > maxReturns*2 {
-		return metrics.SeverityLevelCritical
+		return metrics.SeverityLevelViolation
 	}
 	if paramCount > maxParams || returnCount > maxReturns {
 		return metrics.SeverityLevelWarning

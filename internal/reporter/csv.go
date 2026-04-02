@@ -268,7 +268,7 @@ func (r *CSVReporter) writeFileNameIssues(writer *csv.Writer, report *metrics.Re
 			issue.ViolationType,
 			issue.Description,
 			issue.SuggestedName,
-			issue.Severity,
+			string(issue.Severity),
 		}
 	}
 
@@ -290,7 +290,7 @@ func (r *CSVReporter) writeIdentifierIssues(writer *csv.Writer, report *metrics.
 			issue.ViolationType,
 			issue.Description,
 			issue.SuggestedName,
-			issue.Severity,
+			string(issue.Severity),
 		}
 	}
 
@@ -310,7 +310,7 @@ func (r *CSVReporter) writePackageNameIssues(writer *csv.Writer, report *metrics
 			issue.ViolationType,
 			issue.Description,
 			issue.SuggestedName,
-			issue.Severity,
+			string(issue.Severity),
 		}
 	}
 

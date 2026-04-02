@@ -478,12 +478,12 @@ func (oa *OrganizationAnalyzer) findFileImportViolations(graphData *ImportGraphD
 func (oa *OrganizationAnalyzer) getImportSeverity(count int, config OrganizationConfig) string {
 	threshold := float64(config.MaxFileImports)
 	if float64(count) > threshold*2 {
-		return "critical"
+		return string(metrics.SeverityLevelCritical)
 	}
 	if float64(count) > threshold*1.5 {
-		return "high"
+		return string(metrics.SeverityLevelViolation)
 	}
-	return "medium"
+	return string(metrics.SeverityLevelWarning)
 }
 
 // getImportSuggestion generates import violation suggestion
@@ -520,12 +520,12 @@ func (oa *OrganizationAnalyzer) findHighFanIn(graphData *ImportGraphData) []metr
 // getFanInRisk determines risk level for high fan-in
 func (oa *OrganizationAnalyzer) getFanInRisk(fanIn int) string {
 	if fanIn >= 10 {
-		return "critical"
+		return string(metrics.SeverityLevelCritical)
 	}
 	if fanIn >= 5 {
-		return "high"
+		return string(metrics.SeverityLevelViolation)
 	}
-	return "medium"
+	return string(metrics.SeverityLevelWarning)
 }
 
 // getFanInSuggestion generates suggestion for high fan-in
@@ -573,12 +573,12 @@ func (oa *OrganizationAnalyzer) calculateInstability(fanIn, fanOut int) float64 
 // getCouplingRisk determines coupling risk level
 func (oa *OrganizationAnalyzer) getCouplingRisk(fanOut int, instability float64) string {
 	if fanOut >= 10 && instability > 0.7 {
-		return "critical"
+		return string(metrics.SeverityLevelCritical)
 	}
 	if fanOut >= 7 || instability > 0.6 {
-		return "high"
+		return string(metrics.SeverityLevelViolation)
 	}
-	return "medium"
+	return string(metrics.SeverityLevelWarning)
 }
 
 // getFanOutSuggestion generates suggestion for high fan-out

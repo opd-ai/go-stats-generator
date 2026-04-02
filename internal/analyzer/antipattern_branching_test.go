@@ -16,7 +16,7 @@ func TestCheckGiantBranchingChains(t *testing.T) {
 		code             string
 		expectedCount    int
 		expectedTypes    []string
-		expectedSeverity string
+		expectedSeverity metrics.SeverityLevel
 	}{
 		{
 			name: "giant switch statement",
@@ -40,7 +40,7 @@ func process(x int) string {
 }`,
 			expectedCount:    1,
 			expectedTypes:    []string{"giant_switch"},
-			expectedSeverity: "medium",
+			expectedSeverity: metrics.SeverityLevelWarning,
 		},
 		{
 			name: "acceptable switch statement",
@@ -89,7 +89,7 @@ func categorize(x int) string {
 }`,
 			expectedCount:    1,
 			expectedTypes:    []string{"giant_if_else_chain"},
-			expectedSeverity: "medium",
+			expectedSeverity: metrics.SeverityLevelWarning,
 		},
 		{
 			name: "acceptable if-else chain",
@@ -129,7 +129,7 @@ func handleValue(v interface{}) string {
 }`,
 			expectedCount:    1,
 			expectedTypes:    []string{"giant_type_switch"},
-			expectedSeverity: "medium",
+			expectedSeverity: metrics.SeverityLevelWarning,
 		},
 		{
 			name: "multiple giant branching structures",
@@ -407,5 +407,5 @@ func process(x int) string {
 	assert.NotNil(t, giantSwitch, "giant_switch pattern not found")
 	assert.Contains(t, giantSwitch.Suggestion, "dispatch map", "Suggestion should mention dispatch map")
 	assert.Contains(t, giantSwitch.Suggestion, "strategy pattern", "Suggestion should mention strategy pattern")
-	assert.Equal(t, "medium", giantSwitch.Severity)
+	assert.Equal(t, metrics.SeverityLevelWarning, giantSwitch.Severity)
 }
