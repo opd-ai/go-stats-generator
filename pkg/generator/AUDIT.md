@@ -3,7 +3,7 @@
 **Status**: Needs Work
 
 ## Summary
-The `pkg/go-stats-generator` package provides the public programmatic API for analyzing Go source code. Overall health is good with strong test coverage (77.1%) and no complexity violations, but documentation coverage (53.8%) falls short of the 70% threshold. The package has 6 files implementing both standard filesystem-based analysis and WASM-compatible in-memory analysis. Critical risk: package naming convention violations due to underscores in the name.
+The `pkg/go-stats-generator` package provides the public programmatic API for analyzing Go source code. Overall health is good with strong test coverage (77.1%) and no complexity violations, but documentation coverage (53.8%) falls short of the 70% threshold. Critical risk: package naming convention violations due to underscores in the name.
 
 ## go-stats-generator Metrics
 | Metric               | Value   | Threshold | Status |
@@ -31,7 +31,7 @@ The `pkg/go-stats-generator` package provides the public programmatic API for an
 - [x] **low** naming — Generic file name: `errors.go` too generic, should describe content (errors.go) — RESOLVED: renamed to errors_api.go
 
 ### API Design (Low Priority)
-- [x] **low** api — Low package cohesion score (1.17) suggests functions may not be tightly related — consider splitting into focused sub-packages — RESOLVED: Cohesion score is appropriate for a public API facade package that orchestrates multiple internal components. Package serves distinct but complementary roles: core API (Analyzer), platform-specific implementations (filesystem vs WASM), report building, and type re-exports. Splitting would increase API surface complexity without improving design.
+- [x] **low** api — Low package cohesion score (1.17) suggests functions may not be tightly related — consider splitting into focused sub-packages — RESOLVED: Cohesion score is appropriate for a public API facade package that orchestrates multiple internal components. Package serves distinct but complementary roles: core API (Analyzer), report building, and type re-exports. Splitting would increase API surface complexity without improving design.
 - [x] **low** api — 4 dependencies create moderate coupling (coupling score: 2.0) — RESOLVED: All 4 dependencies (metrics, scanner, analyzer, config) are necessary and appropriate for a facade layer that orchestrates internal components. The coupling is intentional and follows the facade pattern.
 
 ### Code Organization (Low Priority)

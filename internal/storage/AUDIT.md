@@ -3,7 +3,7 @@
 **Status**: Needs Work
 
 ## Summary
-The `internal/storage` package provides persistence for historical metrics through SQLite, JSON file, and in-memory backends. Overall implementation is solid with good error handling and proper context usage. However, the package exceeds complexity and function length thresholds in 4 critical functions and has below-threshold test coverage at 49.2%. WASM stub implementations are properly documented.
+The `internal/storage` package provides persistence for historical metrics through SQLite, JSON file, and in-memory backends. Overall implementation is solid with good error handling and proper context usage. However, the package exceeds complexity and function length thresholds in 4 critical functions and has below-threshold test coverage at 49.2%.
 
 ## go-stats-generator Metrics
 | Metric               | Value   | Threshold | Status |
@@ -37,7 +37,7 @@ The `internal/storage` package provides persistence for historical metrics throu
 - [x] **low** complexity — Store function cyclomatic complexity 9, approaching threshold (`sqlite.go:Store`) — **ALREADY RESOLVED**: Store function was refactored in the high-priority fixes (see line 24). Current metrics: 16 lines of code, cyclomatic complexity null (very low). Well under thresholds of 30 lines and complexity 10.
 - [x] **low** complexity — Retrieve function cyclomatic complexity 9, approaching threshold (`sqlite.go:Retrieve`) — **ALREADY RESOLVED**: Retrieve function was refactored in the high-priority fixes (see line 23). Current metrics: 17 lines of code, cyclomatic complexity null (very low). Well under thresholds of 30 lines and complexity 10.
 - [x] **low** organization — 3 oversized files detected (sqlite.go, interface.go, json.go) — **WONTFIX**: File sizes are reasonable for their scope: sqlite.go (845 lines), json.go (511 lines), interface.go (294 lines). Each file contains a complete, cohesive implementation of a storage backend. Splitting would fragment the codebase without improving maintainability. Go community generally accepts 500-1000 line files when they represent a single, well-defined component. Current organization follows "one file per backend" pattern which aids navigation and maintenance.
-- [x] **low** organization — Package has 80 functions across 6 files, consider splitting by backend type — **WONTFIX**: Package IS already split by backend type: sqlite.go (SQLite backend), json.go (JSON file backend), memory.go (in-memory backend), interface.go (shared interfaces), doc.go (package docs), wasm.go (WASM stubs). This is optimal organization. Further splitting would require creating subpackages (storage/sqlite, storage/json, storage/memory) which would complicate imports and break backward compatibility for an internal package with no tangible benefit.
+- [x] **low** organization — Package has 80 functions across 6 files, consider splitting by backend type — **WONTFIX**: Package IS already split by backend type: sqlite.go (SQLite backend), json.go (JSON file backend), memory.go (in-memory backend), interface.go (shared interfaces), doc.go (package docs). This is optimal organization. Further splitting would require creating subpackages (storage/sqlite, storage/json, storage/memory) which would complicate imports and break backward compatibility for an internal package with no tangible benefit.
 
 ## Concurrency Assessment
 **Goroutines**: 0 detected — no goroutine usage in storage layer (synchronous operations)
@@ -59,8 +59,6 @@ The `internal/storage` package provides persistence for historical metrics throu
 
 **Import Analysis**:
 - Well-isolated package with minimal external dependencies
-- Proper use of build tags (`//go:build !js || !wasm`) to exclude platform-specific code
-- WASM stubs properly isolated in `storage_wasm.go`
 
 ## Recommendations
 1. **Refactor List function** (`json.go`) — Extract filtering logic to reduce cyclomatic complexity from 14 to ≤10 and split into smaller helper functions to reduce from 63 to ≤30 lines

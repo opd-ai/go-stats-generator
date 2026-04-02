@@ -5,7 +5,7 @@
 
 **Module**: `github.com/opd-ai/go-stats-generator`  
 **Go Version**: 1.24.0  
-**Packages**: 13 (cmd, cmd/wasm, internal/analyzer, internal/api, internal/api/storage, internal/config, internal/metrics, internal/multirepo, internal/reporter, internal/scanner, internal/storage, pkg/generator)  
+**Packages**: 12 (cmd, internal/analyzer, internal/api, internal/api/storage, internal/config, internal/metrics, internal/multirepo, internal/reporter, internal/scanner, internal/storage, pkg/generator)  
 **Tool Version**: 1.0.0
 
 ## Summary
@@ -56,8 +56,6 @@
 - [x] **CSV/Markdown formats undocumented** — README:34 — README claims "Multiple Output Formats: Console, JSON, HTML, CSV, and Markdown" but provides zero documentation on CSV/Markdown output structure, use cases, or examples. **RESOLVED**: Added comprehensive "Output Formats" section to README.md with detailed documentation for all 5 formats (Console, JSON, HTML, CSV, Markdown). Each format now has feature descriptions, use cases, examples, structure documentation, and tips. Added format comparison table and section filtering documentation. Updated --format flag description in flags table to list all 5 formats. CSV documentation includes column definitions, section structure, and import tips. Markdown documentation covers GitHub-flavored features, emoji indicators, and copy-paste workflows.
 
 - [x] **Test quality section exists but undocumented** — /tmp/full-baseline.json:test_quality — **RESOLVED**: Added comprehensive documentation for test coverage correlation and test quality analysis features to README.md. New "Test Coverage and Quality Analysis" section (lines 408-622) includes: requirements, usage examples, metrics tables (function_coverage_rate, complexity_coverage_rate, high_risk_functions, coverage_gaps), high-risk function criteria, coverage gap severity classification, JSON output examples, analysis workflow with jq queries, test quality metrics (total_tests, avg_assertions_per_test, test_files), per-file metrics breakdown, assertion counting patterns, quality indicators table (assertion ratio interpretation), analysis examples for finding weak tests, and best practices. Added --coverage-profile flag to flags table (line 145) and test coverage/quality features to Features list (lines 47-58). Documentation explains both features are activated via --coverage-profile flag, which loads Go coverage profiles and performs dual analysis: correlation of complexity with coverage + test suite quality assessment.
-
-- [x] **WebAssembly feature parity claim unverified** — README:631 — **RESOLVED**: Created comprehensive differential testing suite in cmd/wasm/feature_parity_test.go that validates CLI vs WASM analysis parity across all 9 core analyzers (functions, structs, interfaces, packages, patterns, concurrency, duplication, naming, documentation). Test suite includes: (1) TestWASMFeatureParity with 9 sub-tests comparing CLI AnalyzeDirectory against simulated WASM AnalyzeMemoryFiles workflow, (2) TestWASMJSONOutputFormat validating JSON serialization, (3) TestWASMEmptyInput verifying empty directory handling, (4) TestWASMInvalidInput verifying error handling for invalid Go code, (5) TestWASMConfigurationParity validating config options (SkipTestFiles, complexity thresholds). All tests pass, confirming feature parity claim is accurate for the core analysis pipeline. WASM build confirmed functional via `make build-wasm`.
 
 ---
 
@@ -113,7 +111,6 @@
 | Threshold Enforcement | ✅ IMPLEMENTED | --enforce-thresholds exits 0 when passing |
 | Watch Mode | ✅ IMPLEMENTED | Command exists with debounce support |
 | API Server | ✅ IMPLEMENTED | `serve` command with --port flag |
-| WASM Build | ✅ BUILDS | Makefile targets exist, runtime untested |
 
 ### Documentation Gaps
 - **Functions missing docs**: 327 (22.2% of 1474)
@@ -167,7 +164,6 @@
 - ⚠️ **Trend Commands**: `trend analyze`, `trend forecast`, `trend regressions` exist but data quality issues
 - ✅ **Watch Mode**: `watch` command with --debounce flag
 - ✅ **API Server**: `serve` command with --port flag
-- ⚠️ **WASM Deployment**: Build infrastructure exists, runtime behavior unverified
 
 ### Configuration Claims
 - ⚠️ Configuration file support claimed (`.go-stats-generator.yaml`) but not tested
@@ -220,8 +216,7 @@
 5. **Document team metrics feature** - Explain what --enable-team-metrics produces
 
 ### Low Priority
-1. **Verify WASM feature parity** - Add differential tests between CLI and WASM builds
-2. **Document test quality features** - Expose test_quality/test_coverage analysis to users
+1. **Document test quality features** - Expose test_quality/test_coverage analysis to users
 3. **Add configuration file examples** - Test and document `.go-stats-generator.yaml` support
 
 ---
