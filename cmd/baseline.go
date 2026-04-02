@@ -91,7 +91,7 @@ func runBaseline(cmd *cobra.Command, args []string) error {
 func runCreateBaseline(cmd *cobra.Command, args []string) error {
 	targetPath := extractTargetPath(args)
 	if verbose {
-		fmt.Printf("Creating baseline snapshot for: %s\n", targetPath)
+		fmt.Fprintf(os.Stderr, "Creating baseline snapshot for: %s\n", targetPath)
 	}
 
 	// Initialize storage backend
@@ -247,7 +247,7 @@ func storeSnapshotWithRetry(storageBackend storage.MetricsStorage, snapshot metr
 
 	// Attempt overwrite by deleting first
 	if err := storageBackend.Delete(ctx, snapshot.ID); err != nil && verbose {
-		fmt.Printf("Warning: could not delete existing baseline: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Warning: could not delete existing baseline: %v\n", err)
 	}
 
 	if err := storageBackend.Store(ctx, snapshot, snapshot.Metadata); err != nil {

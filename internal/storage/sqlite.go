@@ -764,7 +764,7 @@ func (s *SQLiteStorage) countSnapshots(ctx context.Context) (int, error) {
 // reportCleanupResults logs the number of deleted snapshots
 func (s *SQLiteStorage) reportCleanupResults(deletedCount int64) {
 	if deletedCount > 0 {
-		fmt.Printf("Cleaned up %d old snapshots\n", deletedCount)
+		fmt.Fprintf(os.Stderr, "Cleaned up %d old snapshots\n", deletedCount)
 	}
 }
 

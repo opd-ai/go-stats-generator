@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -27,7 +28,7 @@ func Run(port int, version string) error {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	fmt.Printf("Starting API server on %s\n", addr)
+	fmt.Fprintf(os.Stderr, "Starting API server on %s\n", addr)
 	return srv.ListenAndServe()
 }
 
