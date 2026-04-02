@@ -151,7 +151,7 @@ func initStorageWithSnapshots(days int) (storage.MetricsStorage, []storage.Snaps
 // analysis (regression, forecasting) is planned for future releases.
 func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 	if verbose {
-		fmt.Printf("Analyzing trends for the last %d days\n", trendDays)
+		fmt.Fprintf(os.Stderr, "Analyzing trends for the last %d days\n", trendDays)
 	}
 
 	storageBackend, snapshots, err := initStorageWithSnapshots(trendDays)
@@ -172,7 +172,7 @@ func runTrendAnalyze(cmd *cobra.Command, args []string) error {
 // using linear regression analysis with confidence intervals.
 func runTrendForecast(cmd *cobra.Command, args []string) error {
 	if verbose {
-		fmt.Printf("Generating forecasts based on %d days of data\n", trendDays)
+		fmt.Fprintf(os.Stderr, "Generating forecasts based on %d days of data\n", trendDays)
 	}
 
 	storageBackend, snapshots, err := initStorageWithSnapshots(trendDays)
@@ -194,7 +194,7 @@ func runTrendForecast(cmd *cobra.Command, args []string) error {
 // in complexity, duplication, or decreases in documentation coverage.
 func runTrendRegressions(cmd *cobra.Command, args []string) error {
 	if verbose {
-		fmt.Printf("Detecting regressions in the last %d days\n", trendDays)
+		fmt.Fprintf(os.Stderr, "Detecting regressions in the last %d days\n", trendDays)
 	}
 
 	storageBackend, err := initializeRegressionStorage()

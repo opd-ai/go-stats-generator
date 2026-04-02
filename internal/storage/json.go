@@ -319,12 +319,12 @@ func (j *JSONStorage) isDuplicate(id string, toDelete []string) bool {
 func (j *JSONStorage) executeCleanupDeletions(ctx context.Context, toDelete []string) {
 	for _, id := range toDelete {
 		if err := j.Delete(ctx, id); err != nil {
-			fmt.Printf("Warning: failed to delete snapshot %s: %v\n", id, err)
+			fmt.Fprintf(os.Stderr, "Warning: failed to delete snapshot %s: %v\n", id, err)
 		}
 	}
 
 	if len(toDelete) > 0 {
-		fmt.Printf("Cleaned up %d old snapshots\n", len(toDelete))
+		fmt.Fprintf(os.Stderr, "Cleaned up %d old snapshots\n", len(toDelete))
 	}
 }
 
