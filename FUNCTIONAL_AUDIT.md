@@ -5,7 +5,7 @@
 
 **Module**: `github.com/opd-ai/go-stats-generator`  
 **Go Version**: 1.24.0  
-**Packages**: 12 (cmd, internal/analyzer, internal/api, internal/api/storage, internal/config, internal/metrics, internal/multirepo, internal/reporter, internal/scanner, internal/storage, pkg/generator)  
+**Packages**: 11 (cmd, internal/analyzer, internal/api, internal/api/storage, internal/config, internal/metrics, internal/multirepo, internal/reporter, internal/scanner, internal/storage, pkg/generator)  
 **Tool Version**: 1.0.0
 
 ## Summary

@@ -1,9 +1,9 @@
-# Audit: github.com/opd-ai/go-stats-generator/pkg/go-stats-generator
+# Audit: github.com/opd-ai/go-stats-generator/pkg/generator
 **Date**: 2026-03-03
 **Status**: Needs Work
 
 ## Summary
-The `pkg/go-stats-generator` package provides the public programmatic API for analyzing Go source code. Overall health is good with strong test coverage (77.1%) and no complexity violations, but documentation coverage (53.8%) falls short of the 70% threshold. Critical risk: package naming convention violations due to underscores in the name.
+The `pkg/generator` package provides the public programmatic API for analyzing Go source code. Overall health is good with strong test coverage (77.1%) and no complexity violations, but documentation coverage (53.8%) falls short of the 70% threshold.
 
 ## go-stats-generator Metrics
 | Metric               | Value   | Threshold | Status |

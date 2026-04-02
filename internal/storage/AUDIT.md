@@ -3,7 +3,7 @@
 **Status**: Needs Work
 
 ## Summary
-The `internal/storage` package provides persistence for historical metrics through SQLite, JSON file, and in-memory backends. Overall implementation is solid with good error handling and proper context usage. However, the package exceeds complexity and function length thresholds in 4 critical functions and has below-threshold test coverage at 49.2%.
+The `internal/storage` package provides persistence for historical metrics through SQLite, JSON file, and in-memory backends. Overall implementation is solid with good error handling and proper context usage. Complexity and function length hotspots have been refactored, and test coverage has been increased from 49.2% to 81.3%.
 
 ## go-stats-generator Metrics
 | Metric               | Value   | Threshold | Status |
