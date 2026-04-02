@@ -45,7 +45,6 @@
 - **Completed Refactorings**:
   - ✅ `runDiff` (10.1 → 4.4, -56.4%) — `cmd/diff.go` — extracted helper functions for report loading, diff generation, and output handling
   - ✅ `countUndocumentedExports` (10.1 → 1.3, -87.1%) — `cmd/analyze.go` — extracted per-type counting functions
-  - ✅ `buildConfig` (10.1 → 3.1, -69.3%) — `cmd/wasm/main.go` — separated analysis and filter settings application
   - ✅ `loadBasicAnalysisSettings` (9.6 → 1.3, -86.5%) — `cmd/analyze_config.go` — used map-based boolean settings loader
   - ✅ `runDeleteBaseline` (9.3 → 4.4, -52.7%) — `cmd/baseline.go` — extracted deletion, output formatting, and file writing
   - ✅ `initConfig` (9.3 → 1.3, -86.0%) — `cmd/root.go` — separated config setup, path configuration, and error handling
@@ -104,7 +103,6 @@
   - ✅ `pkg/generator/api.go`: AnalyzeFile (1 function, 280 char docs)
   - ✅ `internal/reporter/console.go`: Generate (1 function, 290 char docs)
   - ✅ `internal/scanner/worker.go`: NewBatchProcessor (1 function, 270 char docs)
-  - ✅ `internal/scanner/worker_wasm.go`: NewBatchProcessor (1 function, 295 char docs - fixed ≤5 word violation)
   - ✅ `internal/api/storage/factory.go`: New (1 function, 330 char docs)
   - ✅ `internal/reporter/markdown.go`: NewMarkdownReporterWithOptions (1 function, 315 char docs)
   - ✅ `internal/analyzer/team.go`: fetchGitLogOutput, tryParseTimestamp, parseNumstatLine, finalizeAuthorStats (4 functions, 260-280 char docs)
@@ -113,7 +111,6 @@
   - **Session 2024-03-04 (28 functions)**: Constructors and exported functions
     - ✅ `pkg/generator/api_common.go`: 2 functions (NewAnalyzer, NewAnalyzerWithConfig)
     - ✅ `internal/scanner/worker.go`: 1 function (NewWorkerPool)
-    - ✅ `internal/scanner/worker_wasm.go`: 1 function (NewWorkerPool)
     - ✅ `internal/scanner/discovery.go`: 1 function (NewDiscoverer)
     - ✅ `internal/reporter/csv.go`: 1 function (NewCSVReporter)
     - ✅ `internal/reporter/json.go`: 1 function (NewHTMLReporter)

@@ -31,7 +31,6 @@ The `internal/scanner` package provides file discovery and concurrent processing
 - worker.go:65 — wp.worker (named)
 - worker.go:217 — bp.processBatchesAsync (named)
 - worker.go:75, 87, 145, 168 — anonymous functions
-- worker_wasm.go:50 — anonymous function
 
 **Channels:** 32 total (6 buffered, 26 unbuffered, 16 directional)
 - Proper use of buffered channels for job/result queuing
