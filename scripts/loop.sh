@@ -6,11 +6,11 @@
 # files to GitHub Copilot CLI.
 #
 # Usage:
-#   bash loop.sh [PROMPT_DIR]
+#   bash scripts/loop.sh [PROMPT_DIR]
 #
 # Arguments:
 #   PROMPT_DIR  Path to the directory containing prompt .md files
-#               (default: directory where this script lives)
+#               (default: prompts/ directory at the repository root)
 #
 # Environment:
 #   PROMPT_DIR      Override the prompt directory (takes precedence over $1)
