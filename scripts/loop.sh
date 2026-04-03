@@ -78,9 +78,11 @@ if [ ! -f "ROADMAP.md" ]; then
 fi
 
 # Resolve the prompt directory
-# Default: directory containing this script. Override via PROMPT_DIR env var or $1.
+# Default: prompts/ directory next to the scripts/ directory containing this script.
+# Override via PROMPT_DIR env var or $1.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROMPT_DIR="${PROMPT_DIR:-${1:-$SCRIPT_DIR}}"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROMPT_DIR="${PROMPT_DIR:-${1:-$REPO_ROOT/prompts}}"
 
 # Resolve to absolute path
 PROMPT_DIR="$(cd "$PROMPT_DIR" && pwd)"

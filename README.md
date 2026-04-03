@@ -1122,7 +1122,7 @@ The following features are under development and will be included in future rele
 - **Correlation analysis** between different metrics (roadmap)
 
 ### Advanced Maintenance Detection
-See [ROADMAP.md](ROADMAP.md) for detailed implementation plans for:
+See [ROADMAP.md](docs/planning/ROADMAP.md) for detailed implementation plans for:
 - Enhanced code duplication analysis with semantic similarity
 - Naming convention analysis with automated suggestions
 - Misplaced declaration detection (functions/methods in wrong files)
