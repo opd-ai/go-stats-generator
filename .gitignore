@@ -64,11 +64,14 @@ go.work.sum
 *-cleanup.json
 *-metrics.json
 baseline.json
+baseline-*.json
 metrics.json
 docs-report.html
 cleanup-report.html
 pre-*.json
 post-*.json
+naming-*.json
+verification.json
 
 # Additional analysis artifacts
 *-fresh.json
@@ -78,5 +81,6 @@ post-*.json
 final.json
 corrected.json
 diff-report.json
+diff-report*.json
 test-full*.json
 audit-*.json

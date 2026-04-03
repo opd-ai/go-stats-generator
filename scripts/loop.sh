@@ -6,11 +6,11 @@
 # files to GitHub Copilot CLI.
 #
 # Usage:
-#   bash loop.sh [PROMPT_DIR]
+#   bash scripts/loop.sh [PROMPT_DIR]
 #
 # Arguments:
 #   PROMPT_DIR  Path to the directory containing prompt .md files
-#               (default: directory where this script lives)
+#               (default: prompts/ directory at the repository root)
 #
 # Environment:
 #   PROMPT_DIR      Override the prompt directory (takes precedence over $1)
@@ -78,9 +78,11 @@ if [ ! -f "ROADMAP.md" ]; then
 fi
 
 # Resolve the prompt directory
-# Default: directory containing this script. Override via PROMPT_DIR env var or $1.
+# Default: prompts/ directory next to the scripts/ directory containing this script.
+# Override via PROMPT_DIR env var or $1.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROMPT_DIR="${PROMPT_DIR:-${1:-$SCRIPT_DIR}}"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROMPT_DIR="${PROMPT_DIR:-${1:-$REPO_ROOT/prompts}}"
 
 # Resolve to absolute path
 PROMPT_DIR="$(cd "$PROMPT_DIR" && pwd)"
