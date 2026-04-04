@@ -35,7 +35,11 @@ Features:
 Performance:
   • Process 50,000+ files within 60 seconds
   • Memory usage under 1GB for large repositories
-  • Configurable concurrency (default: number of CPU cores)`,
+  • Configurable concurrency (default: number of CPU cores)
+
+Exit Codes:
+  0 - Success: Analysis completed without errors and all thresholds passed
+  1 - Failure: Analysis failed, invalid arguments, or threshold violations when --enforce-thresholds is set`,
 
 	Version: "1.0.0",
 }

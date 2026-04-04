@@ -15,7 +15,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
       
       - name: Build
         run: go build -v ./...
@@ -26,6 +26,11 @@ jobs:
       - name: Vet
         run: go vet ./...
       
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+      
       - name: Install go-stats-generator
         run: go install .
       
@@ -34,4 +39,5 @@ jobs:
           go-stats-generator analyze . --skip-tests \
             --max-function-length 35 \
             --max-complexity 10 \
-            --min-doc-coverage 0.7
+            --min-doc-coverage 0.8 \
+            --enforce-thresholds
