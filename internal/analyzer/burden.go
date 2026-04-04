@@ -258,28 +258,30 @@ func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics
 // buildReferenceMap counts function call references across all files in a package
 func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
 	refs := make(map[string]int)
-
-	// Count function call references
 	for _, file := range files {
 		ast.Inspect(file, func(n ast.Node) bool {
-			if call, ok := n.(*ast.CallExpr); ok {
-				// Direct function call
-				if ident, ok := call.Fun.(*ast.Ident); ok {
-					refs[ident.Name]++
-				}
-				// Method call on local variable: x.Method()
-				// Only count if receiver is a local identifier (not an imported package)
-				if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-					if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
-						refs[sel.Sel.Name]++
-					}
-				}
-			}
+			ba.countCallReference(n, refs)
 			return true
 		})
 	}
-
 	return refs
+}
+
+// countCallReference counts a function call reference from the given AST node.
+func (ba *BurdenAnalyzer) countCallReference(n ast.Node, refs map[string]int) {
+	call, ok := n.(*ast.CallExpr)
+	if !ok {
+		return
+	}
+	if ident, ok := call.Fun.(*ast.Ident); ok {
+		refs[ident.Name]++
+		return
+	}
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
+			refs[sel.Sel.Name]++
+		}
+	}
 }
 
 // findUnreferencedSymbols identifies unexported functions that are never called

@@ -90,18 +90,20 @@ func loadPerformanceConfiguration(cfg *config.Config) {
 
 // loadFilterConfiguration loads file filtering settings from viper
 func loadFilterConfiguration(cfg *config.Config) {
-	if viper.IsSet("filters.skip_test_files") {
-		cfg.Filters.SkipTestFiles = viper.GetBool("filters.skip_test_files")
-	}
-	if viper.IsSet("filters.only_test_files") {
-		cfg.Filters.OnlyTestFiles = viper.GetBool("filters.only_test_files")
-	}
-	if viper.IsSet("filters.skip_vendor") {
-		cfg.Filters.SkipVendor = viper.GetBool("filters.skip_vendor")
-	}
-	if viper.IsSet("filters.skip_generated") {
-		cfg.Filters.SkipGenerated = viper.GetBool("filters.skip_generated")
-	}
+	loadFilterBoolSettings(cfg)
+	loadFilterPatternSettings(cfg)
+}
+
+// loadFilterBoolSettings loads boolean filter settings from viper.
+func loadFilterBoolSettings(cfg *config.Config) {
+	setBoolIfSet("filters.skip_test_files", &cfg.Filters.SkipTestFiles)
+	setBoolIfSet("filters.only_test_files", &cfg.Filters.OnlyTestFiles)
+	setBoolIfSet("filters.skip_vendor", &cfg.Filters.SkipVendor)
+	setBoolIfSet("filters.skip_generated", &cfg.Filters.SkipGenerated)
+}
+
+// loadFilterPatternSettings loads pattern-based filter settings from viper.
+func loadFilterPatternSettings(cfg *config.Config) {
 	if viper.IsSet("filters.include_patterns") {
 		cfg.Filters.IncludePatterns = viper.GetStringSlice("filters.include_patterns")
 	}

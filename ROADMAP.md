@@ -125,7 +125,7 @@ GitHub Actions CI/CD workflow for automated testing and code quality enforcement
 
 The README lists ARIMA/exponential smoothing as roadmap items:
 
-- [ ] Implement exponential smoothing for trend forecasting
+- [x] Implement exponential smoothing for trend forecasting — **RESOLVED**: Implemented in internal/analyzer/forecast.go with optimal alpha grid search
 - [ ] Add correlation analysis between metrics
 - [ ] Validation: `go-stats-generator trend forecast --method arima` works
 

@@ -48,21 +48,34 @@ func (pa *PatternAnalyzer) AnalyzePatterns(file *ast.File, pkgName, filePath str
 func (pa *PatternAnalyzer) buildInterfaceNameSet(file *ast.File) map[string]bool {
 	names := make(map[string]bool)
 	for _, decl := range file.Decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok || genDecl.Tok != token.TYPE {
-			continue
-		}
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-			if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-				names[typeSpec.Name.Name] = true
-			}
-		}
+		pa.collectInterfaceNames(decl, names)
 	}
 	return names
+}
+
+// collectInterfaceNames adds interface type names from a declaration to the set.
+func (pa *PatternAnalyzer) collectInterfaceNames(decl ast.Decl, names map[string]bool) {
+	genDecl, ok := decl.(*ast.GenDecl)
+	if !ok || genDecl.Tok != token.TYPE {
+		return
+	}
+	for _, spec := range genDecl.Specs {
+		if name := pa.extractInterfaceName(spec); name != "" {
+			names[name] = true
+		}
+	}
+}
+
+// extractInterfaceName returns the name if the spec is an interface type declaration.
+func (pa *PatternAnalyzer) extractInterfaceName(spec ast.Spec) string {
+	typeSpec, ok := spec.(*ast.TypeSpec)
+	if !ok {
+		return ""
+	}
+	if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+		return typeSpec.Name.Name
+	}
+	return ""
 }
 
 // detectSingleton identifies singleton patterns via sync.Once or init

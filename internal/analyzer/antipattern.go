@@ -439,21 +439,29 @@ func (a *AntipatternAnalyzer) findAssignedVar(call *ast.CallExpr, funcBody *ast.
 		if varName != "" {
 			return false
 		}
-		assign, ok := n.(*ast.AssignStmt)
-		if !ok {
-			return true
-		}
-		for _, rhs := range assign.Rhs {
-			if rhs == call && len(assign.Lhs) > 0 {
-				if ident, ok := assign.Lhs[0].(*ast.Ident); ok {
-					varName = ident.Name
-					return false
-				}
-			}
+		if name := a.extractAssignedVarName(n, call); name != "" {
+			varName = name
+			return false
 		}
 		return true
 	})
 	return varName
+}
+
+// extractAssignedVarName extracts the variable name if the node is an assignment of call.
+func (a *AntipatternAnalyzer) extractAssignedVarName(n ast.Node, call *ast.CallExpr) string {
+	assign, ok := n.(*ast.AssignStmt)
+	if !ok || len(assign.Lhs) == 0 {
+		return ""
+	}
+	for _, rhs := range assign.Rhs {
+		if rhs == call {
+			if ident, ok := assign.Lhs[0].(*ast.Ident); ok {
+				return ident.Name
+			}
+		}
+	}
+	return ""
 }
 
 // checkBareErrorReturn detects the pattern `if err != nil { return err }` without

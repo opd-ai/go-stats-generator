@@ -60,14 +60,31 @@ func (jr *JSONReporter) BeginReport(output io.Writer, metadata *metrics.ReportMe
 // Sections are written as top-level JSON fields with proper comma separation.
 // The sectionData must be JSON-serializable. Can be called multiple times.
 func (jr *JSONReporter) WriteSection(output io.Writer, sectionName string, sectionData interface{}) error {
-	// Write comma separator (except after metadata which was already written in BeginReport)
+	if err := jr.writeSectionSeparator(output); err != nil {
+		return err
+	}
+	if err := jr.writeSectionHeader(output, sectionName); err != nil {
+		return err
+	}
+	if err := jr.writeSectionData(output, sectionData); err != nil {
+		return err
+	}
+	jr.sectionsWritten++
+	return nil
+}
+
+// writeSectionSeparator writes a comma separator between JSON sections.
+func (jr *JSONReporter) writeSectionSeparator(output io.Writer) error {
 	if jr.sectionsWritten > 0 {
 		if _, err := output.Write([]byte(",\n")); err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
-	// Write section name
+// writeSectionHeader writes the section name as a JSON key.
+func (jr *JSONReporter) writeSectionHeader(output io.Writer, sectionName string) error {
 	sectionJSON, err := json.Marshal(sectionName)
 	if err != nil {
 		return err
@@ -78,21 +95,17 @@ func (jr *JSONReporter) WriteSection(output io.Writer, sectionName string, secti
 	if _, err := output.Write(sectionJSON); err != nil {
 		return err
 	}
-	if _, err := output.Write([]byte(": ")); err != nil {
-		return err
-	}
+	_, err = output.Write([]byte(": "))
+	return err
+}
 
-	// Write section data
+// writeSectionData encodes and writes section data as JSON.
+func (jr *JSONReporter) writeSectionData(output io.Writer, sectionData interface{}) error {
 	encoder := json.NewEncoder(output)
 	if jr.indent {
 		encoder.SetIndent("  ", "  ")
 	}
-	if err := encoder.Encode(sectionData); err != nil {
-		return err
-	}
-
-	jr.sectionsWritten++
-	return nil
+	return encoder.Encode(sectionData)
 }
 
 // EndReport writes the JSON closing brace to finalize streaming output.

@@ -51,3 +51,24 @@ type TimeSeriesPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 	Value     float64   `json:"value"`
 }
+
+// MetricCorrelation represents the correlation between two metrics.
+type MetricCorrelation struct {
+	Metric1     string  `json:"metric_1"`    // First metric name
+	Metric2     string  `json:"metric_2"`    // Second metric name
+	Correlation float64 `json:"correlation"` // Pearson correlation coefficient (-1 to 1)
+	PValue      float64 `json:"p_value"`     // Statistical significance
+	DataPoints  int     `json:"data_points"` // Number of paired observations
+	Strength    string  `json:"strength"`    // "strong", "moderate", "weak", "none"
+	Direction   string  `json:"direction"`   // "positive", "negative", "none"
+	Significant bool    `json:"significant"` // True if p < 0.05
+}
+
+// CorrelationMatrix represents all pairwise correlations between metrics.
+type CorrelationMatrix struct {
+	Metrics      []string            `json:"metrics"`      // List of metric names
+	Correlations []MetricCorrelation `json:"correlations"` // Pairwise correlations
+	DataPoints   int                 `json:"data_points"`  // Number of snapshots used
+	StartDate    string              `json:"start_date"`   // First snapshot date
+	EndDate      string              `json:"end_date"`     // Last snapshot date
+}

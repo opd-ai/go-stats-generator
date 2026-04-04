@@ -506,34 +506,52 @@ func checkAcronymAtStart(name, nameLower, acronym, correctForm string) *metrics.
 func checkAcronymInMiddle(name, acronym, correctForm string) *metrics.IdentifierViolation {
 	acronymLen := len(acronym)
 
-	// Find word boundaries in MixedCaps names
 	for i := 1; i < len(name)-acronymLen+1; i++ {
-		if i > 0 && unicode.IsUpper(rune(name[i])) {
-			segment := name[i : i+acronymLen]
-			segmentLower := strings.ToLower(segment)
-
-			if segmentLower == acronym && isWrongAcronymCasing(segment, correctForm) {
-				// Ensure acronym ends at a word boundary (followed by uppercase or end of string)
-				endPos := i + acronymLen
-				if endPos < len(name) {
-					nextChar := rune(name[endPos])
-					if !unicode.IsUpper(nextChar) {
-						continue // Part of a longer word, not an acronym
-					}
-				}
-
-				suggested := name[:i] + correctForm + name[i+acronymLen:]
-				return &metrics.IdentifierViolation{
-					Name:          name,
-					ViolationType: "acronym_casing",
-					Description:   "Acronyms should be all caps (e.g., URL, HTTP, ID, API, JSON)",
-					SuggestedName: suggested,
-					Severity:      metrics.SeverityLevelInfo,
-				}
-			}
+		if !isWordBoundary(name, i) {
+			continue
+		}
+		if violation := checkAcronymAtPosition(name, i, acronym, correctForm, acronymLen); violation != nil {
+			return violation
 		}
 	}
 	return nil
+}
+
+// isWordBoundary returns true if position i is a word boundary (uppercase char after position 0).
+func isWordBoundary(name string, i int) bool {
+	return i > 0 && unicode.IsUpper(rune(name[i]))
+}
+
+// checkAcronymAtPosition checks if an incorrectly-cased acronym exists at position i.
+func checkAcronymAtPosition(name string, i int, acronym, correctForm string, acronymLen int) *metrics.IdentifierViolation {
+	segment := name[i : i+acronymLen]
+	if strings.ToLower(segment) != acronym || !isWrongAcronymCasing(segment, correctForm) {
+		return nil
+	}
+	if !isAcronymEndBoundary(name, i+acronymLen) {
+		return nil
+	}
+	return buildAcronymViolation(name, i, correctForm, acronymLen)
+}
+
+// isAcronymEndBoundary returns true if the position is a valid acronym boundary.
+func isAcronymEndBoundary(name string, endPos int) bool {
+	if endPos >= len(name) {
+		return true
+	}
+	return unicode.IsUpper(rune(name[endPos]))
+}
+
+// buildAcronymViolation creates an IdentifierViolation for an acronym casing issue.
+func buildAcronymViolation(name string, i int, correctForm string, acronymLen int) *metrics.IdentifierViolation {
+	suggested := name[:i] + correctForm + name[i+acronymLen:]
+	return &metrics.IdentifierViolation{
+		Name:          name,
+		ViolationType: "acronym_casing",
+		Description:   "Acronyms should be all caps (e.g., URL, HTTP, ID, API, JSON)",
+		SuggestedName: suggested,
+		Severity:      metrics.SeverityLevelInfo,
+	}
 }
 
 // checkAcronymCasing detects improper acronym casing in Go identifiers.

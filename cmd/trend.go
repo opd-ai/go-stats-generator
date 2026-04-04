@@ -100,6 +100,7 @@ func init() {
 	trendCmd.AddCommand(trendAnalyzeCmd)
 	trendCmd.AddCommand(trendForecastCmd)
 	trendCmd.AddCommand(trendRegressionsCmd)
+	trendCmd.AddCommand(trendCorrelationCmd)
 
 	// Flags for trend analysis
 	trendCmd.PersistentFlags().IntVarP(&trendDays, "days", "d", 30, "Number of days to analyze")
@@ -864,5 +865,153 @@ func getRegressionIndicator(classification interface{}) string {
 		return "▲"
 	default:
 		return "→"
+	}
+}
+
+var trendCorrelationCmd = &cobra.Command{
+	Use:   "correlation",
+	Short: "Analyze correlations between different metrics",
+	Long: `Compute pairwise Pearson correlation coefficients between metrics.
+
+Analyzes relationships between:
+  - MBI score and duplication ratio
+  - Documentation coverage and complexity
+  - Complexity violations and naming violations
+  - All available metric pairs
+
+Provides for each metric pair:
+  - Correlation coefficient (-1 to 1)
+  - Statistical significance (p-value)
+  - Strength classification (strong/moderate/weak/none)
+  - Direction (positive/negative)
+
+Requires at least 3 historical baseline snapshots.`,
+	RunE: runTrendCorrelation,
+}
+
+// runTrendCorrelation computes and displays correlations between metrics.
+func runTrendCorrelation(cmd *cobra.Command, args []string) error {
+	if verbose {
+		fmt.Fprintf(os.Stderr, "Analyzing metric correlations over %d days\n", trendDays)
+	}
+
+	storageBackend, snapshots, err := initStorageWithSnapshots(trendDays)
+	if err != nil {
+		return err
+	}
+	defer storageBackend.Close()
+
+	if len(snapshots) < 3 {
+		return fmt.Errorf("insufficient snapshots for correlation analysis (need at least 3, found %d)", len(snapshots))
+	}
+
+	correlationResult := computeMetricCorrelations(snapshots)
+	return writeTrendOutput(correlationResult, outputCorrelationConsole)
+}
+
+// computeMetricCorrelations builds time series for each metric and computes correlation matrix.
+func computeMetricCorrelations(snapshots []storage.SnapshotInfo) map[string]interface{} {
+	metricNames := []string{"mbi_score", "duplication_ratio", "doc_coverage", "complexity_violations", "naming_violations"}
+	seriesList := make([]metrics.MetricTimeSeries, 0, len(metricNames))
+
+	for _, name := range metricNames {
+		series := buildTimeSeriesFromSnapshots(snapshots, name)
+		if len(series.DataPoints) >= 3 {
+			seriesList = append(seriesList, series)
+		}
+	}
+
+	if len(seriesList) < 2 {
+		return map[string]interface{}{"error": "Insufficient metrics with data for correlation analysis"}
+	}
+
+	matrix := analyzer.ComputeCorrelationMatrix(seriesList)
+
+	correlations := make([]map[string]interface{}, len(matrix.Correlations))
+	for i, c := range matrix.Correlations {
+		correlations[i] = map[string]interface{}{
+			"metric_1":    c.Metric1,
+			"metric_2":    c.Metric2,
+			"correlation": c.Correlation,
+			"p_value":     c.PValue,
+			"strength":    c.Strength,
+			"direction":   c.Direction,
+			"significant": c.Significant,
+			"data_points": c.DataPoints,
+		}
+	}
+
+	return map[string]interface{}{
+		"period":       fmt.Sprintf("%d days", trendDays),
+		"snapshots":    len(snapshots),
+		"metrics":      matrix.Metrics,
+		"correlations": correlations,
+		"start_date":   matrix.StartDate,
+		"end_date":     matrix.EndDate,
+	}
+}
+
+// outputCorrelationConsole displays correlation results in human-readable format.
+func outputCorrelationConsole(data map[string]interface{}) {
+	fmt.Println("=== METRIC CORRELATION ANALYSIS ===")
+	fmt.Println()
+
+	fmt.Printf("Period: %v\n", data["period"])
+	fmt.Printf("Snapshots: %v\n", data["snapshots"])
+	if startDate, ok := data["start_date"].(string); ok && startDate != "" {
+		fmt.Printf("Date Range: %s to %s\n", startDate, data["end_date"])
+	}
+	fmt.Println()
+
+	correlations, ok := data["correlations"].([]map[string]interface{})
+	if !ok || len(correlations) == 0 {
+		fmt.Println("No correlation data available.")
+		return
+	}
+
+	fmt.Println("Pairwise Correlations:")
+	fmt.Println("──────────────────────────────────────────────────────────")
+	fmt.Printf("%-25s %-25s %8s %10s %10s\n", "Metric 1", "Metric 2", "Corr", "Strength", "Sig")
+	fmt.Println("──────────────────────────────────────────────────────────")
+
+	for _, c := range correlations {
+		sig := " "
+		if significant, ok := c["significant"].(bool); ok && significant {
+			sig = "*"
+		}
+		fmt.Printf("%-25s %-25s %+7.3f %10s %10s\n",
+			c["metric_1"], c["metric_2"], c["correlation"], c["strength"], sig)
+	}
+	fmt.Println("──────────────────────────────────────────────────────────")
+	fmt.Println("* indicates p < 0.05 (statistically significant)")
+	fmt.Println()
+
+	// Show notable correlations
+	printNotableCorrelations(correlations)
+}
+
+// printNotableCorrelations highlights strong or significant correlations.
+func printNotableCorrelations(correlations []map[string]interface{}) {
+	strong := []map[string]interface{}{}
+	for _, c := range correlations {
+		if strength, ok := c["strength"].(string); ok && (strength == "strong" || strength == "moderate") {
+			if sig, ok := c["significant"].(bool); ok && sig {
+				strong = append(strong, c)
+			}
+		}
+	}
+
+	if len(strong) == 0 {
+		fmt.Println("No strong significant correlations found.")
+		return
+	}
+
+	fmt.Println("Notable Correlations:")
+	for _, c := range strong {
+		dir := "increases with"
+		if corr, ok := c["correlation"].(float64); ok && corr < 0 {
+			dir = "decreases with"
+		}
+		fmt.Printf("  • %s %s %s (r=%.3f)\n", c["metric_1"], dir, c["metric_2"], c["correlation"])
 	}
 }
