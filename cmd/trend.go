@@ -378,69 +378,60 @@ func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, thre
 // and error messages if insufficient data exists. Used by the "trend forecast" command for predictive analytics.
 func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) map[string]interface{} {
 	if len(snapshots) < 2 {
-		return map[string]interface{}{
-			"error": "Insufficient data for forecasting",
-		}
+		return map[string]interface{}{"error": "Insufficient data for forecasting"}
 	}
 
-	// Build time series from snapshots based on requested metric
 	series := buildTimeSeriesFromSnapshots(snapshots, metric)
 	if len(series.DataPoints) < 2 {
-		return map[string]interface{}{
-			"error": fmt.Sprintf("No data available for metric: %s", metric),
-		}
+		return map[string]interface{}{"error": fmt.Sprintf("No data available for metric: %s", metric)}
 	}
 
-	// Generate forecasts for 7, 14, and 30 days ahead
 	forecast7 := analyzer.GenerateForecast(series, 7)
 	forecast14 := analyzer.GenerateForecast(series, 14)
 	forecast30 := analyzer.GenerateForecast(series, 30)
 
-	result := map[string]interface{}{
-		"metric":      metric,
-		"entity":      entity,
-		"method":      "linear_regression",
-		"data_points": len(series.DataPoints),
-		"forecasts": []map[string]interface{}{
-			{
-				"horizon_days": 7,
-				"date":         forecast7.PredictionDate.Format("2006-01-02"),
-				"value":        forecast7.PointEstimate,
-				"lower_bound":  forecast7.LowerBound,
-				"upper_bound":  forecast7.UpperBound,
-				"reliability":  forecast7.ReliabilityScore,
-				"warning":      forecast7.Warning,
-			},
-			{
-				"horizon_days": 14,
-				"date":         forecast14.PredictionDate.Format("2006-01-02"),
-				"value":        forecast14.PointEstimate,
-				"lower_bound":  forecast14.LowerBound,
-				"upper_bound":  forecast14.UpperBound,
-				"reliability":  forecast14.ReliabilityScore,
-				"warning":      forecast14.Warning,
-			},
-			{
-				"horizon_days": 30,
-				"date":         forecast30.PredictionDate.Format("2006-01-02"),
-				"value":        forecast30.PointEstimate,
-				"lower_bound":  forecast30.LowerBound,
-				"upper_bound":  forecast30.UpperBound,
-				"reliability":  forecast30.ReliabilityScore,
-				"warning":      forecast30.Warning,
-			},
-		},
-		"trend_statistics": map[string]interface{}{
-			"slope":       forecast7.TrendStatistics.Slope,
-			"intercept":   forecast7.TrendStatistics.Intercept,
-			"r_squared":   forecast7.TrendStatistics.RSquared,
-			"correlation": forecast7.TrendStatistics.Correlation,
-			"start_date":  forecast7.TrendStatistics.StartDate,
-			"end_date":    forecast7.TrendStatistics.EndDate,
-		},
+	return map[string]interface{}{
+		"metric":           metric,
+		"entity":           entity,
+		"method":           "linear_regression",
+		"data_points":      len(series.DataPoints),
+		"forecasts":        buildForecastList(forecast7, forecast14, forecast30),
+		"trend_statistics": buildTrendStats(forecast7),
 	}
+}
 
-	return result
+// buildForecastList creates the forecast array from individual horizon forecasts
+func buildForecastList(f7, f14, f30 metrics.ForecastResult) []map[string]interface{} {
+	return []map[string]interface{}{
+		buildForecastEntry(7, f7),
+		buildForecastEntry(14, f14),
+		buildForecastEntry(30, f30),
+	}
+}
+
+// buildForecastEntry creates a single forecast entry map
+func buildForecastEntry(horizonDays int, f metrics.ForecastResult) map[string]interface{} {
+	return map[string]interface{}{
+		"horizon_days": horizonDays,
+		"date":         f.PredictionDate.Format("2006-01-02"),
+		"value":        f.PointEstimate,
+		"lower_bound":  f.LowerBound,
+		"upper_bound":  f.UpperBound,
+		"reliability":  f.ReliabilityScore,
+		"warning":      f.Warning,
+	}
+}
+
+// buildTrendStats creates the trend statistics map from a forecast
+func buildTrendStats(f metrics.ForecastResult) map[string]interface{} {
+	return map[string]interface{}{
+		"slope":       f.TrendStatistics.Slope,
+		"intercept":   f.TrendStatistics.Intercept,
+		"r_squared":   f.TrendStatistics.RSquared,
+		"correlation": f.TrendStatistics.Correlation,
+		"start_date":  f.TrendStatistics.StartDate,
+		"end_date":    f.TrendStatistics.EndDate,
+	}
 }
 
 // detectRegressions identifies metric regressions by comparing historical and recent snapshots using statistical analysis.
@@ -523,58 +514,38 @@ func determineOverallSeverity(regressions []map[string]interface{}) string {
 // Used by the "trend analyze" command to display burden evolution over time.
 func calculateBurdenTrends(first, last storage.SnapshotInfo) map[string]interface{} {
 	trends := make(map[string]interface{})
-
-	if first.MBIScoreAvg != nil && last.MBIScoreAvg != nil {
-		delta := *last.MBIScoreAvg - *first.MBIScoreAvg
-		trends["mbi_score"] = map[string]interface{}{
-			"start":     *first.MBIScoreAvg,
-			"end":       *last.MBIScoreAvg,
-			"delta":     delta,
-			"direction": getTrendDirection(delta, 5.0),
-		}
-	}
-
-	if first.DuplicationRatio != nil && last.DuplicationRatio != nil {
-		delta := *last.DuplicationRatio - *first.DuplicationRatio
-		trends["duplication_ratio"] = map[string]interface{}{
-			"start":     *first.DuplicationRatio,
-			"end":       *last.DuplicationRatio,
-			"delta":     delta,
-			"direction": getTrendDirection(delta, 0.01),
-		}
-	}
-
-	if first.DocCoverage != nil && last.DocCoverage != nil {
-		delta := *last.DocCoverage - *first.DocCoverage
-		trends["doc_coverage"] = map[string]interface{}{
-			"start":     *first.DocCoverage,
-			"end":       *last.DocCoverage,
-			"delta":     delta,
-			"direction": getTrendDirection(-delta, 0.01),
-		}
-	}
-
-	if first.ComplexityViolations != nil && last.ComplexityViolations != nil {
-		delta := *last.ComplexityViolations - *first.ComplexityViolations
-		trends["complexity_violations"] = map[string]interface{}{
-			"start":     *first.ComplexityViolations,
-			"end":       *last.ComplexityViolations,
-			"delta":     delta,
-			"direction": getTrendDirection(float64(delta), 1.0),
-		}
-	}
-
-	if first.NamingViolations != nil && last.NamingViolations != nil {
-		delta := *last.NamingViolations - *first.NamingViolations
-		trends["naming_violations"] = map[string]interface{}{
-			"start":     *first.NamingViolations,
-			"end":       *last.NamingViolations,
-			"delta":     delta,
-			"direction": getTrendDirection(float64(delta), 1.0),
-		}
-	}
-
+	addFloatTrend(trends, "mbi_score", first.MBIScoreAvg, last.MBIScoreAvg, 5.0, false)
+	addFloatTrend(trends, "duplication_ratio", first.DuplicationRatio, last.DuplicationRatio, 0.01, false)
+	addFloatTrend(trends, "doc_coverage", first.DocCoverage, last.DocCoverage, 0.01, true)
+	addIntTrend(trends, "complexity_violations", first.ComplexityViolations, last.ComplexityViolations)
+	addIntTrend(trends, "naming_violations", first.NamingViolations, last.NamingViolations)
 	return trends
+}
+
+// addFloatTrend adds a float64 metric trend to the trends map if both values exist
+func addFloatTrend(trends map[string]interface{}, name string, first, last *float64, threshold float64, invertDelta bool) {
+	if first == nil || last == nil {
+		return
+	}
+	delta := *last - *first
+	dirDelta := delta
+	if invertDelta {
+		dirDelta = -delta
+	}
+	trends[name] = map[string]interface{}{
+		"start": *first, "end": *last, "delta": delta, "direction": getTrendDirection(dirDelta, threshold),
+	}
+}
+
+// addIntTrend adds an int metric trend to the trends map if both values exist
+func addIntTrend(trends map[string]interface{}, name string, first, last *int) {
+	if first == nil || last == nil {
+		return
+	}
+	delta := *last - *first
+	trends[name] = map[string]interface{}{
+		"start": *first, "end": *last, "delta": delta, "direction": getTrendDirection(float64(delta), 1.0),
+	}
 }
 
 // buildTimeSeriesFromSnapshots extracts a time series for a specific metric from snapshot data.

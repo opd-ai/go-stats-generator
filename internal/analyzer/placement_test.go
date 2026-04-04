@@ -107,7 +107,7 @@ func (u *User) GetName() string { return u.Name }`,
 			},
 			expectedMisplaced: 1,
 			expectedDistance:  "same_package",
-			expectedSeverity:  "medium",
+			expectedSeverity:  metrics.SeverityLevelWarning,
 		},
 		{
 			name: "method with pointer receiver",

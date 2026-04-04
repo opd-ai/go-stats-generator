@@ -890,62 +890,72 @@ func (a *AntipatternAnalyzer) isLogFatalCall(callExpr *ast.CallExpr) bool {
 // dispatch maps, strategy patterns, or polymorphic design. Configurable threshold defaults to 10 branches.
 func (a *AntipatternAnalyzer) checkGiantBranchingChains(funcDecl *ast.FuncDecl) []metrics.PerformanceAntipattern {
 	var patterns []metrics.PerformanceAntipattern
-	const maxBranches = 10 // Configurable threshold
-
-	// Track if statements that are part of else-if chains to avoid double-counting
+	const maxBranches = 10
 	processedIfs := make(map[*ast.IfStmt]bool)
 
 	ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
-		switch stmt := n.(type) {
-		case *ast.SwitchStmt:
-			branchCount := a.countSwitchBranches(stmt)
-			if branchCount > maxBranches {
-				patterns = append(patterns, metrics.PerformanceAntipattern{
-					Type:        "giant_switch",
-					Description: "Switch statement with excessive branches",
-					Severity:    metrics.SeverityLevelWarning,
-					File:        a.fset.Position(stmt.Pos()).Filename,
-					Line:        a.fset.Position(stmt.Pos()).Line,
-					Suggestion:  "Consider using a dispatch map or strategy pattern instead of giant switch statement",
-				})
-			}
-		case *ast.TypeSwitchStmt:
-			branchCount := a.countTypeSwitchBranches(stmt)
-			if branchCount > maxBranches {
-				patterns = append(patterns, metrics.PerformanceAntipattern{
-					Type:        "giant_type_switch",
-					Description: "Type switch statement with excessive branches",
-					Severity:    metrics.SeverityLevelWarning,
-					File:        a.fset.Position(stmt.Pos()).Filename,
-					Line:        a.fset.Position(stmt.Pos()).Line,
-					Suggestion:  "Consider using interface methods or type-specific handlers instead of giant type switch",
-				})
-			}
-		case *ast.IfStmt:
-			// Skip if this is part of an else-if chain we've already processed
-			if processedIfs[stmt] {
-				return true
-			}
-
-			chainLength := a.countIfElseChainLength(stmt)
-			if chainLength > maxBranches {
-				patterns = append(patterns, metrics.PerformanceAntipattern{
-					Type:        "giant_if_else_chain",
-					Description: "If-else chain with excessive branches",
-					Severity:    metrics.SeverityLevelWarning,
-					File:        a.fset.Position(stmt.Pos()).Filename,
-					Line:        a.fset.Position(stmt.Pos()).Line,
-					Suggestion:  "Refactor to dispatch map, early returns, or extract condition checks into named functions",
-				})
-
-				// Mark all if statements in this chain as processed
-				a.markIfElseChain(stmt, processedIfs)
-			}
+		if p := a.checkBranchingNode(n, maxBranches, processedIfs); p != nil {
+			patterns = append(patterns, *p)
 		}
 		return true
 	})
-
 	return patterns
+}
+
+// checkBranchingNode checks a single AST node for excessive branching
+func (a *AntipatternAnalyzer) checkBranchingNode(n ast.Node, maxBranches int, processedIfs map[*ast.IfStmt]bool) *metrics.PerformanceAntipattern {
+	switch stmt := n.(type) {
+	case *ast.SwitchStmt:
+		return a.checkSwitchBranches(stmt, maxBranches)
+	case *ast.TypeSwitchStmt:
+		return a.checkTypeSwitchBranches(stmt, maxBranches)
+	case *ast.IfStmt:
+		return a.checkIfElseChain(stmt, maxBranches, processedIfs)
+	}
+	return nil
+}
+
+// checkSwitchBranches checks if a switch statement has excessive branches
+func (a *AntipatternAnalyzer) checkSwitchBranches(stmt *ast.SwitchStmt, maxBranches int) *metrics.PerformanceAntipattern {
+	if a.countSwitchBranches(stmt) <= maxBranches {
+		return nil
+	}
+	return a.createBranchPattern(stmt.Pos(), "giant_switch", "Switch statement with excessive branches",
+		"Consider using a dispatch map or strategy pattern instead of giant switch statement")
+}
+
+// checkTypeSwitchBranches checks if a type switch statement has excessive branches
+func (a *AntipatternAnalyzer) checkTypeSwitchBranches(stmt *ast.TypeSwitchStmt, maxBranches int) *metrics.PerformanceAntipattern {
+	if a.countTypeSwitchBranches(stmt) <= maxBranches {
+		return nil
+	}
+	return a.createBranchPattern(stmt.Pos(), "giant_type_switch", "Type switch statement with excessive branches",
+		"Consider using interface methods or type-specific handlers instead of giant type switch")
+}
+
+// checkIfElseChain checks if an if-else chain has excessive branches
+func (a *AntipatternAnalyzer) checkIfElseChain(stmt *ast.IfStmt, maxBranches int, processedIfs map[*ast.IfStmt]bool) *metrics.PerformanceAntipattern {
+	if processedIfs[stmt] {
+		return nil
+	}
+	if a.countIfElseChainLength(stmt) <= maxBranches {
+		return nil
+	}
+	a.markIfElseChain(stmt, processedIfs)
+	return a.createBranchPattern(stmt.Pos(), "giant_if_else_chain", "If-else chain with excessive branches",
+		"Refactor to dispatch map, early returns, or extract condition checks into named functions")
+}
+
+// createBranchPattern creates a PerformanceAntipattern for branching issues
+func (a *AntipatternAnalyzer) createBranchPattern(pos token.Pos, patType, desc, suggestion string) *metrics.PerformanceAntipattern {
+	return &metrics.PerformanceAntipattern{
+		Type:        patType,
+		Description: desc,
+		Severity:    metrics.SeverityLevelWarning,
+		File:        a.fset.Position(pos).Filename,
+		Line:        a.fset.Position(pos).Line,
+		Suggestion:  suggestion,
+	}
 }
 
 // markIfElseChain marks all if statements in an if-else chain as processed
@@ -1064,21 +1074,20 @@ func (a *AntipatternAnalyzer) isReceiverUsed(body *ast.BlockStmt, receiverName s
 // instead use export_test.go patterns or be restructured to test via the public API. This
 // prevents API surface bloat and clarifies what is truly public vs. test infrastructure.
 func CheckTestOnlyExports(files map[string]*ast.File, fset *token.FileSet, packagePath string) []metrics.PerformanceAntipattern {
-	var patterns []metrics.PerformanceAntipattern
+	exportedSymbols, symbolReferences := collectExportData(files, fset, packagePath)
+	return detectTestOnlyExports(exportedSymbols, symbolReferences)
+}
 
-	// Track exported symbols: map[symbolName]SymbolInfo
+// collectExportData performs two-pass collection of exported symbols and their references
+func collectExportData(files map[string]*ast.File, fset *token.FileSet, packagePath string) (map[string]*exportedSymbolInfo, map[string][]string) {
 	exportedSymbols := make(map[string]*exportedSymbolInfo)
+	symbolReferences := make(map[string][]string)
 
-	// Track usage of symbols from other files
-	symbolReferences := make(map[string][]string) // symbolName -> []referencingFiles
-
-	// First pass: Collect all exported symbols
+	// First pass: Collect all exported symbols from non-test files
 	for filePath, file := range files {
-		if isTestFile(filePath) {
-			continue // Skip test files when collecting exports
+		if !isTestFile(filePath) {
+			collectExportedSymbols(file, filePath, fset, packagePath, exportedSymbols)
 		}
-
-		collectExportedSymbols(file, filePath, fset, packagePath, exportedSymbols)
 	}
 
 	// Second pass: Track references to exported symbols
@@ -1086,39 +1095,42 @@ func CheckTestOnlyExports(files map[string]*ast.File, fset *token.FileSet, packa
 		trackSymbolReferences(file, filePath, exportedSymbols, symbolReferences)
 	}
 
-	// Third pass: Identify test-only exports
+	return exportedSymbols, symbolReferences
+}
+
+// detectTestOnlyExports identifies exported symbols only used in tests
+func detectTestOnlyExports(exportedSymbols map[string]*exportedSymbolInfo, symbolReferences map[string][]string) []metrics.PerformanceAntipattern {
+	var patterns []metrics.PerformanceAntipattern
+
 	for symbolName, info := range exportedSymbols {
-		refs := symbolReferences[symbolName]
-
-		// Count non-test references from OTHER files (not the definition file)
-		nonTestOtherFileRefs := 0
-
-		for _, refFile := range refs {
-			// Skip references from the same file (self-references)
-			if refFile == info.File {
-				continue
-			}
-
-			// Count references from non-test files
-			if !isTestFile(refFile) {
-				nonTestOtherFileRefs++
-			}
-		}
-
-		// Flag if exported but only referenced in test files or not referenced at all (outside its own file)
-		if nonTestOtherFileRefs == 0 {
-			patterns = append(patterns, metrics.PerformanceAntipattern{
-				Type:        "test_only_export",
-				Description: fmt.Sprintf("Exported %s '%s' has zero cross-package references outside test files", info.SymbolType, symbolName),
-				Severity:    metrics.SeverityLevelInfo,
-				File:        info.File,
-				Line:        info.Line,
-				Suggestion:  "Consider using export_test.go patterns, making symbol unexported, or restructuring tests to use the public API",
-			})
+		if isTestOnlySymbol(info, symbolReferences[symbolName]) {
+			patterns = append(patterns, createTestOnlyPattern(symbolName, info))
 		}
 	}
 
 	return patterns
+}
+
+// isTestOnlySymbol checks if a symbol is only referenced in test files
+func isTestOnlySymbol(info *exportedSymbolInfo, refs []string) bool {
+	for _, refFile := range refs {
+		if refFile != info.File && !isTestFile(refFile) {
+			return false
+		}
+	}
+	return true
+}
+
+// createTestOnlyPattern creates an antipattern report for test-only exports
+func createTestOnlyPattern(symbolName string, info *exportedSymbolInfo) metrics.PerformanceAntipattern {
+	return metrics.PerformanceAntipattern{
+		Type:        "test_only_export",
+		Description: fmt.Sprintf("Exported %s '%s' has zero cross-package references outside test files", info.SymbolType, symbolName),
+		Severity:    metrics.SeverityLevelInfo,
+		File:        info.File,
+		Line:        info.Line,
+		Suggestion:  "Consider using export_test.go patterns, making symbol unexported, or restructuring tests to use the public API",
+	}
 }
 
 // exportedSymbolInfo tracks information about an exported symbol
@@ -1135,50 +1147,65 @@ func collectExportedSymbols(file *ast.File, filePath string, fset *token.FileSet
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.FuncDecl:
-			// Exported function or method
-			if d.Name != nil && d.Name.IsExported() {
-				exports[d.Name.Name] = &exportedSymbolInfo{
-					Name:       d.Name.Name,
-					Package:    packagePath,
-					File:       filePath,
-					Line:       fset.Position(d.Pos()).Line,
-					SymbolType: "function",
-				}
-			}
-
+			collectExportedFunc(d, filePath, fset, packagePath, exports)
 		case *ast.GenDecl:
-			for _, spec := range d.Specs {
-				switch s := spec.(type) {
-				case *ast.TypeSpec:
-					// Exported type
-					if s.Name != nil && s.Name.IsExported() {
-						exports[s.Name.Name] = &exportedSymbolInfo{
-							Name:       s.Name.Name,
-							Package:    packagePath,
-							File:       filePath,
-							Line:       fset.Position(s.Pos()).Line,
-							SymbolType: "type",
-						}
-					}
+			collectExportedGenDecl(d, filePath, fset, packagePath, exports)
+		}
+	}
+}
 
-				case *ast.ValueSpec:
-					// Exported variable or constant
-					for _, name := range s.Names {
-						if name != nil && name.IsExported() {
-							symbolType := "variable"
-							if d.Tok == token.CONST {
-								symbolType = "constant"
-							}
-							exports[name.Name] = &exportedSymbolInfo{
-								Name:       name.Name,
-								Package:    packagePath,
-								File:       filePath,
-								Line:       fset.Position(name.Pos()).Line,
-								SymbolType: symbolType,
-							}
-						}
-					}
-				}
+// collectExportedFunc handles exported function/method declarations
+func collectExportedFunc(d *ast.FuncDecl, filePath string, fset *token.FileSet, packagePath string, exports map[string]*exportedSymbolInfo) {
+	if d.Name != nil && d.Name.IsExported() {
+		exports[d.Name.Name] = &exportedSymbolInfo{
+			Name:       d.Name.Name,
+			Package:    packagePath,
+			File:       filePath,
+			Line:       fset.Position(d.Pos()).Line,
+			SymbolType: "function",
+		}
+	}
+}
+
+// collectExportedGenDecl handles exported type/value declarations
+func collectExportedGenDecl(d *ast.GenDecl, filePath string, fset *token.FileSet, packagePath string, exports map[string]*exportedSymbolInfo) {
+	for _, spec := range d.Specs {
+		switch s := spec.(type) {
+		case *ast.TypeSpec:
+			collectExportedType(s, filePath, fset, packagePath, exports)
+		case *ast.ValueSpec:
+			collectExportedValue(s, d.Tok, filePath, fset, packagePath, exports)
+		}
+	}
+}
+
+// collectExportedType handles exported type declarations
+func collectExportedType(s *ast.TypeSpec, filePath string, fset *token.FileSet, packagePath string, exports map[string]*exportedSymbolInfo) {
+	if s.Name != nil && s.Name.IsExported() {
+		exports[s.Name.Name] = &exportedSymbolInfo{
+			Name:       s.Name.Name,
+			Package:    packagePath,
+			File:       filePath,
+			Line:       fset.Position(s.Pos()).Line,
+			SymbolType: "type",
+		}
+	}
+}
+
+// collectExportedValue handles exported variable/constant declarations
+func collectExportedValue(s *ast.ValueSpec, tok token.Token, filePath string, fset *token.FileSet, packagePath string, exports map[string]*exportedSymbolInfo) {
+	for _, name := range s.Names {
+		if name != nil && name.IsExported() {
+			symbolType := "variable"
+			if tok == token.CONST {
+				symbolType = "constant"
+			}
+			exports[name.Name] = &exportedSymbolInfo{
+				Name:       name.Name,
+				Package:    packagePath,
+				File:       filePath,
+				Line:       fset.Position(name.Pos()).Line,
+				SymbolType: symbolType,
 			}
 		}
 	}

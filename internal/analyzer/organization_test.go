@@ -264,28 +264,28 @@ func TestOrganizationGetSeverity(t *testing.T) {
 		lines     int
 		funcCount int
 		typeCount int
-		want      string
+		want      metrics.SeverityLevel
 	}{
 		{
 			name:      "medium severity",
 			lines:     600,
 			funcCount: 10,
 			typeCount: 3,
-			want:      "medium",
+			want:      metrics.SeverityLevelWarning,
 		},
 		{
 			name:      "high severity",
 			lines:     1200,
 			funcCount: 10,
 			typeCount: 3,
-			want:      "high",
+			want:      metrics.SeverityLevelViolation,
 		},
 		{
 			name:      "critical severity",
 			lines:     1200,
 			funcCount: 50,
 			typeCount: 3,
-			want:      "critical",
+			want:      metrics.SeverityLevelCritical,
 		},
 	}
 
@@ -600,7 +600,7 @@ func TestGetPackageSeverity(t *testing.T) {
 	tests := []struct {
 		name string
 		pkg  *PackageInfo
-		want string
+		want metrics.SeverityLevel
 	}{
 		{
 			name: "medium severity",
@@ -609,7 +609,7 @@ func TestGetPackageSeverity(t *testing.T) {
 				ExportedSymbols: 10,
 				CohesionScore:   0.8,
 			},
-			want: "medium",
+			want: metrics.SeverityLevelWarning,
 		},
 		{
 			name: "high severity",
@@ -618,7 +618,7 @@ func TestGetPackageSeverity(t *testing.T) {
 				ExportedSymbols: 10,
 				CohesionScore:   0.8,
 			},
-			want: "high",
+			want: metrics.SeverityLevelViolation,
 		},
 		{
 			name: "critical severity - violations",
@@ -627,7 +627,7 @@ func TestGetPackageSeverity(t *testing.T) {
 				ExportedSymbols: 110,
 				CohesionScore:   0.8,
 			},
-			want: "critical",
+			want: metrics.SeverityLevelCritical,
 		},
 		{
 			name: "critical severity - mega package",
@@ -636,7 +636,7 @@ func TestGetPackageSeverity(t *testing.T) {
 				ExportedSymbols: 40,
 				CohesionScore:   0.3,
 			},
-			want: "critical",
+			want: metrics.SeverityLevelCritical,
 		},
 	}
 
@@ -841,22 +841,22 @@ func TestGetDepthSeverity(t *testing.T) {
 	tests := []struct {
 		name  string
 		depth int
-		want  string
+		want  metrics.SeverityLevel
 	}{
 		{
 			name:  "medium severity",
 			depth: 6,
-			want:  "medium",
+			want:  metrics.SeverityLevelWarning,
 		},
 		{
 			name:  "high severity",
 			depth: 8,
-			want:  "high",
+			want:  metrics.SeverityLevelViolation,
 		},
 		{
 			name:  "critical severity",
 			depth: 11,
-			want:  "critical",
+			want:  metrics.SeverityLevelCritical,
 		},
 	}
 
@@ -1032,17 +1032,17 @@ func TestGetImportSeverity(t *testing.T) {
 		{
 			name:  "medium severity",
 			count: 18,
-			want:  "medium",
+			want:  string(metrics.SeverityLevelWarning),
 		},
 		{
 			name:  "high severity",
 			count: 25,
-			want:  "high",
+			want:  string(metrics.SeverityLevelViolation),
 		},
 		{
 			name:  "critical severity",
 			count: 35,
-			want:  "critical",
+			want:  string(metrics.SeverityLevelCritical),
 		},
 	}
 
@@ -1122,17 +1122,17 @@ func TestGetFanInRisk(t *testing.T) {
 		{
 			name:  "medium risk",
 			fanIn: 3,
-			want:  "medium",
+			want:  string(metrics.SeverityLevelWarning),
 		},
 		{
 			name:  "high risk",
 			fanIn: 6,
-			want:  "high",
+			want:  string(metrics.SeverityLevelViolation),
 		},
 		{
 			name:  "critical risk",
 			fanIn: 12,
-			want:  "critical",
+			want:  string(metrics.SeverityLevelCritical),
 		},
 	}
 
@@ -1280,25 +1280,25 @@ func TestGetCouplingRisk(t *testing.T) {
 			name:        "medium risk",
 			fanOut:      5,
 			instability: 0.5,
-			want:        "medium",
+			want:        string(metrics.SeverityLevelWarning),
 		},
 		{
 			name:        "high risk - high instability",
 			fanOut:      6,
 			instability: 0.7,
-			want:        "high",
+			want:        string(metrics.SeverityLevelViolation),
 		},
 		{
 			name:        "high risk - many deps",
 			fanOut:      8,
 			instability: 0.5,
-			want:        "high",
+			want:        string(metrics.SeverityLevelViolation),
 		},
 		{
 			name:        "critical risk",
 			fanOut:      12,
 			instability: 0.8,
-			want:        "critical",
+			want:        string(metrics.SeverityLevelCritical),
 		},
 	}
 
@@ -1680,49 +1680,49 @@ func TestGetSeverity_AllPaths(t *testing.T) {
 		lines     int
 		funcCount int
 		typeCount int
-		want      string
+		want      metrics.SeverityLevel
 	}{
 		{
-			name:      "no violations - medium",
+			name:      "no violations - warning",
 			lines:     300,
 			funcCount: 5,
 			typeCount: 2,
-			want:      "medium",
+			want:      metrics.SeverityLevelWarning,
 		},
 		{
-			name:      "one critical violation - high",
+			name:      "one critical violation - violation",
 			lines:     1200,
 			funcCount: 5,
 			typeCount: 2,
-			want:      "high",
+			want:      metrics.SeverityLevelViolation,
 		},
 		{
-			name:      "one critical func violation - high",
+			name:      "one critical func violation - violation",
 			lines:     300,
 			funcCount: 50,
 			typeCount: 2,
-			want:      "high",
+			want:      metrics.SeverityLevelViolation,
 		},
 		{
-			name:      "one critical type violation - high",
+			name:      "one critical type violation - violation",
 			lines:     300,
 			funcCount: 5,
 			typeCount: 15,
-			want:      "high",
+			want:      metrics.SeverityLevelViolation,
 		},
 		{
 			name:      "two critical violations - critical",
 			lines:     1200,
 			funcCount: 50,
 			typeCount: 2,
-			want:      "critical",
+			want:      metrics.SeverityLevelCritical,
 		},
 		{
 			name:      "three critical violations - critical",
 			lines:     1200,
 			funcCount: 50,
 			typeCount: 15,
-			want:      "critical",
+			want:      metrics.SeverityLevelCritical,
 		},
 	}
 

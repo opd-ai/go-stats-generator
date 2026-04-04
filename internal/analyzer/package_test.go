@@ -352,7 +352,7 @@ func TestCircularDependencyDetection(t *testing.T) {
 				"pkg8": {"pkg4"},
 			},
 			wantCycles:   2,
-			wantSeverity: metrics.SeverityLevelViolation,
+			wantSeverity: metrics.SeverityLevelCritical,
 		},
 		{
 			name: "no cycles",

@@ -136,59 +136,60 @@ func extractTargetPath(args []string) string {
 // Defaults to SQLite with metrics.db in current directory if not configured. Returns configured storage instance ready
 // for baseline snapshot persistence, or error if initialization fails due to permissions or invalid configuration.
 func initializeStorageBackend() (storage.MetricsStorage, error) {
-	// Get storage configuration from viper (respects loaded config files)
-	storageType := viper.GetString("storage.type")
-	if storageType == "" {
-		storageType = "sqlite" // Default to SQLite if not specified
-	}
+	storageType := getStorageType()
+	storagePath := getStoragePath(storageType)
+	compression := getCompressionSetting()
 
-	// Get path configuration (works for both SQLite and JSON)
-	storagePath := viper.GetString("storage.path")
-	if storagePath == "" {
-		if storageType == "json" {
-			storagePath = ".go-stats-generator/snapshots" // Default directory for JSON
-		} else {
-			storagePath = ".go-stats-generator/metrics.db" // Default path for SQLite
-		}
-	}
-
-	// Check for more specific JSON configuration
-	jsonDir := viper.GetString("storage.json.directory")
-	if jsonDir != "" {
-		storagePath = jsonDir
-	}
-
-	compression := viper.GetBool("storage.compression")
-	jsonCompression := viper.GetBool("storage.json.compression")
-	if jsonCompression {
-		compression = jsonCompression
-	}
-
-	jsonPretty := viper.GetBool("storage.json.pretty")
-
-	// Convert to storage.Config format
 	storageConfig := storage.Config{
-		Type: storageType,
+		Type:   storageType,
+		SQLite: buildSQLiteConfig(storagePath, compression),
+		JSON:   buildJSONConfig(storagePath, compression),
 	}
-
-	// Configure SQLite settings based on configuration
-	storageConfig.SQLite = storage.SQLiteConfig{
-		Path:              storagePath,
-		EnableWAL:         true, // Sensible default for performance
-		MaxConnections:    10,   // Sensible default for CLI tool
-		EnableFK:          true, // Sensible default for data integrity
-		EnableCompression: compression,
-	}
-
-	// Configure JSON settings
-	storageConfig.JSON = storage.JSONConfig{
-		Directory:   storagePath,
-		Compression: compression,
-		Pretty:      jsonPretty,
-	}
-
-	// Use the proper storage factory function that respects configuration
 	return storage.NewStorage(storageConfig)
+}
+
+// getStorageType returns the configured storage type, defaulting to sqlite
+func getStorageType() string {
+	if t := viper.GetString("storage.type"); t != "" {
+		return t
+	}
+	return "sqlite"
+}
+
+// getStoragePath returns the storage path based on type and configuration
+func getStoragePath(storageType string) string {
+	if path := viper.GetString("storage.path"); path != "" {
+		return path
+	}
+	if jsonDir := viper.GetString("storage.json.directory"); jsonDir != "" {
+		return jsonDir
+	}
+	if storageType == "json" {
+		return ".go-stats-generator/snapshots"
+	}
+	return ".go-stats-generator/metrics.db"
+}
+
+// getCompressionSetting returns the compression setting from config
+func getCompressionSetting() bool {
+	if c := viper.GetBool("storage.json.compression"); c {
+		return c
+	}
+	return viper.GetBool("storage.compression")
+}
+
+// buildSQLiteConfig creates SQLite configuration with sensible defaults
+func buildSQLiteConfig(path string, compression bool) storage.SQLiteConfig {
+	return storage.SQLiteConfig{
+		Path: path, EnableWAL: true, MaxConnections: 10, EnableFK: true, EnableCompression: compression,
+	}
+}
+
+// buildJSONConfig creates JSON configuration from settings
+func buildJSONConfig(path string, compression bool) storage.JSONConfig {
+	return storage.JSONConfig{
+		Directory: path, Compression: compression, Pretty: viper.GetBool("storage.json.pretty"),
+	}
 }
 
 // convertToStorageConfig converts config.StorageConfig to storage.Config.

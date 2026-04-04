@@ -147,7 +147,7 @@ func (na *NamingAnalyzer) checkSnakeCase(filePath, fileName string) *metrics.Fil
 			ViolationType: "non_snake_case",
 			Description:   "File name should be in snake_case (lowercase with underscores)",
 			SuggestedName: suggested,
-			Severity:      "medium",
+			Severity:      metrics.SeverityLevelWarning,
 		}
 	}
 	return nil
@@ -182,7 +182,7 @@ func (na *NamingAnalyzer) checkStuttering(filePath, fileName, dirName string) *m
 				ViolationType: "stuttering",
 				Description:   "File name repeats package/directory name (e.g., http/http_client.go should be http/client.go)",
 				SuggestedName: suggested,
-				Severity:      "low",
+				Severity:      metrics.SeverityLevelInfo,
 			}
 		}
 	}
@@ -197,7 +197,7 @@ func (na *NamingAnalyzer) checkGenericName(filePath, fileName string) *metrics.F
 			ViolationType: "generic_name",
 			Description:   "File name is too generic; use a name that describes what the code does",
 			SuggestedName: "", // Cannot suggest without understanding code
-			Severity:      "low",
+			Severity:      metrics.SeverityLevelInfo,
 		}
 	}
 	return nil
@@ -224,7 +224,7 @@ func (na *NamingAnalyzer) checkTestSuffix(filePath, fileName string) *metrics.Fi
 			ViolationType: "improper_test_name",
 			Description:   "Test-related files should use _test.go suffix, not test_ prefix or similar",
 			SuggestedName: suggested,
-			Severity:      "medium",
+			Severity:      metrics.SeverityLevelWarning,
 		}
 	}
 
@@ -435,7 +435,7 @@ func (na *NamingAnalyzer) checkMixedCaps(name string, ctx *identifierContext) *m
 			ViolationType: "underscore_in_name",
 			Description:   "Go identifiers should use MixedCaps, not underscores (except Test_ functions)",
 			SuggestedName: suggested,
-			Severity:      "medium",
+			Severity:      metrics.SeverityLevelWarning,
 		}
 	}
 
@@ -465,7 +465,7 @@ func (na *NamingAnalyzer) checkSingleLetterName(name, idType string, ctx *identi
 		ViolationType: "single_letter_name",
 		Description:   "Single-letter names should be reserved for short loop variables and receivers",
 		SuggestedName: "", // Cannot suggest without context
-		Severity:      "low",
+		Severity:      metrics.SeverityLevelInfo,
 	}
 }
 
@@ -485,7 +485,7 @@ func checkAcronymAtStart(name, nameLower, acronym, correctForm string) *metrics.
 			ViolationType: "acronym_casing",
 			Description:   "Acronyms should be all caps (e.g., URL, HTTP, ID, API, JSON)",
 			SuggestedName: suggested,
-			Severity:      "low",
+			Severity:      metrics.SeverityLevelInfo,
 		}
 	}
 	return nil
@@ -509,7 +509,7 @@ func checkAcronymInMiddle(name, acronym, correctForm string) *metrics.Identifier
 					ViolationType: "acronym_casing",
 					Description:   "Acronyms should be all caps (e.g., URL, HTTP, ID, API, JSON)",
 					SuggestedName: suggested,
-					Severity:      "low",
+					Severity:      metrics.SeverityLevelInfo,
 				}
 			}
 		}
@@ -573,7 +573,7 @@ func (na *NamingAnalyzer) checkMethodStuttering(name string, ctx *identifierCont
 		ViolationType: "stuttering",
 		Description:   "Method name repeats receiver type (e.g., User.UserName should be User.Name)",
 		SuggestedName: suggested,
-		Severity:      "low",
+		Severity:      metrics.SeverityLevelInfo,
 	}
 }
 
@@ -610,7 +610,7 @@ func (na *NamingAnalyzer) checkPackageStuttering(name string, ctx *identifierCon
 		ViolationType: "package_stuttering",
 		Description:   "Exported name repeats package name (e.g., user.UserService should be user.Service)",
 		SuggestedName: name[len(ctx.packageName):],
-		Severity:      "low",
+		Severity:      metrics.SeverityLevelInfo,
 	}
 }
 
@@ -762,7 +762,7 @@ func (na *NamingAnalyzer) checkPackageConvention(pkgName, filePath string) *metr
 			ViolationType: "non_conventional_name",
 			Description:   description,
 			SuggestedName: suggested,
-			Severity:      "medium",
+			Severity:      metrics.SeverityLevelWarning,
 		}
 	}
 
@@ -783,7 +783,7 @@ func (na *NamingAnalyzer) checkGenericPackageName(pkgName, filePath string) *met
 			ViolationType: "generic_package_name",
 			Description:   "Package name is too generic; use a more specific, descriptive name",
 			SuggestedName: "", // Cannot suggest without context
-			Severity:      "low",
+			Severity:      metrics.SeverityLevelInfo,
 		}
 	}
 
@@ -804,7 +804,7 @@ func (na *NamingAnalyzer) checkStdLibCollision(pkgName, filePath string) *metric
 			ViolationType: "stdlib_collision",
 			Description:   "Package name collides with Go standard library package; this may cause confusion",
 			SuggestedName: "", // Cannot suggest without context
-			Severity:      "medium",
+			Severity:      metrics.SeverityLevelWarning,
 		}
 	}
 
@@ -833,7 +833,7 @@ func (na *NamingAnalyzer) checkDirectoryMismatch(pkgName, dirName, filePath stri
 			ViolationType: "directory_mismatch",
 			Description:   "Package name does not match directory name; they should be the same",
 			SuggestedName: normalizedDir,
-			Severity:      "medium",
+			Severity:      metrics.SeverityLevelWarning,
 		}
 	}
 

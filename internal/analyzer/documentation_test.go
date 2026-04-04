@@ -180,16 +180,16 @@ func TestGetSeverity(t *testing.T) {
 
 	tests := []struct {
 		category string
-		expected string
+		expected metrics.SeverityLevel
 	}{
-		{"FIXME", "critical"},
-		{"BUG", "critical"},
-		{"HACK", "high"},
-		{"TODO", "medium"},
-		{"XXX", "medium"},
-		{"DEPRECATED", "low"},
-		{"NOTE", "low"},
-		{"UNKNOWN", "low"},
+		{"FIXME", metrics.SeverityLevelCritical},
+		{"BUG", metrics.SeverityLevelCritical},
+		{"HACK", metrics.SeverityLevelViolation},
+		{"TODO", metrics.SeverityLevelWarning},
+		{"XXX", metrics.SeverityLevelWarning},
+		{"DEPRECATED", metrics.SeverityLevelInfo},
+		{"NOTE", metrics.SeverityLevelInfo},
+		{"UNKNOWN", metrics.SeverityLevelInfo},
 	}
 
 	for _, tt := range tests {
@@ -688,16 +688,16 @@ func TestSeverityClassification(t *testing.T) {
 
 	tests := []struct {
 		category string
-		expected string
+		expected metrics.SeverityLevel
 	}{
-		{"FIXME", "critical"},
-		{"BUG", "critical"},
-		{"HACK", "high"},
-		{"TODO", "medium"},
-		{"XXX", "medium"},
-		{"DEPRECATED", "low"},
-		{"NOTE", "low"},
-		{"UNKNOWN", "low"},
+		{"FIXME", metrics.SeverityLevelCritical},
+		{"BUG", metrics.SeverityLevelCritical},
+		{"HACK", metrics.SeverityLevelViolation},
+		{"TODO", metrics.SeverityLevelWarning},
+		{"XXX", metrics.SeverityLevelWarning},
+		{"DEPRECATED", metrics.SeverityLevelInfo},
+		{"NOTE", metrics.SeverityLevelInfo},
+		{"UNKNOWN", metrics.SeverityLevelInfo},
 	}
 
 	for _, tt := range tests {

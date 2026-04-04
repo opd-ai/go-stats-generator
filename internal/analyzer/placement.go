@@ -401,7 +401,7 @@ func (pa *PlacementAnalyzer) countFileReferences(file string) (intraRefs, totalR
 // determineCohesionSeverity calculates severity based on cohesion score
 func (pa *PlacementAnalyzer) determineCohesionSeverity(cohesion float64) metrics.SeverityLevel {
 	if cohesion < pa.minCohesion/3 {
-		return metrics.SeverityLevelCritical
+		return metrics.SeverityLevelViolation
 	}
 	if cohesion < pa.minCohesion/2 {
 		return metrics.SeverityLevelWarning
