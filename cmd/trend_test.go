@@ -57,7 +57,7 @@ func TestTrendForecastCommand(t *testing.T) {
 		cmd := trendForecastCmd
 		assert.NotNil(t, cmd)
 		assert.Equal(t, "forecast", cmd.Use)
-		assert.Equal(t, "Forecast future metrics using linear regression", cmd.Short)
+		assert.Equal(t, "Forecast future metrics using statistical methods", cmd.Short)
 	})
 }
 
@@ -100,7 +100,8 @@ func TestTrendCommandHelp(t *testing.T) {
 			args: []string{"trend", "forecast", "--help"},
 			expectedOutput: []string{
 				"Generate forecasts",
-				"linear regression",
+				"linear",
+				"exponential",
 				"confidence intervals",
 			},
 		},

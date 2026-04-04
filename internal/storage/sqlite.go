@@ -676,16 +676,7 @@ func (s *SQLiteStorage) deleteByAge(ctx context.Context, policy RetentionPolicy)
 	cutoff := time.Now().Add(-policy.MaxAge)
 	query := s.buildAgeBasedDeleteQuery(policy)
 
-	result, err := s.db.ExecContext(ctx, query, cutoff)
-	if err != nil {
-		return 0, fmt.Errorf("failed to delete old snapshots: %w", err)
-	}
-
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get deleted row count: %w", err)
-	}
-	return affected, nil
+	return s.execDeleteQuery(ctx, query, "old", cutoff)
 }
 
 // deleteByCount removes excess snapshots beyond the maximum count specified in the policy
@@ -706,9 +697,14 @@ func (s *SQLiteStorage) deleteByCount(ctx context.Context, policy RetentionPolic
 	toDelete := currentCount - policy.MaxCount
 	query := s.buildCountBasedDeleteQuery(policy)
 
-	result, err := s.db.ExecContext(ctx, query, toDelete)
+	return s.execDeleteQuery(ctx, query, "excess", toDelete)
+}
+
+// execDeleteQuery executes a delete query and returns the number of affected rows.
+func (s *SQLiteStorage) execDeleteQuery(ctx context.Context, query, desc string, arg interface{}) (int64, error) {
+	result, err := s.db.ExecContext(ctx, query, arg)
 	if err != nil {
-		return 0, fmt.Errorf("failed to delete excess snapshots: %w", err)
+		return 0, fmt.Errorf("failed to delete %s snapshots: %w", desc, err)
 	}
 
 	affected, err := result.RowsAffected()

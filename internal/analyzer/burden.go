@@ -479,19 +479,7 @@ func extractCallExpr(stmt ast.Stmt) (*ast.CallExpr, bool) {
 
 // isOsExitCall checks if a statement is an os.Exit call
 func (ba *BurdenAnalyzer) isOsExitCall(stmt ast.Stmt) bool {
-	call, ok := extractCallExpr(stmt)
-	if !ok {
-		return false
-	}
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	ident, ok := sel.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	return ident.Name == "os" && sel.Sel.Name == "Exit"
+	return ba.isSelectorCall(stmt, "os", "Exit")
 }
 
 // isPanicCall checks if a statement is a panic call
@@ -525,6 +513,23 @@ func (ba *BurdenAnalyzer) isLogFatalCall(stmt ast.Stmt) bool {
 		return sel.Sel.Name == "Fatal" || sel.Sel.Name == "Fatalf" || sel.Sel.Name == "Fatalln"
 	}
 	return false
+}
+
+// isSelectorCall checks if a statement is a call to pkg.method
+func (ba *BurdenAnalyzer) isSelectorCall(stmt ast.Stmt, pkg, method string) bool {
+	call, ok := extractCallExpr(stmt)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	return ident.Name == pkg && sel.Sel.Name == method
 }
 
 // getTerminationReason returns a human-readable description of why a statement

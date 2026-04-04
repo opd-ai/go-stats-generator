@@ -471,10 +471,19 @@ func (na *NamingAnalyzer) checkSingleLetterName(name, idType string, ctx *identi
 
 // checkAcronymAtStart checks if an acronym at the start of a name is incorrectly cased.
 // It validates the beginning position of identifiers like "Url" -> "URL" or "UrlParser" -> "URLParser".
+// Returns nil if the acronym is part of a longer word (e.g., "identifier" won't match "id").
 func checkAcronymAtStart(name, nameLower, acronym, correctForm string) *metrics.IdentifierViolation {
 	acronymLen := len(acronym)
 	if !strings.HasPrefix(nameLower, acronym) {
 		return nil
+	}
+
+	// Ensure acronym is at a word boundary (followed by uppercase or end of string)
+	if len(name) > acronymLen {
+		nextChar := rune(name[acronymLen])
+		if !unicode.IsUpper(nextChar) {
+			return nil // Part of a longer word, not an acronym
+		}
 	}
 
 	actualPrefix := name[:acronymLen]
@@ -493,6 +502,7 @@ func checkAcronymAtStart(name, nameLower, acronym, correctForm string) *metrics.
 
 // checkAcronymInMiddle checks if an acronym in the middle or end of a name is incorrectly cased.
 // It searches for word boundaries in MixedCaps identifiers like "GetUrl" -> "GetURL" or "UserId" -> "UserID".
+// Returns nil if the acronym is part of a longer word (e.g., "Identifier" won't match "Id").
 func checkAcronymInMiddle(name, acronym, correctForm string) *metrics.IdentifierViolation {
 	acronymLen := len(acronym)
 
@@ -503,6 +513,15 @@ func checkAcronymInMiddle(name, acronym, correctForm string) *metrics.Identifier
 			segmentLower := strings.ToLower(segment)
 
 			if segmentLower == acronym && isWrongAcronymCasing(segment, correctForm) {
+				// Ensure acronym ends at a word boundary (followed by uppercase or end of string)
+				endPos := i + acronymLen
+				if endPos < len(name) {
+					nextChar := rune(name[endPos])
+					if !unicode.IsUpper(nextChar) {
+						continue // Part of a longer word, not an acronym
+					}
+				}
+
 				suggested := name[:i] + correctForm + name[i+acronymLen:]
 				return &metrics.IdentifierViolation{
 					Name:          name,
