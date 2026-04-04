@@ -60,9 +60,10 @@ var trendForecastCmd = &cobra.Command{
 	Short: "Forecast future metrics using statistical methods",
 	Long: `Generate forecasts for future metric values based on historical trends.
 
-Supports two forecasting methods:
+Supports three forecasting methods:
   - linear:      Linear regression (default) - best for steady trends
   - exponential: Exponential smoothing - better for volatile/recent-weighted data
+  - arima:       ARIMA(1,1,1) model - best for data with autocorrelation patterns
 
 Provides for each method:
   - Point estimates for 7, 14, and 30 days ahead
@@ -70,7 +71,7 @@ Provides for each method:
   - Reliability scores
   - Warnings for low-quality forecasts
 
-Requires at least 3 historical baseline snapshots.`,
+Requires at least 3 historical baseline snapshots (4 for ARIMA).`,
 	RunE: runTrendForecast,
 }
 
