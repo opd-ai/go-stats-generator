@@ -119,51 +119,57 @@ func (pa *PackageAnalyzer) calculateFileLines(file *ast.File) int {
 // GenerateReport generates comprehensive package metrics report including
 // GenerateReport computes cohesion, coupling, and dependency analysis for all analyzed packages.
 func (pa *PackageAnalyzer) GenerateReport() (*metrics.PackageReport, error) {
-	packages := make([]metrics.PackageMetrics, 0, len(pa.packageFiles))
-
-	for pkgName := range pa.packageFiles {
-		pkg := metrics.PackageMetrics{
-			Name:         pkgName,
-			Path:         pkgName, // Package path same as name for now
-			Files:        pa.packageFiles[pkgName],
-			Functions:    pa.packageFunctions[pkgName],
-			Structs:      pa.packageTypes[pkgName], // Approximation for now
-			Interfaces:   0,                        // Will be enhanced later
-			Dependencies: pa.packageDeps[pkgName],
-			Lines: metrics.LineMetrics{
-				Total: pa.packageLines[pkgName],
-				Code:  pa.packageLines[pkgName], // Approximation for now
-			},
-		}
-
-		// Calculate metrics
-		pkg.CohesionScore = pa.calculateCohesion(pkgName)
-		pkg.CouplingScore = pa.calculateCoupling(pkgName)
-
-		packages = append(packages, pkg)
-	}
-
-	// Sort packages by name for consistent output
-	sort.Slice(packages, func(i, j int) bool {
-		return packages[i].Name < packages[j].Name
-	})
-
-	// Detect circular dependencies
-	circularDeps := pa.detectCircularDependencies()
+	packages := pa.buildPackageMetrics()
+	sortPackagesByName(packages)
 
 	report := &metrics.PackageReport{
 		Packages:             packages,
 		TotalPackages:        len(packages),
-		CircularDependencies: circularDeps,
+		CircularDependencies: pa.detectCircularDependencies(),
 		DependencyGraph:      pa.buildDependencyGraph(),
 	}
 
-	// Calculate summary statistics
 	report.AverageFilesPerPackage = pa.calculateAverageFiles()
 	report.AverageFunctionsPerPackage = pa.calculateAverageInt(pa.packageFunctions)
 	report.AverageTypesPerPackage = pa.calculateAverageInt(pa.packageTypes)
 
 	return report, nil
+}
+
+// buildPackageMetrics creates PackageMetrics for all analyzed packages.
+func (pa *PackageAnalyzer) buildPackageMetrics() []metrics.PackageMetrics {
+	packages := make([]metrics.PackageMetrics, 0, len(pa.packageFiles))
+	for pkgName := range pa.packageFiles {
+		packages = append(packages, pa.createPackageMetrics(pkgName))
+	}
+	return packages
+}
+
+// createPackageMetrics builds metrics for a single package.
+func (pa *PackageAnalyzer) createPackageMetrics(pkgName string) metrics.PackageMetrics {
+	pkg := metrics.PackageMetrics{
+		Name:         pkgName,
+		Path:         pkgName,
+		Files:        pa.packageFiles[pkgName],
+		Functions:    pa.packageFunctions[pkgName],
+		Structs:      pa.packageTypes[pkgName],
+		Interfaces:   0,
+		Dependencies: pa.packageDeps[pkgName],
+		Lines: metrics.LineMetrics{
+			Total: pa.packageLines[pkgName],
+			Code:  pa.packageLines[pkgName],
+		},
+	}
+	pkg.CohesionScore = pa.calculateCohesion(pkgName)
+	pkg.CouplingScore = pa.calculateCoupling(pkgName)
+	return pkg
+}
+
+// sortPackagesByName sorts packages alphabetically by name.
+func sortPackagesByName(packages []metrics.PackageMetrics) {
+	sort.Slice(packages, func(i, j int) bool {
+		return packages[i].Name < packages[j].Name
+	})
 }
 
 // calculateCohesion measures how well elements within a package work together

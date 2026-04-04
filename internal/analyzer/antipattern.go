@@ -818,49 +818,48 @@ func (a *AntipatternAnalyzer) hasNakedReturn(body *ast.BlockStmt) bool {
 // Library code should return errors instead of terminating the process. The check excludes init()
 // functions where panic() is acceptable for configuration validation during initialization.
 func (a *AntipatternAnalyzer) checkPanicInLibraryCode(funcDecl *ast.FuncDecl, isLibraryCode bool) []metrics.PerformanceAntipattern {
+	if !isLibraryCode || a.isInitFunction(funcDecl) {
+		return nil
+	}
+
 	var patterns []metrics.PerformanceAntipattern
-
-	// Skip if this is not library code (main package is OK to use panic/log.Fatal)
-	if !isLibraryCode {
-		return patterns
-	}
-
-	// Skip init() functions - panic is acceptable during initialization
-	if a.isInitFunction(funcDecl) {
-		return patterns
-	}
-
-	// Walk the function body looking for panic() or log.Fatal() calls
 	ast.Inspect(funcDecl.Body, func(n ast.Node) bool {
 		callExpr, ok := n.(*ast.CallExpr)
 		if !ok {
 			return true
 		}
-
-		if a.isPanicCall(callExpr) {
-			patterns = append(patterns, metrics.PerformanceAntipattern{
-				Type:        "panic_in_library",
-				Description: "panic() call in library code (non-main package)",
-				Severity:    metrics.SeverityLevelViolation,
-				File:        a.fset.Position(callExpr.Pos()).Filename,
-				Line:        a.fset.Position(callExpr.Pos()).Line,
-				Suggestion:  "Return error instead of panic() - library code should not terminate the process",
-			})
-		} else if a.isLogFatalCall(callExpr) {
-			patterns = append(patterns, metrics.PerformanceAntipattern{
-				Type:        "log_fatal_in_library",
-				Description: "log.Fatal() call in library code (non-main package)",
-				Severity:    metrics.SeverityLevelCritical,
-				File:        a.fset.Position(callExpr.Pos()).Filename,
-				Line:        a.fset.Position(callExpr.Pos()).Line,
-				Suggestion:  "Return error instead of log.Fatal() - library code should not terminate the process",
-			})
+		if pattern := a.checkForbiddenCall(callExpr); pattern != nil {
+			patterns = append(patterns, *pattern)
 		}
-
 		return true
 	})
-
 	return patterns
+}
+
+// checkForbiddenCall checks if a call is a panic() or log.Fatal() and returns an antipattern if so.
+func (a *AntipatternAnalyzer) checkForbiddenCall(callExpr *ast.CallExpr) *metrics.PerformanceAntipattern {
+	pos := a.fset.Position(callExpr.Pos())
+	if a.isPanicCall(callExpr) {
+		return &metrics.PerformanceAntipattern{
+			Type:        "panic_in_library",
+			Description: "panic() call in library code (non-main package)",
+			Severity:    metrics.SeverityLevelViolation,
+			File:        pos.Filename,
+			Line:        pos.Line,
+			Suggestion:  "Return error instead of panic() - library code should not terminate the process",
+		}
+	}
+	if a.isLogFatalCall(callExpr) {
+		return &metrics.PerformanceAntipattern{
+			Type:        "log_fatal_in_library",
+			Description: "log.Fatal() call in library code (non-main package)",
+			Severity:    metrics.SeverityLevelCritical,
+			File:        pos.Filename,
+			Line:        pos.Line,
+			Suggestion:  "Return error instead of log.Fatal() - library code should not terminate the process",
+		}
+	}
+	return nil
 }
 
 // isPanicCall checks if a call expression is a panic() call

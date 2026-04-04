@@ -822,23 +822,29 @@ func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ra
 	}
 
 	receiverVar := ba.getReceiverVarName(fn)
-
 	selfRefs, externalRefs := ba.countReferences(fn.Body, receiverVar)
 
-	if len(externalRefs) == 0 {
-		return nil
-	}
-
 	maxExtType, maxExtCount := ba.findMostReferencedType(externalRefs)
-
-	if maxExtCount == 0 || float64(maxExtCount)/float64(max(selfRefs, 1)) < ratio {
+	if !ba.hasFeatureEnvy(maxExtCount, selfRefs, ratio) {
 		return nil
 	}
 
-	pos := ba.fset.Position(fn.Pos())
+	return ba.buildFeatureEnvyIssue(fn, receiverType, selfRefs, maxExtType, maxExtCount)
+}
 
-	// Determine severity based on ratio
-	envyRatio := float64(maxExtCount) / float64(max(selfRefs, 1))
+// hasFeatureEnvy determines if the reference counts indicate feature envy based on the ratio threshold.
+func (ba *BurdenAnalyzer) hasFeatureEnvy(extCount, selfRefs int, threshold float64) bool {
+	if extCount == 0 {
+		return false
+	}
+	return float64(extCount)/float64(max(selfRefs, 1)) >= threshold
+}
+
+// buildFeatureEnvyIssue creates a FeatureEnvyIssue from the analyzed method data.
+func (ba *BurdenAnalyzer) buildFeatureEnvyIssue(fn *ast.FuncDecl, receiverType string, selfRefs int, extType string, extRefs int) *metrics.FeatureEnvyIssue {
+	pos := ba.fset.Position(fn.Pos())
+	envyRatio := float64(extRefs) / float64(max(selfRefs, 1))
+
 	severity := metrics.SeverityLevelWarning
 	if envyRatio > 3.0 {
 		severity = metrics.SeverityLevelViolation
@@ -850,11 +856,11 @@ func (ba *BurdenAnalyzer) DetectFeatureEnvy(fn *ast.FuncDecl, file *ast.File, ra
 		Line:           pos.Line,
 		ReceiverType:   receiverType,
 		SelfReferences: selfRefs,
-		ExternalType:   maxExtType,
-		ExternalRefs:   maxExtCount,
+		ExternalType:   extType,
+		ExternalRefs:   extRefs,
 		Ratio:          envyRatio,
 		Severity:       severity,
-		SuggestedMove:  "Consider moving this method to " + maxExtType + " or extracting shared logic",
+		SuggestedMove:  "Consider moving this method to " + extType + " or extracting shared logic",
 	}
 }
 
