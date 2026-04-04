@@ -127,7 +127,7 @@ The README lists ARIMA/exponential smoothing as roadmap items:
 
 - [x] Implement exponential smoothing for trend forecasting — **RESOLVED**: Implemented in internal/analyzer/forecast.go with optimal alpha grid search
 - [x] Add correlation analysis between metrics — **RESOLVED**: Implemented `trend correlation` subcommand with Pearson correlation, p-values, strength/direction classification; types in metrics/trend_stats.go, logic in analyzer/statistics.go
-- [ ] Validation: `go-stats-generator trend forecast --method arima` works
+- [x] Validation: `go-stats-generator trend forecast --method arima` works — **RESOLVED**: ARIMA(1,1,1) model implemented in internal/analyzer/forecast.go with differencing, AR/MA coefficient estimation, and comprehensive tests
 
 ## Quality Gates Summary
 
