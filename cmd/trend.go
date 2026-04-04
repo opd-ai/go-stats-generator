@@ -20,6 +20,7 @@ var (
 	trendMetric    string
 	trendEntity    string
 	trendThreshold float64
+	trendMethod    string
 )
 
 var trendCmd = &cobra.Command{
@@ -56,13 +57,17 @@ Shows start/end values, delta, and direction (improving/degrading/stable).`,
 
 var trendForecastCmd = &cobra.Command{
 	Use:   "forecast",
-	Short: "Forecast future metrics using linear regression",
+	Short: "Forecast future metrics using statistical methods",
 	Long: `Generate forecasts for future metric values based on historical trends.
 
-Uses linear regression analysis to extrapolate trends and provide:
+Supports two forecasting methods:
+  - linear:      Linear regression (default) - best for steady trends
+  - exponential: Exponential smoothing - better for volatile/recent-weighted data
+
+Provides for each method:
   - Point estimates for 7, 14, and 30 days ahead
   - 95% confidence intervals
-  - Reliability scores (R² values)
+  - Reliability scores
   - Warnings for low-quality forecasts
 
 Requires at least 3 historical baseline snapshots.`,
@@ -101,6 +106,9 @@ func init() {
 	trendCmd.PersistentFlags().StringVarP(&trendMetric, "metric", "m", "", "Specific metric to analyze (complexity, lines, functions)")
 	trendCmd.PersistentFlags().StringVarP(&trendEntity, "entity", "e", "", "Specific entity to analyze (function, package, file)")
 	trendCmd.PersistentFlags().Float64VarP(&trendThreshold, "threshold", "t", 10.0, "Threshold percentage for significance")
+
+	// Forecast-specific flags
+	trendForecastCmd.Flags().StringVar(&trendMethod, "method", "linear", "Forecasting method (linear, exponential)")
 
 	// Global flags inherited from root
 	trendCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "console", "Output format (json, console)")
@@ -367,7 +375,7 @@ func analyzeTrends(snapshots []storage.SnapshotInfo, metric, entity string, thre
 	return result
 }
 
-// generateForecasts produces metric forecasts based on historical trend data using linear regression analysis.
+// generateForecasts produces metric forecasts based on historical trend data using the configured method.
 // It analyzes time-series data from baseline snapshots to predict future metric values at 7, 14, and 30-day horizons.
 // Parameters:
 //   - snapshots: chronologically ordered historical baseline snapshots (minimum 2 required)
@@ -386,14 +394,22 @@ func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) 
 		return map[string]interface{}{"error": fmt.Sprintf("No data available for metric: %s", metric)}
 	}
 
-	forecast7 := analyzer.GenerateForecast(series, 7)
-	forecast14 := analyzer.GenerateForecast(series, 14)
-	forecast30 := analyzer.GenerateForecast(series, 30)
+	// Select forecasting method based on --method flag
+	method := analyzer.ForecastLinear
+	methodName := "linear_regression"
+	if trendMethod == "exponential" {
+		method = analyzer.ForecastExponential
+		methodName = "exponential_smoothing"
+	}
+
+	forecast7 := analyzer.GenerateForecastWithMethod(series, 7, method)
+	forecast14 := analyzer.GenerateForecastWithMethod(series, 14, method)
+	forecast30 := analyzer.GenerateForecastWithMethod(series, 30, method)
 
 	return map[string]interface{}{
 		"metric":           metric,
 		"entity":           entity,
-		"method":           "linear_regression",
+		"method":           methodName,
 		"data_points":      len(series.DataPoints),
 		"forecasts":        buildForecastList(forecast7, forecast14, forecast30),
 		"trend_statistics": buildTrendStats(forecast7),
