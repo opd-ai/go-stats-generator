@@ -98,40 +98,44 @@ func (r *CSVReporter) writeOverviewSection(writer *csv.Writer, report *metrics.R
 // writing headers (name, package, file, metrics) and detailed rows for each
 // function with complexity, line counts, signature details, and documentation status.
 func (r *CSVReporter) writeFunctionsSection(writer *csv.Writer, report *metrics.Report) error {
-	headers := []string{
+	return writeSectionData(writer, "# FUNCTIONS", functionHeaders(), report.Functions, formatFunctionRow)
+}
+
+// functionHeaders returns the CSV column headers for function metrics.
+func functionHeaders() []string {
+	return []string{
 		"Name", "Package", "File", "Line", "Is Exported", "Is Method",
 		"Lines Total", "Lines Code", "Lines Comments", "Lines Blank",
 		"Cyclomatic Complexity", "Cognitive Complexity", "Nesting Depth", "Overall Complexity",
 		"Parameter Count", "Return Count", "Has Variadic", "Returns Error",
 		"Has Documentation", "Documentation Quality",
 	}
+}
 
-	formatter := func(fn metrics.FunctionMetrics) []string {
-		return []string{
-			fn.Name,
-			fn.Package,
-			fn.File,
-			strconv.Itoa(fn.Line),
-			formatBool(fn.IsExported),
-			formatBool(fn.IsMethod),
-			strconv.Itoa(fn.Lines.Total),
-			strconv.Itoa(fn.Lines.Code),
-			strconv.Itoa(fn.Lines.Comments),
-			strconv.Itoa(fn.Lines.Blank),
-			strconv.Itoa(fn.Complexity.Cyclomatic),
-			strconv.Itoa(fn.Complexity.Cognitive),
-			strconv.Itoa(fn.Complexity.NestingDepth),
-			formatFloat(fn.Complexity.Overall),
-			strconv.Itoa(fn.Signature.ParameterCount),
-			strconv.Itoa(fn.Signature.ReturnCount),
-			formatBool(fn.Signature.VariadicUsage),
-			formatBool(fn.Signature.ErrorReturn),
-			formatBool(fn.Documentation.HasComment),
-			formatFloat(fn.Documentation.QualityScore),
-		}
+// formatFunctionRow converts a FunctionMetrics to a CSV row.
+func formatFunctionRow(fn metrics.FunctionMetrics) []string {
+	return []string{
+		fn.Name,
+		fn.Package,
+		fn.File,
+		strconv.Itoa(fn.Line),
+		formatBool(fn.IsExported),
+		formatBool(fn.IsMethod),
+		strconv.Itoa(fn.Lines.Total),
+		strconv.Itoa(fn.Lines.Code),
+		strconv.Itoa(fn.Lines.Comments),
+		strconv.Itoa(fn.Lines.Blank),
+		strconv.Itoa(fn.Complexity.Cyclomatic),
+		strconv.Itoa(fn.Complexity.Cognitive),
+		strconv.Itoa(fn.Complexity.NestingDepth),
+		formatFloat(fn.Complexity.Overall),
+		strconv.Itoa(fn.Signature.ParameterCount),
+		strconv.Itoa(fn.Signature.ReturnCount),
+		formatBool(fn.Signature.VariadicUsage),
+		formatBool(fn.Signature.ErrorReturn),
+		formatBool(fn.Documentation.HasComment),
+		formatFloat(fn.Documentation.QualityScore),
 	}
-
-	return writeSectionData(writer, "# FUNCTIONS", headers, report.Functions, formatter)
 }
 
 // writeStructsSection outputs the structs analysis section to CSV format,
