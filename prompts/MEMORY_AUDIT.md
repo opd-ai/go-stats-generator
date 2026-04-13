@@ -23,7 +23,7 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 3. List packages (`go list ./...`) and identify which packages handle large data, long-lived objects, or high-throughput processing.
 4. Build a **memory inventory** by scanning for:
    - `unsafe.Pointer` and `uintptr` conversions
-   - `reflect.SliceHeader` and `reflect.StringHeader` (deprecated in Go 1.20+)
+   - `reflect.SliceHeader` and `reflect.StringHeader` (deprecated — use `unsafe.Slice` and `unsafe.String` instead)
    - `runtime.SetFinalizer` usage
    - `sync.Pool` usage and reuse patterns
    - Large slice/map allocations (`make([]T, n)` with large or unbounded `n`)
@@ -99,7 +99,7 @@ For every use of `unsafe`, verify:
 
 - [ ] `unsafe.Pointer` conversions follow the six valid patterns documented in the `unsafe` package (no arbitrary arithmetic).
 - [ ] `uintptr` values are not stored in variables — they must be used in a single expression to prevent the GC from moving the referenced object.
-- [ ] No `reflect.SliceHeader` or `reflect.StringHeader` manipulation occurs (use `unsafe.Slice` and `unsafe.String` in Go 1.17+).
+- [ ] No `reflect.SliceHeader` or `reflect.StringHeader` manipulation occurs (use `unsafe.Slice` and `unsafe.String` instead).
 - [ ] `cgo` allocations (`C.CString`, `C.CBytes`, `C.malloc`) have corresponding `C.free` on all code paths, including error returns.
 - [ ] `//go:nosplit`, `//go:noescape`, and `//go:linkname` directives are justified and do not mask memory safety issues.
 - [ ] Pointer alignment assumptions are correct for the target architecture.
