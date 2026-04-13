@@ -111,7 +111,7 @@ Before recording ANY finding, apply these checks:
 
 1. **Verify the error matters**: A discarded error from `fmt.Println` to stdout is not a bug. A discarded error from `f.Close()` on a read-only file is generally acceptable. Evaluate the consequence of the error being non-nil.
 2. **Check the project's conventions**: If the project consistently uses `log.Printf` + return for a class of errors, a single instance following that pattern is not a finding — it is consistency.
-3. **Trace the error path**: Confirm the error can actually be non-nil. A `json.Marshal` on a struct with only basic types will not fail. A `strings.NewReader` cannot return an error from `Read`.
+3. **Trace the error path**: Confirm the error can actually be non-nil. A `json.Marshal` on a struct with common basic data is usually safe, but it can still fail (for example, if float fields contain `NaN`, `+Inf`, or `-Inf`). A `strings.NewReader` cannot return an error from `Read`.
 4. **Read surrounding comments**: If a comment explicitly acknowledges an error handling decision (e.g., `// error intentionally ignored: best-effort logging`, `//nolint:`, or a TODO tracking a known issue), treat it as an acknowledged pattern — do not report it as a new finding.
 5. **Assess the impact**: A swallowed error in a debug logging path is LOW. A swallowed error in a data persistence path is CRITICAL. Classify by consequence, not by pattern.
 6. **Check for alternative error handling**: An error that appears unhandled may be handled by a higher-level mechanism (e.g., HTTP middleware that catches panics, or a deferred function that checks a named return).
