@@ -70,7 +70,7 @@ For every path from untrusted input to a sensitive sink, verify:
 - [ ] `syscall.Exec` and `os.StartProcess` inputs are validated against an allowlist.
 
 **SQL injection:**
-- [ ] All SQL queries use parameterized queries (`db.Query("SELECT ... WHERE id = ?", id)`), never string concatenation or `fmt.Sprintf`.
+- [ ] All SQL queries use parameterized queries with the database driver's parameter placeholders and pass arguments separately, never string concatenation or `fmt.Sprintf`.
 - [ ] ORM query builders do not interpolate user input into raw SQL fragments.
 - [ ] Table and column names derived from user input are validated against an allowlist (parameterization cannot protect identifiers).
 
