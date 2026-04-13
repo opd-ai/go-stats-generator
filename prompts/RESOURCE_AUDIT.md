@@ -90,7 +90,7 @@ For every network resource, verify:
 
 #### 3d. Child Process and Pipe Leaks
 - [ ] `exec.Cmd.Start` is followed by `cmd.Wait()` on all paths — un-waited processes become zombies and their pipes leak.
-- [ ] `exec.Cmd.StdoutPipe` and `StderrPipe` are read to completion before `cmd.Wait()` — `Wait` closes the pipes, causing reads to fail if not complete.
+- [ ] When using `exec.Cmd.StdoutPipe` and `StderrPipe`, stdout/stderr are drained concurrently (for example, via goroutines), then `cmd.Wait()` is called, and the drain goroutines are allowed to finish before returning — reading either pipe synchronously to completion before `Wait()` can deadlock if the child blocks on a full pipe buffer, while calling `Wait()` too early can truncate reads because it closes the pipes.
 - [ ] `os.Pipe` and `io.Pipe` writers are closed to signal EOF to readers.
 - [ ] Child process stdout/stderr are captured or redirected — uncaptured output can fill OS pipe buffers and cause deadlocks.
 - [ ] Long-running child processes have a kill mechanism (context-based or signal-based) for shutdown.
