@@ -80,10 +80,10 @@ For every path from untrusted input to a sensitive sink, verify:
 - [ ] `template.HTML()`, `template.JS()`, and `template.CSS()` type conversions are not applied to user-controlled data.
 
 **Path traversal:**
-- [ ] `filepath.Clean` and `filepath.Rel` are used to validate file paths derived from user input.
-- [ ] No user input is passed directly to `os.Open`, `os.Create`, `os.ReadFile`, or `os.WriteFile` without path validation.
-- [ ] Symlink resolution (`filepath.EvalSymlinks`) is used where the file system is untrusted.
-- [ ] Archive extraction (zip, tar) validates entry paths to prevent writes outside the target directory (Zip Slip).
+- [ ] File paths derived from user input are constrained to a trusted base directory; do not treat `filepath.Clean` or `filepath.Rel` alone as sufficient validation.
+- [ ] Code that calls `os.Open`, `os.Create`, `os.ReadFile`, or `os.WriteFile` with user-derived paths first joins them to a trusted root and verifies the resolved path remains within that root.
+- [ ] Where the file system is untrusted or symlinks may be present, `filepath.EvalSymlinks` is used as part of the trusted-root containment check, not as a standalone safeguard.
+- [ ] Archive extraction (zip, tar) validates each entry path against the intended extraction directory to prevent writes outside the target directory (Zip Slip).
 
 **SSRF (Server-Side Request Forgery):**
 - [ ] URLs constructed from user input are validated against an allowlist of permitted hosts/schemes.
