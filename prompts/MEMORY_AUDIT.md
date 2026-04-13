@@ -23,7 +23,7 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 3. List packages (`go list ./...`) and identify which packages handle large data, long-lived objects, or high-throughput processing.
 4. Build a **memory inventory** by scanning for:
    - `unsafe.Pointer` and `uintptr` conversions
-   - `reflect.SliceHeader` and `reflect.StringHeader` (deprecated — use `unsafe.Slice` and `unsafe.String` instead)
+   - `reflect.SliceHeader` and `reflect.StringHeader` usage with `unsafe` (fragile: may rely on layout assumptions or violate pointer-safety rules; prefer `unsafe.Slice` and `unsafe.String` where applicable)
    - `runtime.SetFinalizer` usage
    - `sync.Pool` usage and reuse patterns
    - Large slice/map allocations (`make([]T, n)` with large or unbounded `n`)
