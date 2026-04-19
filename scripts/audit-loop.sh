@@ -120,6 +120,12 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_DIR="${PROMPT_DIR:-${1:-$REPO_ROOT/prompts}}"
+
+if [ ! -d "$PROMPT_DIR" ]; then
+    echo "ERROR: Prompt directory '$PROMPT_DIR' does not exist or is not a directory." >&2
+    echo "Set PROMPT_DIR or pass the prompt directory as an argument." >&2
+    exit 1
+fi
 PROMPT_DIR="$(cd "$PROMPT_DIR" && pwd)"
 
 if [ ! -f "$PROMPT_DIR/EXECUTE.md" ]; then
