@@ -164,9 +164,23 @@ delegate() {
 
 run_tests() {
     log "Running tests..."
+    local rc
     set +e
-    xvfb-run go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
-    local rc=${PIPESTATUS[0]}
+    if command -v xvfb-run >/dev/null 2>&1; then
+        # -a: auto-select a free server number to avoid :99 conflicts
+        xvfb-run -a -- go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
+        rc=${PIPESTATUS[0]}
+        # If Xvfb itself failed to start, fall back to running without a display
+        if grep -q 'xvfb-run: error:' "$TEST_OUTPUT"; then
+            log "WARNING: xvfb-run failed to start Xvfb — retrying without display wrapper..."
+            go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
+            rc=${PIPESTATUS[0]}
+        fi
+    else
+        log "WARNING: xvfb-run not available — running tests without display wrapper..."
+        go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
+        rc=${PIPESTATUS[0]}
+    fi
     set -e
     LAST_TEST_RC="$rc"
 
@@ -180,9 +194,13 @@ run_tests() {
 }
 
 is_relevant_test_failure() {
+    # Exclude xvfb infrastructure errors — not actionable by FAIL.md.
+    if [ -f "$TEST_OUTPUT" ] && grep -q 'xvfb-run: error:' "$TEST_OUTPUT"; then
+        return 1
+    fi
     # Actionable failures are real go test package/test failures.
     if [ "${LAST_TEST_RC:-0}" -eq 1 ] && [ -f "$TEST_OUTPUT" ] &&
-        grep -Eq '^(--- FAIL:|FAIL[[:space:]])' "$TEST_OUTPUT"; then
+        grep -Eq '^(--- FAIL:|FAIL[[:space:]\t])' "$TEST_OUTPUT"; then
         return 0
     fi
     return 1
