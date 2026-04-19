@@ -43,6 +43,7 @@ AUDITS_COMPLETED=0
 TASKS_EXECUTED=0
 TEST_FAILURES=0
 FINAL_TEST_STATUS="UNKNOWN"
+LAST_TEST_RC=0
 
 # ─── Audit sequence: implementation gaps → product completeness ───────────────
 #
@@ -167,6 +168,7 @@ run_tests() {
     xvfb-run go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
     local rc=${PIPESTATUS[0]}
     set -e
+    LAST_TEST_RC="$rc"
 
     if [ "$rc" -eq 0 ]; then
         log "Tests PASSED"
@@ -175,6 +177,24 @@ run_tests() {
         log "Tests FAILED (exit code: $rc)"
         return 1
     fi
+}
+
+is_relevant_test_failure() {
+    # Actionable failures are real go test package/test failures.
+    if [ "${LAST_TEST_RC:-0}" -eq 1 ] && [ -f "$TEST_OUTPUT" ] &&
+        grep -Eq '^(--- FAIL:|FAIL[[:space:]])' "$TEST_OUTPUT"; then
+        return 0
+    fi
+    return 1
+}
+
+ensure_relevant_test_failure_or_exit() {
+    if is_relevant_test_failure; then
+        return 0
+    fi
+    log_and_print "ERROR: Non-actionable test command failure (exit code: ${LAST_TEST_RC:-unknown}); skipping FAIL.md."
+    log_and_print "Inspect $TEST_OUTPUT for details."
+    exit "${LAST_TEST_RC:-1}"
 }
 
 # ─── 2. Audit sequence ────────────────────────────────────────────────────────
@@ -207,6 +227,7 @@ for AUDIT_PROMPT in "${AUDIT_SEQUENCE[@]}"; do
     else
         FINAL_TEST_STATUS="FAIL"
         TEST_FAILURES=$((TEST_FAILURES + 1))
+        ensure_relevant_test_failure_or_exit
         log_and_print "Tests failed — delegating FAIL.md to diagnose and fix..."
 
         delegate "FAIL.md" || true
@@ -215,6 +236,7 @@ for AUDIT_PROMPT in "${AUDIT_SEQUENCE[@]}"; do
             FINAL_TEST_STATUS="PASS"
             audit_summary "$AUDIT_PROMPT" "PASS (fixed)"
         else
+            ensure_relevant_test_failure_or_exit
             FINAL_TEST_STATUS="FAIL"
             log_and_print "Tests still failing after FAIL.md — continuing to next audit."
             audit_summary "$AUDIT_PROMPT" "FAIL (persisted)"
