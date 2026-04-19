@@ -151,8 +151,10 @@ delegate() {
     fi
 
     log "Delegating: $prompt_name"
+    set +e
     yes | copilot --model claude-opus-4.5 -p "$(cat "$prompt_file")" --allow-all-tools --deny-tool sudo
-    local rc=$?
+    local rc=${PIPESTATUS[1]}
+    set -e
     log "Delegation complete: $prompt_name (exit code: $rc)"
     return $rc
 }
