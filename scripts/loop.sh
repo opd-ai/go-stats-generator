@@ -40,6 +40,7 @@ MAINTENANCE_INTERVAL=3          # Run periodic maintenance every N iterations
 LOG_FILE="loop.log"
 TEST_OUTPUT="test-output.txt"
 ANALYSIS_OUTPUT=".loop-analysis.json"
+XVFB_ERROR_PATTERN="xvfb-run: error:"
 
 # Counters
 ITERATION=0
@@ -132,7 +133,7 @@ run_tests() {
         xvfb-run -a -- go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
         rc=${PIPESTATUS[0]}
         # If Xvfb itself failed to start, fall back to running without a display
-        if grep -q 'xvfb-run: error:' "$TEST_OUTPUT"; then
+        if grep -q "$XVFB_ERROR_PATTERN" "$TEST_OUTPUT"; then
             log "WARNING: xvfb-run failed to start Xvfb — retrying without display wrapper..."
             go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
             rc=${PIPESTATUS[0]}
@@ -156,11 +157,11 @@ run_tests() {
 
 is_relevant_test_failure() {
     # Exclude xvfb infrastructure errors — not actionable by FAIL.md.
-    if [ -f "$TEST_OUTPUT" ] && grep -q 'xvfb-run: error:' "$TEST_OUTPUT"; then
+    if [ -f "$TEST_OUTPUT" ] && grep -q "$XVFB_ERROR_PATTERN" "$TEST_OUTPUT"; then
         return 1
     fi
-    # Actionable failures are real go test package/test failures.
-    if [ "${LAST_TEST_RC:-0}" -eq 1 ] && [ -f "$TEST_OUTPUT" ] &&
+    # Actionable failures are real go test package/test failures (exit codes 1+).
+    if [ "${LAST_TEST_RC:-0}" -ne 0 ] && [ -f "$TEST_OUTPUT" ] &&
         grep -Eq '^(--- FAIL:|FAIL[[:space:]\t])' "$TEST_OUTPUT"; then
         return 0
     fi
