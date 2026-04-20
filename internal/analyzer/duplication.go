@@ -101,12 +101,23 @@ func (da *DuplicationAnalyzer) ExtractBlocks(file *ast.File, filePath string, mi
 	return blocks
 }
 
-// extractBlocksFromStmtList extracts statement blocks from a list of statements
+// extractBlocksFromStmtList extracts statement blocks from a list of statements.
+// The sliding window is capped at minBlockLines*3 to bound quadratic growth: for a
+// statement list of length S the uncapped algorithm produces O(S²) blocks. The cap
+// limits the window to a constant multiple of the minimum size, keeping block count
+// at O(S) and preventing duplication analysis from becoming a throughput blocker on
+// large codebases.
 func (da *DuplicationAnalyzer) extractBlocksFromStmtList(stmts []ast.Stmt, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 
+	// Cap the maximum window size to bound O(S²) block growth.
+	maxWindowSize := minBlockLines * 3
+	if maxWindowSize > len(stmts) {
+		maxWindowSize = len(stmts)
+	}
+
 	// Use a sliding window to extract blocks of various sizes
-	for windowSize := minBlockLines; windowSize <= len(stmts); windowSize++ {
+	for windowSize := minBlockLines; windowSize <= maxWindowSize; windowSize++ {
 		for start := 0; start <= len(stmts)-windowSize; start++ {
 			end := start + windowSize
 			blockStmts := stmts[start:end]
@@ -719,26 +730,42 @@ func areAllInstancesSubsumed(pair metrics.ClonePair, claimed map[string][]claime
 	return true
 }
 
-// claimPairRanges adds all instances of a pair to the claimed ranges.
+// claimPairRanges adds all instances of a pair to the claimed ranges in sorted order.
+// Inserting in order means isRangeSubsumed can use binary search directly without
+// creating a sorted copy on every call.
 func claimPairRanges(pair metrics.ClonePair, claimed map[string][]claimedRange) {
 	for _, inst := range pair.Instances {
-		claimed[inst.File] = append(claimed[inst.File], claimedRange{inst.StartLine, inst.EndLine})
+		claimed[inst.File] = insertSortedRange(claimed[inst.File], claimedRange{inst.StartLine, inst.EndLine})
 	}
+}
+
+// insertSortedRange inserts cr into ranges while maintaining ascending start-order.
+func insertSortedRange(ranges []claimedRange, cr claimedRange) []claimedRange {
+	idx := sort.Search(len(ranges), func(i int) bool {
+		if ranges[i].start == cr.start {
+			return ranges[i].end >= cr.end
+		}
+		return ranges[i].start > cr.start
+	})
+	ranges = append(ranges, claimedRange{})
+	copy(ranges[idx+1:], ranges[idx:])
+	ranges[idx] = cr
+	return ranges
 }
 
 // isRangeSubsumed checks whether a line range is fully contained within
 // any of the already-claimed ranges for the given file.
+// claimed[file] is maintained in sorted order by claimPairRanges, so no copy is needed.
 func isRangeSubsumed(file string, start, end int, claimed map[string][]claimedRange) bool {
 	ranges := claimed[file]
 	if len(ranges) == 0 {
 		return false
 	}
 
-	sorted := sortClaimedRanges(ranges)
-	return checkRangeInSorted(start, end, sorted)
+	return checkRangeInSorted(start, end, ranges)
 }
 
-// sortClaimedRanges creates a sorted copy of claimed ranges.
+// sortClaimedRanges creates a sorted copy of claimed ranges (retained for external callers).
 func sortClaimedRanges(ranges []claimedRange) []claimedRange {
 	sorted := make([]claimedRange, len(ranges))
 	copy(sorted, ranges)

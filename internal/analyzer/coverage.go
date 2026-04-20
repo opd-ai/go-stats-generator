@@ -3,6 +3,7 @@ package analyzer
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -266,8 +267,8 @@ func AnalyzeTestQuality(repoPath string) (metrics.TestQualityMetrics, error) {
 		TestFiles: []metrics.TestFileInfo{},
 	}
 
-	err := filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
+	err := filepath.WalkDir(repoPath, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() {
 			return err
 		}
 

@@ -67,10 +67,17 @@ func (wp *WorkerPool) createEmptyChannel() <-chan Result {
 	return resultChan
 }
 
-// createChannels creates job and result channels with appropriate buffer sizes
+// createChannels creates job and result channels with appropriate buffer sizes.
+// Buffers are capped at workerCount*2 to avoid allocating channel descriptor memory proportional
+// to the total file count. A small buffer keeps workers fed without holding all file metadata
+// (and their cached source bytes) in memory simultaneously.
 func (wp *WorkerPool) createChannels(fileCount int) (chan FileInfo, chan Result) {
-	jobChan := make(chan FileInfo, fileCount)
-	resultChan := make(chan Result, fileCount)
+	bufSize := wp.workerCount * 2
+	if bufSize > fileCount {
+		bufSize = fileCount
+	}
+	jobChan := make(chan FileInfo, bufSize)
+	resultChan := make(chan Result, bufSize)
 	return jobChan, resultChan
 }
 
@@ -155,9 +162,19 @@ func (wp *WorkerPool) sendResultOrCancel(ctx context.Context, result Result, res
 	}
 }
 
-// processFile processes a single file
+// processFile processes a single file, using cached source bytes from discovery when available.
 func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
-	file, err := wp.discoverer.ParseFile(fileInfo.Path)
+	var (
+		file *ast.File
+		err  error
+	)
+
+	if len(fileInfo.Src) > 0 {
+		file, err = wp.discoverer.parseFileWithSrc(fileInfo.Path, fileInfo.Src)
+	} else {
+		file, err = wp.discoverer.ParseFile(fileInfo.Path)
+	}
+
 	if err != nil {
 		return Result{
 			FileInfo: fileInfo,
@@ -176,8 +193,12 @@ func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
 func (wp *WorkerPool) trackProgress(ctx context.Context, resultChan <-chan Result, total int, progressCb ProgressCallback) <-chan Result {
 	completed := 0
 
-	// Create a new channel to forward results
-	forwardChan := make(chan Result, total)
+	// Use the same bounded buffer size as createChannels to avoid pre-allocating total slots.
+	bufSize := wp.workerCount * 2
+	if bufSize > total {
+		bufSize = total
+	}
+	forwardChan := make(chan Result, bufSize)
 
 	// Forward results while tracking progress
 	go func() {

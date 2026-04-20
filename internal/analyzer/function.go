@@ -11,7 +11,8 @@ import (
 
 // FunctionAnalyzer analyzes functions and methods in Go source code
 type FunctionAnalyzer struct {
-	fset *token.FileSet
+	fset          *token.FileSet
+	fileLineCache map[string][]string // keyed by file path; populated once per unique file
 }
 
 // NewFunctionAnalyzer creates a new function analyzer for computing comprehensive function-level
@@ -20,7 +21,8 @@ type FunctionAnalyzer struct {
 // that exceed maintainability thresholds and require refactoring.
 func NewFunctionAnalyzer(fset *token.FileSet) *FunctionAnalyzer {
 	return &FunctionAnalyzer{
-		fset: fset,
+		fset:          fset,
+		fileLineCache: make(map[string][]string),
 	}
 }
 
@@ -215,14 +217,20 @@ func (fa *FunctionAnalyzer) countLinesInRange(file *token.File, startLine, endLi
 	}
 }
 
-// readFileLines loads and splits a file into lines for the specified line range.
+// readFileLines returns the lines of fileName from the cache, reading from disk only once per
+// unique file path. This avoids the O(F) per-file disk reads that previously occurred when a
+// file with F functions was read F times during analysis.
 func (fa *FunctionAnalyzer) readFileLines(fileName string, startLine, endLine int) ([]string, bool) {
-	src, err := os.ReadFile(fileName)
-	if err != nil {
-		return nil, false
+	lines, ok := fa.fileLineCache[fileName]
+	if !ok {
+		src, err := os.ReadFile(fileName)
+		if err != nil {
+			return nil, false
+		}
+		lines = strings.Split(string(src), "\n")
+		fa.fileLineCache[fileName] = lines
 	}
 
-	lines := strings.Split(string(src), "\n")
 	if startLine < 1 || endLine > len(lines) {
 		return nil, false
 	}

@@ -11,6 +11,10 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
+// multipleUnderscoreRE matches two or more consecutive underscores. Compiled once at package
+// initialization to avoid repeated regexp.MustCompile calls inside the toSnakeCase hot path.
+var multipleUnderscoreRE = regexp.MustCompile(`_+`)
+
 // NamingAnalyzer performs naming convention analysis on Go code
 type NamingAnalyzer struct {
 	genericFileNames map[string]bool
@@ -256,7 +260,7 @@ func (na *NamingAnalyzer) toSnakeCase(s string) string {
 
 	resultStr := string(result)
 	// Clean up multiple underscores
-	resultStr = regexp.MustCompile(`_+`).ReplaceAllString(resultStr, "_")
+	resultStr = multipleUnderscoreRE.ReplaceAllString(resultStr, "_")
 	resultStr = strings.Trim(resultStr, "_")
 
 	return resultStr + testSuffix + ".go"
