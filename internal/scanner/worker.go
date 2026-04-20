@@ -163,17 +163,21 @@ func (wp *WorkerPool) sendResultOrCancel(ctx context.Context, result Result, res
 }
 
 // processFile processes a single file, using cached source bytes from discovery when available.
+// After parsing, Src is cleared to release the cached bytes and reduce peak memory pressure.
 func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
 	var (
 		file *ast.File
 		err  error
 	)
 
-	if len(fileInfo.Src) > 0 {
+	if fileInfo.Src != nil {
 		file, err = wp.discoverer.parseFileWithSrc(fileInfo.Path, fileInfo.Src)
 	} else {
 		file, err = wp.discoverer.ParseFile(fileInfo.Path)
 	}
+
+	// Release the cached bytes now that parsing is done.
+	fileInfo.Src = nil
 
 	if err != nil {
 		return Result{
@@ -200,21 +204,31 @@ func (wp *WorkerPool) trackProgress(ctx context.Context, resultChan <-chan Resul
 	}
 	forwardChan := make(chan Result, bufSize)
 
-	// Forward results while tracking progress
+	// Forward results while tracking progress.
+	// ctx.Done() is wired into both the receive and the send so this goroutine
+	// exits promptly when the context is cancelled even if forwardChan is full.
 	go func() {
 		defer close(forwardChan)
 
-		for result := range resultChan {
-			// Forward the result
-			forwardChan <- result
-
-			// Update progress
-			completed++
-			progressCb(completed, total)
+		for {
+			select {
+			case result, ok := <-resultChan:
+				if !ok {
+					// Upstream channel closed; emit the final progress update and exit.
+					progressCb(total, total)
+					return
+				}
+				select {
+				case forwardChan <- result:
+				case <-ctx.Done():
+					return
+				}
+				completed++
+				progressCb(completed, total)
+			case <-ctx.Done():
+				return
+			}
 		}
-
-		// Final progress update
-		progressCb(total, total)
 	}()
 
 	return forwardChan

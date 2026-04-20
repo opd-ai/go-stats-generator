@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -375,66 +376,67 @@ func test() {
 // After the file-line cache was introduced, repeated calls for the same path should
 // incur no disk I/O and allocate only the map-lookup overhead.
 func BenchmarkFunctionAnalyzer_ReadFileLines(b *testing.B) {
-// Build a realistic file with 50 short functions.
-src := "package bench\n\n"
-for i := 0; i < 50; i++ {
-src += "func f() {\n\tx := 1\n\t_ = x\n}\n\n"
-}
+	// Build a realistic file with 50 short functions.
+	src := "package bench\n\n"
+	for i := 0; i < 50; i++ {
+		src += "func f() {\n\tx := 1\n\t_ = x\n}\n\n"
+	}
 
-tmpFile, err := os.CreateTemp("", "bench_readfilelines_*.go")
-if err != nil {
-b.Fatal(err)
-}
-defer os.Remove(tmpFile.Name())
-if _, err := tmpFile.WriteString(src); err != nil {
-b.Fatal(err)
-}
-tmpFile.Close()
+	tmpFile, err := os.CreateTemp("", "bench_readfilelines_*.go")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+	if _, err := tmpFile.WriteString(src); err != nil {
+		b.Fatal(err)
+	}
+	tmpFile.Close()
 
-fset := token.NewFileSet()
-fa := NewFunctionAnalyzer(fset)
-lineCount := len(src) / 10 // rough upper bound
+	fset := token.NewFileSet()
+	fa := NewFunctionAnalyzer(fset)
+	// Compute the actual line count so readFileLines never returns false.
+	lineCount := strings.Count(src, "\n") + 1
 
-b.ResetTimer()
-for i := 0; i < b.N; i++ {
-_, ok := fa.readFileLines(tmpFile.Name(), 1, lineCount)
-if !ok {
-b.Fatal("readFileLines returned false")
-}
-}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, ok := fa.readFileLines(tmpFile.Name(), 1, lineCount)
+		if !ok {
+			b.Fatal("readFileLines returned false")
+		}
+	}
 }
 
 // BenchmarkFunctionAnalyzer_CountLinesInRange measures countLinesInRange on a mid-size function.
 func BenchmarkFunctionAnalyzer_CountLinesInRange(b *testing.B) {
-src := "package bench\n\nfunc heavy() {\n"
-for i := 0; i < 80; i++ {
-src += "\tx := 1\n\t_ = x\n"
-}
-src += "}\n"
+	src := "package bench\n\nfunc heavy() {\n"
+	for i := 0; i < 80; i++ {
+		src += "\tx := 1\n\t_ = x\n"
+	}
+	src += "}\n"
 
-filePath := filepath.Join(b.TempDir(), "heavy.go")
-if err := os.WriteFile(filePath, []byte(src), 0o644); err != nil {
-b.Fatal(err)
-}
+	filePath := filepath.Join(b.TempDir(), "heavy.go")
+	if err := os.WriteFile(filePath, []byte(src), 0o644); err != nil {
+		b.Fatal(err)
+	}
 
-fset := token.NewFileSet()
-file, err := parser.ParseFile(fset, filePath, src, parser.ParseComments)
-if err != nil {
-b.Fatal(err)
-}
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, filePath, src, parser.ParseComments)
+	if err != nil {
+		b.Fatal(err)
+	}
 
-fa := NewFunctionAnalyzer(fset)
+	fa := NewFunctionAnalyzer(fset)
 
-// Pre-populate the cache so we measure classification, not I/O.
-_, _ = fa.readFileLines(filePath, 1, 200)
+	// Pre-populate the cache so we measure classification, not I/O.
+	_, _ = fa.readFileLines(filePath, 1, 200)
 
-tokenFile := fset.File(file.Pos())
-if tokenFile == nil {
-b.Fatal("nil token file")
-}
+	tokenFile := fset.File(file.Pos())
+	if tokenFile == nil {
+		b.Fatal("nil token file")
+	}
 
-b.ResetTimer()
-for i := 0; i < b.N; i++ {
-_ = fa.countLinesInRange(tokenFile, 3, tokenFile.LineCount()-1)
-}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = fa.countLinesInRange(tokenFile, 3, tokenFile.LineCount()-1)
+	}
 }

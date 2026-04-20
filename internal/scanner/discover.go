@@ -36,7 +36,7 @@ func (d *Discoverer) createWalkDirFunction(rootDir string, files *[]FileInfo) fs
 			// DirEntry.Info() returns the cached lstat result, avoiding an extra os.Stat syscall.
 			info, infoErr := entry.Info()
 			if infoErr != nil {
-				return nil // skip unreadable entries silently
+				return fmt.Errorf("failed to stat %s: %w", path, infoErr)
 			}
 			d.processGoFile(path, rootDir, info, files)
 		}
