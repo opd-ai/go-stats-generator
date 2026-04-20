@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -79,6 +80,9 @@ func (d *Discoverer) analyzeFile(path, rootDir string, info fs.FileInfo) (FileIn
 		return fileInfo, fmt.Errorf("failed to read file %s: %w", path, err)
 	}
 	fileInfo.Src = src
+
+	// Compute line count from bytes; avoids a second fset lookup in downstream analyzers.
+	fileInfo.FileLines = bytes.Count(src, []byte("\n")) + 1
 
 	// Check for generated file markers
 	fileInfo.IsGenerated = isGeneratedFile(string(src))

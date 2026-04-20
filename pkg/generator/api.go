@@ -2,6 +2,10 @@ package generator
 
 import (
 	"context"
+	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +33,7 @@ func (a *Analyzer) AnalyzeDirectory(ctx context.Context, dir string) (*metrics.R
 		return nil, err
 	}
 
-	return a.buildReport(ctx, results, discoverer.GetFileSet(), absPath, len(files))
+	return a.buildReport(ctx, results, absPath, len(files))
 }
 
 // AnalyzeFile analyzes a single Go source file and produces a comprehensive metrics report for that file only.
@@ -37,22 +41,27 @@ func (a *Analyzer) AnalyzeDirectory(ctx context.Context, dir string) (*metrics.R
 // and aggregates results into a full metrics report structure. This method is used for file-scoped analysis workflows
 // and enables integration with editors/IDEs for real-time code quality feedback on individual files.
 func (a *Analyzer) AnalyzeFile(ctx context.Context, filePath string) (*metrics.Report, error) {
-	discoverer := scanner.NewDiscoverer(&a.config.Filters)
-	file, err := discoverer.ParseFile(filePath)
+	fileInfo := createFileInfo(filePath)
+
+	// Parse using a dedicated per-file FileSet so that position lookups in per-file analyzers
+	// work correctly without depending on the discoverer's shared FileSet.
+	localFset := token.NewFileSet()
+	file, err := parseFileForAnalysis(localFset, filePath, fileInfo.Src)
 	if err != nil {
 		return nil, err
 	}
+	fileInfo.Src = nil // release bytes after parsing
 
-	fileInfo := createFileInfo(filePath)
-	result := scanner.Result{FileInfo: fileInfo, File: file, Error: nil}
+	result := scanner.Result{FileInfo: fileInfo, File: file, FileSet: localFset, Error: nil}
 	results := make(chan scanner.Result, 1)
 	results <- result
 	close(results)
 
-	return a.buildReport(ctx, results, discoverer.GetFileSet(), filePath, 1)
+	return a.buildReport(ctx, results, filePath, 1)
 }
 
-// createFileInfo creates FileInfo for a single file analysis
+// createFileInfo creates FileInfo for a single file analysis, reading and caching
+// the file bytes so that the caller can reuse them for parsing without a second disk read.
 func createFileInfo(filePath string) scanner.FileInfo {
 	info := scanner.FileInfo{
 		Path:        filePath,
@@ -63,5 +72,29 @@ func createFileInfo(filePath string) scanner.FileInfo {
 	if fileInfo, err := os.Stat(filePath); err == nil {
 		info.Size = fileInfo.Size()
 	}
+	if src, err := os.ReadFile(filePath); err == nil {
+		info.Src = src
+		lineCount := 0
+		for _, b := range src {
+			if b == '\n' {
+				lineCount++
+			}
+		}
+		info.FileLines = lineCount + 1
+	}
 	return info
+}
+
+// parseFileForAnalysis parses a Go source file using the provided FileSet.
+// It uses src bytes when available to avoid a second disk read.
+func parseFileForAnalysis(fset *token.FileSet, filePath string, src []byte) (*ast.File, error) {
+	var srcArg interface{}
+	if len(src) > 0 {
+		srcArg = src
+	}
+	file, err := parser.ParseFile(fset, filePath, srcArg, parser.ParseComments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse file %s: %w", filePath, err)
+	}
+	return file, nil
 }

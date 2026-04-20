@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"go/ast"
 	"go/parser"
 	"go/token"
 	"testing"
@@ -12,6 +11,33 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// buildTestCollectedMetrics parses Go source strings into CollectedMetrics.DupBlocks
+// using the given minBlockLines, ready for finalizeDuplicationMetrics.
+func buildTestCollectedMetrics(t *testing.T, sources map[string]string, minBlockLines int) (*CollectedMetrics, *token.FileSet) {
+	t.Helper()
+	fset := token.NewFileSet()
+	da := analyzer.NewDuplicationAnalyzer(fset)
+	cm := &CollectedMetrics{
+		FileLinesCount: make(map[string]int),
+	}
+	for filename, src := range sources {
+		file, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
+		require.NoError(t, err)
+		blocks := da.ExtractBlocks(file, filename, minBlockLines)
+		cm.DupBlocks = append(cm.DupBlocks, blocks...)
+		// Compute line count from source text
+		lineCount := 0
+		for _, b := range []byte(src) {
+			if b == '\n' {
+				lineCount++
+			}
+		}
+		cm.DupTotalLines += lineCount + 1
+		cm.FileLinesCount[filename] = lineCount + 1
+	}
+	return cm, fset
+}
 
 // TestDuplicationConfigIntegration tests that configuration values are properly used
 func TestDuplicationConfigIntegration(t *testing.T) {
@@ -35,17 +61,10 @@ func duplicate() {
 	z := 3
 }
 `
-		file, err := parser.ParseFile(fset, "test.go", code, parser.ParseComments)
-		require.NoError(t, err)
+		cm, _ := buildTestCollectedMetrics(t, map[string]string{"test.go": code}, 3)
 
 		report := &metrics.Report{}
-		collectedMetrics := &CollectedMetrics{
-			Files: map[string]*ast.File{
-				"test.go": file,
-			},
-		}
-
-		finalizeDuplicationMetrics(report, duplicationAnalyzer, collectedMetrics, cfg)
+		finalizeDuplicationMetrics(report, duplicationAnalyzer, cm, cfg)
 
 		// With minBlockLines=3, should detect the 3-line duplicate
 		assert.Greater(t, report.Duplication.ClonePairs, 0, "Should detect duplicates with min_block_lines=3")
@@ -68,17 +87,10 @@ func example() {
 	f := 6
 }
 `
-		file, err := parser.ParseFile(fset, "similarity_test.go", code, parser.ParseComments)
-		require.NoError(t, err)
+		cm, _ := buildTestCollectedMetrics(t, map[string]string{"similarity_test.go": code}, cfg.Analysis.Duplication.MinBlockLines)
 
 		report := &metrics.Report{}
-		collectedMetrics := &CollectedMetrics{
-			Files: map[string]*ast.File{
-				"similarity_test.go": file,
-			},
-		}
-
-		finalizeDuplicationMetrics(report, duplicationAnalyzer, collectedMetrics, cfg)
+		finalizeDuplicationMetrics(report, duplicationAnalyzer, cm, cfg)
 
 		// Test passes if no error occurs (similarity threshold is used)
 		assert.NotNil(t, report.Duplication)
@@ -113,21 +125,13 @@ func TestDuplicate(t *testing.T) {
 	f := 6
 }
 `
-		regularFile, err := parser.ParseFile(fset, "regular.go", regularCode, parser.ParseComments)
-		require.NoError(t, err)
-
-		testFile, err := parser.ParseFile(fset, "filter_test.go", testCode, parser.ParseComments)
-		require.NoError(t, err)
+		cm, _ := buildTestCollectedMetrics(t, map[string]string{
+			"regular.go":     regularCode,
+			"filter_test.go": testCode,
+		}, cfg.Analysis.Duplication.MinBlockLines)
 
 		report := &metrics.Report{}
-		collectedMetrics := &CollectedMetrics{
-			Files: map[string]*ast.File{
-				"regular.go":     regularFile,
-				"filter_test.go": testFile,
-			},
-		}
-
-		finalizeDuplicationMetrics(report, duplicationAnalyzer, collectedMetrics, cfg)
+		finalizeDuplicationMetrics(report, duplicationAnalyzer, cm, cfg)
 
 		// With ignore_test_files=true, test file should be filtered out
 		// So we should have fewer or no clone pairs
@@ -152,21 +156,13 @@ func duplicate() {
 	f := 6
 }
 `
-		regularFile, err := parser.ParseFile(fset, "regular.go", code, parser.ParseComments)
-		require.NoError(t, err)
-
-		testFile, err := parser.ParseFile(fset, "include_test.go", code, parser.ParseComments)
-		require.NoError(t, err)
+		cm, _ := buildTestCollectedMetrics(t, map[string]string{
+			"regular.go":      code,
+			"include_test.go": code,
+		}, cfg.Analysis.Duplication.MinBlockLines)
 
 		report := &metrics.Report{}
-		collectedMetrics := &CollectedMetrics{
-			Files: map[string]*ast.File{
-				"regular.go":      regularFile,
-				"include_test.go": testFile,
-			},
-		}
-
-		finalizeDuplicationMetrics(report, duplicationAnalyzer, collectedMetrics, cfg)
+		finalizeDuplicationMetrics(report, duplicationAnalyzer, cm, cfg)
 
 		// With ignore_test_files=false, should analyze both files
 		assert.NotNil(t, report.Duplication)
@@ -189,9 +185,7 @@ func TestFinalizeDuplicationMetrics_EmptyFiles(t *testing.T) {
 	duplicationAnalyzer := analyzer.NewDuplicationAnalyzer(fset)
 
 	report := &metrics.Report{}
-	collectedMetrics := &CollectedMetrics{
-		Files: map[string]*ast.File{},
-	}
+	collectedMetrics := &CollectedMetrics{} // no DupBlocks
 
 	finalizeDuplicationMetrics(report, duplicationAnalyzer, collectedMetrics, cfg)
 
@@ -222,17 +216,10 @@ func TestExample(t *testing.T) {
 	c := 6
 }
 `
-	testFile, err := parser.ParseFile(fset, "example_test.go", testCode, parser.ParseComments)
-	require.NoError(t, err)
+	cm, _ := buildTestCollectedMetrics(t, map[string]string{"example_test.go": testCode}, cfg.Analysis.Duplication.MinBlockLines)
 
 	report := &metrics.Report{}
-	collectedMetrics := &CollectedMetrics{
-		Files: map[string]*ast.File{
-			"example_test.go": testFile,
-		},
-	}
-
-	finalizeDuplicationMetrics(report, duplicationAnalyzer, collectedMetrics, cfg)
+	finalizeDuplicationMetrics(report, duplicationAnalyzer, cm, cfg)
 
 	// All files filtered, should return empty metrics
 	assert.Equal(t, 0, report.Duplication.ClonePairs)

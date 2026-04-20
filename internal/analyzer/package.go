@@ -132,6 +132,24 @@ func (pa *PackageAnalyzer) calculateFileLines(file *ast.File) int {
 	return end.Line - start.Line + 1
 }
 
+// AnalyzePackageWithFileLines is like AnalyzePackage but accepts a pre-computed line count
+// instead of calling fset.Position on the AST, enabling callers that use per-file
+// token.FileSets (where the shared PackageAnalyzer's fset does not know about the file)
+// to still contribute accurate line counts to package-level metrics.
+func (pa *PackageAnalyzer) AnalyzePackageWithFileLines(file *ast.File, filePath string, fileLines int) error {
+	if file.Name == nil {
+		return fmt.Errorf("file has no package name: %s", filePath)
+	}
+
+	pkgName := file.Name.Name
+	pa.trackPackageFile(pkgName, filePath)
+	pa.analyzePackageImports(file, pkgName)
+	pa.countDeclarations(file, pkgName)
+	pa.packageLines[pkgName] += fileLines
+
+	return nil
+}
+
 // GenerateReport generates comprehensive package metrics report including
 // GenerateReport computes cohesion, coupling, and dependency analysis for all analyzed packages.
 func (pa *PackageAnalyzer) GenerateReport() (*metrics.PackageReport, error) {

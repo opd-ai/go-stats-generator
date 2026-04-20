@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	"go/ast"
 	"go/token"
 	"time"
 
@@ -35,51 +34,59 @@ func NewAnalyzerWithConfig(cfg *config.Config) *Analyzer {
 	}
 }
 
-// buildReport processes parsed files and builds a comprehensive metrics report
-func (a *Analyzer) buildReport(ctx context.Context, results <-chan scanner.Result, fset *token.FileSet, rootPath string, fileCount int) (*metrics.Report, error) {
-	analyzers := createAnalyzers(fset, a.config)
+// buildReport processes parsed files and builds a comprehensive metrics report.
+// Each result carries its own token.FileSet so that per-file analyzers use the correct
+// position data without contending on a shared FileSet mutex.  The PackageAnalyzer and
+// DuplicationAnalyzer are shared across all files because they accumulate cross-file state.
+func (a *Analyzer) buildReport(ctx context.Context, results <-chan scanner.Result, rootPath string, fileCount int) (*metrics.Report, error) {
+	// Shared cross-file analyzers; per-file analyzers are created per result below.
+	sharedPkg := analyzer.NewPackageAnalyzer(token.NewFileSet())
+
 	report := createReport(rootPath, fileCount)
-	collected := &collectedMetrics{files: make(map[string]*ast.File)}
+	collected := &collectedMetrics{}
 
 	for result := range results {
 		if result.Error != nil {
 			continue
 		}
-		processFile(result, analyzers, collected, report, a.config)
+		processFile(result, sharedPkg, collected, report, a.config)
 	}
 
-	finalizeReport(report, collected, analyzers)
+	finalizeReport(report, collected, sharedPkg)
 	return report, nil
 }
 
-// collectedMetrics holds metrics
+// collectedMetrics holds cross-file metrics accumulated during the streaming phase.
+// Statement blocks are accumulated here and passed to AnalyzeDuplicationFromBlocks
+// after all files are processed, avoiding the need to retain any *ast.File in memory.
 type collectedMetrics struct {
-	functions  []metrics.FunctionMetrics
-	structs    []metrics.StructMetrics
-	interfaces []metrics.InterfaceMetrics
-	files      map[string]*ast.File
-	generics   []metrics.GenericMetrics
+	functions    []metrics.FunctionMetrics
+	structs      []metrics.StructMetrics
+	interfaces   []metrics.InterfaceMetrics
+	generics     []metrics.GenericMetrics
+	dupBlocks    []analyzer.StatementBlock
+	dupTotalLines int
+	fileCount    int
 }
 
-// analysisSet holds all analyzers used to process Go source files
+// analysisSet holds per-file analyzers initialized with the result's own token.FileSet.
 type analysisSet struct {
 	function    *analyzer.FunctionAnalyzer
 	structure   *analyzer.StructAnalyzer
 	iface       *analyzer.InterfaceAnalyzer
-	pkg         *analyzer.PackageAnalyzer
 	concurrency *analyzer.ConcurrencyAnalyzer
 	pattern     *analyzer.PatternAnalyzer
 	duplication *analyzer.DuplicationAnalyzer
 	generic     *analyzer.GenericAnalyzer
 }
 
-// createAnalyzers initializes analyzers
-func createAnalyzers(fset *token.FileSet, cfg *config.Config) *analysisSet {
+// createPerFileAnalyzers initializes analyzers using the provided per-file FileSet so that
+// all position lookups operate on the correct token.File entries without a shared FileSet.
+func createPerFileAnalyzers(fset *token.FileSet, cfg *config.Config) *analysisSet {
 	return &analysisSet{
 		function:    analyzer.NewFunctionAnalyzer(fset),
 		structure:   analyzer.NewStructAnalyzer(fset),
 		iface:       analyzer.NewInterfaceAnalyzer(fset),
-		pkg:         analyzer.NewPackageAnalyzer(fset),
 		concurrency: analyzer.NewConcurrencyAnalyzer(fset),
 		pattern:     analyzer.NewPatternAnalyzer(fset),
 		duplication: analyzer.NewDuplicationAnalyzer(fset),
@@ -109,9 +116,15 @@ func createReport(rootPath string, fileCount int) *metrics.Report {
 	}
 }
 
-// processFile performs analysis on file
-func processFile(result scanner.Result, analyzers *analysisSet, collected *collectedMetrics, report *metrics.Report, cfg *config.Config) {
-	collected.files[result.FileInfo.RelPath] = result.File
+// processFile performs per-file analysis using the result's own token.FileSet,
+// extracts duplication blocks immediately (so the AST can be reclaimed by the GC),
+// and accumulates cross-file metrics via the shared PackageAnalyzer.
+func processFile(result scanner.Result, sharedPkg *analyzer.PackageAnalyzer, collected *collectedMetrics, report *metrics.Report, cfg *config.Config) {
+	collected.fileCount++
+	collected.dupTotalLines += result.FileInfo.FileLines
+
+	// Create per-file analyzers bound to this result's FileSet.
+	analyzers := createPerFileAnalyzers(result.FileSet, cfg)
 
 	if funcs, err := analyzers.function.AnalyzeFunctionsWithPath(result.File, result.FileInfo.Package, result.FileInfo.RelPath); err == nil {
 		collected.functions = append(collected.functions, funcs...)
@@ -129,7 +142,13 @@ func processFile(result scanner.Result, analyzers *analysisSet, collected *colle
 		collected.generics = append(collected.generics, generics)
 	}
 
-	analyzers.pkg.AnalyzePackage(result.File, result.FileInfo.Path)
+	// Extract duplication blocks now and discard the AST reference; the GC can
+	// reclaim *ast.File memory once processFile returns instead of waiting until
+	// the entire analysis is complete (cf. the former collected.files map approach).
+	blocks := analyzers.duplication.ExtractBlocks(result.File, result.FileInfo.RelPath, 6)
+	collected.dupBlocks = append(collected.dupBlocks, blocks...)
+
+	sharedPkg.AnalyzePackageWithFileLines(result.File, result.FileInfo.Path, result.FileInfo.FileLines)
 	analyzeConcurrency(result, analyzers.concurrency, report)
 	analyzePatterns(result, analyzers.pattern, report)
 }
@@ -173,27 +192,30 @@ func analyzePatterns(result scanner.Result, patternAnalyzer *analyzer.PatternAna
 		patterns.Strategy...)
 }
 
-// finalizeReport aggregates metrics
-func finalizeReport(report *metrics.Report, collected *collectedMetrics, analyzers *analysisSet) {
+// finalizeReport aggregates metrics after all files have been processed.
+// Duplication analysis operates on the pre-extracted block slices rather than
+// the full AST map, keeping peak memory proportional to block count rather
+// than to total AST size.
+func finalizeReport(report *metrics.Report, collected *collectedMetrics, sharedPkg *analyzer.PackageAnalyzer) {
 	report.Functions = collected.functions
 	report.Structs = collected.structs
 	report.Interfaces = collected.interfaces
 
-	if pkgReport, err := analyzers.pkg.GenerateReport(); err == nil {
+	if pkgReport, err := sharedPkg.GenerateReport(); err == nil {
 		report.Packages = pkgReport.Packages
 		report.CircularDependencies = pkgReport.CircularDependencies
 	}
 
-	if len(collected.files) > 0 {
-		dupReport := analyzers.duplication.AnalyzeDuplication(collected.files, 6, 0.8)
-		report.Duplication = dupReport
+	if len(collected.dupBlocks) > 0 {
+		dupAnalyzer := analyzer.NewDuplicationAnalyzer(token.NewFileSet())
+		report.Duplication = dupAnalyzer.AnalyzeDuplicationFromBlocks(collected.dupBlocks, collected.dupTotalLines, 0.8)
 	}
 
 	aggregateGenerics(report, collected)
 	calculateComplexityMetrics(report, collected)
 
 	report.Overview = metrics.OverviewMetrics{
-		TotalFiles:      len(collected.files),
+		TotalFiles:      collected.fileCount,
 		TotalFunctions:  len(collected.functions),
 		TotalStructs:    len(collected.structs),
 		TotalInterfaces: len(collected.interfaces),

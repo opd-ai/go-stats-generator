@@ -17,6 +17,12 @@ import (
 // to prevent excessive memory usage on pathological code
 const MaxDeepCopyNodes = 10000
 
+// normFset is a shared empty FileSet used only for printing normalized AST nodes during
+// duplication fingerprinting. Normalized nodes contain no source positions or comments,
+// so position accuracy is irrelevant; this allows AnalyzeDuplicationFromBlocks to operate
+// without retaining any per-file token.FileSet references.
+var normFset = token.NewFileSet()
+
 // tokenizerReplacer is a package-level string replacer for tokenization, created once
 // to avoid repeated allocations during similarity comparison operations.
 var tokenizerReplacer = strings.NewReplacer(
@@ -257,8 +263,10 @@ func (da *DuplicationAnalyzer) NormalizeBlock(block StatementBlock) NormalizedBl
 	// Create a normalized version of each statement
 	for _, stmt := range block.Statements {
 		normalized := da.normalizeNode(stmt)
-		// Print the normalized AST to a canonical string form
-		if err := printer.Fprint(&buf, da.fset, normalized); err == nil {
+		// Print the normalized AST to a canonical string form using a shared empty fset:
+		// normalized nodes carry no meaningful source positions and have no comments,
+		// so position accuracy is irrelevant for structural clone comparison.
+		if err := printer.Fprint(&buf, normFset, normalized); err == nil {
 			buf.WriteString("\n")
 		}
 	}
@@ -933,6 +941,44 @@ func (da *DuplicationAnalyzer) AnalyzeDuplication(files map[string]*ast.File, mi
 	}
 
 	// Calculate duplication ratio
+	duplicationRatio := 0.0
+	if totalLines > 0 {
+		duplicationRatio = float64(duplicatedLines) / float64(totalLines)
+	}
+
+	return metrics.DuplicationMetrics{
+		ClonePairs:       len(clonePairs),
+		DuplicatedLines:  duplicatedLines,
+		DuplicationRatio: duplicationRatio,
+		LargestCloneSize: largestCloneSize,
+		Clones:           clonePairs,
+	}
+}
+
+// AnalyzeDuplicationFromBlocks performs clone detection on pre-extracted statement blocks.
+// It is the streaming counterpart to AnalyzeDuplication: callers extract blocks per-file
+// as each AST is parsed (allowing the GC to reclaim ASTs immediately) and accumulate only
+// the lightweight StatementBlock slices. Once all files are processed, this method runs
+// fingerprinting and clone detection on the accumulated blocks, using totalLines (the sum
+// of per-file line counts) to compute the duplication ratio.
+// This avoids retaining every *ast.File until analysis is complete.
+func (da *DuplicationAnalyzer) AnalyzeDuplicationFromBlocks(blocks []StatementBlock, totalLines int, similarityThreshold float64) metrics.DuplicationMetrics {
+	if len(blocks) == 0 {
+		return metrics.DuplicationMetrics{Clones: []metrics.ClonePair{}}
+	}
+
+	fingerprints := da.FingerprintBlocks(blocks)
+	clonePairs := da.DetectClonePairs(fingerprints, similarityThreshold)
+
+	duplicatedLines := 0
+	largestCloneSize := 0
+	for _, pair := range clonePairs {
+		duplicatedLines += pair.LineCount * (len(pair.Instances) - 1)
+		if pair.LineCount > largestCloneSize {
+			largestCloneSize = pair.LineCount
+		}
+	}
+
 	duplicationRatio := 0.0
 	if totalLines > 0 {
 		duplicationRatio = float64(duplicatedLines) / float64(totalLines)

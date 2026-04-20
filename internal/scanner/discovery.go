@@ -15,6 +15,7 @@ type FileInfo struct {
 	IsTestFile  bool
 	IsGenerated bool
 	Src         []byte // raw file bytes cached during discovery to avoid a second read during parsing
+	FileLines   int    // total line count computed from Src bytes during discovery
 }
 
 // Discoverer handles file discovery and filtering
