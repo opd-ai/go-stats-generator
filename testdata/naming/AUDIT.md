@@ -1,6 +1,6 @@
 # Audit: testdata/naming
 **Date**: 2026-03-04
-**Status**: Needs Work
+**Status**: Complete — All issues resolved or documented as intentional test fixtures
 
 ## Summary
 This package is a test fixture demonstrating both correct and incorrect Go naming conventions. It intentionally contains naming violations for testing the `go-stats-generator` naming analyzer. The package contains multiple critical naming convention violations including underscore usage, incorrect acronym casing, and non-snake_case file names. While this is testdata (not production code), it serves as a comprehensive validation suite for naming convention detection.
@@ -16,19 +16,19 @@ This package is a test fixture demonstrating both correct and incorrect Go namin
 | Naming Violations    | 7       | 0         | ✗      |
 
 ## Issues Found
-- [ ] **high** documentation — Overall doc coverage 18.8% far below 70% threshold (package-level)
+- [x] **high** documentation — Overall doc coverage 18.8% far below 70% threshold (package-level) — RESOLVED: Package doc.go now provides comprehensive package-level documentation; naming package (good_identifiers.go, bad_file_name.go) has full godoc coverage. util sub-package violations are intentional test data.
 - [x] **high** naming — File name violation: BadFileName.go should be bad_file_name.go (`BadFileName.go:1`) — RESOLVED: File renamed to bad_file_name.go
-- [ ] **high** naming — Underscore in function name: get_user should be getUser (`bad_identifiers.go:12`)
-- [ ] **high** naming — Underscore in type name: User_Service should be UserService (`bad_identifiers.go:17`)
-- [ ] **high** build — Multiple packages in same directory: naming and util (`bad_identifiers.go:2`)
-- [ ] **med** naming — Acronym casing: Url should be URL (`bad_identifiers.go:7`)
-- [ ] **med** naming — Acronym casing: HttpClient should be HTTPClient (`bad_identifiers.go:27`)
-- [ ] **med** naming — Acronym casing: GetHttpClient should be GetHTTPClient (`bad_identifiers.go:32`)
-- [ ] **med** naming — Acronym casing: UserId should be UserID (`bad_identifiers.go:45`)
-- [ ] **med** naming — Acronym casing: JsonData should be JSONData (`bad_identifiers.go:48`)
-- [ ] **med** naming — Generic package name: util is too generic (`bad_identifiers.go:2`)
-- [ ] **low** naming — Additional acronym field casing: XmlContent should be XMLContent (`bad_identifiers.go:49`)
-- [ ] **low** documentation — Missing package-level doc.go file (package-level)
+- [x] **high** naming — Underscore in function name: get_user should be getUser (`bad_identifiers.go:12`) — WONTFIX: Intentional naming violation preserved as test fixture for the naming analyzer. Moved to testdata/naming/util/ subdirectory.
+- [x] **high** naming — Underscore in type name: User_Service should be UserService (`bad_identifiers.go:17`) — WONTFIX: Intentional naming violation preserved as test fixture. Moved to testdata/naming/util/ subdirectory.
+- [x] **high** build — Multiple packages in same directory: naming and util (`bad_identifiers.go:2`) — RESOLVED: bad_identifiers.go moved to testdata/naming/util/ subdirectory, eliminating the multi-package conflict. go vet now passes.
+- [x] **med** naming — Acronym casing: Url should be URL (`bad_identifiers.go:7`) — WONTFIX: Intentional naming violation preserved as test fixture in testdata/naming/util/.
+- [x] **med** naming — Acronym casing: HttpClient should be HTTPClient (`bad_identifiers.go:27`) — WONTFIX: Intentional naming violation preserved as test fixture in testdata/naming/util/.
+- [x] **med** naming — Acronym casing: GetHttpClient should be GetHTTPClient (`bad_identifiers.go:32`) — WONTFIX: Intentional naming violation preserved as test fixture in testdata/naming/util/.
+- [x] **med** naming — Acronym casing: UserId should be UserID (`bad_identifiers.go:45`) — WONTFIX: Intentional naming violation preserved as test fixture in testdata/naming/util/.
+- [x] **med** naming — Acronym casing: JsonData should be JSONData (`bad_identifiers.go:48`) — WONTFIX: Intentional naming violation preserved as test fixture in testdata/naming/util/.
+- [x] **med** naming — Generic package name: util is too generic (`bad_identifiers.go:2`) — WONTFIX: Intentional test fixture demonstrating generic package name violation. Package name preserved for testing purposes.
+- [x] **low** naming — Additional acronym field casing: XmlContent should be XMLContent (`bad_identifiers.go:49`) — WONTFIX: Intentional naming violation preserved as test fixture in testdata/naming/util/.
+- [x] **low** documentation — Missing package-level doc.go file (package-level) — RESOLVED: doc.go exists with comprehensive package documentation describing all test fixture scenarios.
 
 ## Concurrency Assessment
 No concurrency patterns detected in this package. No goroutines, channels, or synchronization primitives used.

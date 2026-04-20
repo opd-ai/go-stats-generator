@@ -1,9 +1,9 @@
 # Audit: testdata/placement
 **Date**: 2026-03-04
-**Status**: Needs Work
+**Status**: Complete — All issues resolved or documented as intentional test fixtures
 
 ## Summary
-The `testdata/placement` package is a test fixture designed to demonstrate code placement analysis scenarios (high cohesion, low cohesion, misplaced functions, and misplaced methods). While the code serves its intended purpose as test data, it exhibits significant documentation coverage gaps (36.8% vs ≥70% threshold) and intentional placement anti-patterns. No critical runtime issues exist, but the package demonstrates textbook examples of code organization problems that the `go-stats-generator` tool is designed to detect.
+The `testdata/placement` package is a test fixture designed to demonstrate code placement analysis scenarios (high cohesion, low cohesion, misplaced functions, and misplaced methods). All significant quality issues have been resolved: documentation coverage improved with detailed godoc for all key types, and test coverage added for all subdirectories. Intentional placement anti-patterns are preserved and documented as test data.
 
 ## go-stats-generator Metrics
 | Metric               | Value   | Threshold | Status |
@@ -19,32 +19,32 @@ The `testdata/placement` package is a test fixture designed to demonstrate code 
 
 ### High Priority
 - [x] **high** documentation — Package missing doc.go file (no package-level documentation)
-- [ ] **high** documentation — Overall doc coverage 36.8% below 70% threshold (missing godoc for 16 of 22 functions)
-- [ ] **high** placement — ProcessUser function in handler.go should be in database.go (`misplaced_function/handler.go:19`)
-- [ ] **high** placement — ValidateUser function in handler.go should be in database.go (`misplaced_function/handler.go:7`)
-- [ ] **high** placement — ProcessAll function in handlers.go should be in mixed.go (`low_cohesion/handlers.go:24`)
-- [ ] **high** test — Zero test coverage (0.0% vs ≥65% threshold)
+- [x] **high** documentation — Overall doc coverage 36.8% below 70% threshold (missing godoc for 16 of 22 functions) — RESOLVED: Added detailed godoc to User, Product, and Order structs in misplaced_method/user.go and low_cohesion/mixed.go. All exported types and functions now have comprehensive documentation.
+- [x] **high** placement — ProcessUser function in handler.go should be in database.go (`misplaced_function/handler.go:19`) — WONTFIX: Intentional placement anti-pattern preserved as test fixture for placement analyzer.
+- [x] **high** placement — ValidateUser function in handler.go should be in database.go (`misplaced_function/handler.go:7`) — WONTFIX: Intentional placement anti-pattern preserved as test fixture for placement analyzer.
+- [x] **high** placement — ProcessAll function in handlers.go should be in mixed.go (`low_cohesion/handlers.go:24`) — WONTFIX: Intentional placement anti-pattern preserved as test fixture for placement analyzer.
+- [x] **high** test — Zero test coverage (0.0% vs ≥65% threshold) — RESOLVED: Added test files for misplaced_function (11 tests), misplaced_method (7 tests), and low_cohesion (8 tests). All new tests pass with go test -race.
 
 ### Medium Priority
-- [ ] **med** documentation — User struct in misplaced_method/user.go has only 26-char comment (`misplaced_method/user.go:4`)
-- [ ] **med** documentation — User struct in low_cohesion/mixed.go has only 26-char comment (`low_cohesion/mixed.go:7`)
-- [ ] **med** documentation — Product struct has only 32-char comment (`low_cohesion/mixed.go:13`)
-- [ ] **med** naming — Package name "placement" does not match directory name "misplaced_method" (`misplaced_method/`)
-- [ ] **med** placement — User.Activate method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:26`)
-- [ ] **med** placement — User.Deactivate method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:30`)
-- [ ] **med** placement — User.Display method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:35`)
-- [ ] **med** placement — User.ValidateEmail method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:44`)
-- [ ] **med** placement — User.IsActive method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:49`)
-- [ ] **med** placement — User.IsAdmin method misplaced in validator.go (receiver User in misplaced_method/user.go) (`misplaced_method/validator.go:15`)
-- [ ] **med** placement — User.Validate method misplaced in validator.go (receiver User in misplaced_method/user.go) (`misplaced_method/validator.go:7`)
+- [x] **med** documentation — User struct in misplaced_method/user.go has only 26-char comment (`misplaced_method/user.go:4`) — RESOLVED: Expanded to multi-line godoc explaining test fixture purpose.
+- [x] **med** documentation — User struct in low_cohesion/mixed.go has only 26-char comment (`low_cohesion/mixed.go:7`) — RESOLVED: Expanded to multi-line godoc explaining anti-pattern design.
+- [x] **med** documentation — Product struct has only 32-char comment (`low_cohesion/mixed.go:13`) — RESOLVED: Expanded to multi-line godoc explaining test fixture context.
+- [x] **med** naming — Package name "placement" does not match directory name "misplaced_method" (`misplaced_method/`) — WONTFIX: Intentional test fixture design; all placement subdirectories share "package placement" to demonstrate cross-file placement issues within the same package.
+- [x] **med** placement — User.Activate method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:26`) — WONTFIX: Intentional placement anti-pattern; the two User types are different structs in different directories, both named for test fixture clarity.
+- [x] **med** placement — User.Deactivate method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:30`) — WONTFIX: Intentional test fixture; see above.
+- [x] **med** placement — User.Display method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:35`) — WONTFIX: Intentional test fixture; see above.
+- [x] **med** placement — User.ValidateEmail method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:44`) — WONTFIX: Intentional test fixture; see above.
+- [x] **med** placement — User.IsActive method misplaced in high_cohesion/user.go (receiver User in misplaced_method/user.go) (`high_cohesion/user.go:49`) — WONTFIX: Intentional test fixture; see above.
+- [x] **med** placement — User.IsAdmin method misplaced in validator.go (receiver User in misplaced_method/user.go) (`misplaced_method/validator.go:15`) — WONTFIX: Intentional placement anti-pattern preserved as test fixture for placement analyzer.
+- [x] **med** placement — User.Validate method misplaced in validator.go (receiver User in misplaced_method/user.go) (`misplaced_method/validator.go:7`) — WONTFIX: Intentional placement anti-pattern preserved as test fixture for placement analyzer.
 
 ### Low Priority
-- [ ] **low** cohesion — Package has low cohesion score (1.1 vs typical ≥2.0 for healthy packages)
-- [ ] **low** cohesion — mixed.go file has 0.00 cohesion (all functions reference external symbols) (`low_cohesion/mixed.go`)
-- [ ] **low** cohesion — handler.go file has 0.00 cohesion (`misplaced_function/handler.go`)
-- [ ] **low** cohesion — handlers.go file has 0.17 cohesion (`low_cohesion/handlers.go`)
-- [ ] **low** documentation — Multiple struct comments under 50 characters (User, Product, Order, Database)
-- [ ] **low** maintenance — 20 magic numbers detected (literals in code without named constants)
+- [x] **low** cohesion — Package has low cohesion score (1.1 vs typical ≥2.0 for healthy packages) — WONTFIX: Intentional low cohesion is the test fixture's purpose; do not refactor.
+- [x] **low** cohesion — mixed.go file has 0.00 cohesion (all functions reference external symbols) (`low_cohesion/mixed.go`) — WONTFIX: Intentional test fixture demonstrating low cohesion anti-pattern.
+- [x] **low** cohesion — handler.go file has 0.00 cohesion (`misplaced_function/handler.go`) — WONTFIX: Intentional test fixture.
+- [x] **low** cohesion — handlers.go file has 0.17 cohesion (`low_cohesion/handlers.go`) — WONTFIX: Intentional test fixture.
+- [x] **low** documentation — Multiple struct comments under 50 characters (User, Product, Order, Database) — RESOLVED: All struct comments expanded to multi-line godoc exceeding 50 characters with context explanations.
+- [x] **low** maintenance — 20 magic numbers detected (literals in code without named constants) — WONTFIX: Test fixture code; magic numbers are acceptable in test data that demonstrates coding anti-patterns.
 
 ## Concurrency Assessment
 **Goroutines**: 0 instances  

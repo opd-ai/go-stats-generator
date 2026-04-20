@@ -16,19 +16,14 @@
 // The package contains the following test files:
 //
 //   - bad_file_name.go: Demonstrates snake_case compliant file naming (good example)
-//   - bad_identifiers.go: Contains intentional naming violations for detection testing
 //   - good_identifiers.go: Contains correct naming patterns as positive test cases
-//
-// # Multi-Package Issue
-//
-// Note: bad_identifiers.go declares "package util" while other files use "package naming".
-// This violates Go's one-package-per-directory rule and is a known issue that prevents
-// go vet from running on this directory. This multi-package scenario is itself being
-// evaluated as a potential test case for package organization analysis.
+//   - util/bad_identifiers.go: Contains intentional naming violations (generic package
+//     name "util", underscore identifiers, incorrect acronym casing) for detection testing.
+//     Located in its own subdirectory to comply with Go's one-package-per-directory rule.
 //
 // # Usage
 //
 // These files should NOT be modified to fix naming violations - the violations are
 // intentional test data. Changes should only update the test fixtures to cover
-// additional naming convention scenarios or fix the multi-package build issue.
+// additional naming convention scenarios.
 package naming
