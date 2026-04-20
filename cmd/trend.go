@@ -110,7 +110,7 @@ func init() {
 	trendCmd.PersistentFlags().Float64VarP(&trendThreshold, "threshold", "t", 10.0, "Threshold percentage for significance")
 
 	// Forecast-specific flags
-	trendForecastCmd.Flags().StringVar(&trendMethod, "method", "linear", "Forecasting method (linear, exponential)")
+	trendForecastCmd.Flags().StringVar(&trendMethod, "method", "linear", "Forecasting method (linear, exponential, arima)")
 
 	// Global flags inherited from root
 	trendCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "console", "Output format (json, console)")
@@ -399,9 +399,13 @@ func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) 
 	// Select forecasting method based on --method flag
 	method := analyzer.ForecastLinear
 	methodName := "linear_regression"
-	if trendMethod == "exponential" {
+	switch trendMethod {
+	case "exponential":
 		method = analyzer.ForecastExponential
 		methodName = "exponential_smoothing"
+	case "arima":
+		method = analyzer.ForecastARIMA
+		methodName = "arima"
 	}
 
 	forecast7 := analyzer.GenerateForecastWithMethod(series, 7, method)

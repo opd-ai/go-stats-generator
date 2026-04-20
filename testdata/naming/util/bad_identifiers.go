@@ -1,4 +1,6 @@
-// Package util has a generic name that violates Go conventions
+// Package util has a generic name that violates Go conventions.
+// This package intentionally contains naming violations for go-stats-generator testing:
+// generic package name, underscore identifiers, and incorrect acronym casing.
 package util
 
 import "fmt"

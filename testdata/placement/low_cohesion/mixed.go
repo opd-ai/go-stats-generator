@@ -20,20 +20,26 @@ package placement
 // This file has low cohesion - contains functions that primarily reference
 // symbols from handlers.go rather than referencing each other
 
-// User represents a user
+// User represents a user entity with a unique numeric ID and display name.
+// This struct is intentionally defined in mixed.go rather than alongside its
+// processing functions in handlers.go to demonstrate low cohesion anti-patterns.
 type User struct {
 	ID   int
 	Name string
 }
 
-// Product represents a product
+// Product represents a purchasable product with a unique ID, descriptive title, and price.
+// Defined in mixed.go alongside User and Order structs to demonstrate cohesion anti-patterns
+// where related data types are grouped by category rather than by usage context.
 type Product struct {
 	ID    int
 	Title string
 	Price float64
 }
 
-// Order represents an order
+// Order represents a purchase order linking a user and a product by their respective IDs.
+// Part of the low cohesion test fixture; this struct is defined far from the handler
+// functions that process it, illustrating poor code organization.
 type Order struct {
 	ID        int
 	UserID    int
