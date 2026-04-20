@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"go/ast"
@@ -74,13 +75,7 @@ func createFileInfo(filePath string) scanner.FileInfo {
 	}
 	if src, err := os.ReadFile(filePath); err == nil {
 		info.Src = src
-		lineCount := 0
-		for _, b := range src {
-			if b == '\n' {
-				lineCount++
-			}
-		}
-		info.FileLines = lineCount + 1
+		info.FileLines = bytes.Count(src, []byte{'\n'}) + 1
 	}
 	return info
 }

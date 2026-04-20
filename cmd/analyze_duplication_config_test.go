@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"go/parser"
 	"go/token"
 	"testing"
@@ -26,15 +27,9 @@ func buildTestCollectedMetrics(t *testing.T, sources map[string]string, minBlock
 		require.NoError(t, err)
 		blocks := da.ExtractBlocks(file, filename, minBlockLines)
 		cm.DupBlocks = append(cm.DupBlocks, blocks...)
-		// Compute line count from source text
-		lineCount := 0
-		for _, b := range []byte(src) {
-			if b == '\n' {
-				lineCount++
-			}
-		}
-		cm.DupTotalLines += lineCount + 1
-		cm.FileLinesCount[filename] = lineCount + 1
+		// Compute line count from source text (consistent with discover.go: bytes.Count + 1)
+		cm.DupTotalLines += bytes.Count([]byte(src), []byte{'\n'}) + 1
+		cm.FileLinesCount[filename] = bytes.Count([]byte(src), []byte{'\n'}) + 1
 	}
 	return cm, fset
 }

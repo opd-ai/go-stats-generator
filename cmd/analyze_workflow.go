@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"go/ast"
@@ -93,15 +94,7 @@ func createFileInfoForSingleFile(filePath, projectRoot string, file *ast.File) (
 	relPath := calculateRelativePath(filePath, projectRoot)
 
 	src, _ := os.ReadFile(filePath)
-	fileLines := 0
-	for _, b := range src {
-		if b == '\n' {
-			fileLines++
-		}
-	}
-	if len(src) > 0 {
-		fileLines++ // account for last line without trailing newline
-	}
+	fileLines := bytes.Count(src, []byte{'\n'}) + 1
 
 	scannerFileInfo := scanner.FileInfo{
 		Path:        filePath,
