@@ -35,12 +35,12 @@ trap cleanup INT TERM
 
 # ─── Constants and defaults ──────────────────────────────────────────────────
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAX_ITERATIONS="${MAX_ITERATIONS:-50}"
 MAINTENANCE_INTERVAL=3          # Run periodic maintenance every N iterations
 LOG_FILE="loop.log"
 TEST_OUTPUT="test-output.txt"
 ANALYSIS_OUTPUT=".loop-analysis.json"
-XVFB_ERROR_PATTERN="xvfb-run: error:"
 
 # Counters
 ITERATION=0
@@ -70,6 +70,11 @@ iteration_summary() {
     echo "$line"
 }
 
+# ─── Source shared test-runner helpers ───────────────────────────────────────
+
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
+
 # ─── 1. Entry Gate ───────────────────────────────────────────────────────────
 
 # Verify ROADMAP.md exists in the current working directory
@@ -82,7 +87,6 @@ fi
 # Resolve the prompt directory
 # Default: prompts/ directory next to the scripts/ directory containing this script.
 # Override via PROMPT_DIR env var or $1.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_DIR="${PROMPT_DIR:-${1:-$REPO_ROOT/prompts}}"
 
@@ -125,61 +129,6 @@ delegate() {
     set -e
     log "Delegation complete: $prompt_name (exit code: $rc)"
     return "$rc"
-}
-
-# ─── Helper: run tests and return pass/fail ──────────────────────────────────
-
-run_tests() {
-    log "Running tests..."
-    local rc
-    set +e
-    if command -v xvfb-run >/dev/null 2>&1; then
-        # -a: auto-select a free server number to avoid :99 conflicts
-        xvfb-run -a -- go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
-        rc=${PIPESTATUS[0]}
-        # If Xvfb itself failed to start, fall back to running without a display
-        if grep -q "$XVFB_ERROR_PATTERN" "$TEST_OUTPUT"; then
-            log "WARNING: xvfb-run failed to start Xvfb — retrying without display wrapper..."
-            go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
-            rc=${PIPESTATUS[0]}
-        fi
-    else
-        log "WARNING: xvfb-run not available — running tests without display wrapper..."
-        go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
-        rc=${PIPESTATUS[0]}
-    fi
-    set -e
-    LAST_TEST_RC="$rc"
-
-    if [ "$rc" -eq 0 ]; then
-        log "Tests PASSED"
-        return 0
-    else
-        log "Tests FAILED (exit code: $rc)"
-        return 1
-    fi
-}
-
-is_relevant_test_failure() {
-    # Exclude xvfb infrastructure errors — not actionable by FAIL.md.
-    if [ -f "$TEST_OUTPUT" ] && grep -q "$XVFB_ERROR_PATTERN" "$TEST_OUTPUT"; then
-        return 1
-    fi
-    # Actionable failures are real go test package/test failures (exit codes 1+).
-    if [ "${LAST_TEST_RC:-0}" -ne 0 ] && [ -f "$TEST_OUTPUT" ] &&
-        grep -Eq '^(--- FAIL:|FAIL[[:space:]\t])' "$TEST_OUTPUT"; then
-        return 0
-    fi
-    return 1
-}
-
-ensure_relevant_test_failure_or_exit() {
-    if is_relevant_test_failure; then
-        return 0
-    fi
-    log_and_print "ERROR: Non-actionable test command failure (exit code: ${LAST_TEST_RC:-unknown}); skipping FAIL.md."
-    log_and_print "Inspect $TEST_OUTPUT for details."
-    exit "${LAST_TEST_RC:-1}"
 }
 
 # ─── Helper: check if backlog is empty ───────────────────────────────────────
