@@ -312,20 +312,21 @@ func countIdentifiers(file *ast.File) int {
 // finalizeDocumentationMetrics performs documentation analysis on all collected files
 func finalizeDocumentationMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
 	// Skip if documentation analysis is disabled or no files
-	if !cfg.Analysis.IncludeDocumentation || len(collectedMetrics.Files) == 0 {
+	if !cfg.Analysis.IncludeDocumentation || len(collectedMetrics.DocFiles) == 0 {
 		report.Documentation = metrics.DocumentationMetrics{}
 		return
 	}
 
-	// Convert files map to slice and group by package
-	files, pkgs := prepareDocumentationInput(collectedMetrics.Files)
+	// Build packages map from DocFiles (mirrors what prepareDocumentationInput did from Files map).
+	pkgs := buildPkgsFromDocFiles(collectedMetrics.DocFiles)
 
 	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Running documentation analysis on %d files in %d packages...\n", len(files), len(pkgs))
+		fmt.Fprintf(os.Stderr, "Running documentation analysis on %d files in %d packages...\n", len(collectedMetrics.DocFiles), len(pkgs))
 	}
 
-	// Run documentation analysis
-	docMetrics := analyzers.Documentation.Analyze(files, pkgs)
+	// Use AnalyzeWithFileSets so that annotation line numbers are resolved against each
+	// file's own FileSet rather than the shared discoverer FileSet.
+	docMetrics := analyzers.Documentation.AnalyzeWithFileSets(collectedMetrics.DocFiles, pkgs)
 	report.Documentation = *docMetrics
 
 	if cfg.Output.Verbose {
@@ -335,6 +336,25 @@ func finalizeDocumentationMetrics(report *metrics.Report, analyzers *AnalyzerSet
 			docMetrics.Coverage.Functions,
 			docMetrics.Coverage.Types)
 	}
+}
+
+// buildPkgsFromDocFiles builds an ast.Package map keyed by package name from DocFileInfo entries.
+func buildPkgsFromDocFiles(docFiles []analyzer.DocFileInfo) map[string]*ast.Package {
+	pkgs := make(map[string]*ast.Package)
+	for _, fi := range docFiles {
+		if fi.File == nil || fi.File.Name == nil {
+			continue
+		}
+		pkgName := fi.File.Name.Name
+		if _, exists := pkgs[pkgName]; !exists {
+			pkgs[pkgName] = &ast.Package{
+				Name:  pkgName,
+				Files: make(map[string]*ast.File),
+			}
+		}
+		pkgs[pkgName].Files[fi.Path] = fi.File
+	}
+	return pkgs
 }
 
 // finalizeOrganizationMetrics performs organization analysis on all collected files and packages

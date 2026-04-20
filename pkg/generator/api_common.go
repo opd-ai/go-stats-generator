@@ -52,7 +52,7 @@ func (a *Analyzer) buildReport(ctx context.Context, results <-chan scanner.Resul
 		processFile(result, sharedPkg, collected, report, a.config)
 	}
 
-	finalizeReport(report, collected, sharedPkg)
+	finalizeReport(report, collected, sharedPkg, a.config)
 	return report, nil
 }
 
@@ -145,7 +145,7 @@ func processFile(result scanner.Result, sharedPkg *analyzer.PackageAnalyzer, col
 	// Extract duplication blocks now and discard the AST reference; the GC can
 	// reclaim *ast.File memory once processFile returns instead of waiting until
 	// the entire analysis is complete (cf. the former collected.files map approach).
-	blocks := analyzers.duplication.ExtractBlocks(result.File, result.FileInfo.RelPath, 6)
+	blocks := analyzers.duplication.ExtractBlocks(result.File, result.FileInfo.RelPath, cfg.Analysis.Duplication.MinBlockLines)
 	collected.dupBlocks = append(collected.dupBlocks, blocks...)
 
 	sharedPkg.AnalyzePackageWithFileLines(result.File, result.FileInfo.Path, result.FileInfo.FileLines)
@@ -196,7 +196,7 @@ func analyzePatterns(result scanner.Result, patternAnalyzer *analyzer.PatternAna
 // Duplication analysis operates on the pre-extracted block slices rather than
 // the full AST map, keeping peak memory proportional to block count rather
 // than to total AST size.
-func finalizeReport(report *metrics.Report, collected *collectedMetrics, sharedPkg *analyzer.PackageAnalyzer) {
+func finalizeReport(report *metrics.Report, collected *collectedMetrics, sharedPkg *analyzer.PackageAnalyzer, cfg *config.Config) {
 	report.Functions = collected.functions
 	report.Structs = collected.structs
 	report.Interfaces = collected.interfaces
@@ -208,7 +208,11 @@ func finalizeReport(report *metrics.Report, collected *collectedMetrics, sharedP
 
 	if len(collected.dupBlocks) > 0 {
 		dupAnalyzer := analyzer.NewDuplicationAnalyzer(token.NewFileSet())
-		report.Duplication = dupAnalyzer.AnalyzeDuplicationFromBlocks(collected.dupBlocks, collected.dupTotalLines, 0.8)
+		report.Duplication = dupAnalyzer.AnalyzeDuplicationFromBlocks(
+			collected.dupBlocks,
+			collected.dupTotalLines,
+			cfg.Analysis.Duplication.SimilarityThreshold,
+		)
 	}
 
 	aggregateGenerics(report, collected)

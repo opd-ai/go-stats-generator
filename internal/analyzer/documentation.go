@@ -55,6 +55,16 @@ func NewDocumentationAnalyzer(fset *token.FileSet, cfg *DocumentationConfig) *Do
 	}
 }
 
+// DocFileInfo pairs an AST file with the FileSet it was parsed into and its on-disk path.
+// Use this when files were parsed into independent per-file FileSets (e.g. to avoid
+// shared-mutex contention), so that annotation line numbers are resolved against the
+// correct position table rather than a stale shared one.
+type DocFileInfo struct {
+	File *ast.File
+	Fset *token.FileSet
+	Path string
+}
+
 // Analyze performs comprehensive documentation analysis across all provided files and packages,
 // calculating coverage percentages for functions, types, methods, and packages. It also extracts
 // annotation markers (TODO/FIXME/BUG/HACK/DEPRECATED), computes quality scores based on comment
@@ -86,6 +96,65 @@ func (d *DocumentationAnalyzer) Analyze(files []*ast.File, pkgs map[string]*ast.
 	d.analyzeQuality(files, m)
 
 	return m
+}
+
+// AnalyzeWithFileSets performs the same documentation analysis as Analyze, but accepts files
+// paired with their individual FileSets. Use this when files were parsed into separate per-file
+// FileSets (to avoid shared-mutex contention) so that annotation line numbers are resolved
+// against the correct position table rather than a stale shared FileSet.
+func (d *DocumentationAnalyzer) AnalyzeWithFileSets(fileInfos []DocFileInfo, pkgs map[string]*ast.Package) *metrics.DocumentationMetrics {
+	m := &metrics.DocumentationMetrics{
+		Coverage:              metrics.DocumentationCoverage{},
+		Quality:               metrics.DocumentationQuality{},
+		TODOComments:          []metrics.TODOComment{},
+		FIXMEComments:         []metrics.FIXMEComment{},
+		HACKComments:          []metrics.HACKComment{},
+		BUGComments:           []metrics.BUGComment{},
+		XXXComments:           []metrics.XXXComment{},
+		DEPRECATEDComments:    []metrics.DEPRECATEDComment{},
+		NOTEComments:          []metrics.NOTEComment{},
+		AnnotationsByCategory: make(map[string]int),
+	}
+
+	files := make([]*ast.File, len(fileInfos))
+	for i, fi := range fileInfos {
+		files[i] = fi.File
+	}
+
+	d.analyzeExportedSymbols(files, m)
+	d.analyzePackageDocs(files, pkgs, m)
+	d.analyzeAnnotationsPerFile(fileInfos, m)
+	d.analyzeQuality(files, m)
+
+	return m
+}
+
+// analyzeAnnotationsPerFile scans comments for annotations, using each file's own FileSet
+// for accurate line-number resolution.
+func (d *DocumentationAnalyzer) analyzeAnnotationsPerFile(fileInfos []DocFileInfo, m *metrics.DocumentationMetrics) {
+	for _, fi := range fileInfos {
+		d.scanFileCommentsWithFset(fi.File, fi.Fset, fi.Path, m)
+	}
+}
+
+// scanFileCommentsWithFset processes all comment groups in a file using the provided FileSet.
+func (d *DocumentationAnalyzer) scanFileCommentsWithFset(file *ast.File, fset *token.FileSet, filePath string, m *metrics.DocumentationMetrics) {
+	for _, cg := range file.Comments {
+		for _, comment := range cg.List {
+			d.processCommentWithFset(comment, fset, filePath, m)
+		}
+	}
+}
+
+// processCommentWithFset extracts and categorizes an annotation using the provided FileSet for line lookup.
+func (d *DocumentationAnalyzer) processCommentWithFset(comment *ast.Comment, fset *token.FileSet, filePath string, m *metrics.DocumentationMetrics) {
+	category, description := d.extractAnnotation(comment.Text)
+	if category == "" {
+		return
+	}
+	line := fset.Position(comment.Pos()).Line
+	m.AnnotationsByCategory[category]++
+	d.addAnnotationToMetrics(category, filePath, line, description, m)
 }
 
 // analyzeExportedSymbols checks documentation coverage for exported symbols

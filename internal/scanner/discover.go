@@ -82,7 +82,7 @@ func (d *Discoverer) analyzeFile(path, rootDir string, info fs.FileInfo) (FileIn
 	fileInfo.Src = src
 
 	// Compute line count from bytes; avoids a second fset lookup in downstream analyzers.
-	fileInfo.FileLines = bytes.Count(src, []byte("\n")) + 1
+	fileInfo.FileLines = bytes.Count(src, []byte{'\n'}) + 1
 
 	// Check for generated file markers
 	fileInfo.IsGenerated = isGeneratedFile(string(src))

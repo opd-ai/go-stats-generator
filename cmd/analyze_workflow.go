@@ -262,6 +262,10 @@ type CollectedMetrics struct {
 	// so ASTs can be reclaimed by the GC rather than being kept alive until finalization.
 	DupBlocks     []analyzer.StatementBlock
 	DupTotalLines int
+	// DocFiles accumulates per-file documentation inputs during streaming.
+	// Each entry carries its own FileSet so that annotation line numbers are resolved
+	// against the correct position table (rather than a stale shared FileSet).
+	DocFiles []analyzer.DocFileInfo
 }
 
 // discoverAndValidateFiles discovers Go files in the target directory and validates the results
@@ -528,6 +532,14 @@ func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collecte
 	violations := analyzers.Naming.AnalyzeIdentifiers(result.File, result.FileInfo.RelPath, fset)
 	collectedMetrics.IdentifierViolations = append(collectedMetrics.IdentifierViolations, violations...)
 	collectedMetrics.TotalIdentifiers += countIdentifiers(result.File)
+
+	// Accumulate per-file documentation info with its own fset so that annotation
+	// line numbers are resolved correctly in finalizeDocumentationMetrics.
+	collectedMetrics.DocFiles = append(collectedMetrics.DocFiles, analyzer.DocFileInfo{
+		File: result.File,
+		Fset: fset,
+		Path: result.FileInfo.Path,
+	})
 }
 
 // createPerFileAnalyzers builds a set of analyzers bound to the given FileSet.

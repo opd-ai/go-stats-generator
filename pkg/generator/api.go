@@ -51,6 +51,9 @@ func (a *Analyzer) AnalyzeFile(ctx context.Context, filePath string) (*metrics.R
 	if err != nil {
 		return nil, err
 	}
+	if file.Name != nil {
+		fileInfo.Package = file.Name.Name
+	}
 	fileInfo.Src = nil // release bytes after parsing
 
 	result := scanner.Result{FileInfo: fileInfo, File: file, FileSet: localFset, Error: nil}
@@ -84,7 +87,7 @@ func createFileInfo(filePath string) scanner.FileInfo {
 // It uses src bytes when available to avoid a second disk read.
 func parseFileForAnalysis(fset *token.FileSet, filePath string, src []byte) (*ast.File, error) {
 	var srcArg interface{}
-	if len(src) > 0 {
+	if src != nil {
 		srcArg = src
 	}
 	file, err := parser.ParseFile(fset, filePath, srcArg, parser.ParseComments)
