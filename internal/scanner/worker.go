@@ -67,10 +67,17 @@ func (wp *WorkerPool) createEmptyChannel() <-chan Result {
 	return resultChan
 }
 
-// createChannels creates job and result channels with appropriate buffer sizes
+// createChannels creates job and result channels with appropriate buffer sizes.
+// Buffers are capped at workerCount*2 to avoid allocating channel descriptor memory proportional
+// to the total file count. A small buffer keeps workers fed without holding all file metadata
+// (and their cached source bytes) in memory simultaneously.
 func (wp *WorkerPool) createChannels(fileCount int) (chan FileInfo, chan Result) {
-	jobChan := make(chan FileInfo, fileCount)
-	resultChan := make(chan Result, fileCount)
+	bufSize := wp.workerCount * 2
+	if bufSize > fileCount {
+		bufSize = fileCount
+	}
+	jobChan := make(chan FileInfo, bufSize)
+	resultChan := make(chan Result, bufSize)
 	return jobChan, resultChan
 }
 
@@ -155,9 +162,23 @@ func (wp *WorkerPool) sendResultOrCancel(ctx context.Context, result Result, res
 	}
 }
 
-// processFile processes a single file
+// processFile processes a single file, using cached source bytes from discovery when available.
+// After parsing, Src is cleared to release the cached bytes and reduce peak memory pressure.
 func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
-	file, err := wp.discoverer.ParseFile(fileInfo.Path)
+	var (
+		file *ast.File
+		err  error
+	)
+
+	if fileInfo.Src != nil {
+		file, err = wp.discoverer.parseFileWithSrc(fileInfo.Path, fileInfo.Src)
+	} else {
+		file, err = wp.discoverer.ParseFile(fileInfo.Path)
+	}
+
+	// Release the cached bytes now that parsing is done.
+	fileInfo.Src = nil
+
 	if err != nil {
 		return Result{
 			FileInfo: fileInfo,
@@ -176,24 +197,38 @@ func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
 func (wp *WorkerPool) trackProgress(ctx context.Context, resultChan <-chan Result, total int, progressCb ProgressCallback) <-chan Result {
 	completed := 0
 
-	// Create a new channel to forward results
-	forwardChan := make(chan Result, total)
+	// Use the same bounded buffer size as createChannels to avoid pre-allocating total slots.
+	bufSize := wp.workerCount * 2
+	if bufSize > total {
+		bufSize = total
+	}
+	forwardChan := make(chan Result, bufSize)
 
-	// Forward results while tracking progress
+	// Forward results while tracking progress.
+	// ctx.Done() is wired into both the receive and the send so this goroutine
+	// exits promptly when the context is cancelled even if forwardChan is full.
 	go func() {
 		defer close(forwardChan)
 
-		for result := range resultChan {
-			// Forward the result
-			forwardChan <- result
-
-			// Update progress
-			completed++
-			progressCb(completed, total)
+		for {
+			select {
+			case result, ok := <-resultChan:
+				if !ok {
+					// Upstream channel closed; emit the final progress update and exit.
+					progressCb(total, total)
+					return
+				}
+				select {
+				case forwardChan <- result:
+				case <-ctx.Done():
+					return
+				}
+				completed++
+				progressCb(completed, total)
+			case <-ctx.Done():
+				return
+			}
 		}
-
-		// Final progress update
-		progressCb(total, total)
 	}()
 
 	return forwardChan

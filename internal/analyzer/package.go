@@ -10,6 +10,22 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
 )
 
+// knownInternalPrefixes is evaluated at package init time to avoid repeated slice allocation
+// inside the per-import hot path of isKnownInternalPrefix.
+var knownInternalPrefixes = []string{
+	"internal/",
+	"pkg/",
+}
+
+// knownExternalPrefixes is evaluated at package init time to avoid repeated slice allocation
+// inside the per-import hot path of isKnownExternalPackage.
+var knownExternalPrefixes = []string{
+	"github.com/spf13/",
+	"github.com/stretchr/",
+	"github.com/jedib0t/",
+	"github.com/olekukonko/",
+}
+
 // PackageAnalyzer analyzes package-level metrics including dependencies,
 // PackageAnalyzer computes cohesion, coupling, and circular dependency detection.
 // PackageAnalyzer provides architectural insights for large Go codebases.
@@ -357,12 +373,7 @@ func isInternalPackage(importPath string) bool {
 
 // isKnownInternalPrefix checks if the import path starts with known internal prefixes
 func isKnownInternalPrefix(importPath string) bool {
-	internalPrefixes := []string{
-		"internal/",
-		"pkg/",
-	}
-
-	for _, prefix := range internalPrefixes {
+	for _, prefix := range knownInternalPrefixes {
 		if strings.HasPrefix(importPath, prefix) {
 			return true
 		}
@@ -372,14 +383,7 @@ func isKnownInternalPrefix(importPath string) bool {
 
 // isKnownExternalPackage checks if the import path is a known external package
 func isKnownExternalPackage(importPath string) bool {
-	external := []string{
-		"github.com/spf13/",
-		"github.com/stretchr/",
-		"github.com/jedib0t/",
-		"github.com/olekukonko/",
-	}
-
-	for _, ext := range external {
+	for _, ext := range knownExternalPrefixes {
 		if strings.HasPrefix(importPath, ext) {
 			return true
 		}
@@ -387,27 +391,27 @@ func isKnownExternalPackage(importPath string) bool {
 	return false
 }
 
-// mergeUniqueStrings merges two string slices, removing duplicates
-func mergeUniqueStrings(existing, new []string) []string {
-	seen := make(map[string]bool)
-
-	// Add existing items
-	for _, item := range existing {
-		seen[item] = true
+// mergeUniqueStrings merges two string slices, removing duplicates.
+// It avoids allocating a map for the common case where neither slice is large by
+// appending and then deduplicating via sort, which avoids heap allocation for short lists.
+func mergeUniqueStrings(existing, newItems []string) []string {
+	if len(newItems) == 0 {
+		return existing
 	}
 
-	// Add new items if not already present
-	result := make([]string, len(existing))
-	copy(result, existing)
+	combined := make([]string, len(existing)+len(newItems))
+	copy(combined, existing)
+	copy(combined[len(existing):], newItems)
 
-	for _, item := range new {
-		if !seen[item] {
-			result = append(result, item)
-			seen[item] = true
+	sort.Strings(combined)
+
+	deduped := combined[:0]
+	for i, s := range combined {
+		if i == 0 || s != combined[i-1] {
+			deduped = append(deduped, s)
 		}
 	}
-
-	return result
+	return deduped
 }
 
 // calculateAverageFiles calculates average number of files per package

@@ -14,6 +14,7 @@ type FileInfo struct {
 	Size        int64
 	IsTestFile  bool
 	IsGenerated bool
+	Src         []byte // raw file bytes cached during discovery to avoid a second read during parsing
 }
 
 // Discoverer handles file discovery and filtering
