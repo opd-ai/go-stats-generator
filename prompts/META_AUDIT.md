@@ -78,9 +78,11 @@ For each finding, create an entry with:
 - Remediation that respects the project's idioms
 
 ### Phase 5: Report
-For **each** audited package, create **`<package>/AUDIT.md`** and **`<package>/GAPS.md`** using the templates below, then append a line to **`AUDIT_TRACKER.md`** for that package.
+For **each** audited package, immediately after completing its analysis:
+1. Create **`<package>/AUDIT.md`** and **`<package>/GAPS.md`** using the templates below.
+2. Append the package's result line to **`AUDIT_TRACKER.md`** (create the file if it does not yet exist) before moving on to the next package.
 
-After all packages have been processed, write the final state of **`AUDIT_TRACKER.md`** to disk once (create if absent).
+This ensures the tracker reflects progress incrementally — if the run is interrupted, already-audited packages remain recorded.
 
 Create **`<package>/AUDIT.md`**:
 ```markdown
