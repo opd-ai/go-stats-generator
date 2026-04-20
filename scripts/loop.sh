@@ -117,9 +117,14 @@ delegate() {
     yes | copilot --model claude-opus-4.5 -p "$(cat "$prompt_file")" --allow-all-tools --deny-tool sudo
     local -a pipe_rcs=("${PIPESTATUS[@]}")
     local rc="${pipe_rcs[1]:-${pipe_rcs[0]:-1}}"
+    if ! [[ "$rc" =~ ^[0-9]+$ ]]; then
+        rc=1
+    elif [ "$rc" -gt 255 ]; then
+        rc=255
+    fi
     set -e
     log "Delegation complete: $prompt_name (exit code: $rc)"
-    return $rc
+    return "$rc"
 }
 
 # ─── Helper: run tests and return pass/fail ──────────────────────────────────
