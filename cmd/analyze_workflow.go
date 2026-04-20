@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"go/ast"
@@ -57,6 +58,8 @@ func logVerboseFileAnalysis(filePath string, cfg *config.Config) {
 }
 
 // parseAndPrepareFile parses a single file and creates its scanner result with metadata.
+// The discoverer's token.FileSet is stored in the Result so that per-file analyzers
+// created in processFileAnalysis can resolve positions correctly.
 func parseAndPrepareFile(filePath, projectRoot string, cfg *config.Config) (scanner.Result, *scanner.Discoverer, error) {
 	discoverer := scanner.NewDiscoverer(&cfg.Filters)
 
@@ -73,7 +76,9 @@ func parseAndPrepareFile(filePath, projectRoot string, cfg *config.Config) (scan
 	result := scanner.Result{
 		FileInfo: fileInfo,
 		File:     file,
-		Error:    nil,
+		// Use the discoverer's FileSet so position lookups on nodes of this file work.
+		FileSet: discoverer.GetFileSet(),
+		Error:   nil,
 	}
 
 	return result, discoverer, nil
@@ -88,12 +93,16 @@ func createFileInfoForSingleFile(filePath, projectRoot string, file *ast.File) (
 
 	relPath := calculateRelativePath(filePath, projectRoot)
 
+	src, _ := os.ReadFile(filePath)
+	fileLines := bytes.Count(src, []byte{'\n'}) + 1
+
 	scannerFileInfo := scanner.FileInfo{
 		Path:        filePath,
 		RelPath:     relPath,
 		Size:        fileInfo.Size(),
 		IsTestFile:  strings.HasSuffix(filePath, "_test.go"),
 		IsGenerated: false,
+		FileLines:   fileLines,
 	}
 
 	if file.Name != nil {
@@ -239,6 +248,24 @@ type CollectedMetrics struct {
 	Generics   []metrics.GenericMetrics
 	TotalLines int
 	Files      map[string]*ast.File
+	// FileLinesCount maps relative file path to pre-computed line count (from FileInfo.FileLines).
+	// Used by OrganizationAnalyzer.AnalyzeFileSizesWithLines to avoid fset position lookups
+	// when each file was parsed into its own per-worker token.FileSet.
+	FileLinesCount map[string]int
+	// IdentifierViolations and TotalIdentifiers accumulate per-file naming results during the
+	// streaming phase so that finalizeNamingMetrics can skip the fset-dependent
+	// analyzeAllIdentifiers loop in finalization.
+	IdentifierViolations []metrics.IdentifierViolation
+	TotalIdentifiers     int
+	// DupBlocks and DupTotalLines accumulate duplication data during streaming.
+	// Blocks are extracted per-file with the per-file fset immediately after parsing,
+	// so ASTs can be reclaimed by the GC rather than being kept alive until finalization.
+	DupBlocks     []analyzer.StatementBlock
+	DupTotalLines int
+	// DocFiles accumulates per-file documentation inputs during streaming.
+	// Each entry carries its own FileSet so that annotation line numbers are resolved
+	// against the correct position table (rather than a stale shared FileSet).
+	DocFiles []analyzer.DocFileInfo
 }
 
 // discoverAndValidateFiles discovers Go files in the target directory and validates the results
@@ -464,20 +491,73 @@ func handleScannerError(err error, cfg *config.Config) bool {
 	return true
 }
 
-// processFileAnalysis performs all analysis types on a single file
+// processFileAnalysis performs all analysis types on a single file using the result's
+// own token.FileSet for per-file analyzers, so that each worker's per-file fset is used
+// correctly without contending on a shared fset. Cross-file state (PackageAnalyzer) is
+// accessed through the shared AnalyzerSet.
 func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, report *metrics.Report, cfg *config.Config) {
-	// Store the parsed file for duplication analysis
+	// Store the parsed file (still needed for placement and organization finalization).
 	if collectedMetrics.Files == nil {
 		collectedMetrics.Files = make(map[string]*ast.File)
 	}
 	collectedMetrics.Files[result.FileInfo.RelPath] = result.File
 
-	collectStructuralMetrics(result, analyzers, collectedMetrics, cfg)
-	analyzePackageStructure(result, analyzers, cfg)
-	analyzeConcurrencyPatterns(result, analyzers, report, cfg)
-	analyzeDesignPatterns(result, analyzers, report, cfg)
-	analyzePerformanceAntipatterns(result, analyzers, report, cfg)
-	analyzeBurdenIndicators(result, analyzers, report, cfg)
+	// Record pre-computed line count so finalization can use AnalyzeFileSizesWithLines.
+	if collectedMetrics.FileLinesCount == nil {
+		collectedMetrics.FileLinesCount = make(map[string]int)
+	}
+	collectedMetrics.FileLinesCount[result.FileInfo.RelPath] = result.FileInfo.FileLines
+	collectedMetrics.DupTotalLines += result.FileInfo.FileLines
+
+	// Create per-file analyzers bound to this result's FileSet to avoid shared-fset contention.
+	fset := result.FileSet
+	perFile := createPerFileAnalyzers(fset, cfg)
+
+	collectStructuralMetrics(result, perFile, collectedMetrics, cfg)
+	analyzePackageStructure(result, analyzers.Package, cfg)
+	analyzeConcurrencyPatterns(result, perFile, report, cfg)
+	analyzeDesignPatterns(result, perFile, report, cfg)
+	analyzePerformanceAntipatterns(result, perFile, report, cfg)
+	analyzeBurdenIndicators(result, perFile, report, cfg)
+
+	// Extract duplication blocks now with the per-file fset so positions are resolved correctly.
+	// Accumulating blocks (rather than full ASTs) allows the GC to reclaim each *ast.File
+	// before the finalization phase starts.
+	minBlockLines := cfg.Analysis.Duplication.MinBlockLines
+	blocks := perFile.Duplication.ExtractBlocks(result.File, result.FileInfo.RelPath, minBlockLines)
+	collectedMetrics.DupBlocks = append(collectedMetrics.DupBlocks, blocks...)
+
+	// Identifier naming is analysed here (per-file with the correct fset) and accumulated
+	// so that finalizeNamingMetrics can skip the fset-dependent loop over all ASTs.
+	violations := analyzers.Naming.AnalyzeIdentifiers(result.File, result.FileInfo.RelPath, fset)
+	collectedMetrics.IdentifierViolations = append(collectedMetrics.IdentifierViolations, violations...)
+	collectedMetrics.TotalIdentifiers += countIdentifiers(result.File)
+
+	// Accumulate per-file documentation info with its own fset so that annotation
+	// line numbers are resolved correctly in finalizeDocumentationMetrics.
+	collectedMetrics.DocFiles = append(collectedMetrics.DocFiles, analyzer.DocFileInfo{
+		File: result.File,
+		Fset: fset,
+		Path: result.FileInfo.Path,
+	})
+}
+
+// createPerFileAnalyzers builds a set of analyzers bound to the given FileSet.
+// Only per-file analyzers are returned; cross-file analyzers (Package,
+// Naming, Placement, Organization) are managed by the shared AnalyzerSet.
+func createPerFileAnalyzers(fset *token.FileSet, cfg *config.Config) *AnalyzerSet {
+	return &AnalyzerSet{
+		Function:    analyzer.NewFunctionAnalyzer(fset),
+		Struct:      analyzer.NewStructAnalyzer(fset),
+		Interface:   analyzer.NewInterfaceAnalyzer(fset),
+		Concurrency: analyzer.NewConcurrencyAnalyzer(fset),
+		Pattern:     analyzer.NewPatternAnalyzer(fset),
+		Antipattern: analyzer.NewAntipatternAnalyzer(fset),
+		Duplication: analyzer.NewDuplicationAnalyzer(fset),
+		Burden:      analyzer.NewBurdenAnalyzer(fset),
+		Generic:     analyzer.NewGenericAnalyzer(fset),
+		fileSet:     fset,
+	}
 }
 
 // collectStructuralMetrics analyzes functions, structs, and interfaces in a file
@@ -499,9 +579,9 @@ func collectStructuralMetrics(result scanner.Result, analyzers *AnalyzerSet, col
 	}
 }
 
-// analyzePackageStructure analyzes package information for a file
-func analyzePackageStructure(result scanner.Result, analyzers *AnalyzerSet, cfg *config.Config) {
-	if err := analyzePackageInFile(analyzers.Package, result, cfg); err != nil && cfg.Output.Verbose {
+// analyzePackageStructure analyzes package information for a file using pre-computed line counts.
+func analyzePackageStructure(result scanner.Result, pkgAnalyzer *analyzer.PackageAnalyzer, cfg *config.Config) {
+	if err := pkgAnalyzer.AnalyzePackageWithFileLines(result.File, result.FileInfo.Path, result.FileInfo.FileLines); err != nil && cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Warning: failed to analyze package in %s: %v\n",
 			result.FileInfo.Path, err)
 	}
@@ -589,11 +669,6 @@ func analyzeGenericsInFile(genericAnalyzer *analyzer.GenericAnalyzer, result sca
 		return metrics.GenericMetrics{}, err
 	}
 	return generics, nil
-}
-
-// analyzePackageInFile analyzes package information for a single file result
-func analyzePackageInFile(packageAnalyzer *analyzer.PackageAnalyzer, result scanner.Result, cfg *config.Config) error {
-	return packageAnalyzer.AnalyzePackage(result.File, result.FileInfo.Path)
 }
 
 // analyzeConcurrencyInFile analyzes concurrency patterns in a single file and aggregates to report

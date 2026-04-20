@@ -71,6 +71,32 @@ func (oa *OrganizationAnalyzer) AnalyzeFileSizes(file *ast.File, filePath string
 	}, nil
 }
 
+// AnalyzeFileSizesWithLines is like AnalyzeFileSizes but uses a pre-computed line count
+// instead of calling fset.File on the AST. This allows callers that use per-file
+// token.FileSets (where the shared OrganizationAnalyzer's fset has no position data)
+// to obtain accurate file-size metrics without retaining the per-file FileSet.
+func (oa *OrganizationAnalyzer) AnalyzeFileSizesWithLines(file *ast.File, filePath string, lineCount int, config OrganizationConfig) (*metrics.OversizedFile, error) {
+	lines := metrics.LineMetrics{Total: lineCount}
+	funcCount := oa.countFunctions(file)
+	typeCount := oa.countTypes(file)
+
+	burden := oa.calculateBurden(lines, funcCount, typeCount)
+
+	if !oa.isOversized(lines, funcCount, typeCount, config) {
+		return nil, nil
+	}
+
+	return &metrics.OversizedFile{
+		File:              filePath,
+		Lines:             lines,
+		FunctionCount:     funcCount,
+		TypeCount:         typeCount,
+		MaintenanceBurden: burden,
+		Severity:          oa.getSeverity(lines, funcCount, typeCount, config),
+		Suggestions:       oa.getSuggestions(lines, funcCount, typeCount, config),
+	}, nil
+}
+
 // countFileLinesFromAST returns line metrics derived from the token.FileSet without re-reading
 // the file from disk. Only the Total field is populated — callers in this package use only
 // lines.Total for threshold comparisons and burden scoring.

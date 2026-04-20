@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"go/ast"
+	"go/parser"
+	"go/token"
 	"sync"
 
 	"github.com/opd-ai/go-stats-generator/internal/config"
@@ -26,6 +28,11 @@ type Result struct {
 	FileInfo FileInfo
 	File     *ast.File
 	Error    error
+	// FileSet is the token.FileSet into which File was parsed.
+	// Callers must use this FileSet (not any shared one) for all position lookups
+	// on nodes belonging to File, enabling concurrent workers to each use their
+	// own FileSet and eliminating contention on a single shared mutex.
+	FileSet *token.FileSet
 }
 
 // ProgressCallback is called to report progress
@@ -162,18 +169,31 @@ func (wp *WorkerPool) sendResultOrCancel(ctx context.Context, result Result, res
 	}
 }
 
-// processFile processes a single file, using cached source bytes from discovery when available.
+// processFile processes a single file using a per-file token.FileSet.
+// Each invocation creates its own FileSet so that concurrent workers do not
+// contend on the shared FileSet mutex in token.FileSet.AddFile.  The per-file
+// FileSet is stored in the returned Result so that downstream analyzers can
+// call fset.Position on AST nodes without needing a shared FileSet.
 // After parsing, Src is cleared to release the cached bytes and reduce peak memory pressure.
 func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
+	// Give each file its own FileSet to eliminate shared-mutex contention during parsing.
+	localFset := token.NewFileSet()
+
 	var (
 		file *ast.File
 		err  error
 	)
 
 	if fileInfo.Src != nil {
-		file, err = wp.discoverer.parseFileWithSrc(fileInfo.Path, fileInfo.Src)
+		file, err = parser.ParseFile(localFset, fileInfo.Path, fileInfo.Src, parser.ParseComments)
+		if err != nil {
+			err = fmt.Errorf("failed to parse file %s: %w", fileInfo.Path, err)
+		}
 	} else {
-		file, err = wp.discoverer.ParseFile(fileInfo.Path)
+		file, err = parser.ParseFile(localFset, fileInfo.Path, nil, parser.ParseComments)
+		if err != nil {
+			err = fmt.Errorf("failed to parse file %s: %w", fileInfo.Path, err)
+		}
 	}
 
 	// Release the cached bytes now that parsing is done.
@@ -182,13 +202,15 @@ func (wp *WorkerPool) processFile(fileInfo FileInfo) Result {
 	if err != nil {
 		return Result{
 			FileInfo: fileInfo,
-			Error:    fmt.Errorf("failed to parse file %s: %w", fileInfo.Path, err),
+			FileSet:  localFset,
+			Error:    err,
 		}
 	}
 
 	return Result{
 		FileInfo: fileInfo,
 		File:     file,
+		FileSet:  localFset,
 		Error:    nil,
 	}
 }
@@ -260,123 +282,3 @@ func (wp *WorkerPool) ProcessFilesSequential(ctx context.Context, files []FileIn
 	return resultChan, nil
 }
 
-// BatchProcessor handles batch processing with memory management
-type BatchProcessor struct {
-	workerPool *WorkerPool
-	batchSize  int
-}
-
-// NewBatchProcessor creates a batch processor for efficient parallel file analysis with configurable batch sizes.
-// It wraps a worker pool to enable chunked processing of large file sets, reducing memory pressure and improving throughput
-// for repositories with thousands of files. The batch size controls memory vs. parallelism tradeoff (default 100 files per batch).
-// Used by the analyzer to optimize performance when processing enterprise-scale codebases with 10,000+ source files.
-func NewBatchProcessor(workerPool *WorkerPool, batchSize int) *BatchProcessor {
-	if batchSize <= 0 {
-		batchSize = 100
-	}
-
-	return &BatchProcessor{
-		workerPool: workerPool,
-		batchSize:  batchSize,
-	}
-}
-
-// ProcessInBatches processes files in batches to manage memory usage
-// ProcessInBatches processes files in batches using worker pools with progress tracking
-func (bp *BatchProcessor) ProcessInBatches(ctx context.Context, files []FileInfo, progressCb ProgressCallback) (<-chan Result, error) {
-	totalFiles := len(files)
-	if totalFiles == 0 {
-		return bp.createEmptyResultChannel(), nil
-	}
-
-	resultChan := make(chan Result, totalFiles)
-	go bp.processBatchesAsync(ctx, files, progressCb, resultChan)
-	return resultChan, nil
-}
-
-// createEmptyResultChannel creates and immediately closes a result channel for empty file sets
-func (bp *BatchProcessor) createEmptyResultChannel() <-chan Result {
-	resultChan := make(chan Result)
-	close(resultChan)
-	return resultChan
-}
-
-// processBatchesAsync handles the asynchronous batch processing workflow
-func (bp *BatchProcessor) processBatchesAsync(ctx context.Context, files []FileInfo, progressCb ProgressCallback, resultChan chan<- Result) {
-	defer close(resultChan)
-
-	processed := 0
-	totalFiles := len(files)
-
-	for i := 0; i < totalFiles; i += bp.batchSize {
-		if bp.shouldStopProcessing(ctx) {
-			return
-		}
-
-		batch := bp.createBatch(files, i, totalFiles)
-		if err := bp.processSingleBatch(ctx, batch, &processed, totalFiles, progressCb, resultChan); err != nil {
-			return
-		}
-	}
-}
-
-// shouldStopProcessing checks if processing should be stopped due to context cancellation
-func (bp *BatchProcessor) shouldStopProcessing(ctx context.Context) bool {
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
-	}
-}
-
-// createBatch creates a file batch slice from the given range
-func (bp *BatchProcessor) createBatch(files []FileInfo, start, totalFiles int) []FileInfo {
-	end := start + bp.batchSize
-	if end > totalFiles {
-		end = totalFiles
-	}
-	return files[start:end]
-}
-
-// processSingleBatch processes a single batch and handles the results
-func (bp *BatchProcessor) processSingleBatch(ctx context.Context, batch []FileInfo, processed *int, totalFiles int, progressCb ProgressCallback, resultChan chan<- Result) error {
-	// Process batch through worker pool
-	batchResults, err := bp.workerPool.ProcessFiles(ctx, batch, nil)
-	if err != nil {
-		resultChan <- Result{Error: fmt.Errorf("batch processing failed: %w", err)}
-		return err
-	}
-
-	// Collect and forward batch results
-	return bp.collectBatchResults(ctx, batchResults, processed, totalFiles, progressCb, resultChan)
-}
-
-// collectBatchResults collects results from a single batch and forwards them
-func (bp *BatchProcessor) collectBatchResults(ctx context.Context, batchResults <-chan Result, processed *int, totalFiles int, progressCb ProgressCallback, resultChan chan<- Result) error {
-	for result := range batchResults {
-		if err := bp.forwardResult(ctx, result, resultChan); err != nil {
-			return err
-		}
-		bp.updateProgress(processed, totalFiles, progressCb)
-	}
-	return nil
-}
-
-// forwardResult forwards a result to the output channel with context cancellation
-func (bp *BatchProcessor) forwardResult(ctx context.Context, result Result, resultChan chan<- Result) error {
-	select {
-	case resultChan <- result:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-// updateProgress updates the progress counter and calls the progress callback
-func (bp *BatchProcessor) updateProgress(processed *int, totalFiles int, progressCb ProgressCallback) {
-	*processed++
-	if progressCb != nil {
-		progressCb(*processed, totalFiles)
-	}
-}
