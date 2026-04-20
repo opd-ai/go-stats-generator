@@ -35,6 +35,7 @@ trap cleanup INT TERM
 
 # ─── Constants and defaults ───────────────────────────────────────────────────
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="audit-loop.log"
 TEST_OUTPUT="test-output.txt"
 
@@ -43,6 +44,7 @@ AUDITS_COMPLETED=0
 TASKS_EXECUTED=0
 TEST_FAILURES=0
 FINAL_TEST_STATUS="UNKNOWN"
+LAST_TEST_RC=0
 
 # ─── Audit sequence: implementation gaps → product completeness ───────────────
 #
@@ -108,6 +110,11 @@ audit_summary() {
     echo "$line"
 }
 
+# ─── Source shared test-runner helpers ───────────────────────────────────────
+
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
+
 # ─── 1. Entry Gate ────────────────────────────────────────────────────────────
 
 if [ ! -f "ROADMAP.md" ]; then
@@ -117,7 +124,6 @@ if [ ! -f "ROADMAP.md" ]; then
 fi
 
 # Resolve the prompt directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_DIR="${PROMPT_DIR:-${1:-$REPO_ROOT/prompts}}"
 
@@ -159,24 +165,6 @@ delegate() {
     return $rc
 }
 
-# ─── Helper: run tests and return pass/fail ───────────────────────────────────
-
-run_tests() {
-    log "Running tests..."
-    set +e
-    xvfb-run go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
-    local rc=${PIPESTATUS[0]}
-    set -e
-
-    if [ "$rc" -eq 0 ]; then
-        log "Tests PASSED"
-        return 0
-    else
-        log "Tests FAILED (exit code: $rc)"
-        return 1
-    fi
-}
-
 # ─── 2. Audit sequence ────────────────────────────────────────────────────────
 
 log_and_print "--- Beginning audit sequence ---"
@@ -207,6 +195,7 @@ for AUDIT_PROMPT in "${AUDIT_SEQUENCE[@]}"; do
     else
         FINAL_TEST_STATUS="FAIL"
         TEST_FAILURES=$((TEST_FAILURES + 1))
+        ensure_relevant_test_failure_or_exit
         log_and_print "Tests failed — delegating FAIL.md to diagnose and fix..."
 
         delegate "FAIL.md" || true
@@ -215,6 +204,7 @@ for AUDIT_PROMPT in "${AUDIT_SEQUENCE[@]}"; do
             FINAL_TEST_STATUS="PASS"
             audit_summary "$AUDIT_PROMPT" "PASS (fixed)"
         else
+            ensure_relevant_test_failure_or_exit
             FINAL_TEST_STATUS="FAIL"
             log_and_print "Tests still failing after FAIL.md — continuing to next audit."
             audit_summary "$AUDIT_PROMPT" "FAIL (persisted)"
