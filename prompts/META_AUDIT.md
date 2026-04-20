@@ -1,10 +1,10 @@
-# TASK: Audit exactly ONE unaudited Go sub-package per invocation — evaluate how well it fulfills its role in achieving the project's stated goals, and update the root audit tracker.
+# TASK: Audit ALL unaudited Go sub-packages in a single invocation — evaluate how well each fulfills its role in achieving the project's stated goals, and update the root audit tracker.
 
 ## Execution Mode
-**Autonomous action** — create package-level audit and gaps files, and update the root audit tracker.
+**Autonomous action** — create package-level audit and gaps files for every unaudited package, and update the root audit tracker.
 
 ## Output
-Write exactly two files in the audited package directory:
+For each unaudited package, write exactly two files in that package's directory:
 1. **`<package>/AUDIT.md`** — the package audit report
 2. **`<package>/GAPS.md`** — gaps between the package's role and its implementation
 
@@ -32,14 +32,18 @@ Use web search to build context that isn't available in the repository:
 
 Keep research brief (≤10 minutes). Record only findings relevant to the package's role in the project's stated goals.
 
-### Phase 2: Select Package
+### Phase 2: Select Packages
 1. Discover which packages already have audit files: `find . -name 'AUDIT.md'`
-2. Select the first unaudited package, prioritizing:
+2. Build the full list of unaudited packages by comparing `go list ./...` output against the packages that already have `AUDIT.md` files.
+3. Order the unaudited packages for processing, prioritizing:
    - Packages listed in any root-level audit tracker but unchecked
    - Packages that implement the project's core stated goals
    - Packages with highest integration surface (most imports/importers)
+   - Alphabetically as a final tiebreaker
+4. Audit **every** package in this ordered list — do not stop after the first one.
 
 ### Phase 3: Analyze
+Repeat the following for each package in the ordered list from Phase 2:
 ```bash
 go-stats-generator analyze ./<package> --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages
 go test -race -count=1 ./<package>/...
@@ -49,7 +53,7 @@ go vet ./<package>/...
 When `go vet` or linters report warnings, read the comments surrounding the flagged code. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged false positive — do not report it as a new finding.
 
 ### Phase 4: Goal-Focused Audit
-Evaluate the selected package against its role in achieving the project's stated goals:
+For **each** package in the ordered list, evaluate it against its role in achieving the project's stated goals:
 
 1. **Role clarity**: Does this package have a clear, well-defined responsibility? Does it serve one of the project's stated goals?
 2. **Functional correctness**: Do the package's exported functions do what their documentation (and the project README) claims?
@@ -74,6 +78,10 @@ For each finding, create an entry with:
 - Remediation that respects the project's idioms
 
 ### Phase 5: Report
+For **each** audited package, create **`<package>/AUDIT.md`** and **`<package>/GAPS.md`** using the templates below, then append a line to **`AUDIT_TRACKER.md`** for that package.
+
+After all packages have been processed, write the final state of **`AUDIT_TRACKER.md`** to disk once (create if absent).
+
 Create **`<package>/AUDIT.md`**:
 ```markdown
 # AUDIT: [package name] — [date]
@@ -108,6 +116,7 @@ Update root audit tracker **`AUDIT_TRACKER.md`** (create if absent):
 ```
 
 ## Output Format
+Print one summary block per audited package:
 ```
 Package: [name]
 Gates: [passed]/[total] passing
@@ -115,6 +124,15 @@ Findings: [count] ([critical], [high], [medium], [low])
 Created: [package]/AUDIT.md, [package]/GAPS.md
 Updated: AUDIT_TRACKER.md
 ```
+After all packages are processed, print a final totals line:
+```
+Total packages audited: [N]
+Total findings: [count] ([critical], [high], [medium], [low])
+```
 
-## Tiebreaker
-Audit the package that contributes most to the project's core stated goals first. If tied, choose the one with the highest integration surface (most importers). If still tied, choose alphabetically.
+## Package Processing Order
+Process packages in the following priority order (descending):
+1. Packages listed in any root-level audit tracker but unchecked.
+2. Packages that contribute most to the project's core stated goals.
+3. Packages with the highest integration surface (most importers).
+4. Alphabetically.
