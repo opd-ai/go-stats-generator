@@ -108,7 +108,7 @@ For every floating-point computation, verify the logic accounts for floating-poi
 For every bitwise operation, verify the operation produces the intended result:
 
 - [ ] Setting a bit: `flags |= (1 << n)` — verify `1` has sufficient width. `1 << 32` on a system where `int` is 32 bits is zero, not `0x100000000`. Use `1 << uint(n)` or `uint64(1) << n` for portable code.
-- [ ] Testing a bit: `flags & (1 << n) != 0` — verify operator precedence: `&` has lower precedence than `!=`; this is `flags & ((1<<n) != 0)` without parentheses — actually in Go, the expression `flags & (1 << n) != 0` parses as `(flags & (1 << n)) != 0` because `!=` has lower precedence than `&`, so this is correct. But confirm the logic is as intended.
+- [ ] Testing a bit: `flags & (1 << n) != 0` — in Go, `&` has higher precedence than `!=`, so this parses correctly as `(flags & (1 << n)) != 0`. Verify the logic is as intended and that the bit width is sufficient (see "Setting a bit" above).
 - [ ] Clearing a bit: `flags &^= (1 << n)` — verify the same width issue as above.
 - [ ] Right shift of signed integers: `x >> n` for negative `x` in Go performs arithmetic right shift (sign-extending), not logical right shift. If logical shift is intended, use `uint(x) >> n`.
 - [ ] Using `^x` (bitwise complement) on signed integers: for `int8`, `^0` is `-1`, not `255`. Verify the intent is signed complement, not unsigned complement.
