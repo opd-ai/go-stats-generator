@@ -1,24 +1,20 @@
-# TASK: Perform a combined breaking-bug audit of a Go project, identifying only bugs that block or break the basic utility of the program — crashes, silent wrong output on documented core paths, non-functional CLI commands, and startup failures.
+# TASK: Investigate a broken Go program to discover and fix the bug(s) blocking its basic utility.
 
 ## Execution Mode
-**Report generation only** — do NOT modify any source code.
+**Autonomous action** — diagnose the failure, fix the blocking bug(s), validate with tests and diff. Do not fix anything that is not blocking basic utility.
 
-## Scope Principle
-This audit is NOT about style, coverage, performance, or cosmetic correctness. Every finding must answer "yes" to at least one of these questions:
-1. Does this bug cause a **crash or panic** reachable through normal usage?
-2. Does this bug cause **wrong output** on a documented core use case?
-3. Does this bug cause a documented CLI command or flag to **silently do nothing or produce garbage**?
-4. Does this bug cause the program to **fail to start** on a valid configuration?
-5. Does this bug cause a **core data path to produce incorrect metrics** that contradict the tool's stated purpose?
+## Core Directive
+The program is already known to be broken. Do not start by reading all the code or running a comprehensive checklist. **Start by observing the failure.** Every subsequent step must be driven by what you observe, working backward from symptom to root cause.
 
-If a candidate finding does not satisfy at least one of the above, discard it. Do not report it.
+## Scope Rule
+Fix only bugs that block basic utility. A bug is blocking if it satisfies at least one of:
+1. The program **crashes or panics** on a documented invocation.
+2. The program **fails to start** on a valid configuration.
+3. A documented CLI command **produces no output or garbage output** for any input.
+4. A **core data path produces an incorrect result** that contradicts the tool's stated purpose.
+5. A documented flag or option is **silently ignored**, making a feature unreachable.
 
-## Output
-Write exactly two files in the repository root (the directory containing `go.mod`):
-1. **`AUDIT.md`** — the breaking-bug audit report
-2. **`GAPS.md`** — gaps between the program's stated basic utility and its actual operational state
-
-If either file already exists, delete it and create a fresh one.
+If a candidate finding does not satisfy at least one of the above, skip it. Do not fix it.
 
 ## Prerequisite
 ```bash
@@ -27,184 +23,156 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 
 ## Workflow
 
-### Phase 0: Map the Program's Basic Utility
-Before searching for bugs, establish what "basic utility" means for this project:
+### Phase 0: Observe the Failure First
+Before reading any code, run the program and record what actually happens:
 
-1. Read the project README end-to-end. Extract:
-   - The primary value proposition: what is the one thing this tool does that justifies its existence?
-   - The documented happy-path invocation(s): what command does a new user run first?
-   - The documented output formats and what each produces.
-   - Every documented CLI command, flag, and argument.
-   - Any stated performance or correctness guarantees ("analyzes 50,000 files in 60 seconds", "zero false positives").
-2. Run `--help` on the binary and every subcommand. Record every flag and its documented default.
-3. Identify the **critical paths**: the code that must execute correctly for the primary value proposition to hold. These are the only paths this audit cares about.
-4. Record the project's error handling convention (sentinel errors, `%w` wrapping, custom types) and its concurrency patterns. Bugs on critical paths that violate these conventions are high-risk.
-5. Note the Go version in `go.mod`. Loop variable capture bugs are eliminated in Go 1.22+; do not report them for newer versions.
-
-### Phase 1: Baseline
 ```bash
-set -o pipefail
-go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages > /tmp/breaking-audit-metrics.json
-go-stats-generator analyze . --skip-tests
-go build ./... 2>&1 | tee /tmp/breaking-build-results.txt
-go test -race -count=1 ./... 2>&1 | tee /tmp/breaking-test-results.txt
-go vet ./... 2>&1 | tee /tmp/breaking-vet-results.txt
+go build ./... 2>&1
 ```
 
-Record:
-- Build failures (CRITICAL — program cannot run at all)
-- Test failures with race conditions (CRITICAL if on a critical path, HIGH otherwise)
-- `go vet` errors (not warnings — errors only)
-- Functions with cyclomatic complexity >20 or nesting >5 on critical paths (high-risk zones for breaking bugs)
+If the build fails, the build error IS the blocking bug. Go to Phase 2 immediately with the build output as your symptom.
 
-Delete all `/tmp/breaking-*.txt` and `/tmp/breaking-audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
+If the build succeeds, run the primary documented invocation from the README:
+```bash
+# Replace with the actual documented happy-path command from the README
+<primary-invocation> 2>&1
+```
 
----
+Record **exactly** what the user sees:
+- Crash/panic message and stack trace
+- Wrong or empty output (capture it)
+- Non-zero exit code with no message
+- Program that hangs indefinitely
+- Misleading error message
 
-### Phase 2: Breaking Bug Categories
+This observed failure is the **anchor**. Every subsequent step must trace back to it. Do not report bugs that are not connected to this failure.
 
-Audit each category below, but only report findings that satisfy the Scope Principle above.
+### Phase 1: Understand What Should Happen
+Now that you know how it fails, establish what it should do:
 
-#### 2a. Crash and Panic Paths
-Trace every code path reachable from the documented happy-path invocations:
+1. Read the project README. Extract:
+   - The primary value proposition and documented happy-path invocation(s).
+   - The expected output for the primary invocation on this codebase.
+   - Every documented CLI command and flag.
+2. Note the Go version in `go.mod` (loop variable capture is eliminated in Go 1.22+).
+3. Identify the **critical path**: the call chain from the entry point to the output that the primary invocation depends on. This is the only code you need to investigate.
 
-- [ ] **Nil dereference on normal input**: a pointer is used without a nil check on a path that executes for valid, documented inputs. Verify by tracing: can this pointer be nil when the caller follows documented usage?
-- [ ] **Slice/array out-of-bounds on valid input**: `slice[i]` or `array[i]` where `i` is derived from input data and is not guarded by a bounds check. Do not report this for internal indices that are always computed from the slice's own length.
-- [ ] **Nil map write**: `m[k] = v` where `m` could be nil at the call site (not initialized by `make` and not guaranteed non-nil by the constructor). Confirm by tracing the initialization path.
-- [ ] **Division by zero**: `a / b` or `a % b` on a critical-path calculation where `b` is derived from file contents, user input, or collection size that can legitimately be zero (e.g., average over an empty set).
-- [ ] **Type assertion without ok-check**: `x.(T)` (not `x, ok := x.(T)`) where `x` is an interface value that may not hold type `T` at runtime.
-- [ ] **Unrecorvered panic in goroutine**: a goroutine on a critical path can panic and crash the entire program. Verify the panic path is reachable for normal inputs.
-- [ ] **`init()` panic**: an `init()` function panics for a valid installation (e.g., missing file assumed to exist, invalid hardcoded regex).
+### Phase 2: Triage — Classify the Failure Mode
+Classify the observed failure into one of these modes. The mode determines where to look:
 
-#### 2b. Silent Wrong Output on Core Use Cases
-For each documented core metric or output section, verify the calculation is correct:
+| Failure Mode | Where to Look First |
+|---|---|
+| **Build failure** | Compiler error location; missing types, methods, or imports |
+| **Startup crash** | `main()`, `init()` functions, config parsing, storage initialization |
+| **Runtime panic** | Stack trace → panicking goroutine → the nil/bounds/type-assertion site |
+| **Silent wrong output** | The function responsible for the metric or section that is wrong |
+| **Hang / deadlock** | Goroutine dump (`SIGQUIT` or `kill -ABRT`); channel send/receive pairs |
+| **Empty output / no-op** | CLI command registration; `Run`/`RunE` wiring; flag-to-logic connection |
 
-- [ ] **Integer division truncation producing wrong metric**: a ratio or percentage is computed as `a / b * 100` (truncates to zero when `a < b`) instead of `a * 100 / b` or a floating-point form. Only report if the truncated value contradicts the metric's documented meaning.
-- [ ] **Off-by-one in line/position counting**: a line count, token position, or range includes or excludes one element incorrectly relative to the documented definition. Do not report as off-by-one if the documented definition is ambiguous.
-- [ ] **Accumulator reset inside loop**: a running total or counter is reset (reassigned rather than incremented) inside the loop it is supposed to accumulate, producing a final value equal to the last element rather than the true aggregate.
-- [ ] **Wrong aggregation level**: a per-function metric is emitted at the per-file or per-package level (or vice versa), causing the output to attribute a value to the wrong unit.
-- [ ] **Stale or uninitialized result**: a result struct field used in output is never written after construction, producing the zero value instead of a computed value for all inputs.
-- [ ] **Incorrect filter applied to wrong collection**: a filter (e.g., "skip test files") is applied to the wrong slice, causing either no filtering or filtering of the wrong items.
+For **runtime panics**, capture the full stack trace:
+```bash
+GOTRACEBACK=all <primary-invocation> 2>&1 | head -100
+```
 
-#### 2c. Non-Functional CLI Commands and Flags
-For every documented CLI command and flag:
+For **hangs**, get a goroutine dump:
+```bash
+# Send SIGQUIT to the running process to print all goroutine stacks
+kill -QUIT <pid>
+```
 
-- [ ] **Command registered but `Run`/`RunE` not set**: the command exists in `--help` but produces no output and exits 0 for all inputs.
-- [ ] **Flag parsed but never read**: a flag appears in `--help` and is accepted without error, but its value is never used by any code path. Verify by tracing from flag registration to usage site.
-- [ ] **Flag silently ignored when combined with another flag**: two flags are documented as independent but one cancels or overrides the other without documentation or a user-visible warning.
-- [ ] **Default value mismatch**: the default value documented in `--help` differs from the default value in code, causing the program to behave differently than a user following the docs expects on first run.
-- [ ] **Output file flag that silently writes nothing**: a `--output` or `--file` flag is accepted, but the output is still written to stdout (or vice versa), contradicting the documented behavior.
-- [ ] **Format flag that produces unparseable output**: a `--format json` (or other machine-readable format) flag produces output that fails to parse with the format's standard parser due to structural errors (not just style).
+### Phase 3: Root Cause Investigation
+Starting from the failure mode identified in Phase 2, trace backward through the call chain to the root cause. Do NOT read code that is not on the path from the entry point to the failure.
 
-#### 2d. Startup and Initialization Failures
-- [ ] **Configuration file required but not documented**: the program refuses to start without a configuration file that is not mentioned in the installation or quick-start documentation.
-- [ ] **Database or storage initialization failure on clean install**: the program crashes or returns a non-zero exit code on first run because a storage backend (e.g., SQLite database) is not initialized before first use.
-- [ ] **Package-level `var` initialization ordering bug**: a package-level variable depends on another package-level variable in the same or another package, but Go's initialization order does not guarantee the dependency is ready. This produces wrong zero-value behavior, not a panic.
-- [ ] **`init()` that silently sets wrong state**: an `init()` function sets a default that is always wrong for production use (e.g., sets a log level to debug, disables a required feature flag).
-- [ ] **Missing required dependency check**: the program uses an external binary or resource (beyond the Go standard library) on a critical path but does not check for its presence before use, causing a confusing error or panic instead of a clear diagnostic.
+Use `go-stats-generator` metrics to identify high-risk zones on the critical path:
+```bash
+go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages > /tmp/breaking-audit-metrics.json
+```
+Functions with cyclomatic complexity >20 or nesting >5 on the critical path are high-risk and should be read carefully. Delete `/tmp/breaking-audit-metrics.json` when done.
 
-#### 2e. Error Handling Failures That Produce Broken Output
-Only report these if the swallowed or mishandled error causes the program to produce wrong output or exit successfully when it should fail:
+#### Patterns to look for once you have a hypothesis
+Look for these only within the code you are already tracing — do not use these as an independent checklist:
 
-- [ ] **Swallowed parse error produces zero-value metric**: a file or AST parse error is discarded (assigned to `_` or logged-and-continued) and the function returns a zero-value struct that is included in aggregate metrics, producing incorrect totals.
-- [ ] **Error from concurrent worker silently dropped**: an error from a goroutine processing a file on a critical path is not propagated back to the coordinator, causing the final report to silently omit or miscount results for that file.
-- [ ] **Typed nil error causing downstream nil dereference**: a function returns a `(*T, error)` where the error is a typed nil (`var err *MyError; return nil, err`), the caller checks `err != nil` (which is true for a typed nil), and then dereferences the non-nil error interface value, causing a panic.
-- [ ] **Context cancellation not respected on critical path**: a long-running analysis ignores `ctx.Done()`, causing the program to continue processing after the user sends SIGINT, potentially writing a partial result to an output file.
+**Crash patterns**
+- Nil dereference: pointer used without nil check on a path that runs for valid inputs
+- Nil map write: `m[k] = v` where `m` was never initialized with `make`
+- Slice out-of-bounds: index derived from input without a bounds check
+- Type assertion without ok-check: `x.(T)` where `x` may not hold type `T`
+- Unrecovered panic in goroutine: goroutine panics and crashes the whole program
+- `init()` panics on a valid installation
 
-#### 2f. Concurrency Bugs That Break Core Results
-Only report these if the race condition causes incorrect output or a crash, not merely a theoretical data race:
+**Startup / wiring failures**
+- Storage backend not initialized before first use (e.g., SQLite schema not created)
+- Required config file not documented, causing an error on clean install
+- CLI command with `Run`/`RunE` not set: registered in help but does nothing
+- Flag parsed but value never read by any code path
 
-- [ ] **Shared result map written from multiple goroutines without synchronization**: concurrent goroutines write to the same map, causing a race condition that panics at runtime (Go's map write is not concurrent-safe).
-- [ ] **Goroutine leak that exhausts resources on large input**: goroutines are started but never terminated (blocked channel send/receive with no consumer/producer), causing the program to hang or OOM on large codebases.
-- [ ] **WaitGroup counter goes negative**: `wg.Done()` is called more times than `wg.Add()`, causing a panic. Trace the Add/Done pairs.
-- [ ] **Channel send after close**: a goroutine sends to a channel after it has been closed, causing a panic. Trace the close and send sites.
+**Silent wrong output**
+- Integer division truncation: `a / b * 100` instead of `a * 100 / b`
+- Accumulator reassigned instead of incremented inside the loop it aggregates
+- Result struct field never written: always emits the zero value
+- Swallowed parse error: error discarded, zero-value result included in aggregates
+- Error from goroutine silently dropped: affected files produce no output
 
----
+**Concurrency / hang**
+- Goroutines blocked on channel send with no consumer (goroutine leak → hang)
+- WaitGroup `Done()` called more times than `Add()` (panic)
+- Channel send after close (panic)
+- Shared map written from multiple goroutines without synchronization (race → panic)
 
-### Phase 3: False-Positive Prevention (MANDATORY)
-Before recording ANY finding, apply ALL of these checks:
+### Phase 4: Fix
+Apply the **minimum change** that restores basic utility:
 
-1. **Reproduce the path**: Confirm the bug is reachable through a documented or reasonably expected invocation. A bug in dead code is not a breaking bug.
-2. **Verify the scope**: Does this finding satisfy at least one of the five Scope Principle questions? If not, discard it.
-3. **Check for guards elsewhere**: The crash or wrong-output path may be guarded at a higher level (e.g., the function is only called after a nil check in its only caller). Trace the full call chain before reporting.
-4. **Read surrounding comments**: If a comment explicitly acknowledges the issue (e.g., `// intentionally not checked`, `// safe because X`, `//nolint:`), classify as an acknowledged pattern and do not report as a new finding.
-5. **Check Go version for eliminated bugs**: Loop variable capture (`for _, v := range`; goroutine closes over `v`) is eliminated in Go 1.22+. Integer overflow is undefined behavior in C but well-defined (wrapping) in Go — report it only if wrapping produces a demonstrably wrong result for valid inputs.
-6. **Confirm the metric definition**: Before reporting an off-by-one or wrong-calculation bug, read the project's own definition of the metric (README, GoDoc, test assertions). What looks wrong may be intentional.
+1. Fix only the confirmed root cause. Do not refactor, improve style, or fix unrelated bugs.
+2. Match the project's existing error handling convention, variable naming, and code style.
+3. Preserve all existing API contracts and behavior outside the broken path.
+4. After each fix, run:
+   ```bash
+   go build ./... && go test -race ./... && <primary-invocation>
+   ```
+   Confirm the failure from Phase 0 is resolved before declaring done.
 
-**Rule**: If you cannot construct a concrete input or invocation that triggers the broken behavior using the documented interface, do NOT report it. Hypothetical bugs are not breaking bugs.
+If fixing the root cause reveals a second blocking bug on the same critical path, fix that too and re-run. Stop when the primary documented invocation works correctly.
 
----
+### Phase 5: Validate and Report
+```bash
+go-stats-generator analyze . --skip-tests --format json --output post-fix.json --sections functions,patterns
+go-stats-generator diff baseline.json post-fix.json
+```
+(Run the baseline before fixing if you have not already.)
 
-### Phase 4: Report
-Generate **`AUDIT.md`**:
+Delete temporary files. Write one file in the repository root:
+
+**`AUDIT.md`**:
 
 ```markdown
 # BREAKING BUG AUDIT — [date]
 
-## Program's Basic Utility
-[One paragraph: what this program does, its primary invocation, its core output, and its target users]
+## Observed Failure
+[Exact symptom: the command run, the output/crash seen, the exit code]
 
-## Critical Paths Examined
-| Path | Entry Point | Output | Verdict |
-|------|------------|--------|---------|
-| [documented use case] | [command/function] | [metric/file] | ✅ Functional / ❌ Broken / ⚠️ Degraded |
+## Root Cause
+[File:line, function name, and a one-sentence description of the bug]
 
-## Baseline Health
-- Build: [PASS / FAIL — details]
-- Tests: [N passed, N failed, N races]
-- `go vet`: [clean / N errors]
+## Fix Applied
+[What was changed: file, function, before/after diff summary]
 
-## Findings
-### CRITICAL — Program broken or crashes on documented usage
-- [ ] [Finding title] — [file:line] — [concrete invocation or input that triggers it] — [what the user sees] — **Remediation:** [exact fix: what to change, where, and how to verify]
+## Verification
+[The command run after the fix and its output confirming the failure is resolved]
 
-### HIGH — Core output is wrong for valid inputs
-- [ ] [Finding title] — [file:line] — [concrete invocation or input that triggers it] — [what is wrong vs what is expected] — **Remediation:** [exact fix]
+## Other Blocking Bugs Found
+- [ ] [If additional blocking bugs were found on the same critical path, list them here with file:line and remediation]
 
-## False Positives Considered and Rejected
+## Discarded Candidates
 | Candidate | Reason Discarded |
 |-----------|-----------------|
-| [description] | [which scope check failed or which guard was found] |
+| [description] | [which scope rule it failed, or which guard prevented it from being reachable] |
 ```
 
-Generate **`GAPS.md`**:
-
-```markdown
-# Breaking Utility Gaps — [date]
-
-## [Gap Title]
-- **Documented Capability**: [exact claim from README, --help, or GoDoc]
-- **Broken Behavior**: [what actually happens — crash, wrong value, silent no-op]
-- **Triggering Condition**: [the input or invocation that exposes the break]
-- **User Impact**: [what the user loses — wrong data, wasted time, corrupted output file]
-- **Fix**: [exact remediation: function, file, and what to change]
-```
-
-## Severity Classification
-
-| Severity | Criteria |
-|----------|----------|
-| CRITICAL | Program crashes or panics on a documented invocation; program writes corrupted output and exits 0; program fails to start on a clean install |
-| HIGH | A documented metric is computed incorrectly for valid inputs; a documented CLI flag is silently ignored; a documented output format produces unparseable content |
-| DISCARD | Everything else — style issues, test coverage gaps, performance problems, cosmetic wrong values in edge cases not covered by documentation |
-
-There are only two reportable severity levels: CRITICAL and HIGH. If a finding does not meet CRITICAL or HIGH criteria, it is discarded. Do not create MEDIUM or LOW sections.
-
-## Remediation Standards
-Every finding MUST include a **Remediation** section:
-1. **Name the exact location**: file path and line number, function name.
-2. **State the exact fix**: what to add, change, or remove. Do not say "consider adding a nil check" — say "add `if x == nil { return nil, fmt.Errorf(...) }` before line N in function F".
-3. **Respect project idioms**: use the project's existing error wrapping convention, variable naming style, and test patterns.
-4. **Include a verification command**: `go test -race -run TestFunctionName ./pkg/...` or a specific CLI invocation that demonstrates the fix.
-
-## Constraints
-- Output ONLY the two report files — no code changes permitted.
-- Every finding must satisfy at least one of the five Scope Principle questions (listed at the top of this prompt).
-- Every finding must reference a specific file and line number.
-- Every finding must include a concrete triggering condition — not "could be nil" but "is nil when the input file is empty".
-- All findings must use unchecked `- [ ]` checkboxes for downstream processing.
-- Apply all Phase 3 false-positive prevention checks to every candidate finding before including it.
-- Evaluate against the project's **own documented utility**, not hypothetical ideal behavior.
+## Fix Rules
+- Fix only the confirmed root cause. Do not refactor, improve style, or fix unrelated bugs in the same pass.
+- Match the project's existing error handling convention, variable naming, and code style.
+- Preserve all existing API contracts and behavior outside the broken path.
+- The minimum change that restores the documented behavior is the correct change.
 
 ## Tiebreaker
-Prioritize: crashes on default invocation → corrupted output file → wrong core metric → non-functional documented command → wrong default behavior. Within CRITICAL, order by how likely the triggering condition is on a real codebase. Within HIGH, order by how visible the wrong output is to the end user.
+If multiple blocking bugs are found, fix in this order: build failure → startup crash → runtime crash on primary invocation → silent no-op command → incorrect core metric. Fix the highest-priority bug first, verify it, then continue.
