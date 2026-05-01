@@ -140,6 +140,7 @@ func TestDetectDeadCode(t *testing.T) {
 		wantUnreachable       int
 		wantUnreferencedFn    string
 		wantUnreachableReason string
+		wantUnreferencedNames []string // all names that must appear in the list
 	}{
 		{
 			name: "detects unreferenced unexported function",
@@ -205,7 +206,8 @@ func helper() {}`,
 			src: `package test
 func privateA() { privateB() }
 func privateB() {}`,
-			wantUnreferenced: 2,
+			wantUnreferenced:      2,
+			wantUnreferencedNames: []string{"privateA", "privateB"},
 		},
 		{
 			name: "private called transitively from public is not dead",
@@ -255,6 +257,18 @@ func Example() {
 				}
 				if result.UnreferencedFunctions[0].Type != "function" {
 					t.Errorf("expected type='function', got '%s'", result.UnreferencedFunctions[0].Type)
+				}
+			}
+
+			if len(tt.wantUnreferencedNames) > 0 {
+				found := make(map[string]bool, len(result.UnreferencedFunctions))
+				for _, sym := range result.UnreferencedFunctions {
+					found[sym.Name] = true
+				}
+				for _, want := range tt.wantUnreferencedNames {
+					if !found[want] {
+						t.Errorf("expected %q to be in unreferenced list, but it was not", want)
+					}
 				}
 			}
 

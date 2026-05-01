@@ -293,16 +293,29 @@ func (ba *BurdenAnalyzer) buildFileCallGraph(file *ast.File, graph map[string]ma
 		}
 
 		// Walk the function body to collect all direct call targets.
+		// Note: calls inside nested function literals (closures) are attributed
+		// to the enclosing named function. This is conservative — it prevents
+		// false positives where a function used only inside a closure would be
+		// incorrectly flagged as dead code. The trade-off is that a closure that
+		// is defined but never invoked will not be caught as dead code by this
+		// pass; that case is rare and is handled separately by the compiler
+		// (unused variables cause compile errors) or other analysis passes.
 		ast.Inspect(funcDecl.Body, func(inner ast.Node) bool {
 			call, ok := inner.(*ast.CallExpr)
 			if !ok {
 				return true
 			}
 			if ident, ok := call.Fun.(*ast.Ident); ok {
+				// Record plain function calls (e.g. helper()). Built-in names
+				// such as make/len/append are added too, but they will never
+				// match a declared unexported function that we inspect later, so
+				// the spurious graph edges are harmless.
 				graph[callerName][ident.Name] = true
 			} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-				// Only track calls on local identifiers (i.e. method calls on
-				// variables), not package-qualified calls like os.Exit or log.Fatal.
+				// Track method calls on local variables (e.g. h.process()).
+				// ident.Obj is non-nil for locally-declared identifiers and nil
+				// for imported package names (os, log, …), which lets us skip
+				// cross-package calls that are not in the analyzed package.
 				if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
 					graph[callerName][sel.Sel.Name] = true
 				}
