@@ -201,6 +201,21 @@ func helper() {}`,
 			wantUnreachable:  0,
 		},
 		{
+			name: "private functions only reachable from other dead private functions are also dead",
+			src: `package test
+func privateA() { privateB() }
+func privateB() {}`,
+			wantUnreferenced: 2,
+		},
+		{
+			name: "private called transitively from public is not dead",
+			src: `package test
+func Public() { privateA() }
+func privateA() { privateB() }
+func privateB() {}`,
+			wantUnreferenced: 0,
+		},
+		{
 			name: "unreachable in nested blocks",
 			src: `package test
 func Example() {

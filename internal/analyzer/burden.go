@@ -230,62 +230,142 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 // DetectDeadCode identifies unreferenced unexported symbols and unreachable code blocks that
 // waste maintenance effort and increase cognitive burden. It analyzes all files in a package
 // to find unused functions, types, and variables, as well as code paths that can never execute
-// (after return/break/continue). Returns detailed metrics about dead code locations for cleanup.
+// (after return/break/continue). Public (exported) functions are never considered dead code.
+// Private functions reachable — directly or transitively — from any exported function, init
+// function, or main function are also excluded. Returns detailed metrics about dead code
+// locations for cleanup.
 func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
-	// Build symbol references across all files in package
-	refs := ba.buildReferenceMap(files)
+	// Build a per-function call graph across all files in the package.
+	callGraph := ba.buildCallGraph(files)
 
-	// Find unreferenced symbols
-	unreferenced := ba.findUnreferencedSymbols(files, refs, pkg)
+	// Collect always-live entry points: exported functions, init, and main.
+	roots := ba.collectExportedFunctions(files)
 
-	// Find unreachable code blocks
-	unreachable := ba.findUnreachableCode(files)
+	// Compute the full reachable set via BFS from every root.
+	reachable := ba.findReachableFromExported(callGraph, roots)
+
+	// Find unexported functions not reachable from any live root.
+	unreferenced := ba.findUnreferencedSymbols(files, reachable, pkg)
+
+	// Find unreachable code blocks (statements after terminating statements).
+	unreachableBlocks := ba.findUnreachableCode(files)
 
 	// Calculate total dead lines
 	totalLines := 0
-	for _, block := range unreachable {
+	for _, block := range unreachableBlocks {
 		totalLines += block.Lines
 	}
 
 	return &metrics.DeadCodeMetrics{
 		UnreferencedFunctions: unreferenced,
-		UnreachableCode:       unreachable,
+		UnreachableCode:       unreachableBlocks,
 		TotalDeadLines:        totalLines,
 		DeadCodePercent:       0.0, // Calculate in analyzer integration
 	}
 }
 
-// buildReferenceMap counts function call references across all files in a package
-func (ba *BurdenAnalyzer) buildReferenceMap(files []*ast.File) map[string]int {
-	refs := make(map[string]int)
+// buildCallGraph constructs a call graph mapping each function name to the set of
+// function names it calls directly. Both plain calls (helper()) and selector-expression
+// method calls on local variables (h.method()) are recorded.
+func (ba *BurdenAnalyzer) buildCallGraph(files []*ast.File) map[string]map[string]bool {
+	graph := make(map[string]map[string]bool)
+	for _, file := range files {
+		ba.buildFileCallGraph(file, graph)
+	}
+	return graph
+}
+
+// buildFileCallGraph populates the call graph with all calls made inside each
+// function declaration in file.
+func (ba *BurdenAnalyzer) buildFileCallGraph(file *ast.File, graph map[string]map[string]bool) {
+	ast.Inspect(file, func(n ast.Node) bool {
+		funcDecl, ok := n.(*ast.FuncDecl)
+		if !ok {
+			return true
+		}
+		if funcDecl.Name == nil || funcDecl.Body == nil {
+			return false
+		}
+
+		callerName := funcDecl.Name.Name
+		if graph[callerName] == nil {
+			graph[callerName] = make(map[string]bool)
+		}
+
+		// Walk the function body to collect all direct call targets.
+		ast.Inspect(funcDecl.Body, func(inner ast.Node) bool {
+			call, ok := inner.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			if ident, ok := call.Fun.(*ast.Ident); ok {
+				graph[callerName][ident.Name] = true
+			} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+				// Only track calls on local identifiers (i.e. method calls on
+				// variables), not package-qualified calls like os.Exit or log.Fatal.
+				if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
+					graph[callerName][sel.Sel.Name] = true
+				}
+			}
+			return true
+		})
+
+		// We handled this FuncDecl's children ourselves; don't re-visit them.
+		return false
+	})
+}
+
+// collectExportedFunctions returns a set containing the names of all exported
+// functions as well as the special always-live functions init and main.
+func (ba *BurdenAnalyzer) collectExportedFunctions(files []*ast.File) map[string]bool {
+	roots := make(map[string]bool)
 	for _, file := range files {
 		ast.Inspect(file, func(n ast.Node) bool {
-			ba.countCallReference(n, refs)
+			funcDecl, ok := n.(*ast.FuncDecl)
+			if !ok {
+				return true
+			}
+			if funcDecl.Name == nil {
+				return true
+			}
+			name := funcDecl.Name.Name
+			if ast.IsExported(name) || name == "init" || name == "main" {
+				roots[name] = true
+			}
 			return true
 		})
 	}
-	return refs
+	return roots
 }
 
-// countCallReference counts a function call reference from the given AST node.
-func (ba *BurdenAnalyzer) countCallReference(n ast.Node, refs map[string]int) {
-	call, ok := n.(*ast.CallExpr)
-	if !ok {
-		return
-	}
-	if ident, ok := call.Fun.(*ast.Ident); ok {
-		refs[ident.Name]++
-		return
-	}
-	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-		if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
-			refs[sel.Sel.Name]++
+// findReachableFromExported performs a breadth-first traversal of the call graph
+// starting from all root (always-live) functions and returns the set of all
+// function names that are reachable from at least one root.
+func (ba *BurdenAnalyzer) findReachableFromExported(graph map[string]map[string]bool, roots map[string]bool) map[string]bool {
+	reachable := make(map[string]bool)
+	queue := make([]string, 0, len(roots))
+	for name := range roots {
+		if !reachable[name] {
+			reachable[name] = true
+			queue = append(queue, name)
 		}
 	}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for callee := range graph[current] {
+			if !reachable[callee] {
+				reachable[callee] = true
+				queue = append(queue, callee)
+			}
+		}
+	}
+	return reachable
 }
 
-// findUnreferencedSymbols identifies unexported functions that are never called
-func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, refs map[string]int, pkg string) []metrics.UnreferencedSymbol {
+// findUnreferencedSymbols identifies unexported functions that are not reachable
+// from any exported, init, or main function (directly or transitively).
+func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, reachable map[string]bool, pkg string) []metrics.UnreferencedSymbol {
 	var unreferenced []metrics.UnreferencedSymbol
 
 	for _, file := range files {
@@ -293,8 +373,8 @@ func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, refs map[st
 			switch node := n.(type) {
 			case *ast.FuncDecl:
 				if node.Name != nil && !ast.IsExported(node.Name.Name) {
-					// Check if function is referenced
-					if refs[node.Name.Name] == 0 {
+					// Flag only if not reachable from any exported entry point.
+					if !reachable[node.Name.Name] {
 						pos := ba.fset.Position(node.Pos())
 						unreferenced = append(unreferenced, metrics.UnreferencedSymbol{
 							Name:    node.Name.Name,
