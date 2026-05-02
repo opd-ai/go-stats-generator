@@ -227,30 +227,73 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 	return found
 }
 
-// DetectDeadCode identifies unreferenced unexported symbols and unreachable code blocks that
-// waste maintenance effort and increase cognitive burden. It analyzes all files in a package
-// to find unused functions, types, and variables, as well as code paths that can never execute
-// (after return/break/continue). Public (exported) functions are never considered dead code.
-// Private functions reachable — directly or transitively — from any exported function, init
-// function, or main function are also excluded. Returns detailed metrics about dead code
-// locations for cleanup.
-func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
-	// Build a per-function call graph across all files in the package.
-	callGraph := ba.buildCallGraph(files)
+// BurdenFileInfo holds a parsed source file together with the token.FileSet it was
+// parsed into and the Go package it belongs to. Use this when files from multiple
+// worker goroutines — each with its own token.FileSet — are analyzed together at
+// package scope so that position lookups remain accurate.
+type BurdenFileInfo struct {
+	File *ast.File
+	Fset *token.FileSet
+	Pkg  string
+}
 
-	// Collect always-live entry points: exported functions, init, and main.
-	roots := ba.collectExportedFunctions(files)
+// callGraphNode returns the disambiguated call-graph node key for a function declaration.
+// Methods are qualified as "ReceiverType.methodName" so they never collide with
+// package-level functions of the same name. Standalone functions use their bare name.
+func callGraphNode(fn *ast.FuncDecl) string {
+	recvType := GetMethodReceiverType(fn)
+	if recvType == "" {
+		return fn.Name.Name
+	}
+	return recvType + "." + fn.Name.Name
+}
+
+// DetectDeadCode is a convenience wrapper for single-FileSet analysis (e.g. unit tests).
+// All files must have been parsed into the BurdenAnalyzer's own FileSet. For multi-file
+// package analysis where files come from separate worker goroutines (each with their own
+// FileSet), use DetectDeadCodeForPackage with per-file BurdenFileInfo entries instead.
+func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics.DeadCodeMetrics {
+	fileInfos := make([]BurdenFileInfo, len(files))
+	for i, f := range files {
+		fileInfos[i] = BurdenFileInfo{File: f, Fset: ba.fset, Pkg: pkg}
+	}
+	return ba.DetectDeadCodeForPackage(fileInfos)
+}
+
+// DetectDeadCodeForPackage runs dead-code analysis at full package scope. It accepts
+// one BurdenFileInfo per source file so that each file's position lookups use the
+// correct token.FileSet, even when files were parsed by different worker goroutines.
+// Public (exported) functions are never considered dead code. Private functions
+// reachable — directly or transitively — from any exported function, package-level
+// init, or main (in package main) are also excluded.
+func (ba *BurdenAnalyzer) DetectDeadCodeForPackage(fileInfos []BurdenFileInfo) *metrics.DeadCodeMetrics {
+	if len(fileInfos) == 0 {
+		return &metrics.DeadCodeMetrics{}
+	}
+
+	pkg := fileInfos[0].Pkg
+	files := burdenFileInfoFiles(fileInfos)
+
+	// Build a method-name index so selector calls can be resolved to all matching
+	// method declarations without requiring full type information.
+	methodIndex := ba.buildMethodIndex(files)
+
+	// Build a per-function call graph across all files in the package.
+	callGraph := ba.buildCallGraph(files, methodIndex)
+
+	// Collect always-live entry points: exported functions, package-level init,
+	// and main (only in package main).
+	roots := ba.collectExportedFunctions(files, pkg)
 
 	// Compute the full reachable set via BFS from every root.
 	reachable := ba.findReachableFromExported(callGraph, roots)
 
 	// Find unexported functions not reachable from any live root.
-	unreferenced := ba.findUnreferencedSymbols(files, reachable, pkg)
+	unreferenced := ba.findUnreferencedSymbolsForPackage(fileInfos, reachable, pkg)
 
 	// Find unreachable code blocks (statements after terminating statements).
-	unreachableBlocks := ba.findUnreachableCode(files)
+	unreachableBlocks := ba.findUnreachableCodeForPackage(fileInfos)
 
-	// Calculate total dead lines
 	totalLines := 0
 	for _, block := range unreachableBlocks {
 		totalLines += block.Lines
@@ -264,20 +307,53 @@ func (ba *BurdenAnalyzer) DetectDeadCode(files []*ast.File, pkg string) *metrics
 	}
 }
 
-// buildCallGraph constructs a call graph mapping each function name to the set of
-// function names it calls directly. Both plain calls (helper()) and selector-expression
-// method calls on local variables (h.method()) are recorded.
-func (ba *BurdenAnalyzer) buildCallGraph(files []*ast.File) map[string]map[string]bool {
+// burdenFileInfoFiles extracts the *ast.File slice from a BurdenFileInfo slice.
+func burdenFileInfoFiles(fileInfos []BurdenFileInfo) []*ast.File {
+	files := make([]*ast.File, len(fileInfos))
+	for i, fi := range fileInfos {
+		files[i] = fi.File
+	}
+	return files
+}
+
+// buildMethodIndex builds a mapping from bare method name to all qualified method-node
+// keys ("RecvType.methodName") across all provided files. This lets the call graph
+// resolve selector calls (h.method()) to their declaration nodes without type information:
+// since we don't know the concrete type of h at parse time, we conservatively add edges
+// to every method with the matching name, preventing false positives.
+func (ba *BurdenAnalyzer) buildMethodIndex(files []*ast.File) map[string][]string {
+	index := make(map[string][]string)
+	for _, file := range files {
+		ast.Inspect(file, func(n ast.Node) bool {
+			fn, ok := n.(*ast.FuncDecl)
+			if !ok || fn.Name == nil {
+				return true
+			}
+			if recvType := GetMethodReceiverType(fn); recvType != "" {
+				key := recvType + "." + fn.Name.Name
+				index[fn.Name.Name] = append(index[fn.Name.Name], key)
+			}
+			return true
+		})
+	}
+	return index
+}
+
+// buildCallGraph constructs a call graph mapping each function/method node key to the
+// set of node keys it calls directly. Plain calls (helper()) target the bare function
+// name. Selector calls (h.method()) target all method node keys with that method name,
+// using methodIndex to resolve without full type information.
+func (ba *BurdenAnalyzer) buildCallGraph(files []*ast.File, methodIndex map[string][]string) map[string]map[string]bool {
 	graph := make(map[string]map[string]bool)
 	for _, file := range files {
-		ba.buildFileCallGraph(file, graph)
+		ba.buildFileCallGraph(file, graph, methodIndex)
 	}
 	return graph
 }
 
 // buildFileCallGraph populates the call graph with all calls made inside each
 // function declaration in file.
-func (ba *BurdenAnalyzer) buildFileCallGraph(file *ast.File, graph map[string]map[string]bool) {
+func (ba *BurdenAnalyzer) buildFileCallGraph(file *ast.File, graph map[string]map[string]bool, methodIndex map[string][]string) {
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
 		if !ok {
@@ -287,9 +363,11 @@ func (ba *BurdenAnalyzer) buildFileCallGraph(file *ast.File, graph map[string]ma
 			return false
 		}
 
-		callerName := funcDecl.Name.Name
-		if graph[callerName] == nil {
-			graph[callerName] = make(map[string]bool)
+		// Use the disambiguated node key so methods and package-level functions
+		// with the same bare name get separate call-graph nodes.
+		callerKey := callGraphNode(funcDecl)
+		if graph[callerKey] == nil {
+			graph[callerKey] = make(map[string]bool)
 		}
 
 		// Walk the function body to collect all direct call targets.
@@ -306,18 +384,22 @@ func (ba *BurdenAnalyzer) buildFileCallGraph(file *ast.File, graph map[string]ma
 				return true
 			}
 			if ident, ok := call.Fun.(*ast.Ident); ok {
-				// Record plain function calls (e.g. helper()). Built-in names
-				// such as make/len/append are added too, but they will never
-				// match a declared unexported function that we inspect later, so
-				// the spurious graph edges are harmless.
-				graph[callerName][ident.Name] = true
+				// Plain call foo() targets the package-level function "foo".
+				// Built-in names (make, len, …) are harmless extras since they
+				// will never match a declared unexported function.
+				graph[callerKey][ident.Name] = true
 			} else if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-				// Track method calls on local variables (e.g. h.process()).
-				// ident.Obj is non-nil for locally-declared identifiers and nil
-				// for imported package names (os, log, …), which lets us skip
-				// cross-package calls that are not in the analyzed package.
+				// Selector call h.method() on a local variable: add edges to
+				// ALL methods named "method" across all receiver types. Without
+				// full type information we cannot be more precise; being
+				// conservative here avoids false positives.
+				// ident.Obj is non-nil for local identifiers and nil for
+				// imported package names (os, log, …), filtering cross-package
+				// calls that are outside the analyzed package.
 				if ident, ok := sel.X.(*ast.Ident); ok && ident.Obj != nil {
-					graph[callerName][sel.Sel.Name] = true
+					for _, qualifiedName := range methodIndex[sel.Sel.Name] {
+						graph[callerKey][qualifiedName] = true
+					}
 				}
 			}
 			return true
@@ -328,22 +410,30 @@ func (ba *BurdenAnalyzer) buildFileCallGraph(file *ast.File, graph map[string]ma
 	})
 }
 
-// collectExportedFunctions returns a set containing the names of all exported
-// functions as well as the special always-live functions init and main.
-func (ba *BurdenAnalyzer) collectExportedFunctions(files []*ast.File) map[string]bool {
+// collectExportedFunctions returns a set of call-graph node keys for all always-live
+// entry points: exported functions/methods, package-level init (any package), and
+// main (only when pkg == "main"). Using qualified keys ensures that e.g. an exported
+// method "T.Method" and a package-level function "Method" are tracked independently.
+func (ba *BurdenAnalyzer) collectExportedFunctions(files []*ast.File, pkg string) map[string]bool {
 	roots := make(map[string]bool)
 	for _, file := range files {
 		ast.Inspect(file, func(n ast.Node) bool {
 			funcDecl, ok := n.(*ast.FuncDecl)
-			if !ok {
-				return true
-			}
-			if funcDecl.Name == nil {
+			if !ok || funcDecl.Name == nil {
 				return true
 			}
 			name := funcDecl.Name.Name
-			if ast.IsExported(name) || name == "init" || name == "main" {
-				roots[name] = true
+			nodeKey := callGraphNode(funcDecl)
+			isPackageLevel := !IsMethod(funcDecl)
+			switch {
+			case ast.IsExported(name):
+				roots[nodeKey] = true
+			case name == "init" && isPackageLevel:
+				// Package-level init is always invoked by the runtime.
+				roots[nodeKey] = true
+			case name == "main" && isPackageLevel && pkg == "main":
+				// main() is an entry point only in package main.
+				roots[nodeKey] = true
 			}
 			return true
 		})
@@ -353,7 +443,7 @@ func (ba *BurdenAnalyzer) collectExportedFunctions(files []*ast.File) map[string
 
 // findReachableFromExported performs a breadth-first traversal of the call graph
 // starting from all root (always-live) functions and returns the set of all
-// function names that are reachable from at least one root.
+// node keys that are reachable from at least one root.
 func (ba *BurdenAnalyzer) findReachableFromExported(graph map[string]map[string]bool, roots map[string]bool) map[string]bool {
 	reachable := make(map[string]bool)
 	queue := make([]string, 0, len(roots))
@@ -376,28 +466,33 @@ func (ba *BurdenAnalyzer) findReachableFromExported(graph map[string]map[string]
 	return reachable
 }
 
-// findUnreferencedSymbols identifies unexported functions that are not reachable
-// from any exported, init, or main function (directly or transitively).
-func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, reachable map[string]bool, pkg string) []metrics.UnreferencedSymbol {
+// findUnreferencedSymbolsForPackage identifies unexported functions that are not
+// reachable from any always-live root. It uses the per-file FileSet from each
+// BurdenFileInfo entry for accurate position reporting.
+func (ba *BurdenAnalyzer) findUnreferencedSymbolsForPackage(fileInfos []BurdenFileInfo, reachable map[string]bool, pkg string) []metrics.UnreferencedSymbol {
 	var unreferenced []metrics.UnreferencedSymbol
 
-	for _, file := range files {
-		ast.Inspect(file, func(n ast.Node) bool {
-			switch node := n.(type) {
-			case *ast.FuncDecl:
-				if node.Name != nil && !ast.IsExported(node.Name.Name) {
-					// Flag only if not reachable from any exported entry point.
-					if !reachable[node.Name.Name] {
-						pos := ba.fset.Position(node.Pos())
-						unreferenced = append(unreferenced, metrics.UnreferencedSymbol{
-							Name:    node.Name.Name,
-							File:    pos.Filename,
-							Line:    pos.Line,
-							Type:    "function",
-							Package: pkg,
-						})
-					}
-				}
+	for _, fi := range fileInfos {
+		ast.Inspect(fi.File, func(n ast.Node) bool {
+			node, ok := n.(*ast.FuncDecl)
+			if !ok || node.Name == nil {
+				return true
+			}
+			// Exported functions are never dead code.
+			if ast.IsExported(node.Name.Name) {
+				return true
+			}
+			// Flag only if the qualified node key is not reachable.
+			nodeKey := callGraphNode(node)
+			if !reachable[nodeKey] {
+				pos := fi.Fset.Position(node.Pos())
+				unreferenced = append(unreferenced, metrics.UnreferencedSymbol{
+					Name:    node.Name.Name,
+					File:    pos.Filename,
+					Line:    pos.Line,
+					Type:    "function",
+					Package: pkg,
+				})
 			}
 			return true
 		})
@@ -406,34 +501,42 @@ func (ba *BurdenAnalyzer) findUnreferencedSymbols(files []*ast.File, reachable m
 	return unreferenced
 }
 
-// findUnreachableCode identifies code blocks that can never be executed
-func (ba *BurdenAnalyzer) findUnreachableCode(files []*ast.File) []metrics.UnreachableBlock {
+// findUnreachableCodeForPackage identifies unreachable code blocks across all files,
+// using each file's own FileSet for accurate position reporting.
+func (ba *BurdenAnalyzer) findUnreachableCodeForPackage(fileInfos []BurdenFileInfo) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
-
-	for _, file := range files {
-		var currentFunc string
-
-		ast.Inspect(file, func(n ast.Node) bool {
-			switch node := n.(type) {
-			case *ast.FuncDecl:
-				if node.Name != nil {
-					currentFunc = node.Name.Name
-				}
-				if node.Body != nil {
-					blocks := ba.checkBlockForUnreachable(node.Body, currentFunc)
-					unreachable = append(unreachable, blocks...)
-				}
-				return false
-			}
-			return true
-		})
+	for _, fi := range fileInfos {
+		unreachable = append(unreachable, ba.findUnreachableCodeInFile(fi.File, fi.Fset)...)
 	}
+	return unreachable
+}
+
+// findUnreachableCodeInFile identifies unreachable code blocks within a single file,
+// using the provided FileSet for position lookups.
+func (ba *BurdenAnalyzer) findUnreachableCodeInFile(file *ast.File, fset *token.FileSet) []metrics.UnreachableBlock {
+	var unreachable []metrics.UnreachableBlock
+	var currentFunc string
+
+	ast.Inspect(file, func(n ast.Node) bool {
+		switch node := n.(type) {
+		case *ast.FuncDecl:
+			if node.Name != nil {
+				currentFunc = node.Name.Name
+			}
+			if node.Body != nil {
+				blocks := ba.checkBlockForUnreachable(node.Body, currentFunc, fset)
+				unreachable = append(unreachable, blocks...)
+			}
+			return false
+		}
+		return true
+	})
 
 	return unreachable
 }
 
-// checkBlockForUnreachable scans a code block for statements after terminating statements
-func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
+// checkBlockForUnreachable scans a code block for statements after terminating statements.
+func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn string, fset *token.FileSet) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
 
 	for i, stmt := range block.List {
@@ -441,8 +544,8 @@ func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn stri
 		if ba.isTerminating(stmt) {
 			// Check if there are statements after this
 			if i+1 < len(block.List) {
-				startPos := ba.fset.Position(block.List[i+1].Pos())
-				endPos := ba.fset.Position(block.List[len(block.List)-1].End())
+				startPos := fset.Position(block.List[i+1].Pos())
+				endPos := fset.Position(block.List[len(block.List)-1].End())
 
 				unreachable = append(unreachable, metrics.UnreachableBlock{
 					File:      startPos.Filename,
@@ -457,7 +560,7 @@ func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn stri
 		}
 
 		// Recursively check nested blocks
-		unreachable = append(unreachable, ba.checkStmtForUnreachable(stmt, fn)...)
+		unreachable = append(unreachable, ba.checkStmtForUnreachable(stmt, fn, fset)...)
 	}
 
 	return unreachable
@@ -466,20 +569,20 @@ func (ba *BurdenAnalyzer) checkBlockForUnreachable(block *ast.BlockStmt, fn stri
 // checkStmtForUnreachable analyzes a statement for unreachable code blocks,
 // recursively checking nested control structures (if/else, for, switch, select).
 // Returns all unreachable blocks found within the statement and its children.
-func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []metrics.UnreachableBlock {
+func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string, fset *token.FileSet) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
 
 	switch s := stmt.(type) {
 	case *ast.IfStmt:
-		unreachable = append(unreachable, ba.checkIfStmtUnreachable(s, fn)...)
+		unreachable = append(unreachable, ba.checkIfStmtUnreachable(s, fn, fset)...)
 	case *ast.ForStmt:
-		unreachable = append(unreachable, ba.checkLoopBodyUnreachable(s.Body, fn)...)
+		unreachable = append(unreachable, ba.checkLoopBodyUnreachable(s.Body, fn, fset)...)
 	case *ast.RangeStmt:
-		unreachable = append(unreachable, ba.checkLoopBodyUnreachable(s.Body, fn)...)
+		unreachable = append(unreachable, ba.checkLoopBodyUnreachable(s.Body, fn, fset)...)
 	case *ast.SwitchStmt:
-		unreachable = append(unreachable, ba.checkSwitchCasesUnreachable(s.Body, fn)...)
+		unreachable = append(unreachable, ba.checkSwitchCasesUnreachable(s.Body, fn, fset)...)
 	case *ast.TypeSwitchStmt:
-		unreachable = append(unreachable, ba.checkSwitchCasesUnreachable(s.Body, fn)...)
+		unreachable = append(unreachable, ba.checkSwitchCasesUnreachable(s.Body, fn, fset)...)
 	}
 
 	return unreachable
@@ -487,15 +590,15 @@ func (ba *BurdenAnalyzer) checkStmtForUnreachable(stmt ast.Stmt, fn string) []me
 
 // checkIfStmtUnreachable analyzes if/else statements for unreachable blocks,
 // checking both the main body and any else clause for dead code patterns.
-func (ba *BurdenAnalyzer) checkIfStmtUnreachable(s *ast.IfStmt, fn string) []metrics.UnreachableBlock {
+func (ba *BurdenAnalyzer) checkIfStmtUnreachable(s *ast.IfStmt, fn string, fset *token.FileSet) []metrics.UnreachableBlock {
 	var unreachable []metrics.UnreachableBlock
 
 	if s.Body != nil {
-		unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn)...)
+		unreachable = append(unreachable, ba.checkBlockForUnreachable(s.Body, fn, fset)...)
 	}
 
 	if s.Else != nil {
-		unreachable = append(unreachable, ba.checkElseClauseUnreachable(s.Else, fn)...)
+		unreachable = append(unreachable, ba.checkElseClauseUnreachable(s.Else, fn, fset)...)
 	}
 
 	return unreachable
@@ -503,28 +606,28 @@ func (ba *BurdenAnalyzer) checkIfStmtUnreachable(s *ast.IfStmt, fn string) []met
 
 // checkElseClauseUnreachable analyzes else clauses for unreachable blocks,
 // handling both block statements and chained if-else statements recursively.
-func (ba *BurdenAnalyzer) checkElseClauseUnreachable(elseStmt ast.Stmt, fn string) []metrics.UnreachableBlock {
+func (ba *BurdenAnalyzer) checkElseClauseUnreachable(elseStmt ast.Stmt, fn string, fset *token.FileSet) []metrics.UnreachableBlock {
 	switch e := elseStmt.(type) {
 	case *ast.BlockStmt:
-		return ba.checkBlockForUnreachable(e, fn)
+		return ba.checkBlockForUnreachable(e, fn, fset)
 	case *ast.IfStmt:
-		return ba.checkStmtForUnreachable(e, fn)
+		return ba.checkStmtForUnreachable(e, fn, fset)
 	}
 	return nil
 }
 
 // checkLoopBodyUnreachable analyzes loop body for unreachable blocks,
 // supporting both for loops and range loops with nil-safe checking.
-func (ba *BurdenAnalyzer) checkLoopBodyUnreachable(body *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
+func (ba *BurdenAnalyzer) checkLoopBodyUnreachable(body *ast.BlockStmt, fn string, fset *token.FileSet) []metrics.UnreachableBlock {
 	if body == nil {
 		return nil
 	}
-	return ba.checkBlockForUnreachable(body, fn)
+	return ba.checkBlockForUnreachable(body, fn, fset)
 }
 
 // checkSwitchCasesUnreachable analyzes switch/type switch cases for unreachable blocks,
 // examining each case clause body for dead code after terminating statements.
-func (ba *BurdenAnalyzer) checkSwitchCasesUnreachable(body *ast.BlockStmt, fn string) []metrics.UnreachableBlock {
+func (ba *BurdenAnalyzer) checkSwitchCasesUnreachable(body *ast.BlockStmt, fn string, fset *token.FileSet) []metrics.UnreachableBlock {
 	if body == nil {
 		return nil
 	}
@@ -532,7 +635,7 @@ func (ba *BurdenAnalyzer) checkSwitchCasesUnreachable(body *ast.BlockStmt, fn st
 	var unreachable []metrics.UnreachableBlock
 	for _, clause := range body.List {
 		if cc, ok := clause.(*ast.CaseClause); ok {
-			unreachable = append(unreachable, ba.checkBlockForUnreachable(&ast.BlockStmt{List: cc.Body}, fn)...)
+			unreachable = append(unreachable, ba.checkBlockForUnreachable(&ast.BlockStmt{List: cc.Body}, fn, fset)...)
 		}
 	}
 	return unreachable

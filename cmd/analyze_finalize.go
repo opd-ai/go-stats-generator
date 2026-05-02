@@ -585,6 +585,34 @@ func finalizeBurdenMetrics(report *metrics.Report) {
 	}
 }
 
+// finalizeDeadCodeMetrics groups the accumulated BurdenFiles by package name and runs
+// package-scope dead-code detection for each package. Results are merged into the report.
+// This must be called after the streaming phase so all files of every package are present.
+func finalizeDeadCodeMetrics(report *metrics.Report, collectedMetrics *CollectedMetrics, burdenAnalyzer *analyzer.BurdenAnalyzer) {
+	// Group files by package name.
+	pkgFiles := make(map[string][]analyzer.BurdenFileInfo)
+	for _, fi := range collectedMetrics.BurdenFiles {
+		pkgName := fi.Pkg
+		if pkgName == "" && fi.File != nil && fi.File.Name != nil {
+			pkgName = fi.File.Name.Name
+		}
+		pkgFiles[pkgName] = append(pkgFiles[pkgName], fi)
+	}
+
+	// Run dead-code detection at package scope and merge results.
+	for _, fileInfos := range pkgFiles {
+		deadCode := burdenAnalyzer.DetectDeadCodeForPackage(fileInfos)
+		if deadCode == nil {
+			continue
+		}
+		report.Burden.DeadCode.UnreferencedFunctions = append(
+			report.Burden.DeadCode.UnreferencedFunctions, deadCode.UnreferencedFunctions...)
+		report.Burden.DeadCode.UnreachableCode = append(
+			report.Burden.DeadCode.UnreachableCode, deadCode.UnreachableCode...)
+		report.Burden.DeadCode.TotalDeadLines += deadCode.TotalDeadLines
+	}
+}
+
 // complexityEntry holds temporary complexity data for sorting and analysis
 type complexityEntry struct {
 	name       string

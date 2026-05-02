@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewBurdenAnalyzer(t *testing.T) {
@@ -288,6 +290,89 @@ func Example() {
 			}
 		})
 	}
+}
+
+// TestDetectDeadCodeCrossFile verifies that dead-code detection works correctly
+// when files are parsed with separate token.FileSets (as happens in the worker-pool
+// streaming phase). Exported entry points in one file must keep private helpers in
+// another file alive.
+func TestDetectDeadCodeCrossFile(t *testing.T) {
+	t.Run("exported root in file A keeps private helper in file B alive", func(t *testing.T) {
+		// file_a.go: exported entry point that calls a private helper defined elsewhere
+		srcA := `package mypkg
+func Exported() {
+	helper()
+}`
+		// file_b.go: private helper (reachable from Exported) and a completely unused private func
+		srcB := `package mypkg
+func helper() {}
+func orphan() {}`
+
+		fsetA := token.NewFileSet()
+		fileA, err := parser.ParseFile(fsetA, "file_a.go", srcA, 0)
+		require.NoError(t, err)
+
+		fsetB := token.NewFileSet()
+		fileB, err := parser.ParseFile(fsetB, "file_b.go", srcB, 0)
+		require.NoError(t, err)
+
+		ba := NewBurdenAnalyzer(token.NewFileSet())
+		result := ba.DetectDeadCodeForPackage([]BurdenFileInfo{
+			{File: fileA, Fset: fsetA, Pkg: "mypkg"},
+			{File: fileB, Fset: fsetB, Pkg: "mypkg"},
+		})
+		require.NotNil(t, result)
+
+		names := make(map[string]bool)
+		for _, sym := range result.UnreferencedFunctions {
+			names[sym.Name] = true
+		}
+
+		assert.False(t, names["helper"],
+			"helper() is called from Exported() and must not be flagged as dead code")
+		assert.True(t, names["orphan"],
+			"orphan() is never reachable from any exported function and must be flagged")
+	})
+
+	t.Run("private chain across files: only unreachable ones are flagged", func(t *testing.T) {
+		// Exported() → privateA() → privateB(), all defined across three separate fsets
+		srcA := `package mypkg
+func Exported() { privateA() }`
+		srcB := `package mypkg
+func privateA() { privateB() }`
+		srcC := `package mypkg
+func privateB() {}
+func unused() {}`
+
+		fsetA := token.NewFileSet()
+		fileA, err := parser.ParseFile(fsetA, "a.go", srcA, 0)
+		require.NoError(t, err)
+
+		fsetB := token.NewFileSet()
+		fileB, err := parser.ParseFile(fsetB, "b.go", srcB, 0)
+		require.NoError(t, err)
+
+		fsetC := token.NewFileSet()
+		fileC, err := parser.ParseFile(fsetC, "c.go", srcC, 0)
+		require.NoError(t, err)
+
+		ba := NewBurdenAnalyzer(token.NewFileSet())
+		result := ba.DetectDeadCodeForPackage([]BurdenFileInfo{
+			{File: fileA, Fset: fsetA, Pkg: "mypkg"},
+			{File: fileB, Fset: fsetB, Pkg: "mypkg"},
+			{File: fileC, Fset: fsetC, Pkg: "mypkg"},
+		})
+		require.NotNil(t, result)
+
+		names := make(map[string]bool)
+		for _, sym := range result.UnreferencedFunctions {
+			names[sym.Name] = true
+		}
+
+		assert.False(t, names["privateA"], "privateA is transitively reachable from Exported")
+		assert.False(t, names["privateB"], "privateB is transitively reachable from Exported via privateA")
+		assert.True(t, names["unused"], "unused is never reachable from any exported function")
+	})
 }
 
 func TestAnalyzeSignatureComplexity(t *testing.T) {

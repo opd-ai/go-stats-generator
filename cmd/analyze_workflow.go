@@ -137,6 +137,7 @@ func runSingleFileAnalysis(result scanner.Result, discoverer *scanner.Discoverer
 // finalizeAllMetrics runs all post-processing steps to complete the analysis report.
 func finalizeAllMetrics(report *metrics.Report, collectedMetrics *CollectedMetrics, analyzers *AnalyzerSet, projectRoot string, cfg *config.Config) {
 	finalizeReport(report, collectedMetrics, analyzers.Package, cfg)
+	finalizeDeadCodeMetrics(report, collectedMetrics, analyzers.Burden)
 	finalizeDuplicationMetrics(report, analyzers.Duplication, collectedMetrics, cfg)
 	finalizeNamingMetrics(report, analyzers, collectedMetrics, cfg)
 	finalizePlacementMetrics(report, analyzers, collectedMetrics, cfg)
@@ -266,6 +267,11 @@ type CollectedMetrics struct {
 	// Each entry carries its own FileSet so that annotation line numbers are resolved
 	// against the correct position table (rather than a stale shared FileSet).
 	DocFiles []analyzer.DocFileInfo
+	// BurdenFiles accumulates per-file burden inputs during streaming.
+	// Each entry carries its own FileSet so that position lookups in dead-code
+	// detection are resolved correctly even when files were parsed by separate
+	// worker goroutines. Dead code analysis runs at package scope in finalization.
+	BurdenFiles []analyzer.BurdenFileInfo
 }
 
 // discoverAndValidateFiles discovers Go files in the target directory and validates the results
@@ -540,6 +546,14 @@ func processFileAnalysis(result scanner.Result, analyzers *AnalyzerSet, collecte
 		Fset: fset,
 		Path: result.FileInfo.Path,
 	})
+
+	// Accumulate per-file burden info with its own fset so that dead-code
+	// position lookups are resolved correctly in finalizeDeadCodeMetrics.
+	collectedMetrics.BurdenFiles = append(collectedMetrics.BurdenFiles, analyzer.BurdenFileInfo{
+		File: result.File,
+		Fset: fset,
+		Pkg:  result.FileInfo.Package,
+	})
 }
 
 // createPerFileAnalyzers builds a set of analyzers bound to the given FileSet.
@@ -700,29 +714,18 @@ func aggregateConcurrencyMetrics(report *metrics.Report, concurrencyMetrics *met
 	report.Patterns.ConcurrencyPatterns.Semaphores = append(report.Patterns.ConcurrencyPatterns.Semaphores, concurrencyMetrics.Semaphores...)
 }
 
-// analyzeBurdenInFile analyzes maintenance burden indicators in a single file
+// analyzeBurdenInFile analyzes maintenance burden indicators in a single file.
+// Dead code detection is NOT performed here; it is deferred to finalizeDeadCodeMetrics
+// so that all files of a package are available for accurate cross-file analysis.
 func analyzeBurdenInFile(burdenAnalyzer *analyzer.BurdenAnalyzer, result scanner.Result, report *metrics.Report, cfg *config.Config) error {
-	// File-level analysis: magic numbers and dead code
+	// File-level analysis: magic numbers only (dead code is handled at package scope)
 	magicNumbers := burdenAnalyzer.DetectMagicNumbers(result.File, result.FileInfo.Package)
 	report.Burden.MagicNumbers = append(report.Burden.MagicNumbers, magicNumbers...)
-
-	mergeDeadCodeMetrics(burdenAnalyzer, result, report)
 
 	// Function-level analysis
 	analyzeFunctionBurden(burdenAnalyzer, result, report, cfg)
 
 	return nil
-}
-
-// mergeDeadCodeMetrics analyzes and merges dead code detection results
-func mergeDeadCodeMetrics(burdenAnalyzer *analyzer.BurdenAnalyzer, result scanner.Result, report *metrics.Report) {
-	deadCode := burdenAnalyzer.DetectDeadCode([]*ast.File{result.File}, result.FileInfo.Package)
-	if deadCode == nil {
-		return
-	}
-	report.Burden.DeadCode.UnreferencedFunctions = append(report.Burden.DeadCode.UnreferencedFunctions, deadCode.UnreferencedFunctions...)
-	report.Burden.DeadCode.UnreachableCode = append(report.Burden.DeadCode.UnreachableCode, deadCode.UnreachableCode...)
-	report.Burden.DeadCode.TotalDeadLines += deadCode.TotalDeadLines
 }
 
 // analyzeFunctionBurden analyzes function-level burden indicators
