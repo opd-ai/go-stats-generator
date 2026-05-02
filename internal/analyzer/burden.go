@@ -232,9 +232,17 @@ func (ba *BurdenAnalyzer) containsNode(parent, target ast.Node) bool {
 // worker goroutines — each with its own token.FileSet — are analyzed together at
 // package scope so that position lookups remain accurate.
 type BurdenFileInfo struct {
+	// File is the parsed AST for a single Go source file.
 	File *ast.File
+	// Fset is the token.FileSet that File was parsed into. Each worker goroutine
+	// creates its own FileSet, so Fset must travel with File to ensure that
+	// position information (file name, line numbers) can be resolved correctly
+	// when files from different goroutines are analyzed together.
 	Fset *token.FileSet
-	Pkg  string
+	// Pkg is the Go package name this file belongs to (e.g. "mypkg" or "main").
+	// It is used to determine which entry points are always-live (init everywhere;
+	// main only when Pkg == "main").
+	Pkg string
 }
 
 // callGraphNode returns the disambiguated call-graph node key for a function declaration.

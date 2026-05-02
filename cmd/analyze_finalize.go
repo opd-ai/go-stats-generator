@@ -593,8 +593,17 @@ func finalizeDeadCodeMetrics(report *metrics.Report, collectedMetrics *Collected
 	pkgFiles := make(map[string][]analyzer.BurdenFileInfo)
 	for _, fi := range collectedMetrics.BurdenFiles {
 		pkgName := fi.Pkg
-		if pkgName == "" && fi.File != nil && fi.File.Name != nil {
-			pkgName = fi.File.Name.Name
+		if pkgName == "" {
+			// Pkg should always be populated by processFileAnalysis; if it's empty
+			// that indicates a data quality issue upstream.  Fall back to the AST
+			// package name and emit a warning so the problem is visible.
+			if fi.File != nil && fi.File.Name != nil {
+				pkgName = fi.File.Name.Name
+				fmt.Fprintf(os.Stderr, "Warning: BurdenFileInfo has empty Pkg field; falling back to AST package name %q\n", pkgName)
+			}
+			if pkgName == "" {
+				continue // cannot determine package; skip this file
+			}
 		}
 		pkgFiles[pkgName] = append(pkgFiles[pkgName], fi)
 	}
