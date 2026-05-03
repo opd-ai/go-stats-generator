@@ -45,10 +45,19 @@ func setBoolIfSet(key string, target *bool) {
 	}
 }
 
-// applyVerboseDefaults enables progress display when verbose mode is active
+// applyVerboseDefaults enables progress display when verbose mode is active,
+// but disables it for non-console formats to prevent pollution of structured output
 func applyVerboseDefaults(cfg *config.Config) {
-	if cfg.Output.Verbose && !viper.IsSet("output.show_progress") {
+	// First, enable progress if verbose (unless explicitly disabled)
+	if cfg.Output.Verbose {
 		cfg.Output.ShowProgress = true
+	}
+
+	// Then, override to disable progress for non-console formats
+	// This prevents progress output from polluting JSON/CSV/HTML/Markdown output
+	// Note: Users can still force enable with explicit --show-progress flag if needed
+	if cfg.Output.Format != config.FormatConsole {
+		cfg.Output.ShowProgress = false
 	}
 }
 
