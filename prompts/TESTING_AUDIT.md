@@ -44,6 +44,7 @@ Keep research brief (≤10 minutes). Record only findings relevant to test quali
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns > tmp/test-audit-metrics.json
 go-stats-generator analyze . --skip-tests
 go test -race -count=1 -coverprofile=tmp/test-coverage.out ./... 2>&1 | tee tmp/test-results.txt
