@@ -34,10 +34,11 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 
 ### Phase 2: Metrics Collection
 ```bash
-go-stats-generator analyze . --skip-tests --format json > /tmp/review-metrics.json
+mkdir -p tmp
+go-stats-generator analyze . --skip-tests --format json > tmp/review-metrics.json
 go-stats-generator analyze . --skip-tests
 ```
-Delete `/tmp/review-metrics.json` when done — the only persistent output is `ROADMAP.md`.
+Delete `tmp/review-metrics.json` when done — the only persistent output is `ROADMAP.md`.
 
 ### Phase 3: Goal-Achievement Assessment
 For each stated goal or feature claim discovered in Phase 0, evaluate:

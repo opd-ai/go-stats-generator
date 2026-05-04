@@ -36,10 +36,11 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 
 ### Phase 2: Baseline
 ```bash
-go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages > /tmp/audit-metrics.json
+mkdir -p tmp
+go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,patterns,duplication,interfaces,structs,packages > tmp/audit-metrics.json
 go-stats-generator analyze . --skip-tests
 ```
-Delete `/tmp/audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
+Delete `tmp/audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ### Phase 3: Goal-Focused Audit
 1. For each stated goal or feature claim, trace through the codebase to verify implementation:

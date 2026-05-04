@@ -34,9 +34,10 @@ Keep research brief (≤10 minutes). Record only findings that should influence 
 
 ### Phase 2: Baseline
 ```bash
-go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation,packages,patterns > /tmp/metrics.json
+mkdir -p tmp
+go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation,packages,patterns > tmp/metrics.json
 ```
-Delete `/tmp/metrics.json` when done — the only persistent output is `PLAN.md`.
+Delete `tmp/metrics.json` when done — the only persistent output is `PLAN.md`.
 
 ### Phase 3: Plan Generation
 1. Identify the most important unachieved goals from the project's own documentation (discovered in Phase 0).
