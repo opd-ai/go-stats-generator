@@ -232,3 +232,140 @@ func TestComputeSmoothedValues(t *testing.T) {
 		t.Errorf("Third smoothed value should be 15, got %.2f", smoothed[2])
 	}
 }
+
+func TestGenerateForecastWithMethod_ARIMA(t *testing.T) {
+	baseTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	series := metrics.MetricTimeSeries{
+		MetricName: "test_metric",
+		DataPoints: []metrics.TimeSeriesPoint{
+			{Timestamp: baseTime, Value: 10},
+			{Timestamp: baseTime.AddDate(0, 0, 1), Value: 12},
+			{Timestamp: baseTime.AddDate(0, 0, 2), Value: 14},
+			{Timestamp: baseTime.AddDate(0, 0, 3), Value: 16},
+			{Timestamp: baseTime.AddDate(0, 0, 4), Value: 18},
+		},
+	}
+
+	forecast := GenerateForecastWithMethod(series, 7, ForecastARIMA)
+
+	if forecast.MetricName != "test_metric" {
+		t.Errorf("Expected metric name 'test_metric', got '%s'", forecast.MetricName)
+	}
+
+	expectedDate := baseTime.AddDate(0, 0, 11) // 4 days of data + 7 days ahead
+	if !forecast.PredictionDate.Equal(expectedDate) {
+		t.Errorf("Expected prediction date %v, got %v", expectedDate, forecast.PredictionDate)
+	}
+
+	// For linear trend, ARIMA should predict continuation
+	if forecast.PointEstimate < 18 {
+		t.Errorf("ARIMA forecast should predict continuation of trend, got %.2f", forecast.PointEstimate)
+	}
+
+	if forecast.LowerBound >= forecast.PointEstimate {
+		t.Errorf("Lower bound %.2f should be below point estimate %.2f", forecast.LowerBound, forecast.PointEstimate)
+	}
+
+	if forecast.UpperBound <= forecast.PointEstimate {
+		t.Errorf("Upper bound %.2f should be above point estimate %.2f", forecast.UpperBound, forecast.PointEstimate)
+	}
+
+	if forecast.ReliabilityScore < 0 || forecast.ReliabilityScore > 1 {
+		t.Errorf("Reliability score out of range: %.2f", forecast.ReliabilityScore)
+	}
+}
+
+func TestGenerateForecastWithMethod_ARIMAInsufficientData(t *testing.T) {
+	baseTime := time.Now()
+	series := metrics.MetricTimeSeries{
+		MetricName: "sparse",
+		DataPoints: []metrics.TimeSeriesPoint{
+			{Timestamp: baseTime, Value: 10},
+			{Timestamp: baseTime.AddDate(0, 0, 1), Value: 12},
+			{Timestamp: baseTime.AddDate(0, 0, 2), Value: 14},
+		},
+	}
+
+	forecast := GenerateForecastWithMethod(series, 7, ForecastARIMA)
+
+	if forecast.Warning == "" {
+		t.Error("Expected warning for insufficient data (ARIMA needs 4+ points)")
+	}
+}
+
+func TestComputeDifferences(t *testing.T) {
+	baseTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	series := metrics.MetricTimeSeries{
+		MetricName: "test",
+		DataPoints: []metrics.TimeSeriesPoint{
+			{Timestamp: baseTime, Value: 10},
+			{Timestamp: baseTime.AddDate(0, 0, 1), Value: 12},
+			{Timestamp: baseTime.AddDate(0, 0, 2), Value: 15},
+			{Timestamp: baseTime.AddDate(0, 0, 3), Value: 14},
+		},
+	}
+
+	diff := computeDifferences(series)
+
+	if len(diff) != 3 {
+		t.Errorf("Expected 3 differences, got %d", len(diff))
+	}
+
+	// First difference: 12 - 10 = 2
+	if math.Abs(diff[0]-2) > 0.01 {
+		t.Errorf("First difference should be 2, got %.2f", diff[0])
+	}
+
+	// Second difference: 15 - 12 = 3
+	if math.Abs(diff[1]-3) > 0.01 {
+		t.Errorf("Second difference should be 3, got %.2f", diff[1])
+	}
+
+	// Third difference: 14 - 15 = -1
+	if math.Abs(diff[2]+1) > 0.01 {
+		t.Errorf("Third difference should be -1, got %.2f", diff[2])
+	}
+}
+
+func TestEstimateARIMACoefficients(t *testing.T) {
+	// Test with positive autocorrelation
+	diff := []float64{2, 3, 4, 5, 6}
+
+	phi, theta := estimateARIMACoefficients(diff)
+
+	// Phi should be positive for trending data
+	if phi < 0 {
+		t.Errorf("Expected positive phi for trending differences, got %.3f", phi)
+	}
+
+	// Phi should be bounded by stationarity constraint
+	if phi > 0.99 || phi < -0.99 {
+		t.Errorf("Phi should be in [-0.99, 0.99], got %.3f", phi)
+	}
+
+	// Theta should be bounded
+	if theta > 0.99 || theta < -0.99 {
+		t.Errorf("Theta should be in [-0.99, 0.99], got %.3f", theta)
+	}
+}
+
+func TestVariance(t *testing.T) {
+	tests := []struct {
+		name     string
+		values   []float64
+		expected float64
+	}{
+		{"single", []float64{5}, 0},
+		{"constant", []float64{3, 3, 3}, 0},
+		{"simple", []float64{2, 4, 4, 4, 5, 5, 7, 9}, 4.571429},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := variance(tt.values)
+			if math.Abs(result-tt.expected) > 0.001 {
+				t.Errorf("variance(%v) = %.6f, expected %.6f", tt.values, result, tt.expected)
+			}
+		})
+	}
+}

@@ -405,7 +405,7 @@ func generateForecasts(snapshots []storage.SnapshotInfo, metric, entity string) 
 		methodName = "exponential_smoothing"
 	case "arima":
 		method = analyzer.ForecastARIMA
-		methodName = "arima"
+		methodName = "arima_1_1_1"
 	}
 
 	forecast7 := analyzer.GenerateForecastWithMethod(series, 7, method)

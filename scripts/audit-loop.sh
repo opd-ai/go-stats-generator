@@ -49,44 +49,27 @@ LAST_TEST_RC=0
 # ─── Audit sequence: implementation gaps → product completeness ───────────────
 #
 # Logical progression toward production software:
-#   1. What is not yet implemented (gaps)
-#   2. Foundational health: dependencies, resource/memory/concurrency/error safety
-#   3. Networking correctness
-#   4. Security (standard then adversarial red-team)
-#   5. Performance
-#   6. Observability / logging
-#   7. API design quality
-#   8. Go best practices
-#   9. Test quality and test-code metrics
-#  10. Maintainability / technical debt
-#  11. Goal-focused functional metrics (production code then test code)
-#  12. Per-package deep dive
-#  13. Consolidated findings
-#  14. Overall functional audit against stated goals
-#  15. Product completeness (final gate)
+#   1. Concurrency/sync patterns and safety
+#   2. Goal-focused functional metrics (production code then test code)
+#   3. Per-package deep dive
+#   4. Consolidated findings
+#   5. Overall functional audit against stated goals
+#
+# Current available audit prompts in prompts/ directory:
+#   - SYNC_AUDIT.md (concurrency patterns, sync primitives, goroutines, channels)
+#   - PERFORM_AUDIT.md (production code performance metrics)
+#   - TEST_PERFORM_AUDIT.md (test code performance metrics)
+#   - META_AUDIT.md (per-package deep dive analysis)
+#   - COLLATE_AUDIT.md (consolidated findings and recommendations)
+#   - BASE_AUDIT.md (overall functional audit against project goals)
 
 AUDIT_SEQUENCE=(
-    "IMPLEMENTATION_GAP_AUDIT.md"
-    "DEPENDENCY_AUDIT.md"
-    "RESOURCE_AUDIT.md"
-    "MEMORY_AUDIT.md"
     "SYNC_AUDIT.md"
-    "ERROR_AUDIT.md"
-    "NETWORK_AUDIT.md"
-    "SECURITY_AUDIT.md"
-    "REDTEAM_AUDIT.md"
-    "PERFORMANCE_AUDIT.md"
-    "LOGGING_AUDIT.md"
-    "API_AUDIT.md"
-    "BEST_PRACTICES_AUDIT.md"
-    "TESTING_AUDIT.md"
-    "TEST_PERFORM_AUDIT.md"
-    "MAINTAINABILITY_AUDIT.md"
     "PERFORM_AUDIT.md"
+    "TEST_PERFORM_AUDIT.md"
     "META_AUDIT.md"
     "COLLATE_AUDIT.md"
     "BASE_AUDIT.md"
-    "PRODUCT_COMPLETENESS_AUDIT.md"
 )
 
 # ─── Logging helpers ──────────────────────────────────────────────────────────

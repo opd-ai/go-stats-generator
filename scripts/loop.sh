@@ -35,7 +35,6 @@ trap cleanup INT TERM
 
 # ─── Constants and defaults ──────────────────────────────────────────────────
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAX_ITERATIONS="${MAX_ITERATIONS:-50}"
 MAINTENANCE_INTERVAL=3          # Run periodic maintenance every N iterations
 LOG_FILE="loop.log"
@@ -47,7 +46,6 @@ ITERATION=0
 TASKS_EXECUTED=0
 TEST_FAILURES=0
 FINAL_TEST_STATUS="UNKNOWN"
-LAST_TEST_RC=0
 
 # ─── Logging helpers ─────────────────────────────────────────────────────────
 
@@ -70,11 +68,6 @@ iteration_summary() {
     echo "$line"
 }
 
-# ─── Source shared test-runner helpers ───────────────────────────────────────
-
-# shellcheck source=scripts/lib.sh
-source "$SCRIPT_DIR/lib.sh"
-
 # ─── 1. Entry Gate ───────────────────────────────────────────────────────────
 
 # Verify ROADMAP.md exists in the current working directory
@@ -87,6 +80,7 @@ fi
 # Resolve the prompt directory
 # Default: prompts/ directory next to the scripts/ directory containing this script.
 # Override via PROMPT_DIR env var or $1.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_DIR="${PROMPT_DIR:-${1:-$REPO_ROOT/prompts}}"
 
@@ -117,18 +111,28 @@ delegate() {
     fi
 
     log "Delegating: $prompt_name"
-    set +e
-    yes | copilot --model claude-opus-4.5 -p "$(cat "$prompt_file")" --allow-all-tools --deny-tool sudo
-    local -a pipe_rcs=("${PIPESTATUS[@]}")
-    local rc="${pipe_rcs[1]:-${pipe_rcs[0]:-1}}"
-    if ! [[ "$rc" =~ ^[0-9]+$ ]]; then
-        rc=1
-    elif [ "$rc" -gt 255 ]; then
-        rc=255
-    fi
-    set -e
+    yes | copilot -p "$(cat "$prompt_file")" --allow-all-tools --deny-tool sudo
+    local rc=$?
     log "Delegation complete: $prompt_name (exit code: $rc)"
-    return "$rc"
+    return $rc
+}
+
+# ─── Helper: run tests and return pass/fail ──────────────────────────────────
+
+run_tests() {
+    log "Running tests..."
+    set +e
+    xvfb-run go test -race -count=1 ./... 2>&1 | tee "$TEST_OUTPUT"
+    local rc=${PIPESTATUS[0]}
+    set -e
+
+    if [ "$rc" -eq 0 ]; then
+        log "Tests PASSED"
+        return 0
+    else
+        log "Tests FAILED (exit code: $rc)"
+        return 1
+    fi
 }
 
 # ─── Helper: check if backlog is empty ───────────────────────────────────────
@@ -309,7 +313,6 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
     else
         FINAL_TEST_STATUS="FAIL"
         TEST_FAILURES=$((TEST_FAILURES + 1))
-        ensure_relevant_test_failure_or_exit
         log_and_print "Tests failed — delegating FAIL.md to diagnose and fix..."
 
         delegate "FAIL.md" || true
@@ -319,7 +322,6 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
             FINAL_TEST_STATUS="PASS"
             iteration_summary "EXECUTE.md + FAIL.md" "PASS (fixed)"
         else
-            ensure_relevant_test_failure_or_exit
             FINAL_TEST_STATUS="FAIL"
             log_and_print "Tests still failing after FAIL.md — continuing to next iteration."
             iteration_summary "EXECUTE.md + FAIL.md" "FAIL (persisted)"
@@ -341,15 +343,9 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
                 if ! run_tests; then
                     FINAL_TEST_STATUS="FAIL"
                     TEST_FAILURES=$((TEST_FAILURES + 1))
-                    ensure_relevant_test_failure_or_exit
                     log_and_print "  Tests failed after BREAKDOWN.md — delegating FAIL.md..."
                     delegate "FAIL.md" || true
-                    if run_tests; then
-                        FINAL_TEST_STATUS="PASS"
-                    else
-                        ensure_relevant_test_failure_or_exit
-                        FINAL_TEST_STATUS="FAIL"
-                    fi
+                    run_tests && FINAL_TEST_STATUS="PASS" || FINAL_TEST_STATUS="FAIL"
                 fi
                 iteration_summary "BREAKDOWN.md" "$FINAL_TEST_STATUS"
             fi
@@ -363,15 +359,9 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
                 if ! run_tests; then
                     FINAL_TEST_STATUS="FAIL"
                     TEST_FAILURES=$((TEST_FAILURES + 1))
-                    ensure_relevant_test_failure_or_exit
                     log_and_print "  Tests failed after DEDUPLICATE.md — delegating FAIL.md..."
                     delegate "FAIL.md" || true
-                    if run_tests; then
-                        FINAL_TEST_STATUS="PASS"
-                    else
-                        ensure_relevant_test_failure_or_exit
-                        FINAL_TEST_STATUS="FAIL"
-                    fi
+                    run_tests && FINAL_TEST_STATUS="PASS" || FINAL_TEST_STATUS="FAIL"
                 fi
                 iteration_summary "DEDUPLICATE.md" "$FINAL_TEST_STATUS"
             fi
@@ -385,15 +375,9 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
                 if ! run_tests; then
                     FINAL_TEST_STATUS="FAIL"
                     TEST_FAILURES=$((TEST_FAILURES + 1))
-                    ensure_relevant_test_failure_or_exit
                     log_and_print "  Tests failed after ORGANIZE.md — delegating FAIL.md..."
                     delegate "FAIL.md" || true
-                    if run_tests; then
-                        FINAL_TEST_STATUS="PASS"
-                    else
-                        ensure_relevant_test_failure_or_exit
-                        FINAL_TEST_STATUS="FAIL"
-                    fi
+                    run_tests && FINAL_TEST_STATUS="PASS" || FINAL_TEST_STATUS="FAIL"
                 fi
                 iteration_summary "ORGANIZE.md" "$FINAL_TEST_STATUS"
             fi
@@ -423,7 +407,6 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
         else
             FINAL_TEST_STATUS="FAIL"
             TEST_FAILURES=$((TEST_FAILURES + 1))
-            ensure_relevant_test_failure_or_exit
             log_and_print "Backlog empty but tests failing — delegating FAIL.md..."
             delegate "FAIL.md" || true
 
@@ -438,7 +421,6 @@ while [ "$ITERATION" -lt "$MAX_ITERATIONS" ]; do
                 rm -f "$TEST_OUTPUT" "$ANALYSIS_OUTPUT"
                 exit 0
             else
-                ensure_relevant_test_failure_or_exit
                 log_and_print "Tests still failing after FAIL.md on empty backlog — continuing."
             fi
         fi
