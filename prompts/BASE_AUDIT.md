@@ -35,10 +35,10 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 
 ### Phase 2: Baseline
 ```bash
-go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,duplication > /tmp/audit-baseline.json
+go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,duplication > tmp/audit-baseline.json
 go-stats-generator analyze . --skip-tests
 ```
-Delete `/tmp/audit-baseline.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
+Delete `tmp/audit-baseline.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ### Phase 3: Goal-Achievement Audit
 1. For each stated goal or feature claim from Phase 0, perform a systematic audit:

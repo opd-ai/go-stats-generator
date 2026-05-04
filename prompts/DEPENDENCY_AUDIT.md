@@ -53,11 +53,11 @@ Keep research brief (≤15 minutes for dependency research). Record findings sys
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
-go-stats-generator analyze . --skip-tests --format json --sections packages > /tmp/dep-audit-metrics.json
+go-stats-generator analyze . --skip-tests --format json --sections packages > tmp/dep-audit-metrics.json
 go-stats-generator analyze . --skip-tests
-go mod tidy -diff 2>&1 | tee /tmp/dep-tidy-results.txt || true
-go mod verify 2>&1 | tee /tmp/dep-verify-results.txt
-govulncheck ./... 2>&1 | tee /tmp/dep-vulncheck-results.txt || true
+go mod tidy -diff 2>&1 | tee tmp/dep-tidy-results.txt || true
+go mod verify 2>&1 | tee tmp/dep-verify-results.txt
+govulncheck ./... 2>&1 | tee tmp/dep-vulncheck-results.txt || true
 ```
 Delete temporary files when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 

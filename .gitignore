@@ -86,3 +86,6 @@ test-full*.json
 audit-*.json
 go-stats-generator-test
 loop.log
+
+# Temporary working directory (used by prompts instead of /tmp)
+tmp/

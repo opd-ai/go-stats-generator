@@ -41,12 +41,12 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
-go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages,structs,documentation > /tmp/logic-audit-metrics.json
+go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages,structs,documentation > tmp/logic-audit-metrics.json
 go-stats-generator analyze . --skip-tests
-go test -race -count=1 ./... 2>&1 | tee /tmp/logic-test-results.txt
-go vet ./... 2>&1 | tee /tmp/logic-vet-results.txt
+go test -race -count=1 ./... 2>&1 | tee tmp/logic-test-results.txt
+go vet ./... 2>&1 | tee tmp/logic-vet-results.txt
 ```
-Delete all `/tmp/logic-*.txt` and `/tmp/logic-audit-metrics.json` files when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
+Delete all `tmp/logic-*.txt` and `tmp/logic-audit-metrics.json` files when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ---
 

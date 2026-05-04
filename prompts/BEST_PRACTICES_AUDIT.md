@@ -42,9 +42,9 @@ Keep research brief (≤10 minutes). Record only findings that calibrate expecta
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
-go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,interfaces,structs,duplication > /tmp/practices-audit-metrics.json
+go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,interfaces,structs,duplication > tmp/practices-audit-metrics.json
 go-stats-generator analyze . --skip-tests
-go vet ./... 2>&1 | tee /tmp/practices-vet-results.txt
+go vet ./... 2>&1 | tee tmp/practices-vet-results.txt
 ```
 Delete temporary files when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 

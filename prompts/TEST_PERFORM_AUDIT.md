@@ -34,10 +34,10 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 
 ### Phase 2: Baseline
 ```bash
-go-stats-generator analyze . --only-tests --format json --sections functions,documentation,patterns,duplication > /tmp/test-audit-metrics.json
+go-stats-generator analyze . --only-tests --format json --sections functions,documentation,patterns,duplication > tmp/test-audit-metrics.json
 go-stats-generator analyze . --only-tests
 ```
-Delete `/tmp/test-audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
+Delete `tmp/test-audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
 ### Phase 3: Goal-Focused Test Audit
 1. For each stated project goal, verify that adequate test coverage exists:

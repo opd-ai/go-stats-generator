@@ -85,9 +85,9 @@ Starting from the failure mode identified in Phase 2, trace backward through the
 
 Use `go-stats-generator` metrics to identify high-risk zones on the critical path:
 ```bash
-go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages > /tmp/breaking-audit-metrics.json
+go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages > tmp/breaking-audit-metrics.json
 ```
-Functions with cyclomatic complexity >20 or nesting >5 on the critical path are high-risk and should be read carefully. Delete `/tmp/breaking-audit-metrics.json` when done.
+Functions with cyclomatic complexity >20 or nesting >5 on the critical path are high-risk and should be read carefully. Delete `tmp/breaking-audit-metrics.json` when done.
 
 #### Patterns to look for once you have a hypothesis
 Look for these only within the code you are already tracing — do not use these as an independent checklist:

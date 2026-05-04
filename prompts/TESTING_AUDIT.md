@@ -44,10 +44,10 @@ Keep research brief (≤10 minutes). Record only findings relevant to test quali
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
-go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns > /tmp/test-audit-metrics.json
+go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns > tmp/test-audit-metrics.json
 go-stats-generator analyze . --skip-tests
-go test -race -count=1 -coverprofile=/tmp/test-coverage.out ./... 2>&1 | tee /tmp/test-results.txt
-go tool cover -func=/tmp/test-coverage.out | tee /tmp/test-coverage-func.txt
+go test -race -count=1 -coverprofile=tmp/test-coverage.out ./... 2>&1 | tee tmp/test-results.txt
+go tool cover -func=tmp/test-coverage.out | tee tmp/test-coverage-func.txt
 ```
 Delete temporary files when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 

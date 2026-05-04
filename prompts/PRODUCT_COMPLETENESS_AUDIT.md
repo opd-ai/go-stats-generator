@@ -44,10 +44,10 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
-go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,interfaces > /tmp/product-audit-metrics.json
+go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,interfaces > tmp/product-audit-metrics.json
 go-stats-generator analyze . --skip-tests
-go build ./... 2>&1 | tee /tmp/product-build-results.txt
-go test -race -count=1 ./... 2>&1 | tee /tmp/product-test-results.txt
+go build ./... 2>&1 | tee tmp/product-build-results.txt
+go test -race -count=1 ./... 2>&1 | tee tmp/product-test-results.txt
 ```
 Delete temporary files when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
