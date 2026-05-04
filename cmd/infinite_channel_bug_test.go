@@ -34,6 +34,7 @@ func test() {
 	unclosedResults <- scanner.Result{
 		FileInfo: scanner.FileInfo{Path: "test.go", Package: "main"},
 		File:     file,
+		FileSet:  fset,
 		Error:    nil,
 	}
 	// Note: We intentionally don't close this channel to test context cancellation
@@ -46,6 +47,8 @@ func test() {
 		Package:     analyzer.NewPackageAnalyzer(fset),
 		Concurrency: analyzer.NewConcurrencyAnalyzer(fset),
 		Burden:      analyzer.NewBurdenAnalyzer(fset),
+		Naming:      analyzer.NewNamingAnalyzer(),
+		Duplication: analyzer.NewDuplicationAnalyzer(fset),
 	}
 
 	report := &metrics.Report{}
@@ -101,6 +104,7 @@ func test() {
 	properResults <- scanner.Result{
 		FileInfo: scanner.FileInfo{Path: "test.go", Package: "main"},
 		File:     file,
+		FileSet:  fset,
 		Error:    nil,
 	}
 	close(properResults) // This is the key difference
@@ -113,6 +117,8 @@ func test() {
 		Package:     analyzer.NewPackageAnalyzer(fset),
 		Concurrency: analyzer.NewConcurrencyAnalyzer(fset),
 		Burden:      analyzer.NewBurdenAnalyzer(fset),
+		Naming:      analyzer.NewNamingAnalyzer(),
+		Duplication: analyzer.NewDuplicationAnalyzer(fset),
 	}
 
 	report := &metrics.Report{}

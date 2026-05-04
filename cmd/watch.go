@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -167,11 +168,11 @@ func handleWatchError(err error) {
 
 // addWatchPaths recursively adds directories to watcher.
 func addWatchPaths(watcher *fsnotify.Watcher, root string) error {
-	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
+		if !entry.IsDir() {
 			return nil
 		}
 		if strings.Contains(path, "/.git/") || strings.Contains(path, "/vendor/") {

@@ -50,7 +50,7 @@ func DefaultOrganizationConfig() OrganizationConfig {
 // AnalyzeFileSizes analyzes file sizes and complexity against configured limits.
 // AnalyzeFileSizes returns nil if the file is within acceptable thresholds.
 func (oa *OrganizationAnalyzer) AnalyzeFileSizes(file *ast.File, filePath string, config OrganizationConfig) (*metrics.OversizedFile, error) {
-	lines := oa.countFileLines(filePath)
+	lines := oa.countFileLinesFromAST(file)
 	funcCount := oa.countFunctions(file)
 	typeCount := oa.countTypes(file)
 
@@ -71,7 +71,45 @@ func (oa *OrganizationAnalyzer) AnalyzeFileSizes(file *ast.File, filePath string
 	}, nil
 }
 
-// countFileLines counts lines in an entire file
+// AnalyzeFileSizesWithLines is like AnalyzeFileSizes but uses a pre-computed line count
+// instead of calling fset.File on the AST. This allows callers that use per-file
+// token.FileSets (where the shared OrganizationAnalyzer's fset has no position data)
+// to obtain accurate file-size metrics without retaining the per-file FileSet.
+func (oa *OrganizationAnalyzer) AnalyzeFileSizesWithLines(file *ast.File, filePath string, lineCount int, config OrganizationConfig) (*metrics.OversizedFile, error) {
+	lines := metrics.LineMetrics{Total: lineCount}
+	funcCount := oa.countFunctions(file)
+	typeCount := oa.countTypes(file)
+
+	burden := oa.calculateBurden(lines, funcCount, typeCount)
+
+	if !oa.isOversized(lines, funcCount, typeCount, config) {
+		return nil, nil
+	}
+
+	return &metrics.OversizedFile{
+		File:              filePath,
+		Lines:             lines,
+		FunctionCount:     funcCount,
+		TypeCount:         typeCount,
+		MaintenanceBurden: burden,
+		Severity:          oa.getSeverity(lines, funcCount, typeCount, config),
+		Suggestions:       oa.getSuggestions(lines, funcCount, typeCount, config),
+	}, nil
+}
+
+// countFileLinesFromAST returns line metrics derived from the token.FileSet without re-reading
+// the file from disk. Only the Total field is populated — callers in this package use only
+// lines.Total for threshold comparisons and burden scoring.
+func (oa *OrganizationAnalyzer) countFileLinesFromAST(file *ast.File) metrics.LineMetrics {
+	tokenFile := oa.fset.File(file.Pos())
+	if tokenFile == nil {
+		return metrics.LineMetrics{}
+	}
+	return metrics.LineMetrics{Total: tokenFile.LineCount()}
+}
+
+// countFileLines counts lines in an entire file by reading from disk.
+// Retained for use in tests and other callers that need Code/Comment/Blank breakdown.
 func (oa *OrganizationAnalyzer) countFileLines(filePath string) metrics.LineMetrics {
 	src, err := os.ReadFile(filePath)
 	if err != nil {

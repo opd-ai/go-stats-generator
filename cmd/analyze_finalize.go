@@ -63,37 +63,43 @@ func finalizeScoringMetrics(report *metrics.Report, cfg *config.Config) {
 	report.Scores = *scoringAnalyzer.CalculateAllScores(report)
 }
 
-// finalizeDuplicationMetrics performs duplication analysis on all collected files
+// finalizeDuplicationMetrics performs duplication analysis using pre-extracted blocks.
+// Blocks are accumulated in CollectedMetrics during the streaming phase (processFileAnalysis)
+// using per-file token.FileSets, so this function does not need a file map or shared fset.
 func finalizeDuplicationMetrics(report *metrics.Report, duplicationAnalyzer *analyzer.DuplicationAnalyzer, collectedMetrics *CollectedMetrics, cfg *config.Config) {
-	filesToAnalyze := prepareFilesForDuplication(collectedMetrics, cfg)
-	if len(filesToAnalyze) == 0 {
+	blocks := collectedMetrics.DupBlocks
+	totalLines := collectedMetrics.DupTotalLines
+
+	if cfg.Analysis.Duplication.IgnoreTestFiles {
+		blocks, totalLines = filterTestBlocks(blocks, collectedMetrics)
+	}
+
+	if len(blocks) == 0 {
 		report.Duplication = createEmptyDuplicationMetrics()
 		return
 	}
 
-	logDuplicationStart(cfg, len(filesToAnalyze))
-	duplicationMetrics := runDuplicationAnalysis(duplicationAnalyzer, filesToAnalyze, cfg)
+	logDuplicationStart(cfg, len(collectedMetrics.Files))
+	duplicationMetrics := duplicationAnalyzer.AnalyzeDuplicationFromBlocks(blocks, totalLines, cfg.Analysis.Duplication.SimilarityThreshold)
 	report.Duplication = duplicationMetrics
 	logDuplicationResults(cfg, duplicationMetrics)
 }
 
-// prepareFilesForDuplication filters files for duplication analysis based on configuration.
-func prepareFilesForDuplication(collectedMetrics *CollectedMetrics, cfg *config.Config) map[string]*ast.File {
-	if !cfg.Analysis.Duplication.IgnoreTestFiles {
-		return collectedMetrics.Files
-	}
-	return filterNonTestFiles(collectedMetrics.Files)
-}
-
-// filterNonTestFiles removes test files from the analysis set.
-func filterNonTestFiles(files map[string]*ast.File) map[string]*ast.File {
-	filtered := make(map[string]*ast.File)
-	for filename, file := range files {
-		if !strings.HasSuffix(filename, "_test.go") {
-			filtered[filename] = file
+// filterTestBlocks removes blocks belonging to test files and returns the adjusted total line count.
+func filterTestBlocks(blocks []analyzer.StatementBlock, collectedMetrics *CollectedMetrics) ([]analyzer.StatementBlock, int) {
+	var filtered []analyzer.StatementBlock
+	totalLines := 0
+	for _, block := range blocks {
+		if !strings.HasSuffix(block.File, "_test.go") {
+			filtered = append(filtered, block)
 		}
 	}
-	return filtered
+	for filePath, lines := range collectedMetrics.FileLinesCount {
+		if !strings.HasSuffix(filePath, "_test.go") {
+			totalLines += lines
+		}
+	}
+	return filtered, totalLines
 }
 
 // createEmptyDuplicationMetrics returns zero-initialized duplication metrics.
@@ -119,15 +125,6 @@ func logDuplicationStart(cfg *config.Config, fileCount int) {
 	fmt.Fprintf(os.Stderr, "%s...\n", msg)
 }
 
-// runDuplicationAnalysis executes duplication detection using configured thresholds.
-func runDuplicationAnalysis(analyzer *analyzer.DuplicationAnalyzer, files map[string]*ast.File, cfg *config.Config) metrics.DuplicationMetrics {
-	return analyzer.AnalyzeDuplication(
-		files,
-		cfg.Analysis.Duplication.MinBlockLines,
-		cfg.Analysis.Duplication.SimilarityThreshold,
-	)
-}
-
 // logDuplicationResults prints duplication analysis results if verbose mode is enabled.
 func logDuplicationResults(cfg *config.Config, metrics metrics.DuplicationMetrics) {
 	if !cfg.Output.Verbose {
@@ -139,7 +136,10 @@ func logDuplicationResults(cfg *config.Config, metrics metrics.DuplicationMetric
 		metrics.DuplicationRatio*100)
 }
 
-// finalizeNamingMetrics performs naming convention analysis on all collected files
+// finalizeNamingMetrics performs naming convention analysis on all collected files.
+// Identifier violations were accumulated in CollectedMetrics during the streaming phase
+// (see processFileAnalysis) using per-file token.FileSets, so this function only runs
+// file-name and package-name checks which do not require position lookups.
 func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
 	filePaths := extractFilePaths(collectedMetrics)
 	if len(filePaths) == 0 {
@@ -150,7 +150,10 @@ func finalizeNamingMetrics(report *metrics.Report, analyzers *AnalyzerSet, colle
 	logNamingStart(cfg, len(filePaths))
 
 	fileNameViolations := analyzers.Naming.AnalyzeFileNames(filePaths)
-	identifierViolations, totalIdentifiers := analyzeAllIdentifiers(analyzers, collectedMetrics)
+	// Use pre-accumulated identifier violations from the streaming phase instead of
+	// iterating the Files map with the shared (and now empty) fileSet.
+	identifierViolations := collectedMetrics.IdentifierViolations
+	totalIdentifiers := collectedMetrics.TotalIdentifiers
 	packageNameViolations, uniquePackages := analyzeAllPackageNames(analyzers, collectedMetrics)
 
 	report.Naming = buildNamingMetrics(
@@ -187,18 +190,6 @@ func logNamingStart(cfg *config.Config, fileCount int) {
 	if cfg.Output.Verbose {
 		fmt.Fprintf(os.Stderr, "Running naming convention analysis on %d files...\n", fileCount)
 	}
-}
-
-// analyzeAllIdentifiers runs identifier analysis on all collected files and returns violations with count.
-func analyzeAllIdentifiers(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics) ([]metrics.IdentifierViolation, int) {
-	var identifierViolations []metrics.IdentifierViolation
-	totalIdentifiers := 0
-	for filePath, astFile := range collectedMetrics.Files {
-		violations := analyzers.Naming.AnalyzeIdentifiers(astFile, filePath, analyzers.fileSet)
-		identifierViolations = append(identifierViolations, violations...)
-		totalIdentifiers += countIdentifiers(astFile)
-	}
-	return identifierViolations, totalIdentifiers
 }
 
 // analyzeAllPackageNames extracts unique packages and analyzes package naming conventions.
@@ -272,16 +263,11 @@ func logNamingResults(cfg *config.Config, naming metrics.NamingMetrics) {
 	}
 }
 
-// finalizePlacementMetrics performs placement and cohesion analysis on all collected files
+// finalizePlacementMetrics performs placement and cohesion analysis on all collected files.
+// It uses AnalyzeMap (which derives filenames from the map keys) rather than Analyze
+// (which calls fset.Position on each file), so that a shared token.FileSet is not needed.
 func finalizePlacementMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
-	// Convert collected files map to slice
-	var astFiles []*ast.File
-	for _, file := range collectedMetrics.Files {
-		astFiles = append(astFiles, file)
-	}
-
-	// Skip if no files
-	if len(astFiles) == 0 {
+	if len(collectedMetrics.Files) == 0 {
 		report.Placement = metrics.PlacementMetrics{
 			MisplacedFunctions: 0,
 			MisplacedMethods:   0,
@@ -295,11 +281,10 @@ func finalizePlacementMetrics(report *metrics.Report, analyzers *AnalyzerSet, co
 	}
 
 	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Running placement analysis on %d files...\n", len(astFiles))
+		fmt.Fprintf(os.Stderr, "Running placement analysis on %d files...\n", len(collectedMetrics.Files))
 	}
 
-	// Perform placement analysis
-	placementMetrics := analyzers.Placement.Analyze(astFiles, analyzers.fileSet)
+	placementMetrics := analyzers.Placement.AnalyzeMap(collectedMetrics.Files)
 	report.Placement = placementMetrics
 
 	if cfg.Output.Verbose {
@@ -327,20 +312,21 @@ func countIdentifiers(file *ast.File) int {
 // finalizeDocumentationMetrics performs documentation analysis on all collected files
 func finalizeDocumentationMetrics(report *metrics.Report, analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, cfg *config.Config) {
 	// Skip if documentation analysis is disabled or no files
-	if !cfg.Analysis.IncludeDocumentation || len(collectedMetrics.Files) == 0 {
+	if !cfg.Analysis.IncludeDocumentation || len(collectedMetrics.DocFiles) == 0 {
 		report.Documentation = metrics.DocumentationMetrics{}
 		return
 	}
 
-	// Convert files map to slice and group by package
-	files, pkgs := prepareDocumentationInput(collectedMetrics.Files)
+	// Build packages map from DocFiles (mirrors what prepareDocumentationInput did from Files map).
+	pkgs := buildPkgsFromDocFiles(collectedMetrics.DocFiles)
 
 	if cfg.Output.Verbose {
-		fmt.Fprintf(os.Stderr, "Running documentation analysis on %d files in %d packages...\n", len(files), len(pkgs))
+		fmt.Fprintf(os.Stderr, "Running documentation analysis on %d files in %d packages...\n", len(collectedMetrics.DocFiles), len(pkgs))
 	}
 
-	// Run documentation analysis
-	docMetrics := analyzers.Documentation.Analyze(files, pkgs)
+	// Use AnalyzeWithFileSets so that annotation line numbers are resolved against each
+	// file's own FileSet rather than the shared discoverer FileSet.
+	docMetrics := analyzers.Documentation.AnalyzeWithFileSets(collectedMetrics.DocFiles, pkgs)
 	report.Documentation = *docMetrics
 
 	if cfg.Output.Verbose {
@@ -350,6 +336,25 @@ func finalizeDocumentationMetrics(report *metrics.Report, analyzers *AnalyzerSet
 			docMetrics.Coverage.Functions,
 			docMetrics.Coverage.Types)
 	}
+}
+
+// buildPkgsFromDocFiles builds an ast.Package map keyed by package name from DocFileInfo entries.
+func buildPkgsFromDocFiles(docFiles []analyzer.DocFileInfo) map[string]*ast.Package {
+	pkgs := make(map[string]*ast.Package)
+	for _, fi := range docFiles {
+		if fi.File == nil || fi.File.Name == nil {
+			continue
+		}
+		pkgName := fi.File.Name.Name
+		if _, exists := pkgs[pkgName]; !exists {
+			pkgs[pkgName] = &ast.Package{
+				Name:  pkgName,
+				Files: make(map[string]*ast.File),
+			}
+		}
+		pkgs[pkgName].Files[fi.Path] = fi.File
+	}
+	return pkgs
 }
 
 // finalizeOrganizationMetrics performs organization analysis on all collected files and packages
@@ -386,11 +391,12 @@ func logOrganizationStart(cfg *config.Config, fileCount int) {
 	}
 }
 
-// analyzeOversizedFiles analyzes all files for size violations
+// analyzeOversizedFiles analyzes all files for size violations using pre-computed line counts.
 func analyzeOversizedFiles(analyzers *AnalyzerSet, collectedMetrics *CollectedMetrics, orgConfig analyzer.OrganizationConfig) []metrics.OversizedFile {
 	var oversizedFiles []metrics.OversizedFile
 	for filePath, astFile := range collectedMetrics.Files {
-		result, err := analyzers.Organization.AnalyzeFileSizes(astFile, filePath, orgConfig)
+		lineCount := collectedMetrics.FileLinesCount[filePath]
+		result, err := analyzers.Organization.AnalyzeFileSizesWithLines(astFile, filePath, lineCount, orgConfig)
 		if err == nil && result != nil {
 			oversizedFiles = append(oversizedFiles, *result)
 		}
@@ -576,6 +582,43 @@ func finalizeBurdenMetrics(report *metrics.Report) {
 		totalDeadLines := float64(report.Burden.DeadCode.TotalDeadLines)
 		totalLines := float64(report.Overview.TotalLinesOfCode)
 		report.Burden.DeadCode.DeadCodePercent = (totalDeadLines / totalLines) * 100
+	}
+}
+
+// finalizeDeadCodeMetrics groups the accumulated BurdenFiles by package name and runs
+// package-scope dead-code detection for each package. Results are merged into the report.
+// This must be called after the streaming phase so all files of every package are present.
+func finalizeDeadCodeMetrics(report *metrics.Report, collectedMetrics *CollectedMetrics, burdenAnalyzer *analyzer.BurdenAnalyzer) {
+	// Group files by package name.
+	pkgFiles := make(map[string][]analyzer.BurdenFileInfo)
+	for _, fi := range collectedMetrics.BurdenFiles {
+		pkgName := fi.Pkg
+		if pkgName == "" {
+			// Pkg should always be populated by processFileAnalysis; if it's empty
+			// that indicates a data quality issue upstream.  Fall back to the AST
+			// package name and emit a warning so the problem is visible.
+			if fi.File != nil && fi.File.Name != nil {
+				pkgName = fi.File.Name.Name
+				fmt.Fprintf(os.Stderr, "Warning: BurdenFileInfo has empty Pkg field; falling back to AST package name %q\n", pkgName)
+			}
+			if pkgName == "" {
+				continue // cannot determine package; skip this file
+			}
+		}
+		pkgFiles[pkgName] = append(pkgFiles[pkgName], fi)
+	}
+
+	// Run dead-code detection at package scope and merge results.
+	for _, fileInfos := range pkgFiles {
+		deadCode := burdenAnalyzer.DetectDeadCodeForPackage(fileInfos)
+		if deadCode == nil {
+			continue
+		}
+		report.Burden.DeadCode.UnreferencedFunctions = append(
+			report.Burden.DeadCode.UnreferencedFunctions, deadCode.UnreferencedFunctions...)
+		report.Burden.DeadCode.UnreachableCode = append(
+			report.Burden.DeadCode.UnreachableCode, deadCode.UnreachableCode...)
+		report.Burden.DeadCode.TotalDeadLines += deadCode.TotalDeadLines
 	}
 }
 

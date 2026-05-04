@@ -81,6 +81,50 @@ func (pa *PlacementAnalyzer) Analyze(files []*ast.File, fset *token.FileSet) met
 	}
 }
 
+// AnalyzeMap performs the same placement analysis as Analyze but accepts a
+// map[filename]*ast.File rather than a slice plus a token.FileSet.
+// The map keys are used directly as filenames, so no fset position lookup is
+// needed. This allows the call site to work with per-file token.FileSets (where
+// a shared fset has no position information) without changing the existing Analyze
+// API or breaking its tests.
+func (pa *PlacementAnalyzer) AnalyzeMap(files map[string]*ast.File) metrics.PlacementMetrics {
+	pa.buildSymbolIndexFromMap(files)
+
+	functionIssues := pa.AnalyzeFunctionAffinity()
+	methodIssues := pa.AnalyzeMethodPlacement()
+	cohesionIssues := pa.AnalyzeFileCohesion()
+
+	avgCohesion := 0.0
+	if len(pa.fileRefs) > 0 {
+		totalCohesion := 0.0
+		for file := range pa.fileRefs {
+			totalCohesion += pa.calculateCohesion(file)
+		}
+		avgCohesion = totalCohesion / float64(len(pa.fileRefs))
+	}
+
+	return metrics.PlacementMetrics{
+		MisplacedFunctions: len(functionIssues),
+		MisplacedMethods:   len(methodIssues),
+		LowCohesionFiles:   len(cohesionIssues),
+		AvgFileCohesion:    avgCohesion,
+		FunctionIssues:     functionIssues,
+		MethodIssues:       methodIssues,
+		CohesionIssues:     cohesionIssues,
+	}
+}
+
+// buildSymbolIndexFromMap constructs the symbol table using map keys as filenames,
+// avoiding any fset.Position call.
+func (pa *PlacementAnalyzer) buildSymbolIndexFromMap(files map[string]*ast.File) {
+	for filename, file := range files {
+		pa.collectDefinitionsFromFile(file, filepath.ToSlash(filename))
+	}
+	for filename, file := range files {
+		pa.collectReferencesFromFile(file, filepath.ToSlash(filename))
+	}
+}
+
 // buildSymbolIndex constructs the complete symbol table for all files
 func (pa *PlacementAnalyzer) buildSymbolIndex(files []*ast.File, fset *token.FileSet) {
 	pa.collectDefinitions(files, fset)

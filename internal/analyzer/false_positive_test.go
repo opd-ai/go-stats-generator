@@ -488,7 +488,7 @@ func Example() {
 		src := `package test
 type helper struct{}
 func (h *helper) process() {}
-func example() {
+func Example() {
 	h := &helper{}
 	h.process()
 }`
@@ -499,10 +499,36 @@ func example() {
 		analyzer := NewBurdenAnalyzer(fset)
 		result := analyzer.DetectDeadCode([]*ast.File{file}, "test")
 
-		// "process" should be referenced via method call, not flagged as unreferenced
+		// "process" is called from exported Example, so it must not be flagged as unreferenced.
 		for _, sym := range result.UnreferencedFunctions {
 			assert.NotEqual(t, "process", sym.Name,
-				"method called via selector expression should not be flagged as unreferenced")
+				"method called from an exported function should not be flagged as unreferenced")
 		}
+	})
+
+	t.Run("method calls only from dead code are themselves dead", func(t *testing.T) {
+		src := `package test
+type helper struct{}
+func (h *helper) process() {}
+func unexportedCaller() {
+	h := &helper{}
+	h.process()
+}`
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, "test.go", src, 0)
+		require.NoError(t, err)
+
+		analyzer := NewBurdenAnalyzer(fset)
+		result := analyzer.DetectDeadCode([]*ast.File{file}, "test")
+
+		// Both unexportedCaller and process are unreachable from any exported function.
+		names := make(map[string]bool)
+		for _, sym := range result.UnreferencedFunctions {
+			names[sym.Name] = true
+		}
+		assert.True(t, names["unexportedCaller"],
+			"unexportedCaller (never called from exported code) should be flagged as unreferenced")
+		assert.True(t, names["process"],
+			"process (only called from dead unexportedCaller) should also be flagged as unreferenced")
 	})
 }

@@ -17,6 +17,12 @@ import (
 // to prevent excessive memory usage on pathological code
 const MaxDeepCopyNodes = 10000
 
+// normFset is a shared empty FileSet used only for printing normalized AST nodes during
+// duplication fingerprinting. Normalized nodes contain no source positions or comments,
+// so position accuracy is irrelevant; this allows AnalyzeDuplicationFromBlocks to operate
+// without retaining any per-file token.FileSet references.
+var normFset = token.NewFileSet()
+
 // tokenizerReplacer is a package-level string replacer for tokenization, created once
 // to avoid repeated allocations during similarity comparison operations.
 var tokenizerReplacer = strings.NewReplacer(
@@ -101,12 +107,23 @@ func (da *DuplicationAnalyzer) ExtractBlocks(file *ast.File, filePath string, mi
 	return blocks
 }
 
-// extractBlocksFromStmtList extracts statement blocks from a list of statements
+// extractBlocksFromStmtList extracts statement blocks from a list of statements.
+// The sliding window is capped at minBlockLines*3 to bound quadratic growth: for a
+// statement list of length S the uncapped algorithm produces O(S²) blocks. The cap
+// limits the window to a constant multiple of the minimum size, keeping block count
+// at O(S) and preventing duplication analysis from becoming a throughput blocker on
+// large codebases.
 func (da *DuplicationAnalyzer) extractBlocksFromStmtList(stmts []ast.Stmt, filePath string, minBlockLines int) []StatementBlock {
 	var blocks []StatementBlock
 
+	// Cap the maximum window size to bound O(S²) block growth.
+	maxWindowSize := minBlockLines * 3
+	if maxWindowSize > len(stmts) {
+		maxWindowSize = len(stmts)
+	}
+
 	// Use a sliding window to extract blocks of various sizes
-	for windowSize := minBlockLines; windowSize <= len(stmts); windowSize++ {
+	for windowSize := minBlockLines; windowSize <= maxWindowSize; windowSize++ {
 		for start := 0; start <= len(stmts)-windowSize; start++ {
 			end := start + windowSize
 			blockStmts := stmts[start:end]
@@ -246,8 +263,10 @@ func (da *DuplicationAnalyzer) NormalizeBlock(block StatementBlock) NormalizedBl
 	// Create a normalized version of each statement
 	for _, stmt := range block.Statements {
 		normalized := da.normalizeNode(stmt)
-		// Print the normalized AST to a canonical string form
-		if err := printer.Fprint(&buf, da.fset, normalized); err == nil {
+		// Print the normalized AST to a canonical string form using a shared empty fset:
+		// normalized nodes carry no meaningful source positions and have no comments,
+		// so position accuracy is irrelevant for structural clone comparison.
+		if err := printer.Fprint(&buf, normFset, normalized); err == nil {
 			buf.WriteString("\n")
 		}
 	}
@@ -719,26 +738,42 @@ func areAllInstancesSubsumed(pair metrics.ClonePair, claimed map[string][]claime
 	return true
 }
 
-// claimPairRanges adds all instances of a pair to the claimed ranges.
+// claimPairRanges adds all instances of a pair to the claimed ranges in sorted order.
+// Inserting in order means isRangeSubsumed can use binary search directly without
+// creating a sorted copy on every call.
 func claimPairRanges(pair metrics.ClonePair, claimed map[string][]claimedRange) {
 	for _, inst := range pair.Instances {
-		claimed[inst.File] = append(claimed[inst.File], claimedRange{inst.StartLine, inst.EndLine})
+		claimed[inst.File] = insertSortedRange(claimed[inst.File], claimedRange{inst.StartLine, inst.EndLine})
 	}
+}
+
+// insertSortedRange inserts cr into ranges while maintaining ascending start-order.
+func insertSortedRange(ranges []claimedRange, cr claimedRange) []claimedRange {
+	idx := sort.Search(len(ranges), func(i int) bool {
+		if ranges[i].start == cr.start {
+			return ranges[i].end >= cr.end
+		}
+		return ranges[i].start > cr.start
+	})
+	ranges = append(ranges, claimedRange{})
+	copy(ranges[idx+1:], ranges[idx:])
+	ranges[idx] = cr
+	return ranges
 }
 
 // isRangeSubsumed checks whether a line range is fully contained within
 // any of the already-claimed ranges for the given file.
+// claimed[file] is maintained in sorted order by claimPairRanges, so no copy is needed.
 func isRangeSubsumed(file string, start, end int, claimed map[string][]claimedRange) bool {
 	ranges := claimed[file]
 	if len(ranges) == 0 {
 		return false
 	}
 
-	sorted := sortClaimedRanges(ranges)
-	return checkRangeInSorted(start, end, sorted)
+	return checkRangeInSorted(start, end, ranges)
 }
 
-// sortClaimedRanges creates a sorted copy of claimed ranges.
+// sortClaimedRanges creates a sorted copy of claimed ranges (retained for external callers).
 func sortClaimedRanges(ranges []claimedRange) []claimedRange {
 	sorted := make([]claimedRange, len(ranges))
 	copy(sorted, ranges)
@@ -906,6 +941,44 @@ func (da *DuplicationAnalyzer) AnalyzeDuplication(files map[string]*ast.File, mi
 	}
 
 	// Calculate duplication ratio
+	duplicationRatio := 0.0
+	if totalLines > 0 {
+		duplicationRatio = float64(duplicatedLines) / float64(totalLines)
+	}
+
+	return metrics.DuplicationMetrics{
+		ClonePairs:       len(clonePairs),
+		DuplicatedLines:  duplicatedLines,
+		DuplicationRatio: duplicationRatio,
+		LargestCloneSize: largestCloneSize,
+		Clones:           clonePairs,
+	}
+}
+
+// AnalyzeDuplicationFromBlocks performs clone detection on pre-extracted statement blocks.
+// It is the streaming counterpart to AnalyzeDuplication: callers extract blocks per-file
+// as each AST is parsed (allowing the GC to reclaim ASTs immediately) and accumulate only
+// the lightweight StatementBlock slices. Once all files are processed, this method runs
+// fingerprinting and clone detection on the accumulated blocks, using totalLines (the sum
+// of per-file line counts) to compute the duplication ratio.
+// This avoids retaining every *ast.File until analysis is complete.
+func (da *DuplicationAnalyzer) AnalyzeDuplicationFromBlocks(blocks []StatementBlock, totalLines int, similarityThreshold float64) metrics.DuplicationMetrics {
+	if len(blocks) == 0 {
+		return metrics.DuplicationMetrics{Clones: []metrics.ClonePair{}}
+	}
+
+	fingerprints := da.FingerprintBlocks(blocks)
+	clonePairs := da.DetectClonePairs(fingerprints, similarityThreshold)
+
+	duplicatedLines := 0
+	largestCloneSize := 0
+	for _, pair := range clonePairs {
+		duplicatedLines += pair.LineCount * (len(pair.Instances) - 1)
+		if pair.LineCount > largestCloneSize {
+			largestCloneSize = pair.LineCount
+		}
+	}
+
 	duplicationRatio := 0.0
 	if totalLines > 0 {
 		duplicationRatio = float64(duplicatedLines) / float64(totalLines)

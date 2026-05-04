@@ -84,3 +84,5 @@ diff-report.json
 diff-report*.json
 test-full*.json
 audit-*.json
+go-stats-generator-test
+loop.log
