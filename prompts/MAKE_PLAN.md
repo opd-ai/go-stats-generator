@@ -34,6 +34,7 @@ Keep research brief (≤10 minutes). Record only findings that should influence 
 
 ### Phase 2: Baseline
 ```bash
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation,packages,patterns > tmp/metrics.json
 ```
 Delete `tmp/metrics.json` when done — the only persistent output is `PLAN.md`.

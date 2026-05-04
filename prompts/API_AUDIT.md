@@ -44,6 +44,7 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,interfaces,structs,packages > tmp/api-audit-metrics.json
 go-stats-generator analyze . --skip-tests
 go doc ./... 2>&1 | head -500 | tee tmp/api-doc-output.txt

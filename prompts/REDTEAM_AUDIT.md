@@ -44,6 +44,7 @@ Keep research brief (≤10 minutes). Record only findings that inform concrete a
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,patterns,packages > tmp/redteam-audit-metrics.json
 go-stats-generator analyze . --skip-tests
 go vet ./... 2>&1 | tee tmp/redteam-vet-results.txt

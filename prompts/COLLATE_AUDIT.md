@@ -31,6 +31,7 @@ Keep research brief (≤10 minutes). Record only findings relevant to the projec
 
 ### Phase 2: Baseline
 ```bash
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,packages,documentation,duplication > tmp/audit-metrics.json
 ```
 Delete `tmp/audit-metrics.json` when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.

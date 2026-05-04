@@ -34,6 +34,7 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 
 ### Phase 2: Metrics Collection
 ```bash
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json > tmp/review-metrics.json
 go-stats-generator analyze . --skip-tests
 ```

@@ -34,6 +34,7 @@ Keep research brief (≤10 minutes). Record only findings that are directly rele
 
 ### Phase 2: Baseline
 ```bash
+mkdir -p tmp
 go-stats-generator analyze . --only-tests --format json --sections functions,documentation,patterns,duplication > tmp/test-audit-metrics.json
 go-stats-generator analyze . --only-tests
 ```

@@ -53,6 +53,7 @@ Keep research brief (≤15 minutes for dependency research). Record findings sys
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections packages > tmp/dep-audit-metrics.json
 go-stats-generator analyze . --skip-tests
 go mod tidy -diff 2>&1 | tee tmp/dep-tidy-results.txt || true

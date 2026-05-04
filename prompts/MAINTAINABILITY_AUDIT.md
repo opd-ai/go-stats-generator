@@ -40,6 +40,7 @@ Keep research brief (≤10 minutes). Record only findings relevant to maintainab
 ### Phase 2: Baseline
 ```bash
 set -o pipefail
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,documentation,packages,patterns,duplication,interfaces,structs > tmp/maintain-audit-metrics.json
 go-stats-generator analyze . --skip-tests
 go vet ./... 2>&1 | tee tmp/maintain-vet-results.txt

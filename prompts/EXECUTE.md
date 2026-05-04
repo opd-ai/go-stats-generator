@@ -32,6 +32,7 @@ Keep research brief (≤10 minutes). Record only findings that directly affect h
 ### Phase 2: Session Baseline
 Capture a single baseline at the start of the session. This baseline persists across all tasks and is used for the final session-level diff.
 ```bash
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation > tmp/baseline-exec.json
 ```
 Delete `tmp/baseline-exec.json` only after the final session validation is complete.
@@ -79,6 +80,7 @@ When no stopping condition is met and you are unsure whether to continue, execut
 ### Phase 4: Session Validation
 After the loop ends, perform a final session-level validation against the original baseline:
 ```bash
+mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,duplication,documentation > tmp/post-exec.json
 go-stats-generator diff tmp/baseline-exec.json tmp/post-exec.json
 ```
