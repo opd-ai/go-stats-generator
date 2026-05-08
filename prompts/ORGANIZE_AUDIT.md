@@ -1,82 +1,165 @@
-# TASK: Audit a target third-party codebase for proper code organization and extensible, library-first architecture.
+# TASK: Perform a focused code-organization and architecture audit of a Go project, evaluating library-forward design, entrypoint thinness, interface-driven boundaries, and separation of concerns while rigorously preventing false positives.
 
 ## Execution Mode
-**Audit only** — identify findings and remediation actions; do not implement code changes.
+**Report generation only** — do NOT modify any source code.
 
-## Core Audit Principles
-1. **Library-forward design**: business logic should live in reusable packages, not in `main`.
-2. **Thin entrypoint**: if `main` exists, it should orchestrate library calls and CLI wiring only.
-3. **Interface-driven APIs**: public functions should accept interfaces instead of concrete implementations.
-4. **Struct/interface pairing**: exported structs should have corresponding exported interfaces where abstraction is expected.
-5. **Separation of concerns**: boundaries must be clear in directories, files, and data structures.
+## Output
+Write exactly two files in the repository root (the directory containing `go.mod`):
+1. **`AUDIT.md`** — the code organization audit report
+2. **`GAPS.md`** — gaps between intended architecture and current organization
+
+If either file already exists, delete it and create a fresh one.
+
+## Prerequisite
+```bash
+which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
+```
 
 ## Workflow
 
-### Phase 0: Discover Organization Model
-1. Map top-level directories and package responsibilities.
-2. Identify entrypoints (`main` packages) and trace where core functionality is implemented.
-3. Catalog public structs, public interfaces, and public function signatures.
-4. Identify directory/file naming and placement conventions.
+### Phase 0: Map the Project's Organization Model
+1. Read the project README to understand intended architecture, target users, and any design claims.
+2. Examine `go.mod` for module path, Go version, and dependency profile.
+3. List packages (`go list ./...`) and classify:
+   - **Entrypoints**: `main` packages under project root or `cmd/`
+   - **Library packages**: reusable packages intended to hold feature logic
+   - **Internal packages**: implementation details under `internal/`
+4. Build a package responsibility map:
+   - Which package owns orchestration?
+   - Which package owns business/domain logic?
+   - Which package owns integration concerns (I/O, DB, network, filesystem)?
+5. Catalog exported structs, exported interfaces, and public function signatures across packages.
+6. Identify current directory and file-level conventions (naming, grouping by feature/layer, data structure placement).
 
-### Phase 1: Library-Forward Audit
-1. Flag logic implemented directly in `main` that belongs in libraries.
-2. Verify `main` is limited to argument parsing, dependency construction, orchestration, and output handling.
-3. Record cases where feature logic is tightly coupled to CLI or process lifecycle concerns.
+### Phase 1: Online Research
+Use web search to build context:
+1. Search for the project on GitHub and review issues/PRs discussing architecture, organization, refactoring, or extensibility pain.
+2. Check whether contributors report difficulties extending functionality due to package boundaries or concrete coupling.
+3. Review Go project organization guidance to calibrate expectations for CLI + library split.
 
-### Phase 2: Interface and API Boundary Audit
-1. For each exported struct, verify whether an exported interface abstraction exists when needed for extensibility.
-2. For each public function, check whether parameters use interfaces at package boundaries instead of concrete types.
-3. Flag over-concrete APIs that make testing, substitution, or extension difficult.
-4. Identify redundant interfaces that do not improve boundaries.
+Keep research brief (≤10 minutes). Record only findings relevant to code organization and extensibility.
 
-### Phase 3: Separation-of-Concerns Audit
-1. Verify directories represent clear domain or architectural boundaries.
-2. Verify files group related concerns and avoid mixed responsibilities.
-3. Verify data structures are placed in packages matching their ownership and usage.
-4. Flag circular or cross-layer dependencies that violate intended boundaries.
+### Phase 2: Baseline
+```bash
+set -o pipefail
+mkdir -p tmp
+go-stats-generator analyze . --skip-tests --format json --sections packages,functions,interfaces,structs,patterns,duplication > tmp/organize-audit-metrics.json
+go-stats-generator analyze . --skip-tests
+go build ./... 2>&1 | tee tmp/organize-build-results.txt
+go test -race ./... 2>&1 | tee tmp/organize-test-results.txt
+```
+Delete temporary files when done — the only persistent outputs are `AUDIT.md` and `GAPS.md`.
 
-### Phase 4: Findings and Remediation
-Report findings by severity:
-- **CRITICAL**: architecture blocks extensibility or places core logic in entrypoints.
-- **HIGH**: public APIs over-expose concrete implementations across boundaries.
-- **MEDIUM**: unclear package/file responsibility or misplaced data structures.
-- **LOW**: naming/placement inconsistencies with low architectural impact.
+### Phase 3: Code Organization Audit
 
-For every finding include:
-1. **Evidence**: file/path and concrete example.
-2. **Impact**: why it harms extensibility, maintainability, or testability.
-3. **Remediation**: specific reorganization action (what to move/split/abstract).
-4. **Validation**: command(s) to confirm no regressions after refactor.
+#### 3a. Library-Forward Architecture
+- [ ] Core feature logic is implemented in library packages, not in `main`.
+- [ ] `main` functions are thin: parse flags/config, construct dependencies, call library APIs, and format output.
+- [ ] `main` does not contain business rules, algorithmic logic, or direct feature implementation.
+- [ ] CLI/framework code is separated from reusable domain logic.
+- [ ] Library code can be reused without invoking CLI-specific components.
 
-## Output Format
+#### 3b. Entrypoint Quality and Orchestration Boundaries
+- [ ] Entrypoints orchestrate, they do not implement.
+- [ ] Dependency construction is localized and does not leak throughout the codebase.
+- [ ] Error handling/reporting in `main` is consistent and delegated where appropriate.
+- [ ] Side-effect-heavy setup code is isolated from business workflows.
+- [ ] Multiple commands/subcommands share library services instead of duplicating logic.
+
+#### 3c. Struct/Interface Architecture
+- [ ] Exported structs that represent extension points have corresponding exported interfaces where abstraction is intended.
+- [ ] Public functions accept interfaces for dependencies instead of concrete types.
+- [ ] Interface contracts are cohesive and minimal (avoid large, multipurpose interfaces).
+- [ ] Concrete implementations remain behind package boundaries where possible.
+- [ ] Struct and interface placement follows ownership boundaries (consumer-facing contracts near consumers, implementations near providers).
+
+#### 3d. Separation of Concerns (Directories, Files, Data Structures)
+- [ ] Directory structure expresses clear boundaries (domain, infrastructure, transport/CLI, utilities).
+- [ ] Files group related concerns and avoid unrelated mixed responsibilities.
+- [ ] Data structures are colocated with the package that owns their behavior.
+- [ ] Cross-layer imports do not violate intended architectural direction.
+- [ ] Circular dependencies are absent; package dependency flow is understandable.
+- [ ] Naming and placement conventions are consistent across similar components.
+
+#### 3e. Extensibility and Changeability
+- [ ] Adding a new feature can be done by extending library packages, not by bloating entrypoints.
+- [ ] New implementations can be introduced via interfaces without widespread edits.
+- [ ] Shared abstractions reduce duplication across commands/packages.
+- [ ] Package boundaries support independent testing and replacement of components.
+
+#### 3f. False-Positive Prevention (MANDATORY)
+Before recording ANY finding, apply these checks:
+
+1. **Confirm intended scope**: Some projects are app-first (not library-first). If README/docs explicitly choose this model, treat as context, not immediate failure.
+2. **Verify real coupling pain**: Concrete parameters are findings only when they meaningfully block testing, substitution, or extension.
+3. **Avoid abstraction cargo-culting**: Not every struct requires an interface. Record findings only for extension seams, dependency boundaries, or public API contracts where abstraction adds value.
+4. **Respect package context**: Internal concrete usage within a package can be appropriate; prioritize package-boundary and public API issues.
+5. **Check for intentional deviations**: If comments/docs justify a boundary choice, classify proportionally and avoid over-reporting.
+
+**Rule**: Evaluate organization against the project's stated architecture and extensibility goals, not arbitrary layering ideals.
+
+### Phase 4: Report
+Generate **`AUDIT.md`**:
 ```markdown
-# Organization Audit
+# ORGANIZATION AUDIT — [date]
 
-## Summary
-- Library-forward score: [good/partial/poor]
-- Entrypoint thinness: [good/partial/poor]
-- Interface boundary health: [good/partial/poor]
-- Separation-of-concerns health: [good/partial/poor]
+## Architecture Summary
+[Entrypoints, library packages, internal boundaries, dependency flow]
+
+## Organization Scorecard
+| Category | Rating | Evidence |
+|----------|--------|----------|
+| Library-Forward Design | ✅/⚠️/❌ | [summary] |
+| Entrypoint Thinness | ✅/⚠️/❌ | [summary] |
+| Struct/Interface Boundaries | ✅/⚠️/❌ | [summary] |
+| Separation of Concerns | ✅/⚠️/❌ | [summary] |
+| Extensibility | ✅/⚠️/❌ | [summary] |
 
 ## Findings
 ### CRITICAL
-- [ ] [Title]
-  - Evidence: [path]
-  - Impact: [...]
-  - Remediation: [...]
-  - Validation: [...]
-
-### HIGH
+- [ ] [Finding] — [file:line] — [organization issue] — [impact on extensibility/maintainability] — **Remediation:** [specific structural fix]
+### HIGH / MEDIUM / LOW
 - [ ] ...
 
-### MEDIUM
-- [ ] ...
-
-### LOW
-- [ ] ...
+## False Positives Considered and Rejected
+| Candidate Finding | Reason Rejected |
+|-------------------|----------------|
+| [description] | [why it is not a true organization issue in this context] |
 ```
 
+Generate **`GAPS.md`**:
+```markdown
+# Organization Gaps — [date]
+
+## [Gap Title]
+- **Desired Organization**: [what structure/boundary should exist]
+- **Current State**: [what exists today]
+- **Impact**: [how this harms extensibility/testability/maintainability]
+- **Closing the Gap**: [specific package/file/interface restructuring needed]
+```
+
+## Severity Classification
+| Severity | Criteria |
+|----------|----------|
+| CRITICAL | Core business logic implemented in `main`/entrypoints, or architecture that fundamentally blocks extension without invasive rewrites |
+| HIGH | Public/package-boundary APIs tightly coupled to concrete types where interfaces are required for substitution and testing |
+| MEDIUM | Mixed responsibilities across directories/files/data structures causing recurring maintenance friction |
+| LOW | Inconsistent naming/placement or minor boundary drift without immediate architectural risk |
+
+## Remediation Standards
+Every finding MUST include a **Remediation** section:
+1. **Specific restructuring**: State exactly which package/file/interface boundary should change. Do not recommend "improve organization."
+2. **Library-first orientation**: Prefer moving feature logic to reusable library packages and keeping entrypoints orchestration-only.
+3. **Verifiable**: Include validation steps (e.g., `go build ./...`, `go test -race ./...`, `go-stats-generator analyze . --sections packages,interfaces,structs`).
+4. **Incremental and safe**: Recommend shippable refactoring steps that preserve behavior.
+
 ## Constraints
-- Evaluate organization quality against the codebase’s own conventions first, then against these architecture principles.
-- Do not conflate stylistic preferences with architecture flaws.
-- Prefer minimal, high-leverage structural remediation recommendations.
+- Output ONLY the two report files — no code changes permitted.
+- Use `go-stats-generator` package/interface/struct/function metrics as primary evidence.
+- Every finding must reference a specific file and line number.
+- All findings must use unchecked `- [ ]` checkboxes for downstream processing.
+- Evaluate organization against the project's **own architecture goals and conventions** before applying generic standards.
+- Apply the Phase 3f false-positive prevention checks to every candidate finding before including it.
+
+## Tiebreaker
+Prioritize: business logic in entrypoints → concrete coupling on public boundaries → broken separation of concerns → poor extensibility seams → naming/placement inconsistencies. Within a level, prioritize by impact on core project workflows.
