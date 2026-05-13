@@ -105,22 +105,28 @@ go-stats-generator diff baseline-duplication.json post-duplication.json
 ```
 Confirm: zero regressions, all target functions now below complexity thresholds, duplication ratio decreased, all tests pass.
 
-## Complexity Formula
+## Complexity Formula (as computed by go-stats-generator)
 ```
-Overall = (Cyclomatic * 0.3) + (Lines * 0.2) + (Nesting * 0.2) + (Cognitive * 0.15) + (Signature * 0.15)
+Overall = Cyclomatic + (NestingDepth * 0.5) + (Cognitive * 0.3)
 ```
+Where `Cognitive` is currently set equal to `Cyclomatic`, so this simplifies to:
+```
+Overall = Cyclomatic * 1.3 + (NestingDepth * 0.5)
+```
+
+**Note**: The tool does NOT include function length (lines) or signature complexity in the overall score calculation. These are tracked as separate metrics and can be used as independent thresholds for refactoring decisions.
 
 ## Default Thresholds (calibrate to project baseline)
 
 ### Function Complexity
-| Metric | Warning | Critical |
-|--------|---------|----------|
-| Overall complexity | >9.0 | >15.0 |
-| Cyclomatic complexity | >9 | >15 |
-| Function length (code lines) | >40 | >80 |
-| Nesting depth | >3 | >5 |
-| Extracted function length | — | >20 |
-| Extracted function cyclomatic | — | >8 |
+| Metric | Warning | Critical | Notes |
+|--------|---------|----------|-------|
+| Overall complexity | >9.0 | >15.0 | Computed from cyclomatic + nesting (see formula above) |
+| Cyclomatic complexity | >9 | >15 | Used in overall score calculation |
+| Nesting depth | >3 | >5 | Used in overall score calculation |
+| Function length (code lines) | >40 | >80 | Independent threshold, NOT in overall score |
+| Extracted function length | — | >20 | Target for refactored helpers |
+| Extracted function cyclomatic | — | >8 | Target for refactored helpers |
 
 ### Duplication
 | Metric | Target |
