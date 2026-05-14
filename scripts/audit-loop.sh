@@ -49,27 +49,25 @@ LAST_TEST_RC=0
 # ─── Audit sequence: implementation gaps → product completeness ───────────────
 #
 # Logical progression toward production software:
-#   1. Concurrency/sync patterns and safety
-#   2. Goal-focused functional metrics (production code then test code)
-#   3. Per-package deep dive
-#   4. Consolidated findings
-#   5. Overall functional audit against stated goals
+#   1. Implementation gap discovery (stubs, TODOs, incomplete code)
+#   2. Bug identification and fixing
+#   3. Security hardening
+#   4. Overall functional audit against stated goals
+#   5. Product completeness verification
 #
-# Current available audit prompts in prompts/ directory:
-#   - SYNC_AUDIT.md (concurrency patterns, sync primitives, goroutines, channels)
-#   - PERFORM_AUDIT.md (production code performance metrics)
-#   - TEST_PERFORM_AUDIT.md (test code performance metrics)
-#   - META_AUDIT.md (per-package deep dive analysis)
-#   - COLLATE_AUDIT.md (consolidated findings and recommendations)
+# Current audit prompts in sequence:
+#   - IMPLEMENTATION_GAP_AUDIT.md (stubs, TODOs, dead code, unreachable features)
+#   - BUGS.md (bug-prone functions using complexity metrics)
+#   - SECURITY_AUDIT.md (injection, auth, crypto, input validation, secrets)
 #   - BASE_AUDIT.md (overall functional audit against project goals)
+#   - PRODUCT_COMPLETENESS_AUDIT.md (documented features fully implemented)
 
 AUDIT_SEQUENCE=(
-    "SYNC_AUDIT.md"
-    "PERFORM_AUDIT.md"
-    "TEST_PERFORM_AUDIT.md"
-    "META_AUDIT.md"
-    "COLLATE_AUDIT.md"
+    "IMPLEMENTATION_GAP_AUDIT.md"
+    "BUGS.md"
+    "SECURITY_AUDIT.md"
     "BASE_AUDIT.md"
+    "PRODUCT_COMPLETENESS_AUDIT.md"
 )
 
 # ─── Logging helpers ──────────────────────────────────────────────────────────
