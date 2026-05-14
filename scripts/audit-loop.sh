@@ -46,30 +46,52 @@ TEST_FAILURES=0
 FINAL_TEST_STATUS="UNKNOWN"
 LAST_TEST_RC=0
 
-# ─── Audit sequence: implementation gaps → product completeness ───────────────
+# ─── Audit sequence: comprehensive code quality hardening ──────────────────────
 #
 # Logical progression toward production software:
-#   1. Concurrency/sync patterns and safety
-#   2. Goal-focused functional metrics (production code then test code)
-#   3. Per-package deep dive
-#   4. Consolidated findings
-#   5. Overall functional audit against stated goals
+#   1. Implementation gaps discovery (stubs, TODOs, dead code, unreachable features)
+#   2. Structural analysis (API design, dependencies, code organization)
+#   3. Logic and data integrity audits (bugs, arithmetic, boolean, boundary errors)
+#   4. Testing coverage and error handling
+#   5. Concurrency and resource safety (race conditions, memory leaks, deadlocks)
+#   6. Dependency health and API quality
+#   7. Security hardening (injection, auth, crypto, input validation)
+#   8. Code quality and maintainability
+#   9. Consolidated findings and completeness verification
 #
-# Current available audit prompts in prompts/ directory:
-#   - SYNC_AUDIT.md (concurrency patterns, sync primitives, goroutines, channels)
-#   - PERFORM_AUDIT.md (production code performance metrics)
-#   - TEST_PERFORM_AUDIT.md (test code performance metrics)
-#   - META_AUDIT.md (per-package deep dive analysis)
-#   - COLLATE_AUDIT.md (consolidated findings and recommendations)
-#   - BASE_AUDIT.md (overall functional audit against project goals)
+# This sequence ensures unfinished work is addressed before bugs are fixed,
+# which precedes security hardening, all culminating in product completeness.
 
 AUDIT_SEQUENCE=(
+    "IMPLEMENTATION_GAP_AUDIT.md"
+    "API_AUDIT.md"
+    "ORGANIZE_AUDIT.md"
+    "BEST_PRACTICES_AUDIT.md"
+    "DEPENDENCY_AUDIT.md"
+    "LOGIC_AUDIT.md"
+    "ARITHMETIC_LOGIC_AUDIT.md"
+    "BOOLEAN_LOGIC_AUDIT.md"
+    "BOUNDARY_CONDITION_AUDIT.md"
+    "ALIASING_MUTATION_AUDIT.md"
+    "TESTING_AUDIT.md"
+    "ERROR_AUDIT.md"
     "SYNC_AUDIT.md"
+    "MEMORY_AUDIT.md"
+    "RESOURCE_AUDIT.md"
+    "INITIALIZATION_ORDER_AUDIT.md"
+    "NETWORK_AUDIT.md"
+    "PERFORMANCE_AUDIT.md"
     "PERFORM_AUDIT.md"
     "TEST_PERFORM_AUDIT.md"
+    "SECURITY_AUDIT.md"
+    "REDTEAM_AUDIT.md"
+    "LOGGING_AUDIT.md"
+    "BREAKING_AUDIT.md"
+    "MAINTAINABILITY_AUDIT.md"
     "META_AUDIT.md"
     "COLLATE_AUDIT.md"
     "BASE_AUDIT.md"
+    "PRODUCT_COMPLETENESS_AUDIT.md"
 )
 
 # ─── Logging helpers ──────────────────────────────────────────────────────────
