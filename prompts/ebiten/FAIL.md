@@ -1,0 +1,108 @@
+# TASK: [Ebitengine Edition] Classify and resolve Go test failures using complexity metrics for root cause correlation.
+
+## Execution Mode
+**Autonomous action** — analyze failures, fix root causes, validate with tests.
+
+## Prerequisite
+```bash
+which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
+```
+
+
+## Ebitengine-Specific Context
+
+This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
+
+### Ebitengine Architecture Patterns
+- **Game Interface**: Implementations of `ebiten.Game` interface with `Update()` and `Draw(ebiten.Image)` methods
+- **Resource Lifecycle**: Image, audio, and asset management across game state transitions
+- **Frame Timing**: 60 TPS (ticks per second) default update cycle, vsync-based drawing
+- **Coordinate Systems**: Screen coordinates vs logical coordinates, `Layout()` method behavior
+
+### Performance-Critical Areas
+- **Draw Method**: Must complete within frame budget (~16.67ms at 60fps); avoid allocations
+- **Update Method**: Game logic execution; profile for O(n²) entity interactions
+- **Image Creation**: `ebiten.NewImage()` calls should be cached, not per-frame
+- **DrawImageOptions**: Reuse `DrawImageOptions` instances via sync.Pool to reduce GC pressure
+
+### Common Ebitengine Patterns
+- **Input Handling**: `inpututil` for press/release detection, `ebiten.IsKeyPressed()` for state
+- **Sprite Rendering**: `Image.DrawImage()` with `GeoM` for transforms, `ColorM` for tinting
+- **Audio**: `audio.Player` lifecycle management, streaming vs. buffered playback
+- **Text Rendering**: `text.Draw()` or `ebitenutil.DebugPrint()` considerations
+- **Collision Detection**: AABB, circle, and pixel-perfect collision in Update()
+
+## Workflow
+
+### Phase 0: Understand the Codebase
+Before fixing failures, understand the project's test philosophy:
+1. Read the project README to understand its domain and expected behavior.
+2. Discover the test framework in use (`testing` only, `testify`, `gomock`, etc.).
+3. Identify the project's error handling conventions — Cat 1 fixes must match them.
+4. Note the project's assertion style and mocking patterns for Cat 2 fixes.
+
+### Phase 1: Identify Failures
+```bash
+go test -race -count=1 ./... 2>&1 | tee test-output.txt
+go-stats-generator analyze . --skip-tests --format json --output baseline.json --sections functions,patterns
+```
+
+### Phase 2: Classify and Fix
+1. Parse test output — extract every failing test: name, package, error message, file:line.
+2. For each failing test, look up the function-under-test in the baseline JSON:
+   - Get cyclomatic complexity, line count, nesting depth.
+   - Check `.patterns.concurrency_patterns` for related concurrency issues.
+3. Classify each failure:
+
+| Category | Description | Fix Strategy |
+|----------|-------------|-------------|
+| Cat 1: Implementation Bug | Test is correct, code is wrong | Fix the production code |
+| Cat 2: Test Spec Error | Code is correct, test expectation is wrong | Fix the test |
+| Cat 3: Negative Test Gap | Test expects success but should test error path | Convert to proper error test |
+
+4. For each failure (highest function complexity first):
+   - Read the failing test and the function under test.
+   - Determine root cause and category — use the project's own conventions as the standard.
+   - Apply the minimal fix according to category.
+   - Run `go test -race -run TestName ./package` to confirm the specific fix.
+5. After all individual fixes, run full suite: `go test -race ./...`
+
+### Phase 3: Validate
+```bash
+go-stats-generator analyze . --skip-tests --format json --output post.json --sections functions,patterns
+go-stats-generator diff baseline.json post.json
+```
+Confirm: all tests pass, zero complexity regressions.
+
+## Risk Indicators (tunable defaults)
+- Cyclomatic complexity >12: high-risk for implementation bugs
+- Nesting depth >3: high-risk for logic errors
+- Function length >30: high-risk for untested code paths
+- Concurrency primitives present: check for race conditions
+
+## Fix Rules
+- Cat 1 fixes must not change the public API and must match the project's error handling conventions.
+- Cat 2 fixes must update test expectations to match documented behavior.
+- Cat 3 conversions must use the project's assertion patterns.
+- Never delete a failing test — fix it or convert it.
+
+## Concurrency Failure Patterns
+- Race condition: passes alone but fails with `-race` → add proper synchronization.
+- Goroutine leak: hangs or times out → check channel/context lifecycle.
+- Flaky test: passes intermittently → investigate shared state or timing.
+
+## Resolution Order
+1. Fix all Cat 1 (implementation bugs) first — they affect production code.
+2. Fix Cat 2 (test spec errors) second — they mask real issues.
+3. Convert Cat 3 (negative test gaps) last — they improve coverage.
+
+## Output Format
+```
+[Cat N] [TestName] [package] — [root cause]
+  Function: [name] (complexity: [N], lines: [N])
+  Fix: [description of change]
+  Status: PASS
+```
+
+## Tiebreaker
+Fix the failure in the highest-complexity function first.
