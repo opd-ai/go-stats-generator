@@ -23,7 +23,7 @@ go-stats-generator analyze . --only-tests
 ```
 
 ### Phase 2: Deduplicate
-1. Extract `.duplication.clone_pairs` sorted by line count ascending (smallest first).
+1. Extract `.duplication.clones` sorted by `line_count` ascending (smallest first).
 2. Classify clone groups:
    - CRITICAL: >=30 lines AND >=3 instances
    - HIGH: >=15 lines AND >=2 instances

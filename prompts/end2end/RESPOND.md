@@ -1,4 +1,4 @@
-# TASK (END-TO-END): Execute ONE highest-priority incomplete task from the project's backlog with full implementation and baseline/diff validation.
+# TASK (END-TO-END): Execute ALL incomplete tasks from the project's backlog in priority order with full implementation and baseline/diff validation.
 
 ## Execution Mode
 **Autonomous action** — implement the task, validate with tests and diff.
@@ -48,7 +48,7 @@ Confirm: zero regressions in complexity, duplication, or doc coverage.
 | Duplication ratio | <5% |
 
 ## Implementation Rules
-- Execute exactly ONE task per invocation.
+- Execute ALL incomplete backlog tasks in priority order — do not stop after one.
 - Preserve all existing public APIs.
 - Match the project's naming conventions.
 - Add tests for new functionality where practical.

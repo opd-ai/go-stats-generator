@@ -79,7 +79,7 @@ If the project uses structured logging:
 
 #### 3c. Sensitive Data Protection
 - [ ] Passwords, tokens, API keys, and secrets are NEVER logged, even at DEBUG level.
-- [ ] PII (personal identifiable information) is redacted or excluded from logs.
+- [ ] PII (personally identifiable information) is redacted or excluded from logs.
 - [ ] Request/response bodies are not logged verbatim if they may contain sensitive data.
 - [ ] Database connection strings in logs are sanitized (password removed).
 - [ ] HTTP headers like `Authorization`, `Cookie`, and `X-API-Key` are not logged.

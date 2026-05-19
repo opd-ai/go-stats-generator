@@ -1,4 +1,4 @@
-# Generate `.github/copilot-instructions.md` for opd-ai Procedural Game Suite
+# TASK (END-TO-END): Generate `.github/copilot-instructions.md` for opd-ai Procedural Game Suite
 
 ## Objective
 Analyze the attached codebase and generate a comprehensive `.github/copilot-instructions.md` file. Place it at exactly `.github/copilot-instructions.md` (no subdirectories). Replace any existing file at that path.

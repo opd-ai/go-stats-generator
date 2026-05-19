@@ -77,7 +77,7 @@ This is an **end-to-end variant**. The following rules override any conflicting 
 
 ## Conversion Rules
 - Preserve each prompt's original intent and tiebreaker rules.
-- The tool is called `go-stats-generator` — never `gostats`.
+- Always use the full tool name: `go-stats-generator`.
 - Present thresholds as tunable defaults, not absolutes.
 - Every prompt must work against a codebase the agent has never seen before.
 

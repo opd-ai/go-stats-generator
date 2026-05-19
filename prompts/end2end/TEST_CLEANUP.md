@@ -30,7 +30,7 @@ Execute these steps in order:
 - Flag test helpers that are defined but never called.
 
 **Step 2 — Consolidate duplicate test helpers:**
-- Use `.duplication.clone_pairs` to find test files with >30 duplicated lines.
+- Use `.duplication.clones` (filtered to test files, sorted by `line_count` descending) to find test files with >30 duplicated lines.
 - Extract shared code into package-level `testutil_test.go` files.
 - Consolidate table-driven test cases that differ only in inputs.
 - Ensure all extracted helpers use `t.Helper()`.

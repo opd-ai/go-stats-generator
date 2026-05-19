@@ -1,4 +1,4 @@
-# Ebitengine UI/UX Debug Audit
+# TASK (END-TO-END): Ebitengine UI/UX Debug Audit
 
 ## Objective
 Autonomously audit all Ebitengine-dependent Go code in this repository for UI/UX defects. Produce a structured diagnostic report covering every identified issue with severity, location, and a concrete fix.
