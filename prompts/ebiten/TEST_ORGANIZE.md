@@ -8,7 +8,6 @@
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-
 ## Ebitengine Testing Considerations
 
 ### Testability Patterns

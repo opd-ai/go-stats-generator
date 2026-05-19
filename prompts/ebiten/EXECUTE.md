@@ -11,7 +11,6 @@ This prompt operates on a **third-party Go project**, not on go-stats-generator 
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:

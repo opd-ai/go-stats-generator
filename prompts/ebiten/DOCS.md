@@ -9,7 +9,6 @@ This prompt operates on a **third-party Go project**, not on go-stats-generator 
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-
 ### Ebitengine Documentation Priorities
 - **Game Interface Methods**: Document `Update()` and `Draw()` contracts clearly
 - **Resource Lifecycle**: Document when images/audio are created and disposed

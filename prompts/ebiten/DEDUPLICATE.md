@@ -8,7 +8,6 @@
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
@@ -47,7 +46,7 @@ go-stats-generator analyze . --skip-tests
 ```
 
 ### Phase 2: Deduplicate
-1. Extract `.duplication.clone_pairs` sorted by line count ascending (smallest first).
+1. Extract `.duplication.clones[]` sorted by line count ascending (smallest first).
 2. Classify clone groups by priority:
    - CRITICAL: >=20 lines AND >=3 instances
    - HIGH: >=10 lines AND >=2 instances

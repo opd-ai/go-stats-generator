@@ -3,7 +3,6 @@
 ## Execution Mode
 **Autonomous action** — diagnose the failure, fix the blocking bug(s), validate with tests and diff. Do not fix anything that is not blocking basic utility.
 
-## 
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
@@ -44,7 +43,6 @@ If a candidate finding does not satisfy at least one of the above, skip it. Do n
 ```bash
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
-
 
 ### Ebitengine-Specific Audit Criteria
 
@@ -88,7 +86,6 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 - [ ] UI elements sized appropriately for touch targets (44×44+ logical pixels)
 - [ ] Text rendering readable on high-DPI displays
 - [ ] Back button handling on Android (`ebiten.AppendInputChars` for back)
-
 
 ## ## Workflow
 

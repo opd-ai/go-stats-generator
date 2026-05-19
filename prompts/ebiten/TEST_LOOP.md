@@ -1,6 +1,5 @@
 # TASK: [Ebitengine Edition] Execute autonomous iterative refactoring cycles on **test functions** until no test functions exceed complexity thresholds, then halt.
 
-
 ## Ebitengine Testing Considerations
 
 ### Testability Patterns

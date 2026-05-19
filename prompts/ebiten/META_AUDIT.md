@@ -3,7 +3,6 @@
 ## Execution Mode
 **Autonomous action** — create package-level audit and gaps files for every unaudited package, and update the root audit tracker.
 
-## 
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
@@ -141,7 +140,6 @@ Update root audit tracker **`AUDIT_TRACKER.md`** (create if absent):
 - [x] [package]: [pass_count]/[total_gates] gates passing — see [package]/AUDIT.md
 ```
 
-
 ### Ebitengine-Specific Audit Criteria
 
 #### Rendering & Graphics
@@ -184,7 +182,6 @@ Update root audit tracker **`AUDIT_TRACKER.md`** (create if absent):
 - [ ] UI elements sized appropriately for touch targets (44×44+ logical pixels)
 - [ ] Text rendering readable on high-DPI displays
 - [ ] Back button handling on Android (`ebiten.AppendInputChars` for back)
-
 
 ## ## Output Format
 Print one summary block per audited package:

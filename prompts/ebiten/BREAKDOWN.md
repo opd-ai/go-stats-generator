@@ -8,7 +8,6 @@
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
@@ -68,8 +67,9 @@ Confirm: zero regressions, all target functions now below thresholds.
 
 ## Complexity Formula
 ```
-Overall = (Cyclomatic * 0.3) + (Lines * 0.2) + (Nesting * 0.2) + (Cognitive * 0.15) + (Signature * 0.15)
+Overall = Cyclomatic + (NestingDepth * 0.5) + (Cognitive * 0.3)
 ```
+Where Cognitive currently equals Cyclomatic.
 
 ## Default Thresholds (calibrate to project baseline)
 | Metric | Warning | Critical |
@@ -80,7 +80,6 @@ Overall = (Cyclomatic * 0.3) + (Lines * 0.2) + (Nesting * 0.2) + (Cognitive * 0.
 | Nesting depth | >3 | >5 |
 | Extracted function length | — | >20 |
 | Extracted function cyclomatic | — | >8 |
-
 
 ### Ebitengine-Specific Refactoring Patterns
 - **Extract Update Logic**: Move entity update logic into separate systems

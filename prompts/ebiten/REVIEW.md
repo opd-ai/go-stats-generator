@@ -3,7 +3,6 @@
 ## Execution Mode
 **Report generation only** — produce a roadmap document. Do not modify source code.
 
-## 
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
@@ -35,7 +34,6 @@ If `ROADMAP.md` already exists, delete it and create a fresh one.
 ```bash
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
-
 
 ### Ebitengine-Specific Audit Criteria
 
@@ -79,7 +77,6 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 - [ ] UI elements sized appropriately for touch targets (44×44+ logical pixels)
 - [ ] Text rendering readable on high-DPI displays
 - [ ] Back button handling on Android (`ebiten.AppendInputChars` for back)
-
 
 ## ## Workflow
 

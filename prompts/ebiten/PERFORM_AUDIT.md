@@ -3,7 +3,6 @@
 ## Execution Mode
 **Report generation only** — do NOT modify any source code.
 
-## 
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
@@ -38,7 +37,6 @@ If either file already exists, delete it and create a fresh one.
 ```bash
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
-
 
 ### Ebitengine-Specific Audit Criteria
 
@@ -82,7 +80,6 @@ which go-stats-generator || go install github.com/opd-ai/go-stats-generator@late
 - [ ] UI elements sized appropriately for touch targets (44×44+ logical pixels)
 - [ ] Text rendering readable on high-DPI displays
 - [ ] Back button handling on Android (`ebiten.AppendInputChars` for back)
-
 
 ## ## Workflow
 
@@ -134,7 +131,7 @@ Delete `tmp/audit-metrics.json` when done — the only persistent outputs are `A
    - Categorize by level: Level 0 (no internal imports) → Level N.
    - Verify correctness in ascending level order.
 
-5. Cross-reference with `.duplication.clone_pairs` and `.documentation` for additional findings.
+5. Cross-reference with `.duplication.clones[]` and `.documentation` for additional findings.
 6. Run `go test -race ./...` and `go vet ./...` for baseline health. When `go vet` or linters report warnings, read the comments surrounding the flagged code. If a comment explicitly acknowledges the warning (e.g., `//nolint:`, an explanatory comment justifying the pattern, or a TODO tracking a known issue), treat it as an acknowledged false positive — do not report it as a new finding.
 
 ### Phase 4: Report

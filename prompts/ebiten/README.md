@@ -78,14 +78,14 @@ Use these Ebitengine-optimized prompts when working with:
 
 ### With CLI Tools
 
-If using these prompts with `go-stats-generator` or similar CLI tools that accept prompt files:
+These prompts are designed for AI assistants to use when analyzing `go-stats-generator` output. The tool itself provides metrics, not prompt-based analysis:
 
 ```bash
-# Use an Ebitengine-optimized audit
-go-stats-generator audit --prompt prompts/ebiten/PERFORMANCE_AUDIT.md
+# Generate metrics that can be analyzed using these prompts
+go-stats-generator analyze . --format json > metrics.json
 
-# Use an Ebitengine-optimized refactoring prompt
-go-stats-generator refactor --prompt prompts/ebiten/BREAKDOWN.md
+# Then use AI assistants with the Ebitengine-specific prompts
+# Example: "Analyze metrics.json using prompts/ebiten/PERFORMANCE_AUDIT.md"
 ```
 
 ### With AI Assistants

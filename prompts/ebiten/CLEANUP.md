@@ -8,7 +8,6 @@
 which go-stats-generator || go install github.com/opd-ai/go-stats-generator@latest
 ```
 
-
 ## Ebitengine-Specific Context
 
 This prompt variant is optimized for Go codebases using the Ebitengine (github.com/hajimehoshi/ebiten/v2) game framework. When analyzing code, prioritize game-specific patterns and concerns:
@@ -58,7 +57,7 @@ Execute these steps in order:
 - Preserve README, tracked config files, and any active backlog/audit files.
 
 **Step 3 — Consolidate duplicate tests:**
-- Use the duplication report (`.duplication.clone_pairs`) to find test files with >20 duplicated lines.
+- Use the duplication report (`.duplication.clones[]`) to find test files with >20 duplicated lines.
 - Extract shared setup/assertion code into test helpers.
 - Consolidate table-driven test cases that differ only in inputs.
 
