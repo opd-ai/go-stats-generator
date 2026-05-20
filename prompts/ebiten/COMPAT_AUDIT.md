@@ -10,7 +10,7 @@ This prompt variant is optimized for Go codebases using the Ebitengine (github.c
 ### Ebitengine Platform Support Matrix
 - **Desktop**: Windows, macOS, Linux — full feature support via `ebiten.RunGame`
 - **BSD**: FreeBSD — supported via the standard Linux-like build path; OpenBSD/NetBSD — community supported, may require `golang.org/x/sys` version alignment
-- **Mobile**: Android (arm64, arm) and iOS (arm64) — via `golang.org/x/mobile` integration; `ebiten.RunGame` replaced by `ebitenMobile.SetGame` or `ebitenMobile.Run`
+- **Mobile**: Android (arm64, arm) and iOS (arm64) — via `golang.org/x/mobile` integration; `ebiten.RunGame` replaced by `ebitenmobile.SetGame` or `ebitenmobile.Run`
 - **Web (WASM)**: `GOOS=js GOARCH=wasm` — not listed in the task scope but note Ebitengine supports it
 
 ### Ebitengine CGO Policy
@@ -102,8 +102,8 @@ mkdir -p tmp
 go-stats-generator analyze . --skip-tests --format json --sections functions,packages,patterns > tmp/compat-audit-metrics.json
 go-stats-generator analyze . --skip-tests
 
-# Verify CGO-free build of game logic (not entry points)
-CGO_ENABLED=0 go build ./... 2>&1 | tee tmp/cgo-free-build.txt
+# Verify CGO-free build of game logic (exclude mobile entry-point packages)
+CGO_ENABLED=0 go list ./... | grep -Ev '/(android|ios|mobile)(/|$)' | xargs -r go build 2>&1 | tee tmp/cgo-free-build.txt
 
 # Cross-compile spot checks
 GOOS=windows GOARCH=amd64  CGO_ENABLED=0 go build ./... 2>&1 | tee tmp/build-windows.txt

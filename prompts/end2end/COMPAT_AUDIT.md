@@ -78,12 +78,12 @@ Keep research brief (≤10 minutes). Record only findings with direct bearing on
 set -o pipefail
 mkdir -p tmp
 
-go-stats-generator analyze . --skip-tests --format json \
+go-stats-generator analyze . --format json \
   --sections functions,packages,patterns,structs \
   > tmp/compat-e2e-baseline.json
-go-stats-generator analyze . --skip-tests
+go-stats-generator analyze .
 
-# CGO-free build — must pass for all non-mobile-entry-point packages
+# CGO-free build — must pass for all packages
 CGO_ENABLED=0 go build ./... 2>&1 | tee tmp/cgo-free-build.txt
 
 # Cross-compile matrix — record pass/fail for each
@@ -114,8 +114,8 @@ Delete `tmp/` when done — the only persistent outputs are `AUDIT.md` and `GAPS
 #### 3a. CGO and Native Dependencies (CRITICAL — zero tolerance in pure-Go scope)
 Inspect every `.go` file without exception:
 
-- [ ] Every occurrence of `import "C"` — record file and line; determine if it is in an allowed mobile entry-point package with the correct build constraint.
-- [ ] Every `#cgo` directive — same evaluation.
+- [ ] Every occurrence of `import "C"` — record file and line; classify as a CRITICAL violation of the pure-Go requirement.
+- [ ] Every `#cgo` directive — classify each as a CRITICAL violation of the pure-Go requirement.
 - [ ] Cross-compile failures logged in Phase 2 baseline — each failure is a finding; trace to the root cause.
 - [ ] Every dependency in `go.mod` — for each, verify whether `CGO_ENABLED=0 go build` of that dependency succeeds. A transitive CGO dependency is a CRITICAL finding.
 - [ ] `unsafe` package usage — not a CGO issue, but document every `unsafe` call site; flag any that encode platform-specific memory layout assumptions (struct size, alignment, pointer width).
@@ -209,7 +209,7 @@ Before recording ANY finding, apply these checks:
 2. **Check for existing platform abstractions**: Trace the full call chain; an abstraction layer may already handle the portability concern.
 3. **Assess actual target platforms**: Cross-validate every finding against the project's README-stated platform goals. A finding for an unstated platform is informational, not blocking.
 4. **Read surrounding comments**: An explicit acknowledgment (e.g., `// Windows not supported`, `// Linux only`, `//nolint:`) is an acknowledged pattern.
-5. **Distinguish CGO mobile exception**: `import "C"` in a mobile entry-point package with the correct build constraint is expected.
+5. **No CGO exceptions**: Any `import "C"` occurrence is a CRITICAL finding regardless of package, platform, or build constraint.
 6. **Verify transitive CGO**: Run `CGO_ENABLED=0 go build [package]` before reporting a transitive CGO dependency — confirm the build actually fails for that specific package path.
 
 **Rule**: Only report confirmed findings where you can state the exact file, line, code path, platform, and concrete failure mode.
@@ -247,7 +247,7 @@ Generate **`AUDIT.md`**:
 | [pkg]   | ✅     | ✅       | ✅             | ✅              | ✅         | ✅      | ✅          | ✅          | ✅        | ✅     |
 
 ## CGO Status
-[Explicit statement: PURE GO / VIOLATION — list every `import "C"` with its allowed/disallowed status]
+[Explicit statement: PURE GO / VIOLATION — list every `import "C"` occurrence as a CRITICAL violation]
 
 ## Findings
 
@@ -315,7 +315,7 @@ Every finding MUST include a **Remediation** section that:
 - Every CRITICAL or HIGH finding must include the concrete failure mode (build error, runtime panic, wrong behavior).
 - Evaluate the code against **its own stated platform goals**, not every possible platform.
 - Apply the Phase 3k false-positive prevention checks to every candidate finding before including it.
-- The pure-Go / no-CGO constraint (outside allowed mobile entry-point exceptions) is non-negotiable: any violation is automatically CRITICAL.
+- The pure-Go / no-CGO constraint is non-negotiable: any CGO usage is automatically CRITICAL.
 - Document remaining scope explicitly if the session ends before completion.
 
 ## Session Strategy

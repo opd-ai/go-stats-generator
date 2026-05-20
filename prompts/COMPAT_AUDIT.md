@@ -272,7 +272,7 @@ Generate **`GAPS.md`**:
 ## Remediation Standards
 Every finding MUST include a **Remediation** section:
 1. **Concrete fix**: State exactly what to change — the specific import, function, path operation, or build constraint. Do not recommend "use portable APIs."
-2. **Preserve Go idioms**: Fixes must use Go standard library or `golang.org/x` packages — no CGO, no platform-native SDKs.
+2. **Preserve Go idioms**: Fixes must use Go standard library packages only — no CGO, no platform-native SDKs.
 3. **Verifiable**: Include the cross-compile command that should pass after the fix (e.g., `GOOS=windows CGO_ENABLED=0 go build ./...`).
 4. **Minimal scope**: Fix the portability issue without restructuring unrelated code.
 
