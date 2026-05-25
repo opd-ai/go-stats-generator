@@ -1,127 +1,150 @@
 # CI Failure Resolution
 
-## Most Recent CI Failure Analysis
+**Objective:** Analyze the most recent CI/CD pipeline failure in the current repository and create a comprehensive resolution plan.
 
-**CI Run:** [#26266126319](https://github.com/opd-ai/go-stats-generator/actions/runs/26266126319)  
-**Date:** 2026-05-22T03:08:17Z  
-**Branch:** main  
-**Commit:** 1dfff8aa7b695893daa497f30b9ceb505e617d1c
+## Instructions
 
-### Failed Step: golangci-lint
+### Step 1: Identify the Most Recent CI Failure
 
-The CI pipeline failed due to golangci-lint errors. All previous steps (build, test, vet) passed successfully.
+1. Use GitHub Actions tools to list recent workflow runs
+2. Identify the most recent failed run on the main/master branch
+3. Document:
+   - CI Run ID and URL
+   - Date and time of failure
+   - Branch name
+   - Commit SHA
+   - Failed step/job name
 
-## Errors to Fix
+### Step 2: Analyze the Failure
 
-### 1. Unchecked Error Returns (errcheck)
+1. Retrieve the detailed logs for the failed job
+2. Identify all errors, warnings, and failure messages
+3. Categorize issues by type:
+   - Build failures
+   - Test failures
+   - Linting/style issues
+   - Security vulnerabilities
+   - Deprecation warnings
+   - Integration/deployment issues
+   - Other issues
 
-**Files with unchecked errors:**
+### Step 3: Document Each Issue
 
-- `pkg/generator/api_common.go:151:39`
-  - `sharedPkg.AnalyzePackageWithFileLines` error not checked
+For each identified issue, document:
+- **File and line number** where the issue occurs
+- **Error type/category** (e.g., errcheck, unused, gosimple, staticcheck)
+- **Error message** from the CI logs
+- **Brief description** of what's wrong
 
-- `internal/analyzer/organization_test.go:1606:30`
-  - `analyzer.AnalyzeImportGraph` error not checked
+### Step 4: Create Resolution Strategy
 
-- `internal/api/storage/mongo.go:101:25`
-  - `m.collection.ReplaceOne` error not checked
+Prioritize issues based on severity and impact:
 
-- `internal/api/storage/mongo.go:188:25`
-  - `m.collection.DeleteMany` error not checked
+**Priority 1: Critical Failures**
+- Build failures that prevent compilation
+- Critical security vulnerabilities
+- Breaking test failures
 
-- `internal/api/handlers.go:166:27`
-  - `json.NewEncoder(w).Encode` error not checked
+**Priority 2: High-Impact Issues**
+- Error handling issues
+- Resource leaks
+- Race conditions
+- Integration test failures
 
-- `internal/api/handlers_test.go:152:32`
-  - `json.NewDecoder(w.Body).Decode` error not checked
+**Priority 3: Code Quality Issues**
+- Unused code
+- Code simplification opportunities
+- Style/formatting issues
+- Deprecation warnings
 
-- `internal/storage/memory_test.go:328:17` and `329:20`
-  - `storage.Store` and `storage.Retrieve` errors not checked
+**Priority 4: Documentation and Warnings**
+- Documentation gaps
+- Minor deprecations
+- Non-critical warnings
 
-- `internal/storage/sqlite.go:249:19`
-  - `tx.Rollback()` error not checked (deferred)
+### Step 5: Provide Resolution Guidance
 
-- `cmd/analyze_bench_test.go:27:15` and `63:15`
-  - `filepath.Walk` errors not checked
+For each category of issues, provide:
+- Specific fix recommendations
+- Code examples where appropriate
+- Links to relevant documentation
+- Estimated effort/complexity
 
-- `cmd/baseline_test.go:114:15`
-  - `buf.ReadFrom` error not checked
+### Step 6: Validation Commands
 
-- `cmd/flags.go:17:18`
-  - `viper.BindPFlag` error not checked
-
-- `cmd/root.go:67:17`
-  - `viper.BindPFlag` error not checked
-
-- `cmd/version_test.go:25:15`
-  - `buf.ReadFrom` error not checked
-
-### 2. Unused Functions (unused)
-
-**Functions that should be removed or used:**
-
-- `internal/analyzer/antipattern.go:191:31` - `(*AntipatternAnalyzer).isAppendInLoop`
-- `internal/analyzer/antipattern.go:207:31` - `(*AntipatternAnalyzer).isInLoop`
-- `internal/analyzer/duplication.go:777:6` - `sortClaimedRanges`
-- `internal/analyzer/interface.go:129:30` - `(*InterfaceAnalyzer).analyzeImplementations`
-- `internal/analyzer/interface.go:135:30` - `(*InterfaceAnalyzer).collectMethodsByType`
-- `internal/analyzer/interface.go:157:30` - `(*InterfaceAnalyzer).matchImplementations`
-- `internal/analyzer/interface.go:165:30` - `(*InterfaceAnalyzer).findImplementingTypes`
-- `internal/analyzer/interface.go:210:30` - `(*InterfaceAnalyzer).implementsInterface`
-- `internal/analyzer/interface.go:345:30` - `(*InterfaceAnalyzer).extractEmbeddedInterfaceNames`
-- `internal/analyzer/interface.go:388:30` - `(*InterfaceAnalyzer).updateImplementationMetrics`
-- `internal/analyzer/package.go:248:28` - `(*PackageAnalyzer).calculateComplexity`
-- `internal/analyzer/package.go:450:28` - `(*PackageAnalyzer).calculateAverageFloat`
-- `cmd/analyze_finalize.go:448:6` - `prepareDocumentationInput`
-- `cmd/baseline.go:196:6` - `convertToStorageConfig`
-
-### 3. Code Simplification Issues (gosimple)
-
-- `internal/analyzer/documentation.go:252:2` - S1008: Use simple return instead of if-else
-- `internal/analyzer/placement.go:276:5` - S1009: Omit nil check for maps
-- `internal/analyzer/antipattern_branching_test.go:210:7` - S1009: Omit nil check for slices
-- `internal/analyzer/antipattern.go:713:10` - S1034: Use type assertion with switch variable
-- `internal/analyzer/concurrency_test.go:34:16` - S1040: Remove redundant type assertion
-
-### 4. Ineffectual Assignment (ineffassign)
-
-- `internal/analyzer/function_test.go:75:2` - Variable `funcDecl` assigned but never used
-
-### 5. Static Check Issues (staticcheck)
-
-- `cmd/analyze_finalize.go:342:73`, `343:27`, `350:21` - SA1019: Using deprecated `ast.Package`
-- `cmd/serve.go:7:2` - SA1019: Using deprecated `internal/api` package
-- `internal/analyzer/naming.go:739:9` - SA6005: Should use `strings.EqualFold` instead
-
-## Resolution Strategy
-
-### Priority 1: Fix Error Checking Issues
-All unchecked errors must be properly handled. Either:
-- Check and handle the error appropriately
-- Explicitly ignore with `_ = ...` if error is intentionally ignored
-- Add error logging where appropriate
-
-### Priority 2: Remove or Use Unused Functions
-Review all unused functions and either:
-- Remove them if they are truly unnecessary
-- Add them to the codebase if they were intended for future use
-- Mark with `//nolint:unused` if they are intentionally kept for future use
-
-### Priority 3: Code Simplification
-Apply suggested simplifications to improve code quality and readability.
-
-### Priority 4: Fix Static Check Issues
-- Replace deprecated `ast.Package` usage with type checker
-- Update deprecated package imports
-- Use `strings.EqualFold` for case-insensitive comparison
-
-## Validation
-
-After fixes, run:
+List the commands needed to validate fixes:
 ```bash
+# Example commands (adjust based on the repository)
 make lint
 make build
 make test
+# Or:
+npm test
+npm run lint
+# Or:
+cargo test
+cargo clippy
 ```
 
-All three commands must pass before considering the CI issues resolved.
+## Output Format
+
+Create a detailed report with the following sections:
+
+1. **Executive Summary**: Brief overview of the CI failure
+2. **Failure Details**: Complete information about the failed run
+3. **Issues Breakdown**: Categorized list of all issues found
+4. **Resolution Plan**: Prioritized action items with specific guidance
+5. **Validation Steps**: Commands to run after fixes
+6. **Additional Notes**: Any repository-specific considerations
+
+## Example Structure
+
+```markdown
+# CI Failure Analysis - [Repository Name]
+
+## Executive Summary
+[Brief description of what failed and why]
+
+## Failure Details
+- **CI Run:** [#12345](link)
+- **Date:** YYYY-MM-DD HH:MM:SS
+- **Branch:** main
+- **Commit:** abc123def
+- **Failed Step:** [step name]
+
+## Issues Found
+
+### Category 1: [Issue Type]
+1. `path/to/file.ext:123` - [description]
+2. `path/to/file.ext:456` - [description]
+
+### Category 2: [Issue Type]
+[Continue for each category...]
+
+## Resolution Plan
+
+### Priority 1: [Category]
+**Issues to address:**
+- [Issue 1]
+- [Issue 2]
+
+**Resolution guidance:**
+[Specific instructions...]
+
+## Validation
+```bash
+[Commands to run]
+```
+
+## Notes
+[Any additional context]
+```
+
+## Tips
+
+- Use GitHub Actions API tools to retrieve logs programmatically
+- Parse logs carefully to extract all unique error messages
+- Group related errors together for efficient fixing
+- Consider root causes - fixing one issue may resolve multiple errors
+- Check if failures are related to recent changes vs. existing issues
+- Note any flaky tests or intermittent failures
