@@ -1,150 +1,74 @@
-# CI Failure Resolution
+# CI Failure Analysis - go-stats-generator (Ebitengine Analysis)
 
-**Objective:** Analyze the most recent CI/CD pipeline failure in the current repository and create a comprehensive resolution plan.
+## Overview
 
-## Instructions
+This file documents CI failures specific to the Ebitengine-optimized prompt variants for go-stats-generator. For the main CI failures and linting issues, see the root `/prompts/CI_FAIL.md` file.
 
-### Step 1: Identify the Most Recent CI Failure
+## Domain-Specific Considerations for Game Development
 
-1. Use GitHub Actions tools to list recent workflow runs
-2. Identify the most recent failed run on the main/master branch
-3. Document:
-   - CI Run ID and URL
-   - Date and time of failure
-   - Branch name
-   - Commit SHA
-   - Failed step/job name
+The Ebitengine prompts are tailored for analyzing game development projects with Go. When failures occur in this context, consider:
 
-### Step 2: Analyze the Failure
+1. **Graphics API Issues** - Ebitengine uses different graphics backends (OpenGL, Metal, DirectX)
+2. **Platform-Specific Problems** - Game libraries often behave differently across platforms
+3. **Real-time Performance** - Game analysis may have stricter performance requirements
+4. **Input/Event Handling** - Game-specific event loops and input systems
 
-1. Retrieve the detailed logs for the failed job
-2. Identify all errors, warnings, and failure messages
-3. Categorize issues by type:
-   - Build failures
-   - Test failures
-   - Linting/style issues
-   - Security vulnerabilities
-   - Deprecation warnings
-   - Integration/deployment issues
-   - Other issues
+## Recent Failures
 
-### Step 3: Document Each Issue
+When Ebitengine-related analysis fails, follow this resolution process:
 
-For each identified issue, document:
-- **File and line number** where the issue occurs
-- **Error type/category** (e.g., errcheck, unused, gosimple, staticcheck)
-- **Error message** from the CI logs
-- **Brief description** of what's wrong
+1. **Check the failure mode:** Is it a code quality issue (same as main CI) or Ebitengine-specific?
+2. **Identify the component:** Determine which analysis system failed (complexity, duplication, performance, etc.)
+3. **Review game-specific code patterns:** Game code often uses patterns that look unusual in standard Go analysis
+4. **Implement specialized fix:** Apply fixes that account for game development conventions
 
-### Step 4: Create Resolution Strategy
+## Common Ebitengine Analysis Failure Categories
 
-Prioritize issues based on severity and impact:
+### Performance Analysis Issues
+- False positives in frame rate critical sections
+- Misunderstanding of game loop patterns
+- Incorrect complexity metrics for render loops
 
-**Priority 1: Critical Failures**
-- Build failures that prevent compilation
-- Critical security vulnerabilities
-- Breaking test failures
+### Graphics API Abstraction
+- Platform-specific conditional code confusing the analyzer
+- Graphics buffer management patterns
+- Shader compilation handling
 
-**Priority 2: High-Impact Issues**
-- Error handling issues
-- Resource leaks
-- Race conditions
-- Integration test failures
+### Game Development Patterns
+- Event loop and game state patterns
+- Resource loading and unloading cycles
+- Input polling vs callback patterns
 
-**Priority 3: Code Quality Issues**
-- Unused code
-- Code simplification opportunities
-- Style/formatting issues
-- Deprecation warnings
+## Resolution Strategy
 
-**Priority 4: Documentation and Warnings**
-- Documentation gaps
-- Minor deprecations
-- Non-critical warnings
+1. Check if it's a code quality issue (apply fixes from main CI_FAIL.md)
+2. Identify if it's an Ebitengine-specific false positive
+3. Review game-specific code patterns for legitimate deviations from standard Go
+4. Document any analyzer limitations with game development code
+5. Consider adding Ebitengine-specific linting rules if needed
 
-### Step 5: Provide Resolution Guidance
+## Validation Commands
 
-For each category of issues, provide:
-- Specific fix recommendations
-- Code examples where appropriate
-- Links to relevant documentation
-- Estimated effort/complexity
-
-### Step 6: Validation Commands
-
-List the commands needed to validate fixes:
 ```bash
-# Example commands (adjust based on the repository)
-make lint
-make build
+# Run full test suite
 make test
-# Or:
-npm test
-npm run lint
-# Or:
-cargo test
-cargo clippy
-```
 
-## Output Format
+# Run linting
+make lint
 
-Create a detailed report with the following sections:
+# Build the project
+make build
 
-1. **Executive Summary**: Brief overview of the CI failure
-2. **Failure Details**: Complete information about the failed run
-3. **Issues Breakdown**: Categorized list of all issues found
-4. **Resolution Plan**: Prioritized action items with specific guidance
-5. **Validation Steps**: Commands to run after fixes
-6. **Additional Notes**: Any repository-specific considerations
-
-## Example Structure
-
-```markdown
-# CI Failure Analysis - [Repository Name]
-
-## Executive Summary
-[Brief description of what failed and why]
-
-## Failure Details
-- **CI Run:** [#12345](link)
-- **Date:** YYYY-MM-DD HH:MM:SS
-- **Branch:** main
-- **Commit:** abc123def
-- **Failed Step:** [step name]
-
-## Issues Found
-
-### Category 1: [Issue Type]
-1. `path/to/file.ext:123` - [description]
-2. `path/to/file.ext:456` - [description]
-
-### Category 2: [Issue Type]
-[Continue for each category...]
-
-## Resolution Plan
-
-### Priority 1: [Category]
-**Issues to address:**
-- [Issue 1]
-- [Issue 2]
-
-**Resolution guidance:**
-[Specific instructions...]
-
-## Validation
-```bash
-[Commands to run]
+# Analyze a game project with the Ebitengine-optimized prompts
+go-stats-generator analyze ./examples --skip-tests \
+    --prompt prompts/ebiten \
+    --max-function-length 35 \
+    --max-complexity 10
 ```
 
 ## Notes
-[Any additional context]
-```
 
-## Tips
-
-- Use GitHub Actions API tools to retrieve logs programmatically
-- Parse logs carefully to extract all unique error messages
-- Group related errors together for efficient fixing
-- Consider root causes - fixing one issue may resolve multiple errors
-- Check if failures are related to recent changes vs. existing issues
-- Note any flaky tests or intermittent failures
+- The Ebitengine community uses specific patterns for game development
+- Some "issues" flagged by standard linting may be intentional in game code
+- Performance is critical in games - ensure analysis doesn't miss real issues
+- Consider maintaining separate linting rules for game vs. general Go code
