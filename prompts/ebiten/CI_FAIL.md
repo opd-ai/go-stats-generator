@@ -1,148 +1,182 @@
-# TASK: Analyze CI/CD failures in the context of game development and Ebitengine projects
+# AUTONOMOUS GAME DEVELOPMENT CI FAILURE FIX AGENT
 
 ## Execution Mode
-**Report generation only** — do NOT modify any source code unless specifically instructed.
+**FULLY AUTONOMOUS** — Automatically diagnose, fix, validate, and commit ALL CI failures in Ebitengine/game development projects.
 
 ## Objective
-Analyze CI/CD pipeline failures that occur when testing or analyzing game development projects built with Go and Ebitengine. Game projects often have unique constraints and patterns that affect CI/CD pipeline behavior.
+Fix ALL CI/CD pipeline failures in game development projects built with Go and Ebitengine. Game projects have unique CI challenges (graphics, platform-specific code, timing). This agent will autonomously resolve them all.
 
-## Domain-Specific Considerations
+**NO MANUAL INTERVENTION REQUIRED. FIX EVERY GAME CI FAILURE AUTONOMOUSLY.**
 
-Game development introduces special CI/CD challenges:
+## Execution Strategy
 
-1. **Graphics/rendering issues** — Platform-specific graphics APIs (OpenGL, Metal, DirectX)
-2. **Windowed/headless environments** — Games need display or virtual display
-3. **Real-time performance** — Frame rate and latency requirements
-4. **Platform-specific code** — Windows/Mac/Linux/Web require different handling
-5. **External libraries** — Game engines often have heavy C/C++ dependencies
-6. **Timing-sensitive tests** — Game loops have strict timing requirements
+### PHASE 1: IDENTIFY GAME-SPECIFIC CI FAILURES
 
-## Workflow
+1. **Locate failure point:**
+   - Compilation failure?
+   - Test execution failure?
+   - Graphics/rendering failure?
+   - Code analysis failure (go-stats-generator)?
+   - Artifact generation failure?
 
-### Phase 1: Identify Game-Related CI Failures
+2. **Extract diagnostic info:**
+   - Error message and stack trace
+   - Which platform (Linux, Windows, macOS)?
+   - Which build tag was used?
+   - Graphics-related errors?
 
-1. **Locate the failure point:**
-   - Does it fail during compilation?
-   - Does it fail during test execution?
-   - Does it fail during analysis (go-stats-generator)?
-   - Does it fail during artifact generation?
+3. **Categorize failure:**
+   - Graphics initialization?
+   - Platform-specific code issue?
+   - Missing/invalid asset?
+   - Timing/performance issue?
+   - Build tag problem?
 
-2. **Determine failure type:**
-   - Graphics initialization error?
-   - Platform-specific build issue?
-   - Performance regression?
-   - Missing game assets?
-   - Timing/frame rate issue?
+### PHASE 2: DIAGNOSE ROOT CAUSE
 
-3. **Check platform specificity:**
-   - Does it fail on all platforms or specific ones?
-   - Is it a graphics backend issue?
-   - Is it a library availability issue?
+#### GRAPHICS/RENDERING ISSUES
+- Check if error mentions graphics, OpenGL, Metal, DirectX, EGL
+- Is CI environment headless (no display)?
+- Solution: Add Xvfb support, mock graphics, or use headless renderer
 
-### Phase 2: Game Development-Specific Failure Analysis
+#### PLATFORM-SPECIFIC ISSUES
+- Check build tags (//go:build)
+- Does code compile on all target platforms?
+- Are platform-specific imports causing issues?
+- Solution: Fix build constraints, test multi-platform, use Docker
 
-#### Graphics/Rendering Issues
-- Ebitengine requires a graphics context (OpenGL/Metal/DirectX)
-- Headless CI environments may not support graphics
-- **Solution:** Use virtual display (xvfb), mock graphics, or use software rendering
+#### ASSET/RESOURCE ISSUES
+- Error about missing files, images, sounds, shaders?
+- Are asset paths relative/absolute?
+- Are assets included in CI environment?
+- Solution: Fix asset paths, mock assets in tests, include test assets
 
-#### Platform Compatibility
-- Game code often has platform-specific imports/build tags
-- CI may test on Linux but game targets Windows/Mac
-- **Solution:** Test on all target platforms, use build constraints, test in Docker
+#### TIMING/PERFORMANCE ISSUES
+- Is test timing-sensitive?
+- Does game loop have strict FPS requirements?
+- Are there timing-dependent assertions?
+- Solution: Mock time, use deterministic testing, increase timeouts
 
-#### Performance Analysis False Positives
-- Game update/render loops may trigger complexity warnings
-- Tight loops and state machines may appear over-complex
-- **Solution:** Use domain-specific analysis rules, exclude hot paths, document patterns
+#### BUILD/COMPILATION ISSUES
+- Missing dependencies or libraries?
+- Platform-specific compilation flags?
+- Incorrect build constraints?
+- Solution: Install dependencies, fix build constraints, update CI config
 
-#### Asset/Resource Issues
-- Game resources (sprites, sounds, shaders) not available in CI
-- Asset loading failures
-- **Solution:** Mock resources in CI, use asset stubs, verify asset paths
+#### ANALYSIS TOOL ISSUES
+- Does go-stats-generator fail on game code?
+- Are there false-positive complexity warnings?
+- Does analysis tool need game-specific configuration?
+- Solution: Add analysis exclusions, adjust thresholds, skip non-analyzable code
 
-#### Timing/Concurrency Issues
-- Games run update loop at specific FPS
-- Timing-sensitive tests may fail under load
-- **Solution:** Mock time, use deterministic testing, increase timeouts
+### PHASE 3: AUTONOMOUSLY FIX EACH FAILURE
 
-### Phase 3: Game-Specific Debugging Steps
+#### FIX TYPE 1: GRAPHICS INITIALIZATION FAILURE
+- Add Xvfb virtual display support to CI
+- Or mock graphics context in code
+- Or skip graphics tests in CI
+- Test that graphics-related code compiles and initializes
 
-1. **Check graphics environment:**
-   ```bash
-   glxinfo              # Check OpenGL support
-   eglinfo              # Check EGL support
-   xvfb-run -a ...     # Run with virtual display
-   ```
+#### FIX TYPE 2: PLATFORM COMPILATION FAILURE
+- Fix build constraints (//go:build)
+- Add missing platform-specific imports
+- Fix platform-specific code issues
+- Test on multiple platforms (if possible) or verify build tags
 
-2. **Verify build tags:**
-   - Are platform-specific build tags correct?
-   - Are game-specific tags being used?
+#### FIX TYPE 3: MISSING GAME ASSETS
+- Fix asset paths to be relative or use embedded assets
+- Mock assets in test environment
+- Or include test assets in CI
+- Verify asset loading works in CI
 
-3. **Check asset paths:**
-   - Are relative paths working in CI?
-   - Are assets being included in CI?
+#### FIX TYPE 4: TIMING/PERFORMANCE ISSUES
+- Make tests deterministic (mock time.Now, game tick)
+- Increase timeouts for game update loops
+- Remove timing-sensitive assertions
+- Verify tests pass consistently
 
-4. **Review game loop:**
-   - Is timing too strict for CI?
-   - Are frame rate assumptions breaking in CI?
+#### FIX TYPE 5: BUILD/DEPENDENCY ISSUES
+- Add missing dependencies to CI workflow
+- Update go.mod if needed
+- Fix platform-specific library requirements
+- Verify build succeeds
 
-5. **Test on target platforms:**
-   - Does it fail on the actual target platform?
-   - Is it a CI-specific environment issue?
+#### FIX TYPE 6: ANALYSIS TOOL FALSE POSITIVES
+- Add configuration to exclude game-specific code patterns
+- Add analysis exclusions for hot paths
+- Adjust complexity thresholds for game loops
+- Document why certain patterns are excluded
 
-### Phase 4: Create Resolution Plan
+### PHASE 4: VALIDATE FIXES
 
-1. **For graphics issues:** Use xvfb or mock graphics
-2. **For platform issues:** Add platform-specific handling or matrix testing
-3. **For analysis issues:** Add domain-specific linting rules
-4. **For asset issues:** Mock or stub assets in tests
-5. **For timing issues:** Make tests deterministic, use mock time
+For EACH fix:
 
-## Output Format
+1. **Local validation:**
+   - Run the failing step locally
+   - Verify it passes
+   - If graphics-related, test with xvfb-run
 
-```markdown
-# Game Development CI Failure Analysis
+2. **Commit and push:**
+   - Stage changes: `git add .`
+   - Commit: `git commit -m "Fix game CI: [description]"`
+   - Push to branch
 
-## Summary
-[Overview of failures specific to game development]
+3. **Re-run CI:**
+   - Trigger the previously-failing job
+   - Wait for completion
+   - Verify it now passes
+   - If new failures appear, loop back to PHASE 2
 
-## Graphics Issues
-[Issues related to rendering/graphics]
+### PHASE 5: FINAL VALIDATION
 
-## Platform Issues
-[Issues specific to Windows/Mac/Linux/Web]
+Once ALL game CI failures are fixed:
 
-## Performance Analysis Issues
-[False positives from standard analysis tools]
+1. Verify ALL CI steps pass (build, test, analysis, etc.)
+2. Verify fixes work on all target platforms
+3. Verify NO new failures introduced
+4. Document game-specific CI configuration
 
-## Asset/Resource Issues
-[Missing or invalid game assets]
+## GAME DEVELOPMENT CI PATTERNS
 
-## Timing/Frame Rate Issues
-[Issues from real-time game requirements]
+This agent handles:
 
-## Resolution Plan
-[Specific fixes for game development context]
+1. **Graphics in headless CI:** Xvfb, mock graphics, software rendering
+2. **Platform-specific code:** Build constraints, conditional compilation
+3. **Game assets:** Embedded assets, mock assets, asset stubs
+4. **Timing/concurrency:** Mock time, deterministic tests, generous timeouts
+5. **Analysis false positives:** Exclusions, thresholds, documentation
+6. **Ebitengine-specific issues:** Graphics context, input handling, game loop
 
-## Validation
-[How to test fixes in game development context]
-```
+## CRITICAL SUCCESS CRITERIA
 
-## Common Game Development CI Patterns
+✅ **MUST ACHIEVE:**
+- ALL CI steps pass (build, test, analysis on all platforms)
+- Graphics work in headless CI environment
+- Platform-specific code compiles correctly
+- Game assets properly handled
+- Analysis tools don't report false positives
+- NO manual intervention required
 
-- **Separate graphics testing:** Test game logic separately from graphics
-- **Headless mode:** Support CI without graphics support
-- **Platform matrix:** Test on all target platforms
-- **Asset management:** Include test assets or mock them
-- **Mock time:** Use deterministic time for testing
-- **Performance budgets:** Set realistic performance targets for CI environments
+## EXECUTION CHECKLIST
 
-## Tips
+- [ ] Identify all failing game CI steps
+- [ ] Extract failure diagnostics
+- [ ] For EACH failure:
+  - [ ] Diagnose root cause
+  - [ ] Implement game-appropriate fix
+  - [ ] Validate locally (with xvfb if graphics)
+  - [ ] Commit fix with clear message
+- [ ] Re-run full CI on all platforms
+- [ ] Verify ALL steps pass
+- [ ] Document game-specific CI configuration
 
-- Check if issue is CI-environment specific vs. actual code bug
-- Use conditional compilation for game-specific code
-- Mock expensive or platform-specific operations in tests
-- Consider game development best practices from Ebitengine community
-- Be aware that standard linters may not understand game development patterns
-- Document any CI-specific workarounds in code comments
+## KEY RULES
+
+1. **Be autonomous:** Do not ask for guidance. Diagnose and fix.
+2. **Be game-aware:** Understand graphics, assets, timing constraints
+3. **Support all platforms:** Fix for Linux, Windows, macOS where applicable
+4. **Don't remove code:** Fix the underlying issue instead
+5. **Proper graphics support:** Use Xvfb or mock, don't assume display
+6. **Handle assets properly:** Either embed, mock, or include test assets
+7. **Deterministic tests:** Make game tests repeatable and timing-independent
+8. **Document patterns:** Explain any game-specific CI configuration choices

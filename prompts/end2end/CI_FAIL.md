@@ -1,132 +1,169 @@
-# TASK: Analyze CI/CD failures specific to end-to-end testing scenarios
+# AUTONOMOUS E2E TEST FAILURE FIX AGENT
 
 ## Execution Mode
-**Report generation only** — do NOT modify any source code unless specifically instructed.
+**FULLY AUTONOMOUS** — Automatically diagnose, fix, validate, and commit ALL E2E test failures.
 
 ## Objective
-Analyze CI/CD pipeline failures that occur during end-to-end (E2E) testing phases. E2E tests validate that multiple components work together correctly, so failures often indicate integration issues rather than unit-level bugs.
+Fix ALL end-to-end (E2E) test failures autonomously. E2E tests validate component integration, so failures indicate integration issues, flaky tests, or environmental problems. This agent will autonomously resolve them.
 
-## Key Differences from Unit Tests
+**NO MANUAL INTERVENTION REQUIRED. FIX EVERY FAILING E2E TEST AUTONOMOUSLY.**
 
-- **Scope:** E2E tests exercise multiple components or subsystems together
-- **Failure patterns:** Often environmental, timing-dependent, or integration-related
-- **Root causes:** May include flaky tests, external service dependencies, configuration issues
-- **Debugging:** Requires understanding of component interactions and system state
+## Execution Strategy
 
-## Workflow
+### PHASE 1: IDENTIFY E2E TEST FAILURES
 
-### Phase 1: Identify E2E Test Failures
+1. **Locate E2E test step:**
+   - Find which CI step runs E2E tests (look for "E2E", "integration", "end-to-end", etc.)
+   - Identify which test runner is used (Jest, pytest, Go test, etc.)
 
-1. **Locate E2E test step:** Find which CI step runs E2E tests (may be labeled as "integration tests", "E2E tests", "end-to-end", etc.)
+2. **Retrieve failure logs:**
+   - Extract full E2E test output from CI
+   - Parse which specific tests failed
+   - Extract error messages, stack traces, assertion failures
 
-2. **Gather failure information:**
-   - Which specific E2E tests failed?
-   - Did they fail consistently or intermittently?
-   - Did failures appear after recent code changes?
-   - Are failures related to specific environments (OS, architecture)?
-
-3. **Check failure frequency:** 
-   - Is this a new failure?
-   - Do other branches have the same failure?
-   - Is this a known flaky test?
-
-### Phase 2: Analyze E2E Failure Types
-
-E2E tests can fail for different reasons than unit tests:
-
-1. **Component integration issues** — Components don't work together correctly
-2. **External dependency issues** — Database, API, service not available/responding
-3. **Flaky tests** — Timing-dependent, race conditions in parallel execution
-4. **Environmental issues** — Missing config, wrong setup, resource constraints
-5. **Configuration issues** — Test fixtures not properly initialized
-6. **Data issues** — Test data not in expected state
-7. **Port/resource conflicts** — Port already in use, insufficient memory
-
-### Phase 3: Create Resolution Plan
-
-For each E2E failure:
-
-1. **Reproduce locally:** Can you reproduce the failure consistently on your machine?
-   - If yes: Likely a code or configuration issue
-   - If no: Likely environmental, timing, or flaky
-
-2. **Isolate the failure:**
-   - Is it a specific test or all E2E tests?
-   - Does it fail every time or intermittently?
-   - Does it fail on all branches or just specific ones?
-
-3. **Determine root cause:**
+3. **Categorize failures:**
+   - Flaky test (timing-dependent)?
+   - External dependency failure (service, database)?
    - Component integration issue?
-   - External service dependency?
-   - Timing/race condition?
-   - Configuration or setup issue?
+   - Configuration/setup issue?
+   - Resource conflict?
 
-4. **Implement fix:**
-   - Fix the underlying code issue
-   - Or adjust test to handle timing/ordering
-   - Or mock/stub external dependency
-   - Or improve test setup/teardown
+### PHASE 2: DIAGNOSE ROOT CAUSE
 
-5. **Validate:**
-   - Run E2E tests locally multiple times
-   - Run in CI to confirm fix
-   - Monitor for regression
+For EACH failing E2E test:
 
-## Common E2E Test Failure Patterns
+1. **Run test locally:**
+   - Execute the exact failing test locally multiple times
+   - Does it fail consistently or intermittently?
+   - Can you reproduce the failure?
 
-### Pattern 1: External Service Dependency
-- Test expects external service to be available
-- Test fails when service is down/slow
-- **Solution:** Mock the service, use test fixtures, or add retry logic
+2. **Analyze failure pattern:**
+   - **External Service Dependency:** Test expects service (API, database, etc.) to be available
+   - **Timing/Race Condition:** Test fails due to timing issues or race conditions
+   - **State Management:** Test data not in expected state, previous test didn't clean up
+   - **Resource Conflict:** Port already in use, memory exhausted, file locks
+   - **Order Dependency:** Test expects other tests to run first
+   - **Component Integration:** Components don't work together correctly
 
-### Pattern 2: Flaky Due to Timing
-- Test assumes operations complete within timeout
-- Test fails intermittently under load
-- **Solution:** Increase timeouts, add explicit waits, use polling
+3. **Extract diagnostic info:**
+   - Full error message
+   - Stack trace
+   - Test setup/teardown code
+   - Dependencies (services, databases, ports)
+   - Timing windows
 
-### Pattern 3: State Initialization
-- Test expects data/resources to exist
-- Previous test didn't clean up properly
-- **Solution:** Improve setup/teardown, use transaction rollback, isolate test state
+### PHASE 3: AUTONOMOUSLY FIX EACH E2E TEST FAILURE
 
-### Pattern 4: Resource Exhaustion
-- Test tries to allocate resources but none available
-- Multiple tests run in parallel competing for resources
-- **Solution:** Reduce resource usage, run tests serially, increase resource limits
+#### FIX TYPE 1: EXTERNAL SERVICE DEPENDENCY
+- Check if service is required (API, database, cache, etc.)
+- Option 1: Mock/stub the service in the test
+- Option 2: Use test fixtures or fake implementations
+- Option 3: Add retry logic with backoff
+- Option 4: Update CI config to start service before tests
+- Implement appropriate fix
 
-### Pattern 5: Order Dependencies
-- Test 1 must run before Test 2
-- Tests assumed to run in specific order
-- **Solution:** Make tests independent, don't rely on state from other tests
+#### FIX TYPE 2: FLAKY TEST - TIMING ISSUES
+- Identify what is timing-dependent (operations, HTTP requests, etc.)
+- Increase timeouts to be more generous
+- Add explicit waits for conditions instead of fixed delays
+- Use polling with timeout instead of one-shot checks
+- Remove/fix race conditions in test code
+- Add synchronization mechanisms (semaphores, channels, etc.)
 
-## Output Format
+#### FIX TYPE 3: FLAKY TEST - ORDER DEPENDENCY
+- Make each test independent
+- Move state initialization into each test's setup
+- Remove assumptions about test execution order
+- Clean up properly in test teardown
+- Use test isolation (separate data per test, rollback transactions, etc.)
 
-```markdown
-# E2E Test Failure Analysis
+#### FIX TYPE 4: STATE MANAGEMENT ISSUE
+- Improve test setup to ensure proper initial state
+- Improve test teardown to clean up after test
+- Use transaction rollback for database tests
+- Isolate test data (separate databases, buckets, etc.)
+- Fix previous tests that don't clean up properly
 
-## Summary
-[Brief overview of which E2E tests are failing and why]
+#### FIX TYPE 5: RESOURCE CONFLICT
+- Identify conflict (port, file, memory, etc.)
+- Use dynamic port allocation instead of hard-coded ports
+- Add resource cleanup in test teardown
+- Increase resource limits (if environment-controlled)
+- Run conflicting tests serially instead of parallel
 
-## Failures
-[List each failing test with error message and logs]
+#### FIX TYPE 6: CONFIGURATION/SETUP ISSUE
+- Verify test configuration is correct
+- Check environment variables are set correctly
+- Verify test fixtures exist and are valid
+- Check if service needs to be started
+- Update CI config if needed
 
-## Root Cause Analysis
-[What is causing the failures]
+#### FIX TYPE 7: COMPONENT INTEGRATION ISSUE
+- Read the actual test to understand what it's testing
+- Review the components being tested
+- Find the actual integration issue (usually a mismatch in API, data format, etc.)
+- Fix the component implementation or test expectations
+- Verify components work together correctly
 
-## Resolution Plan
-[Specific steps to fix]
+### PHASE 4: VALIDATE FIXES
 
-## Validation
-[How to verify the fix]
-```
+For EACH fix:
 
-## Tips for E2E Debugging
+1. **Local validation:**
+   - Run the failing test multiple times (at least 5 times for flaky tests)
+   - Verify it passes consistently
+   - Run related E2E tests to ensure no regression
 
-- Run tests multiple times to determine if flaky
-- Check CI logs for timing/ordering information
-- Look for resource contention (port conflicts, memory, etc.)
-- Verify external service dependencies are available
-- Check test setup/teardown for state management issues
-- Consider running tests in isolation vs. parallel
-- Check for hard-coded timeouts that may be too short
-- Review recent changes to test fixtures or setup code
+2. **Commit and push:**
+   - Stage changes: `git add .`
+   - Commit with descriptive message: `git commit -m "Fix E2E: [description of what was fixed]"`
+   - Push to branch
+
+3. **Re-run CI:**
+   - Trigger E2E test step in CI
+   - Wait for completion
+   - Verify previously-failed tests now pass
+   - If new failures appear, loop back to PHASE 2
+
+### PHASE 5: FINAL VALIDATION
+
+Once ALL E2E test failures are fixed:
+
+1. Verify ALL E2E tests pass consistently
+2. Verify NO new failures introduced
+3. Run full test suite to ensure no regressions
+4. Document fixes applied
+
+## CRITICAL SUCCESS CRITERIA
+
+✅ **MUST ACHIEVE:**
+- ALL E2E tests pass consistently (not just once)
+- Flaky tests are truly fixed, not just passing randomly
+- External dependencies properly mocked/handled
+- NO manual intervention required
+- Clear git history of what was fixed
+
+## EXECUTION CHECKLIST
+
+- [ ] Identify all failing E2E tests
+- [ ] Extract failure logs and diagnostic info
+- [ ] For EACH failing test:
+  - [ ] Run test locally to understand failure
+  - [ ] Diagnose root cause
+  - [ ] Implement fix
+  - [ ] Validate fix (run multiple times)
+  - [ ] Commit fix with clear message
+- [ ] Re-run full E2E suite in CI
+- [ ] Verify ALL tests pass
+- [ ] Document summary of fixes
+
+## KEY RULES
+
+1. **Be autonomous:** Do not ask for guidance. Diagnose and fix.
+2. **Be thorough:** Fix flaky tests properly, not just mask them.
+3. **Don't remove tests:** Fix the underlying issues instead.
+4. **Don't skip fixtures:** Understand what the test needs and provide it.
+5. **Test multiple times:** Run flaky tests at least 5 times to verify fix.
+6. **Proper timeouts:** Use generous timeouts and explicit waits, not hard delays.
+7. **Clean state:** Ensure proper setup/teardown to avoid state leakage.
+8. **Committed to success:** Fix everything until ALL tests pass consistently.
