@@ -1,182 +1,192 @@
-# TASK: Analyze recent CI/CD pipeline failures and create a comprehensive resolution plan
+# AUTONOMOUS CI ERROR FIX AGENT
 
 ## Execution Mode
-**Report generation only** — do NOT modify any source code unless specifically instructed.
-
-## Output
-Write the following file in the repository root (the directory containing `go.mod`):
-- **`CI_FAIL_ANALYSIS.md`** — the consolidated CI failure analysis report
-
-If the file already exists, you may update it or create a fresh one.
+**FULLY AUTONOMOUS** — Automatically diagnose, fix, validate, and commit ALL CI/CD failures.
 
 ## Objective
-Analyze the most recent CI/CD pipeline failures on the main/master branch to identify persistent issues, categorize them by severity, and provide actionable resolution guidance.
+Fix ALL CI/CD pipeline failures autonomously on any repository. This prompt applies to any generic repository with standard tooling (Go, Node, Python, Java, etc.) and should autonomously resolve:
+- Build failures
+- Test failures  
+- Linting/code quality issues
+- Dependency issues
+- Configuration problems
+- Any other CI blockages
 
-## Workflow
+**NO MANUAL INTERVENTION REQUIRED. FIX EVERYTHING AUTONOMOUSLY.**
 
-### Phase 1: Identify Recent CI Failures
+## Execution Strategy
 
-1. **List recent workflow runs:** Use GitHub Actions API to fetch recent runs from the primary CI workflow
+### PHASE 1: IDENTIFY FAILURES
+
+1. **Fetch recent CI runs:**
+   - Use GitHub Actions API to retrieve recent workflow runs
    - Focus on the main/master branch
-   - Identify all **failed** runs in the last 10-20 runs
-   - Document:
-     - Run ID and URL
-     - Date and time of failure
-     - Branch name
-     - Commit SHA
-     - Failed step/job name
-     - Run number
+   - Identify ALL failed runs in recent history (last 20 runs minimum)
+   - Extract: run ID, timestamp, commit SHA, failed step/job names
 
-2. **Determine failure pattern:** Identify if failures are:
-   - Consistent (fail on every run)
-   - Intermittent (flaky)
-   - Related to specific recent changes
-   - Affecting a specific CI step
+2. **Retrieve failure logs:**
+   - Download full logs from EACH failed job
+   - Parse error messages, stack traces, and diagnostic output
+   - Group unique error patterns
 
-### Phase 2: Analyze Failure Details
+### PHASE 2: DIAGNOSE ROOT CAUSES
 
-For each failed run, retrieve detailed logs and extract:
+For EACH error, determine:
 
-1. **Error messages and stack traces** — What exactly failed?
-2. **Error categorization** — Is it:
-   - Build failure (compilation error)
-   - Test failure (test assertion failed)
-   - Linting/style issue (code quality check failed)
-   - Security vulnerability
-   - Deprecation warning
-   - Integration/deployment issue
-   - Infrastructure/environment issue
-   - Other
+1. **Error Type** (classify):
+   - Build failure (compiler error)
+   - Test failure (assertion, panic, timeout)
+   - Lint failure (golangci-lint, eslint, pylint, etc.)
+   - Format failure (go fmt, gofmt, prettier, etc.)
+   - Dependency error (import not found, version conflict, missing module)
+   - Static analysis (staticcheck, vet, type errors)
+   - Security scanning (code scanning alert, secret scanning)
+   - Environment/runtime (missing tool, permission, config)
+   - Other (specify)
 
-3. **Root cause analysis** — Why did it fail?
-   - Code issue (logic error, missing error handling, etc.)
-   - Configuration issue (missing env var, wrong settings)
-   - Flaky test (timing-dependent, external service dependency)
-   - Environmental issue (temporary infrastructure problem)
-   - Dependency issue (transitive dependency update, CVE)
+2. **Root Cause**:
+   - Is it a code logic error?
+   - Is it a missing import/declaration?
+   - Is it a configuration issue?
+   - Is it a tool/dependency not installed?
+   - Is it a known breaking change?
+   - Is it a version incompatibility?
 
-4. **Affected components** — Which part of the codebase?
-   - Specific file paths
-   - Specific functions or modules
-   - Specific subsystems (API, storage, CLI, analyzer, etc.)
+3. **Affected Files & Components**:
+   - Exact file paths
+   - Function/class names
+   - Module/package paths
 
-### Phase 3: Aggregate and Categorize
+### PHASE 3: AUTONOMOUSLY FIX EACH ERROR
 
-Group failures by:
+For EACH identified error, implement the appropriate fix:
 
-1. **Error type** (e.g., errcheck, unused, staticcheck, test failures)
-2. **Severity level**:
-   - **Critical:** Build failures, breaking tests, security vulnerabilities
-   - **High:** Error handling issues, resource leaks, race conditions
-   - **Medium:** Code quality issues, deprecation warnings
-   - **Low:** Style issues, minor warnings
+#### BUILD FAILURES
+- Check for missing imports — add them
+- Check for undefined symbols — implement or import them
+- Check for syntax errors — fix them
+- Check for version conflicts — resolve them
+- Run build locally to verify fix
 
-3. **Frequency** — How many recent runs were affected?
-4. **Related to recent changes** — Can failures be traced to specific commits or PRs?
+#### TEST FAILURES  
+- Read test source to understand what's being tested
+- Check if test assertion logic is wrong — fix it
+- Check if code implementation is incomplete — implement it
+- Check if test is flaky — add proper synchronization/retries
+- Check if test data/fixtures are missing — create them
+- Run tests locally to verify fix
 
-### Phase 4: Create Resolution Plan
+#### LINT/CODE QUALITY FAILURES
+- Run linter locally to see exact issues
+- For each issue:
+  - Add missing error handling
+  - Remove unused variables/imports
+  - Fix style violations
+  - Add missing documentation
+  - Fix security issues reported
+- Run linter again to verify
 
-For each category of issues, provide:
+#### DEPENDENCY FAILURES
+- Check if dependency is missing from go.mod/package.json/requirements.txt — add it
+- Check if dependency version is incompatible — update version constraints
+- Check if transitive dependency has breaking change — pin compatible version
+- Run dependency checker to verify
 
-1. **Issue Summary**
-   - What is the issue?
-   - Which files/functions are affected?
-   - What is the impact?
+#### CONFIGURATION ISSUES
+- Identify missing config files (go.mod, package.json, setup.cfg, etc.)
+- Create required configuration files with proper settings
+- Identify environment variable requirements — document in README or CI config
+- Update CI workflow if needed to set required env vars
 
-2. **Root Cause**
-   - Why is this happening?
-   - Is it a code issue, configuration issue, or external factor?
+#### ENVIRONMENT/RUNTIME ISSUES
+- Identify if required tool is missing from CI (e.g., Go version, Node version)
+- Update CI workflow to install required tools
+- Check if test requires specific setup (e.g., Xvfb, Docker, database)
+- Add required setup steps to CI workflow
 
-3. **Resolution Guidance**
-   - Specific steps to fix the issue
-   - Code examples where appropriate
-   - Links to relevant documentation
-   - Estimated effort/complexity
+### PHASE 4: VALIDATE FIXES
 
-4. **Validation Steps**
-   - How to verify the fix works
-   - Commands to run locally
-   - Commands to validate in CI
+For EACH fix:
 
-5. **Priority** — Where should this be addressed first?
+1. **Local validation:**
+   - Run the exact CI step that was failing locally
+   - Verify it passes
+   - Run related tests to ensure no regression
 
-### Phase 5: Provide Implementation Roadmap
+2. **Commit and push:**
+   - Stage changes: `git add .`
+   - Commit with descriptive message: `git commit -m "Fix: [description of what was fixed]"`
+   - Push to the branch
 
-Create a prioritized list of actions:
+3. **Re-run CI:**
+   - Use GitHub Actions API to trigger a workflow run
+   - Wait for completion
+   - Verify the previously-failed step now passes
+   - If new failures appear, loop back to PHASE 2 to diagnose and fix them
 
-1. **Priority 1: Critical Issues** (address immediately)
-2. **Priority 2: High-Impact Issues** (address next)
-3. **Priority 3: Medium-Impact Issues** (schedule soon)
-4. **Priority 4: Low-Impact Issues** (nice-to-have improvements)
+### PHASE 5: FINAL VALIDATION
 
-## Output Format
+Once ALL identified errors are fixed:
 
-Structure the report as follows:
+1. Verify ALL CI steps pass (build, test, lint, security scanning, etc.)
+2. Verify NO new errors were introduced
+3. Create summary of all fixes applied
+4. Document any configuration changes made
 
-```markdown
-# CI Failure Analysis Report
+## GENERIC REPOSITORY SUPPORT
 
-## Executive Summary
-[Brief overview of what's failing and why]
+This prompt works on any repository by:
 
-## Failure Summary
-- **Failed runs:** [Count and run numbers]
-- **Time period:** [Date range]
-- **Branch:** main/master
-- **Most common failure:** [Type of failure]
-- **Recency:** [How recent/frequent]
+1. **Detecting repository type:**
+   - Go: check for `go.mod`, run `go build`, `go test`, `go vet`
+   - Node: check for `package.json`, run `npm test`, `npm run lint`
+   - Python: check for `requirements.txt` or `pyproject.toml`, run tests with pytest/unittest
+   - Java: check for `pom.xml` or `build.gradle`, run Maven/Gradle
+   - Ruby: check for `Gemfile`, run `bundle exec rspec`
+   - Rust: check for `Cargo.toml`, run `cargo test`
 
-## Failures by Category
+2. **Running appropriate build/test commands:**
+   - Try common standard commands first (make build, make test)
+   - Fall back to language-specific commands
+   - Parse output to find failures
 
-### Category 1: [Issue Type] (N issues)
-[List of specific failures with file:line, error message, impact]
+3. **Fixing issues using language-specific approaches:**
+   - Go: fix imports, add error handling, run gofmt/golangci-lint
+   - Node: install packages, run prettier/eslint, run tests
+   - Python: add packages to requirements, run black/flake8, fix type hints
+   - etc.
 
-### Category 2: [Issue Type] (N issues)
-[List of specific failures with file:line, error message, impact]
+## CRITICAL SUCCESS CRITERIA
 
-## Root Cause Analysis
+✅ **MUST ACHIEVE:**
+- ALL CI steps pass
+- NO manual intervention required
+- Changes are complete and autonomous
+- Fixes address root causes, not symptoms
+- No regressions introduced
+- Clear git history of what was fixed
 
-### Contributing Factors
-- [Factor 1]: [Explanation]
-- [Factor 2]: [Explanation]
+## EXECUTION CHECKLIST
 
-## Resolution Plan
+- [ ] Identify all recent failed CI runs
+- [ ] Extract error logs from all failed jobs
+- [ ] Categorize errors by type
+- [ ] For EACH error, implement a fix
+- [ ] Validate fix locally before committing
+- [ ] Commit fix with clear message
+- [ ] Verify CI passes after fix
+- [ ] Repeat until ALL errors are fixed
+- [ ] Final validation: ALL CI steps passing
+- [ ] Document summary of all fixes
 
-### Priority 1: [Issue]
-**Files affected:** [list]
-**Resolution:** [specific guidance]
-**Validation:** [commands to run]
-**Effort:** [estimate]
+## KEY RULES
 
-### Priority 2: [Issue]
-[Same structure]
-
-## Recommendations
-
-1. [Recommendation 1]
-2. [Recommendation 2]
-
-## Appendix: Raw Failure Data
-
-[Include specific error messages, stack traces, and log excerpts]
-```
-
-## Key Questions to Answer
-
-- **Are failures consistent or intermittent?** (Consistency impacts debugging strategy)
-- **Did failures start recently?** (Recent changes may be the cause)
-- **Are failures related to environment/infrastructure?** (May not be code issues)
-- **Are there patterns across failures?** (Multiple failures with same root cause)
-- **What is the critical path to fix?** (Which fixes unblock other issues?)
-- **Are there actionable quick wins?** (Fix easy issues first to build momentum)
-
-## Tips
-
-- Use GitHub Actions API tools to retrieve logs programmatically
-- Parse logs carefully to extract all unique error messages
-- Group related errors together for efficient fixing
-- Consider root causes — fixing one issue may resolve multiple CI failures
-- Check if failures are related to recent changes vs. existing issues
-- Note any flaky tests or intermittent failures — they need different treatment
-- Look for patterns: same error appearing across multiple runs indicates a systemic issue
-- Consider the broader context: has a dependency been updated? Did infrastructure change?
+1. **Be autonomous:** Do not ask for guidance. Diagnose and fix.
+2. **Be complete:** Fix ALL errors, not just some.
+3. **Be generic:** Support any common repository type/structure.
+4. **Be thorough:** Validate each fix. Don't move on until CI passes.
+5. **Be iterative:** If new errors appear after a fix, go back and fix those too.
+6. **Be committed:** Commit changes after EACH logical fix with clear messages.
+7. **Avoid:** Do NOT modify test assertions to make failing tests pass. Fix the code instead.
+8. **Avoid:** Do NOT remove tests or code. Fix the underlying issue.
+9. **Avoid:** Do NOT change unrelated code. Focus only on CI failures.
