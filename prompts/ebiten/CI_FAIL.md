@@ -1,150 +1,148 @@
-# CI Failure Resolution
+# TASK: Analyze CI/CD failures in the context of game development and Ebitengine projects
 
-**Objective:** Analyze the most recent CI/CD pipeline failure in the current repository and create a comprehensive resolution plan.
+## Execution Mode
+**Report generation only** — do NOT modify any source code unless specifically instructed.
 
-## Instructions
+## Objective
+Analyze CI/CD pipeline failures that occur when testing or analyzing game development projects built with Go and Ebitengine. Game projects often have unique constraints and patterns that affect CI/CD pipeline behavior.
 
-### Step 1: Identify the Most Recent CI Failure
+## Domain-Specific Considerations
 
-1. Use GitHub Actions tools to list recent workflow runs
-2. Identify the most recent failed run on the main/master branch
-3. Document:
-   - CI Run ID and URL
-   - Date and time of failure
-   - Branch name
-   - Commit SHA
-   - Failed step/job name
+Game development introduces special CI/CD challenges:
 
-### Step 2: Analyze the Failure
+1. **Graphics/rendering issues** — Platform-specific graphics APIs (OpenGL, Metal, DirectX)
+2. **Windowed/headless environments** — Games need display or virtual display
+3. **Real-time performance** — Frame rate and latency requirements
+4. **Platform-specific code** — Windows/Mac/Linux/Web require different handling
+5. **External libraries** — Game engines often have heavy C/C++ dependencies
+6. **Timing-sensitive tests** — Game loops have strict timing requirements
 
-1. Retrieve the detailed logs for the failed job
-2. Identify all errors, warnings, and failure messages
-3. Categorize issues by type:
-   - Build failures
-   - Test failures
-   - Linting/style issues
-   - Security vulnerabilities
-   - Deprecation warnings
-   - Integration/deployment issues
-   - Other issues
+## Workflow
 
-### Step 3: Document Each Issue
+### Phase 1: Identify Game-Related CI Failures
 
-For each identified issue, document:
-- **File and line number** where the issue occurs
-- **Error type/category** (e.g., errcheck, unused, gosimple, staticcheck)
-- **Error message** from the CI logs
-- **Brief description** of what's wrong
+1. **Locate the failure point:**
+   - Does it fail during compilation?
+   - Does it fail during test execution?
+   - Does it fail during analysis (go-stats-generator)?
+   - Does it fail during artifact generation?
 
-### Step 4: Create Resolution Strategy
+2. **Determine failure type:**
+   - Graphics initialization error?
+   - Platform-specific build issue?
+   - Performance regression?
+   - Missing game assets?
+   - Timing/frame rate issue?
 
-Prioritize issues based on severity and impact:
+3. **Check platform specificity:**
+   - Does it fail on all platforms or specific ones?
+   - Is it a graphics backend issue?
+   - Is it a library availability issue?
 
-**Priority 1: Critical Failures**
-- Build failures that prevent compilation
-- Critical security vulnerabilities
-- Breaking test failures
+### Phase 2: Game Development-Specific Failure Analysis
 
-**Priority 2: High-Impact Issues**
-- Error handling issues
-- Resource leaks
-- Race conditions
-- Integration test failures
+#### Graphics/Rendering Issues
+- Ebitengine requires a graphics context (OpenGL/Metal/DirectX)
+- Headless CI environments may not support graphics
+- **Solution:** Use virtual display (xvfb), mock graphics, or use software rendering
 
-**Priority 3: Code Quality Issues**
-- Unused code
-- Code simplification opportunities
-- Style/formatting issues
-- Deprecation warnings
+#### Platform Compatibility
+- Game code often has platform-specific imports/build tags
+- CI may test on Linux but game targets Windows/Mac
+- **Solution:** Test on all target platforms, use build constraints, test in Docker
 
-**Priority 4: Documentation and Warnings**
-- Documentation gaps
-- Minor deprecations
-- Non-critical warnings
+#### Performance Analysis False Positives
+- Game update/render loops may trigger complexity warnings
+- Tight loops and state machines may appear over-complex
+- **Solution:** Use domain-specific analysis rules, exclude hot paths, document patterns
 
-### Step 5: Provide Resolution Guidance
+#### Asset/Resource Issues
+- Game resources (sprites, sounds, shaders) not available in CI
+- Asset loading failures
+- **Solution:** Mock resources in CI, use asset stubs, verify asset paths
 
-For each category of issues, provide:
-- Specific fix recommendations
-- Code examples where appropriate
-- Links to relevant documentation
-- Estimated effort/complexity
+#### Timing/Concurrency Issues
+- Games run update loop at specific FPS
+- Timing-sensitive tests may fail under load
+- **Solution:** Mock time, use deterministic testing, increase timeouts
 
-### Step 6: Validation Commands
+### Phase 3: Game-Specific Debugging Steps
 
-List the commands needed to validate fixes:
-```bash
-# Example commands (adjust based on the repository)
-make lint
-make build
-make test
-# Or:
-npm test
-npm run lint
-# Or:
-cargo test
-cargo clippy
-```
+1. **Check graphics environment:**
+   ```bash
+   glxinfo              # Check OpenGL support
+   eglinfo              # Check EGL support
+   xvfb-run -a ...     # Run with virtual display
+   ```
+
+2. **Verify build tags:**
+   - Are platform-specific build tags correct?
+   - Are game-specific tags being used?
+
+3. **Check asset paths:**
+   - Are relative paths working in CI?
+   - Are assets being included in CI?
+
+4. **Review game loop:**
+   - Is timing too strict for CI?
+   - Are frame rate assumptions breaking in CI?
+
+5. **Test on target platforms:**
+   - Does it fail on the actual target platform?
+   - Is it a CI-specific environment issue?
+
+### Phase 4: Create Resolution Plan
+
+1. **For graphics issues:** Use xvfb or mock graphics
+2. **For platform issues:** Add platform-specific handling or matrix testing
+3. **For analysis issues:** Add domain-specific linting rules
+4. **For asset issues:** Mock or stub assets in tests
+5. **For timing issues:** Make tests deterministic, use mock time
 
 ## Output Format
 
-Create a detailed report with the following sections:
-
-1. **Executive Summary**: Brief overview of the CI failure
-2. **Failure Details**: Complete information about the failed run
-3. **Issues Breakdown**: Categorized list of all issues found
-4. **Resolution Plan**: Prioritized action items with specific guidance
-5. **Validation Steps**: Commands to run after fixes
-6. **Additional Notes**: Any repository-specific considerations
-
-## Example Structure
-
 ```markdown
-# CI Failure Analysis - [Repository Name]
+# Game Development CI Failure Analysis
 
-## Executive Summary
-[Brief description of what failed and why]
+## Summary
+[Overview of failures specific to game development]
 
-## Failure Details
-- **CI Run:** [#12345](link)
-- **Date:** YYYY-MM-DD HH:MM:SS
-- **Branch:** main
-- **Commit:** abc123def
-- **Failed Step:** [step name]
+## Graphics Issues
+[Issues related to rendering/graphics]
 
-## Issues Found
+## Platform Issues
+[Issues specific to Windows/Mac/Linux/Web]
 
-### Category 1: [Issue Type]
-1. `path/to/file.ext:123` - [description]
-2. `path/to/file.ext:456` - [description]
+## Performance Analysis Issues
+[False positives from standard analysis tools]
 
-### Category 2: [Issue Type]
-[Continue for each category...]
+## Asset/Resource Issues
+[Missing or invalid game assets]
+
+## Timing/Frame Rate Issues
+[Issues from real-time game requirements]
 
 ## Resolution Plan
-
-### Priority 1: [Category]
-**Issues to address:**
-- [Issue 1]
-- [Issue 2]
-
-**Resolution guidance:**
-[Specific instructions...]
+[Specific fixes for game development context]
 
 ## Validation
-```bash
-[Commands to run]
+[How to test fixes in game development context]
 ```
 
-## Notes
-[Any additional context]
-```
+## Common Game Development CI Patterns
+
+- **Separate graphics testing:** Test game logic separately from graphics
+- **Headless mode:** Support CI without graphics support
+- **Platform matrix:** Test on all target platforms
+- **Asset management:** Include test assets or mock them
+- **Mock time:** Use deterministic time for testing
+- **Performance budgets:** Set realistic performance targets for CI environments
 
 ## Tips
 
-- Use GitHub Actions API tools to retrieve logs programmatically
-- Parse logs carefully to extract all unique error messages
-- Group related errors together for efficient fixing
-- Consider root causes - fixing one issue may resolve multiple errors
-- Check if failures are related to recent changes vs. existing issues
-- Note any flaky tests or intermittent failures
+- Check if issue is CI-environment specific vs. actual code bug
+- Use conditional compilation for game-specific code
+- Mock expensive or platform-specific operations in tests
+- Consider game development best practices from Ebitengine community
+- Be aware that standard linters may not understand game development patterns
+- Document any CI-specific workarounds in code comments
