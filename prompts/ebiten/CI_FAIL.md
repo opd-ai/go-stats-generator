@@ -1,74 +1,148 @@
-# CI Failure Analysis - go-stats-generator (Ebitengine Analysis)
+# TASK: Analyze CI/CD failures in the context of game development and Ebitengine projects
 
-## Overview
+## Execution Mode
+**Report generation only** — do NOT modify any source code unless specifically instructed.
 
-This file documents CI failures specific to the Ebitengine-optimized prompt variants for go-stats-generator. For the main CI failures and linting issues, see the root `/prompts/CI_FAIL.md` file.
+## Objective
+Analyze CI/CD pipeline failures that occur when testing or analyzing game development projects built with Go and Ebitengine. Game projects often have unique constraints and patterns that affect CI/CD pipeline behavior.
 
-## Domain-Specific Considerations for Game Development
+## Domain-Specific Considerations
 
-The Ebitengine prompts are tailored for analyzing game development projects with Go. When failures occur in this context, consider:
+Game development introduces special CI/CD challenges:
 
-1. **Graphics API Issues** - Ebitengine uses different graphics backends (OpenGL, Metal, DirectX)
-2. **Platform-Specific Problems** - Game libraries often behave differently across platforms
-3. **Real-time Performance** - Game analysis may have stricter performance requirements
-4. **Input/Event Handling** - Game-specific event loops and input systems
+1. **Graphics/rendering issues** — Platform-specific graphics APIs (OpenGL, Metal, DirectX)
+2. **Windowed/headless environments** — Games need display or virtual display
+3. **Real-time performance** — Frame rate and latency requirements
+4. **Platform-specific code** — Windows/Mac/Linux/Web require different handling
+5. **External libraries** — Game engines often have heavy C/C++ dependencies
+6. **Timing-sensitive tests** — Game loops have strict timing requirements
 
-## Recent Failures
+## Workflow
 
-When Ebitengine-related analysis fails, follow this resolution process:
+### Phase 1: Identify Game-Related CI Failures
 
-1. **Check the failure mode:** Is it a code quality issue (same as main CI) or Ebitengine-specific?
-2. **Identify the component:** Determine which analysis system failed (complexity, duplication, performance, etc.)
-3. **Review game-specific code patterns:** Game code often uses patterns that look unusual in standard Go analysis
-4. **Implement specialized fix:** Apply fixes that account for game development conventions
+1. **Locate the failure point:**
+   - Does it fail during compilation?
+   - Does it fail during test execution?
+   - Does it fail during analysis (go-stats-generator)?
+   - Does it fail during artifact generation?
 
-## Common Ebitengine Analysis Failure Categories
+2. **Determine failure type:**
+   - Graphics initialization error?
+   - Platform-specific build issue?
+   - Performance regression?
+   - Missing game assets?
+   - Timing/frame rate issue?
 
-### Performance Analysis Issues
-- False positives in frame rate critical sections
-- Misunderstanding of game loop patterns
-- Incorrect complexity metrics for render loops
+3. **Check platform specificity:**
+   - Does it fail on all platforms or specific ones?
+   - Is it a graphics backend issue?
+   - Is it a library availability issue?
 
-### Graphics API Abstraction
-- Platform-specific conditional code confusing the analyzer
-- Graphics buffer management patterns
-- Shader compilation handling
+### Phase 2: Game Development-Specific Failure Analysis
 
-### Game Development Patterns
-- Event loop and game state patterns
-- Resource loading and unloading cycles
-- Input polling vs callback patterns
+#### Graphics/Rendering Issues
+- Ebitengine requires a graphics context (OpenGL/Metal/DirectX)
+- Headless CI environments may not support graphics
+- **Solution:** Use virtual display (xvfb), mock graphics, or use software rendering
 
-## Resolution Strategy
+#### Platform Compatibility
+- Game code often has platform-specific imports/build tags
+- CI may test on Linux but game targets Windows/Mac
+- **Solution:** Test on all target platforms, use build constraints, test in Docker
 
-1. Check if it's a code quality issue (apply fixes from main CI_FAIL.md)
-2. Identify if it's an Ebitengine-specific false positive
-3. Review game-specific code patterns for legitimate deviations from standard Go
-4. Document any analyzer limitations with game development code
-5. Consider adding Ebitengine-specific linting rules if needed
+#### Performance Analysis False Positives
+- Game update/render loops may trigger complexity warnings
+- Tight loops and state machines may appear over-complex
+- **Solution:** Use domain-specific analysis rules, exclude hot paths, document patterns
 
-## Validation Commands
+#### Asset/Resource Issues
+- Game resources (sprites, sounds, shaders) not available in CI
+- Asset loading failures
+- **Solution:** Mock resources in CI, use asset stubs, verify asset paths
 
-```bash
-# Run full test suite
-make test
+#### Timing/Concurrency Issues
+- Games run update loop at specific FPS
+- Timing-sensitive tests may fail under load
+- **Solution:** Mock time, use deterministic testing, increase timeouts
 
-# Run linting
-make lint
+### Phase 3: Game-Specific Debugging Steps
 
-# Build the project
-make build
+1. **Check graphics environment:**
+   ```bash
+   glxinfo              # Check OpenGL support
+   eglinfo              # Check EGL support
+   xvfb-run -a ...     # Run with virtual display
+   ```
 
-# Analyze a game project with the Ebitengine-optimized prompts
-go-stats-generator analyze ./examples --skip-tests \
-    --prompt prompts/ebiten \
-    --max-function-length 35 \
-    --max-complexity 10
+2. **Verify build tags:**
+   - Are platform-specific build tags correct?
+   - Are game-specific tags being used?
+
+3. **Check asset paths:**
+   - Are relative paths working in CI?
+   - Are assets being included in CI?
+
+4. **Review game loop:**
+   - Is timing too strict for CI?
+   - Are frame rate assumptions breaking in CI?
+
+5. **Test on target platforms:**
+   - Does it fail on the actual target platform?
+   - Is it a CI-specific environment issue?
+
+### Phase 4: Create Resolution Plan
+
+1. **For graphics issues:** Use xvfb or mock graphics
+2. **For platform issues:** Add platform-specific handling or matrix testing
+3. **For analysis issues:** Add domain-specific linting rules
+4. **For asset issues:** Mock or stub assets in tests
+5. **For timing issues:** Make tests deterministic, use mock time
+
+## Output Format
+
+```markdown
+# Game Development CI Failure Analysis
+
+## Summary
+[Overview of failures specific to game development]
+
+## Graphics Issues
+[Issues related to rendering/graphics]
+
+## Platform Issues
+[Issues specific to Windows/Mac/Linux/Web]
+
+## Performance Analysis Issues
+[False positives from standard analysis tools]
+
+## Asset/Resource Issues
+[Missing or invalid game assets]
+
+## Timing/Frame Rate Issues
+[Issues from real-time game requirements]
+
+## Resolution Plan
+[Specific fixes for game development context]
+
+## Validation
+[How to test fixes in game development context]
 ```
 
-## Notes
+## Common Game Development CI Patterns
 
-- The Ebitengine community uses specific patterns for game development
-- Some "issues" flagged by standard linting may be intentional in game code
-- Performance is critical in games - ensure analysis doesn't miss real issues
-- Consider maintaining separate linting rules for game vs. general Go code
+- **Separate graphics testing:** Test game logic separately from graphics
+- **Headless mode:** Support CI without graphics support
+- **Platform matrix:** Test on all target platforms
+- **Asset management:** Include test assets or mock them
+- **Mock time:** Use deterministic time for testing
+- **Performance budgets:** Set realistic performance targets for CI environments
+
+## Tips
+
+- Check if issue is CI-environment specific vs. actual code bug
+- Use conditional compilation for game-specific code
+- Mock expensive or platform-specific operations in tests
+- Consider game development best practices from Ebitengine community
+- Be aware that standard linters may not understand game development patterns
+- Document any CI-specific workarounds in code comments
