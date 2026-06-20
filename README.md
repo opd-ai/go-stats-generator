@@ -1158,3 +1158,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by the need for advanced Go code analysis beyond standard linters
 - Built with the Go standard library AST package for zero-dependency core functionality
 - Uses Cobra for CLI framework and go-pretty for rich console output
+Donate Monero(The only good cryptocurrency) to support development
+==================================================================
+
+ - `monero:43H3Uqnc9rfEsJjUXZYmam45MbtWmREFSANAWY5hijY4aht8cqYaT2BCNhfBhua5XwNdx9Tb6BEdt4tjUHJDwNW5H7mTiwe`
+
