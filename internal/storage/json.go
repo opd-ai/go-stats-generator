@@ -397,10 +397,14 @@ func (j *JSONStorage) writeCompressed(filepath string, data []byte) error {
 	defer file.Close()
 
 	gzWriter := gzip.NewWriter(file)
-	defer gzWriter.Close()
 
 	if _, err := gzWriter.Write(data); err != nil {
+		gzWriter.Close()
 		return fmt.Errorf("failed to write compressed data: %w", err)
+	}
+
+	if err := gzWriter.Close(); err != nil {
+		return fmt.Errorf("failed to close compressed writer: %w", err)
 	}
 
 	return nil
