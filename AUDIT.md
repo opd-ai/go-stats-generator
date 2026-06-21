@@ -59,7 +59,7 @@
 
 ### CRITICAL
 
-- [ ] **#1 — Gzip close error discarded, causing silent data corruption** — `internal/storage/json.go:400` — Resource lifecycle — `defer gzWriter.Close()` means the `Close()` error (which flushes final gzip blocks) is discarded. If the final flush fails, the file is truncated/corrupt but the function returns nil. **Remediation:** Replace defer with explicit `if err := gzWriter.Close(); err != nil { return err }` before the file close. Validate: `go test ./internal/storage/...`
+- [X] **#1 — Gzip close error discarded, causing silent data corruption** — `internal/storage/json.go:400` — Resource lifecycle — `defer gzWriter.Close()` means the `Close()` error (which flushes final gzip blocks) is discarded. If the final flush fails, the file is truncated/corrupt but the function returns nil. **Remediation:** Replace defer with explicit `if err := gzWriter.Close(); err != nil { return err }` before the file close. Validate: `go test ./internal/storage/...`
 
 - [ ] **#2 — Path traversal in JSON storage via unsanitized snapshot ID** — `internal/storage/json.go:67-68` — Security — `snapshot.ID` is used directly in `filepath.Join(j.config.Directory, filename)`. An ID containing `../` allows arbitrary file write/read/delete outside the storage directory. Data flow: user-supplied ID → `Store()`/`Retrieve()`/`Delete()` → filesystem. **Remediation:** Validate `filepath.Base(id) == id` and reject IDs containing path separators. Validate: `go test ./internal/storage/...`
 
