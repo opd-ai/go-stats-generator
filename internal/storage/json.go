@@ -42,6 +42,19 @@ func NewJSONStorageImpl(config JSONConfig) (*JSONStorage, error) {
 	}, nil
 }
 
+// validateSnapshotID ensures the ID is safe for use in filesystem paths by rejecting
+// any ID containing path separators (including `..` for directory traversal).
+// Returns the sanitized ID on success, or an error string if the ID is unsafe.
+func validateSnapshotID(id string) error {
+	if id == "" {
+		return fmt.Errorf("snapshot ID cannot be empty")
+	}
+	if filepath.Base(id) != id {
+		return fmt.Errorf("snapshot ID contains path separators: %s", id)
+	}
+	return nil
+}
+
 // Store saves a metrics snapshot as a JSON file
 func (j *JSONStorage) Store(ctx context.Context, snapshot metrics.Snapshot, metadata metrics.SnapshotMetadata) error {
 	// Create snapshot file structure
@@ -63,7 +76,10 @@ func (j *JSONStorage) Store(ctx context.Context, snapshot metrics.Snapshot, meta
 		return fmt.Errorf("failed to marshal snapshot: %w", err)
 	}
 
-	// Determine filename
+	// Validate and determine filename
+	if err := validateSnapshotID(snapshot.ID); err != nil {
+		return err
+	}
 	filename := j.getFilename(snapshot.ID)
 	filepath := filepath.Join(j.config.Directory, filename)
 
@@ -76,6 +92,11 @@ func (j *JSONStorage) Store(ctx context.Context, snapshot metrics.Snapshot, meta
 
 // Retrieve reads a snapshot from a JSON file by ID
 func (j *JSONStorage) Retrieve(ctx context.Context, id string) (metrics.Snapshot, error) {
+	// Validate ID to prevent path traversal
+	if err := validateSnapshotID(id); err != nil {
+		return metrics.Snapshot{}, err
+	}
+
 	// Try compressed version first, then uncompressed
 	filename := j.getFilename(id)
 	filepath := filepath.Join(j.config.Directory, filename)
@@ -229,6 +250,9 @@ func (j *JSONStorage) applyPagination(snapshots []SnapshotInfo, filter SnapshotF
 // returning error only if the file doesn't exist or deletion fails due to permissions. Automatically handles
 // cleanup of associated metadata files. Used by "baseline delete" when JSON storage backend is configured.
 func (j *JSONStorage) Delete(ctx context.Context, id string) error {
+	if err := validateSnapshotID(id); err != nil {
+		return err
+	}
 	filename := j.getFilename(id)
 	filepath := filepath.Join(j.config.Directory, filename)
 
