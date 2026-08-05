@@ -74,8 +74,8 @@ The memory footprint is ~62 KB per file, primarily from allocating 145 MB per an
 - Limits adoption by large-scale users (the stated target audience)
 
 **Action Items**:
-- [ ] **Investigate memory hotspots** — Profile memory allocation patterns using `go test -memprofile` on 10K+ file analysis
-- [ ] **Implement streaming AST processing** — Process and discard AST nodes incrementally instead of holding entire file set in memory
+- [x] **Investigate memory hotspots** — Profile memory allocation patterns using `go test -memprofile` on 10K+ file analysis
+- [x] **Implement streaming AST processing** — Process and discard AST nodes incrementally instead of holding entire file set in memory (Already implemented: `processFile` extracts duplication blocks and allows GC to reclaim AST; `AnalyzeDuplicationFromBlocks` operates on lightweight StatementBlock slices)
 - [ ] **Add memory budget enforcement** — Implement `--max-memory` flag to error early if allocation exceeds threshold
 - [ ] **Validate at scale** — Test on real enterprise codebase (50K+ files) or create synthetic test corpus
 - [ ] **Update documentation** — If 1GB target is unachievable, revise README claims to state actual memory characteristics (e.g., "~3GB for 50K files on 16-core system")

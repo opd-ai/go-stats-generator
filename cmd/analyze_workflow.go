@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -191,6 +192,11 @@ func findProjectRoot(filePath string) string {
 // concurrent processing, metric aggregation, and report finalization.
 func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Config) (*metrics.Report, error) {
 	startTime := time.Now()
+
+	// Start memory monitor if max memory is configured
+	if cfg.Performance.MaxMemoryMB > 0 {
+		ctx = startMemoryMonitor(ctx, cfg.Performance.MaxMemoryMB)
+	}
 
 	// Step 1: Discover and validate files
 	discoverer, files, err := discoverAndValidateFiles(targetDir, cfg)
@@ -789,4 +795,31 @@ func analyzePerformanceAntipatternsInFile(antipatternAnalyzer *analyzer.Antipatt
 	patterns := antipatternAnalyzer.Analyze(result.File)
 	report.Patterns.AntiPatterns.PerformanceAntipatterns = append(report.Patterns.AntiPatterns.PerformanceAntipatterns, patterns...)
 	return nil
+}
+
+// startMemoryMonitor starts a goroutine that periodically checks memory usage
+// and cancels the context if it exceeds the specified limit in MB.
+// Returns a new context that will be cancelled if memory limit is exceeded.
+func startMemoryMonitor(ctx context.Context, maxMemoryMB int) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond)
+		defer ticker.Stop()
+		maxBytes := uint64(maxMemoryMB) * 1024 * 1024
+		var memStats runtime.MemStats
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				runtime.ReadMemStats(&memStats)
+				// Use Alloc which represents bytes allocated and not yet freed
+				if memStats.Alloc > maxBytes {
+					cancel()
+					return
+				}
+			}
+		}
+	}()
+	return ctx
 }

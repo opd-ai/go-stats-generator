@@ -108,6 +108,8 @@ func registerPerformanceFlags() {
 		"number of worker goroutines (default: number of CPU cores)")
 	analyzeCmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute,
 		"analysis timeout")
+	analyzeCmd.Flags().Int("max-memory", 0,
+		"maximum memory usage in MB (0 = unlimited, default: 1024)")
 }
 
 // registerFilterFlags adds file filtering and exclusion flags.
@@ -228,6 +230,7 @@ func bindPerformanceFlags() {
 	bindFlags(analyzeCmd, []flagBinding{
 		{"workers", "performance.worker_count"},
 		{"timeout", "performance.timeout"},
+		{"max-memory", "performance.max_memory_mb"},
 	})
 }
 
