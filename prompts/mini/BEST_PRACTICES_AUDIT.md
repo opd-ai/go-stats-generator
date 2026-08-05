@@ -1,0 +1,1 @@
+# TASK: Perform a best practices audit of a Go project, evaluating adherence to Go community conventions, standard library idioms, effective patterns, and language-specific quality standards while rigorously preventing false positives.

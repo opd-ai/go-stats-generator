@@ -1,0 +1,1 @@
+# TASK: Perform a functional audit comparing the project's stated goals against its actual implementation, and produce a root-level audit with an accompanying gaps analysis.
