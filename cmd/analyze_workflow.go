@@ -18,6 +18,15 @@ import (
 	"github.com/opd-ai/go-stats-generator/internal/scanner"
 )
 
+// ErrMemoryLimitExceeded is returned when the analysis exceeds the configured memory limit.
+type ErrMemoryLimitExceeded struct {
+	LimitMB int
+}
+
+func (e *ErrMemoryLimitExceeded) Error() string {
+	return fmt.Sprintf("memory limit of %d MB exceeded", e.LimitMB)
+}
+
 // runDirectoryAnalysis performs comprehensive code analysis on a directory,
 // discovering Go files, processing them through a worker pool, and generating
 // a detailed metrics report including functions, structs, interfaces, patterns, etc.
@@ -30,6 +39,12 @@ func runDirectoryAnalysis(ctx context.Context, targetDir string, cfg *config.Con
 // struct, interface, package, concurrency, duplication, etc.) on the parsed content.
 func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (*metrics.Report, error) {
 	startTime := time.Now()
+
+	// Start memory monitor if max memory is configured
+	var checkMemLimit func() error
+	if cfg.Performance.MaxMemoryMB > 0 {
+		ctx, checkMemLimit = startMemoryMonitor(ctx, cfg.Performance.MaxMemoryMB)
+	}
 
 	if !isGoSourceFile(filePath) {
 		return nil, fmt.Errorf("file %s is not a Go source file", filePath)
@@ -44,6 +59,14 @@ func runFileAnalysis(ctx context.Context, filePath string, cfg *config.Config) (
 	}
 
 	report, collectedMetrics, analyzers := runSingleFileAnalysis(result, discoverer, filePath, startTime, cfg)
+
+	// Check if memory limit was exceeded
+	if checkMemLimit != nil {
+		if memErr := checkMemLimit(); memErr != nil {
+			return nil, memErr
+		}
+	}
+
 	finalizeAllMetrics(report, collectedMetrics, analyzers, projectRoot, cfg)
 
 	logVerboseFileResults(collectedMetrics, cfg)
@@ -194,8 +217,9 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	startTime := time.Now()
 
 	// Start memory monitor if max memory is configured
+	var checkMemLimit func() error
 	if cfg.Performance.MaxMemoryMB > 0 {
-		ctx = startMemoryMonitor(ctx, cfg.Performance.MaxMemoryMB)
+		ctx, checkMemLimit = startMemoryMonitor(ctx, cfg.Performance.MaxMemoryMB)
 	}
 
 	// Step 1: Discover and validate files
@@ -207,6 +231,12 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	// Step 2: Process files through worker pool
 	results, err := processFilesWithWorkerPool(ctx, files, discoverer, cfg)
 	if err != nil {
+		// Check if memory limit was exceeded
+		if checkMemLimit != nil {
+			if memErr := checkMemLimit(); memErr != nil {
+				return nil, memErr
+			}
+		}
 		return nil, err
 	}
 
@@ -217,6 +247,12 @@ func runAnalysisWorkflow(ctx context.Context, targetDir string, cfg *config.Conf
 	// Step 4: Process analysis results from worker pool
 	collectedMetrics, _, err := processAnalysisResults(ctx, results, analyzers, report, cfg)
 	if err != nil {
+		// Check if memory limit was exceeded
+		if checkMemLimit != nil {
+			if memErr := checkMemLimit(); memErr != nil {
+				return nil, memErr
+			}
+		}
 		return nil, err
 	}
 
@@ -799,9 +835,11 @@ func analyzePerformanceAntipatternsInFile(antipatternAnalyzer *analyzer.Antipatt
 
 // startMemoryMonitor starts a goroutine that periodically checks memory usage
 // and cancels the context if it exceeds the specified limit in MB.
-// Returns a new context that will be cancelled if memory limit is exceeded.
-func startMemoryMonitor(ctx context.Context, maxMemoryMB int) context.Context {
-	ctx, cancel := context.WithCancel(ctx)
+// Returns a new context that will be cancelled if memory limit is exceeded,
+// and a function to check if the memory limit was exceeded.
+func startMemoryMonitor(ctx context.Context, maxMemoryMB int) (context.Context, func() error) {
+	var memLimitErr error
+	ctx, cancel := context.WithCancelCause(ctx)
 	go func() {
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
@@ -815,11 +853,15 @@ func startMemoryMonitor(ctx context.Context, maxMemoryMB int) context.Context {
 				runtime.ReadMemStats(&memStats)
 				// Use Alloc which represents bytes allocated and not yet freed
 				if memStats.Alloc > maxBytes {
-					cancel()
+					memLimitErr = &ErrMemoryLimitExceeded{LimitMB: maxMemoryMB}
+					cancel(memLimitErr)
 					return
 				}
 			}
 		}
 	}()
-	return ctx
+	checkErr := func() error {
+		return memLimitErr
+	}
+	return ctx, checkErr
 }
