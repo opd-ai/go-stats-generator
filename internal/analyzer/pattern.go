@@ -3,6 +3,7 @@ package analyzer
 import (
 	"go/ast"
 	"go/token"
+	"strconv"
 	"strings"
 
 	"github.com/opd-ai/go-stats-generator/internal/metrics"
@@ -286,7 +287,7 @@ func (pa *PatternAnalyzer) createBuilderPattern(candidate *builderCandidate, fil
 		Line:            candidate.line,
 		ConfidenceScore: 0.9,
 		Description:     "Fluent builder with method chaining",
-		Example:         candidate.typeName + " builder with " + string(rune(candidate.setterCount)) + " setters",
+		Example:         candidate.typeName + " builder with " + strconv.Itoa(candidate.setterCount) + " setters",
 	}
 }
 

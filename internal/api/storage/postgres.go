@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 
@@ -149,6 +150,9 @@ func collectResults(rows *sql.Rows) []*AnalysisResult {
 		if result := scanResult(rows); result != nil {
 			results = append(results, result)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("rows iteration error in collectResults: %v", err)
 	}
 	return results
 }

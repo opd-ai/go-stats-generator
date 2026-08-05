@@ -425,6 +425,9 @@ func (s *SQLiteStorage) loadSnapshotTags(ctx context.Context, id string, metadat
 		}
 		tags[key] = value
 	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("rows iteration error: %w", err)
+	}
 	metadata.Tags = tags
 	return nil
 }
@@ -467,6 +470,9 @@ func (s *SQLiteStorage) List(ctx context.Context, filter SnapshotFilter) ([]Snap
 		}
 
 		snapshots = append(snapshots, info)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
 	}
 
 	return snapshots, nil
@@ -627,6 +633,9 @@ func (s *SQLiteStorage) attachSnapshotTags(ctx context.Context, info *SnapshotIn
 			return fmt.Errorf("failed to scan tag: %w", err)
 		}
 		info.Tags[key] = value
+	}
+	if err := tagRows.Err(); err != nil {
+		return fmt.Errorf("rows iteration error: %w", err)
 	}
 
 	return nil
