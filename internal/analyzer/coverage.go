@@ -276,7 +276,10 @@ func AnalyzeTestQuality(repoPath string) (metrics.TestQualityMetrics, error) {
 			return nil
 		}
 
-		relPath, _ := filepath.Rel(repoPath, path)
+		relPath, err := filepath.Rel(repoPath, path)
+		if err != nil {
+			relPath = path
+		}
 		testInfo := analyzeTestFile(path, relPath)
 		result.TestFiles = append(result.TestFiles, testInfo)
 		result.TotalTests += testInfo.TestCount

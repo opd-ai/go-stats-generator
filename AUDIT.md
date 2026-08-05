@@ -97,27 +97,27 @@
 
 - [ ] **#16 — SwitchStmt Body nil dereference in burden analyzer** — `internal/analyzer/burden.go:968` — Nil safety — `n.Body.List` accessed without nil check on `n.Body`. Panics on `switch {}` with nil body (uncommon but valid AST). **Remediation:** Add `if n.Body == nil { return }`. Validate: `go test ./internal/analyzer/...`
 
-- [ ] **#17 — Naming analyzer state leak (inLoop never reset)** — `internal/analyzer/naming.go:294-296` — State leak — `inLoop`/`loopDepth` are set inside `ast.Inspect` but never reset when exiting a loop node. All code after the first loop is treated as "in loop". **Remediation:** Decrement on `node == nil` (ast.Inspect exit) or use a stack. Validate: `go test ./internal/analyzer/...`
+- [X] **#17 — Naming analyzer state leak (inLoop never reset)** — `internal/analyzer/naming.go:294-296` — State leak — `inLoop`/`loopDepth` are set inside `ast.Inspect` but never reset when exiting a loop node. All code after the first loop is treated as "in loop". **Remediation:** Decrement on `node == nil` (ast.Inspect exit) or use a stack. Validate: `go test ./internal/analyzer/...`
 
-- [ ] **#18 — Organization analyzer false-positive comment detection** — `internal/analyzer/organization.go:170-171` — Logic bug — `strings.Contains(line, "//")` matches URLs in string literals (e.g., `"https://..."`) and inflates comment counts. **Remediation:** Only detect `//` that is not inside a string literal. Validate: `go test ./internal/analyzer/...`
+- [X] **#18 — Organization analyzer false-positive comment detection** — `internal/analyzer/organization.go:170-171` — Logic bug — `strings.Contains(line, "//")` matches URLs in string literals (e.g., `"https://..."`) and inflates comment counts. **Remediation:** Only detect `//` that is not inside a string literal. Validate: `go test ./internal/analyzer/...`
 
 ### LOW
 
-- [ ] **#19 — Nesting depth never decrements in struct analyzer** — `internal/analyzer/struct.go:511-527` — Logic bug — `calculateNestingDepth` increments `currentDepth` on nested statements but never decrements on exit (ast.Inspect `node == nil`). Sequential `if`s report depth=2 instead of 1. Reports inflated nesting metrics. **Remediation:** Decrement `currentDepth` when `node == nil`. Validate: `go test ./internal/analyzer/...`
+- [X] **#19 — Nesting depth never decrements in struct analyzer** — `internal/analyzer/struct.go:511-527` — Logic bug — `calculateNestingDepth` increments `currentDepth` on nested statements but never decrements on exit (ast.Inspect `node == nil`). Sequential `if`s report depth=2 instead of 1. Reports inflated nesting metrics. **Remediation:** Decrement `currentDepth` when `node == nil`. Validate: `go test ./internal/analyzer/...`
 
-- [ ] **#20 — Discarded filepath.Rel error in coverage analyzer** — `internal/analyzer/coverage.go:279` — Error handling — `filepath.Rel` error ignored; returns `""` as filename on failure. **Remediation:** Fall back to absolute path. Validate: `go test ./internal/analyzer/...`
+- [X] **#20 — Discarded filepath.Rel error in coverage analyzer** — `internal/analyzer/coverage.go:279` — Error handling — `filepath.Rel` error ignored; returns `""` as filename on failure. **Remediation:** Fall back to absolute path. Validate: `go test ./internal/analyzer/...`
 
-- [ ] **#21 — strings.Builder used for binary gzip data** — `internal/storage/sqlite.go:824-834` — Performance — `strings.Builder` is designed for UTF-8 text, not binary data. Also causes an extra copy via `.String()` → `[]byte()`. Doubles peak memory for large snapshots. **Remediation:** Use `bytes.Buffer` and `.Bytes()`. Validate: `go test ./internal/storage/...`
+- [X] **#21 — strings.Builder used for binary gzip data** — `internal/storage/sqlite.go:824-834` — Performance — `strings.Builder` is designed for UTF-8 text, not binary data. Also causes an extra copy via `.String()` → `[]byte()`. Doubles peak memory for large snapshots. **Remediation:** Use `bytes.Buffer` and `.Bytes()`. Validate: `go test ./internal/storage/...`
 
 - [X] **#22 — MaxIdleConns = 0 when MaxConnections = 1** — `internal/storage/sqlite.go:81` — Performance — `MaxConnections/2` integer division yields 0 when MaxConns=1. Results in repeated open/close overhead. **Remediation:** Use `max(1, MaxConnections/2)`. Validate: `go test ./internal/storage/...`
 
-- [ ] **#23 — Progress callback reports misleading final count on context cancel** — `internal/scanner/worker.go:240-249` — Logic bug — On context cancellation, the final `progressCb(total, total)` fires even though processing is incomplete, showing "100%" when files remain unprocessed. **Remediation:** Guard final callback: only call when `completed == total`. Validate: `go test ./internal/scanner/...`
+- [X] **#23 — Progress callback reports misleading final count on context cancel** — `internal/scanner/worker.go:240-249` — Logic bug — On context cancellation, the final `progressCb(total, total)` fires even though processing is incomplete, showing "100%" when files remain unprocessed. **Remediation:** Guard final callback: only call when `completed == total`. Validate: `go test ./internal/scanner/...`
 
-- [ ] **#24 — Discarded errors in analyzeFile during discovery** — `internal/scanner/discover.go:50-52` — Error handling — When `analyzeFile` fails, the error is silently swallowed and the file is excluded with no diagnostic. **Remediation:** Log a warning before returning. Validate: `go test ./internal/scanner/...`
+- [X] **#24 — Discarded errors in analyzeFile during discovery** — `internal/scanner/discover.go:50-52` — Error handling — When `analyzeFile` fails, the error is silently swallowed and the file is excluded with no diagnostic. **Remediation:** Log a warning before returning. Validate: `go test ./internal/scanner/...`
 
-- [ ] **#25 — .git directory added to watcher** — `cmd/watch.go:178` — Logic bug — The `.git` directory itself is added to the watcher (only children are filtered). Results in noise events on git operations. **Remediation:** Check `filepath.Base(dirPath) == ".git"` at the directory entry level. Validate: `go test ./cmd/...`
+- [X] **#25 — .git directory added to watcher** — `cmd/watch.go:178` — Logic bug — The `.git` directory itself is added to the watcher (only children are filtered). Results in noise events on git operations. **Remediation:** Check `filepath.Base(dirPath) == ".git"` at the directory entry level. Validate: `go test ./cmd/...`
 
-- [ ] **#26 — Interface heuristic incorrectly classifies types ending in "er"** — `internal/analyzer/interface.go:546` — Logic bug — `strings.HasSuffix(t.Name, "er")` classifies `Buffer`, `Timer`, `Counter` as interfaces. Very low practical impact but inflates interface coupling metrics. **Remediation:** Restrict to known standard library interfaces or use type info. Validate: `go test ./internal/analyzer/...`
+- [X] **#26 — Interface heuristic incorrectly classifies types ending in "er"** — `internal/analyzer/interface.go:546` — Logic bug — `strings.HasSuffix(t.Name, "er")` classifies `Buffer`, `Timer`, `Counter` as interfaces. Very low practical impact but inflates interface coupling metrics. **Remediation:** Restrict to known standard library interfaces or use type info. Validate: `go test ./internal/analyzer/...`
 
 ## Metrics Snapshot
 

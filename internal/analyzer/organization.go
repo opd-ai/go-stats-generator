@@ -167,11 +167,50 @@ func (oa *OrganizationAnalyzer) classifyLine(line string, inBlock *bool) string 
 		return "comment"
 	}
 
-	if strings.Contains(line, "//") {
+	if oa.hasLineComment(line) {
 		return "mixed"
 	}
 
 	return "code"
+}
+
+// hasLineComment checks if a line contains a line comment (//) that is not inside a string literal.
+func (oa *OrganizationAnalyzer) hasLineComment(line string) bool {
+	inString := false
+	stringChar := byte(0)
+	escaped := false
+
+	for i := 0; i < len(line)-1; i++ {
+		ch := line[i]
+
+		if escaped {
+			escaped = false
+			continue
+		}
+
+		if ch == '\\' {
+			escaped = true
+			continue
+		}
+
+		if !inString {
+			if ch == '"' || ch == '`' || ch == '\'' {
+				inString = true
+				stringChar = ch
+				continue
+			}
+			if ch == '/' && line[i+1] == '/' {
+				return true
+			}
+		} else {
+			if ch == stringChar {
+				inString = false
+				stringChar = 0
+			}
+		}
+	}
+
+	return false
 }
 
 // isBlockCommentStart checks for block comment start

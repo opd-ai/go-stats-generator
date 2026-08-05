@@ -513,6 +513,14 @@ func (sa *StructAnalyzer) calculateNestingDepth(stmt ast.Stmt) int {
 	currentDepth := 0
 
 	ast.Inspect(stmt, func(node ast.Node) bool {
+		if node == nil {
+			// Exiting a node - decrement depth if we're in a nested block
+			if currentDepth > 0 {
+				currentDepth--
+			}
+			return true
+		}
+
 		switch node.(type) {
 		case *ast.IfStmt, *ast.ForStmt, *ast.RangeStmt, *ast.SwitchStmt, *ast.TypeSwitchStmt:
 			currentDepth++

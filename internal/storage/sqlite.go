@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"database/sql"
@@ -835,7 +836,7 @@ func createDirIfNotExists(path string) error {
 
 // compress compresses data using gzip encoding.
 func compress(data []byte) ([]byte, error) {
-	var buf strings.Builder
+	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	if _, err := gz.Write(data); err != nil {
 		return nil, err
@@ -843,12 +844,12 @@ func compress(data []byte) ([]byte, error) {
 	if err := gz.Close(); err != nil {
 		return nil, err
 	}
-	return []byte(buf.String()), nil
+	return buf.Bytes(), nil
 }
 
 // decompress decompresses gzip-encoded data.
 func decompress(data []byte) ([]byte, error) {
-	reader, err := gzip.NewReader(strings.NewReader(string(data)))
+	reader, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}

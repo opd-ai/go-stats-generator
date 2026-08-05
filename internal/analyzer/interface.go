@@ -542,11 +542,80 @@ func (ia *InterfaceAnalyzer) isInterfaceType(expr ast.Expr) bool {
 	case *ast.InterfaceType:
 		return true
 	case *ast.Ident:
-		// Common interface types
-		return t.Name == "interface{}" || strings.HasSuffix(t.Name, "er")
+		// Check for known standard library interfaces to avoid false positives
+		// (e.g., Buffer, Timer, Counter are concrete types, not interfaces)
+		if t.Name == "interface{}" {
+			return true
+		}
+		return ia.isKnownStdLibInterface(t.Name)
 	default:
 		return false
 	}
+}
+
+// isKnownStdLibInterface checks if a type name is a known standard library interface.
+// This avoids false positives from the "er" suffix heuristic (e.g., Buffer, Timer, Counter).
+func (ia *InterfaceAnalyzer) isKnownStdLibInterface(name string) bool {
+	knownInterfaces := map[string]bool{
+		// io interfaces
+		"Reader":          true,
+		"Writer":          true,
+		"ReadWriter":      true,
+		"ReaderWriter":    true,
+		"Closer":          true,
+		"ReadCloser":      true,
+		"WriteCloser":     true,
+		"ReadWriteCloser": true,
+		"Seeker":          true,
+		"ByteReader":      true,
+		"ByteWriter":      true,
+		"ByteScanner":     true,
+		"RuneReader":      true,
+		"RuneScanner":     true,
+		"StringWriter":    true,
+		"ReaderFrom":      true,
+		"WriterTo":        true,
+		"Scanner":         true,
+		"Parser":          true,
+		"Formatter":       true,
+		"Appender":        true,
+		"Encoder":         true,
+		"Decoder":         true,
+		"Marshaler":       true,
+		"Unmarshaler":     true,
+		"TokenReader":     true,
+		"TokenWriter":     true,
+		// net interfaces
+		"Listener":   true,
+		"Conn":       true,
+		"PacketConn": true,
+		// context interfaces
+		"Context": true,
+		// http interfaces
+		"Handler":        true,
+		"ResponseWriter": true,
+		"Hijacker":       true,
+		"Flusher":        true,
+		"CloseNotifier":  true,
+		"PushOptions":    true,
+		"Pusher":         true,
+		// database/sql interfaces
+		"Rows":              true,
+		"Row":               true,
+		"Result":            true,
+		"Stmt":              true,
+		"Tx":                true,
+		"Driver":            true,
+		"Connector":         true,
+		"NamedValueChecker": true,
+		"ColumnConverter":   true,
+		// other common interfaces
+		"Error":      true,
+		"Stringer":   true,
+		"GoStringer": true,
+		"Copier":     true,
+	}
+	return knownInterfaces[name]
 }
 
 // isErrorType checks if a type expression represents the error interface

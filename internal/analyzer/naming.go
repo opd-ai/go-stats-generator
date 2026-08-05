@@ -286,6 +286,15 @@ func (na *NamingAnalyzer) AnalyzeIdentifiers(file *ast.File, filePath string, fs
 	}
 
 	ast.Inspect(file, func(n ast.Node) bool {
+		if n == nil {
+			// Exiting a node - decrement loop depth if we're in a loop
+			if ctx.loopDepth > 0 {
+				ctx.loopDepth--
+				ctx.inLoop = ctx.loopDepth > 0
+			}
+			return true
+		}
+
 		switch node := n.(type) {
 		case *ast.FuncDecl:
 			na.analyzeFunctionDecl(node, filePath, fset, ctx, &violations)

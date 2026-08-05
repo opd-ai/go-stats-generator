@@ -175,7 +175,9 @@ func addWatchPaths(watcher *fsnotify.Watcher, root string) error {
 		if !entry.IsDir() {
 			return nil
 		}
-		if strings.Contains(path, "/.git/") || strings.Contains(path, "/vendor/") {
+		// Skip .git and vendor directories entirely (including the root .git directory)
+		base := filepath.Base(path)
+		if base == ".git" || base == "vendor" {
 			return filepath.SkipDir
 		}
 		return watcher.Add(path)

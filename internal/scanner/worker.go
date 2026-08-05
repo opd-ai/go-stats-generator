@@ -236,8 +236,10 @@ func (wp *WorkerPool) trackProgress(ctx context.Context, resultChan <-chan Resul
 			select {
 			case result, ok := <-resultChan:
 				if !ok {
-					// Upstream channel closed; emit the final progress update and exit.
-					progressCb(total, total)
+					// Upstream channel closed; emit the final progress update only if all files were completed.
+					if completed == total {
+						progressCb(total, total)
+					}
 					return
 				}
 				select {

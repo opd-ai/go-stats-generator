@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,6 +50,7 @@ func (d *Discoverer) createWalkDirFunction(rootDir string, files *[]FileInfo) fs
 func (d *Discoverer) processGoFile(path, rootDir string, info fs.FileInfo, files *[]FileInfo) {
 	fileInfo, err := d.analyzeFile(path, rootDir, info)
 	if err != nil {
+		log.Printf("WARNING: failed to analyze file %s: %v", path, err)
 		return
 	}
 	if d.shouldIncludeFile(fileInfo) {
