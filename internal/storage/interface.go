@@ -117,7 +117,7 @@ func DefaultConfig() Config {
 		Type: "sqlite",
 		SQLite: SQLiteConfig{
 			Path:              ".go-stats-generator/metrics.db",
-			MaxConnections:    10,
+			MaxConnections:    1, // SQLite uses database-level locking; single connection is standard practice
 			EnableWAL:         true,
 			EnableFK:          true,
 			EnableCompression: true,

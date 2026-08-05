@@ -27,11 +27,13 @@ func NewPostgres(connectionString string) (*Postgres, error) {
 	}
 
 	if err := db.Ping(); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	p := &Postgres{db: db}
 	if err := p.initSchema(); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 

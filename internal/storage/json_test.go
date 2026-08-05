@@ -680,6 +680,150 @@ func TestJSONStorage_Close(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestJSONStorage_PathTraversal_Store(t *testing.T) {
+	tempDir := t.TempDir()
+	storage, err := NewJSONStorageImpl(JSONConfig{
+		Directory:   tempDir,
+		Compression: false,
+		Pretty:      false,
+	})
+	require.NoError(t, err)
+	defer storage.Close()
+
+	ctx := context.Background()
+
+	// Attempt path traversal with various malicious IDs
+	maliciousIDs := []string{
+		"../etc/passwd",
+		"..\\windows\\system32",
+		"subdir/../escape",
+		"../../../etc/passwd",
+		"./../escape",
+		"path/with/..",
+		"",
+	}
+
+	for _, id := range maliciousIDs {
+		snapshot := createTestSnapshot(id)
+		metadata := createTestMetadata()
+		err = storage.Store(ctx, snapshot, metadata)
+		assert.Error(t, err, "Store should reject malicious ID: %s", id)
+		if err != nil && id != "" {
+			assert.Contains(t, err.Error(), "path separators")
+		}
+	}
+}
+
+func TestJSONStorage_PathTraversal_Retrieve(t *testing.T) {
+	tempDir := t.TempDir()
+	storage, err := NewJSONStorageImpl(JSONConfig{
+		Directory:   tempDir,
+		Compression: false,
+		Pretty:      false,
+	})
+	require.NoError(t, err)
+	defer storage.Close()
+
+	ctx := context.Background()
+
+	// Attempt path traversal with various malicious IDs
+	maliciousIDs := []string{
+		"../etc/passwd",
+		"..\\windows\\system32",
+		"subdir/../escape",
+		"../../../etc/passwd",
+		"./../escape",
+		"path/with/..",
+		"",
+	}
+
+	for _, id := range maliciousIDs {
+		_, err = storage.Retrieve(ctx, id)
+		assert.Error(t, err, "Retrieve should reject malicious ID: %s", id)
+		if err != nil && id != "" {
+			assert.Contains(t, err.Error(), "path separators")
+		}
+	}
+}
+
+func TestJSONStorage_PathTraversal_Delete(t *testing.T) {
+	tempDir := t.TempDir()
+	storage, err := NewJSONStorageImpl(JSONConfig{
+		Directory:   tempDir,
+		Compression: false,
+		Pretty:      false,
+	})
+	require.NoError(t, err)
+	defer storage.Close()
+
+	ctx := context.Background()
+
+	// Attempt path traversal with various malicious IDs
+	maliciousIDs := []string{
+		"../etc/passwd",
+		"..\\windows\\system32",
+		"subdir/../escape",
+		"../../../etc/passwd",
+		"./../escape",
+		"path/with/..",
+		"",
+	}
+
+	for _, id := range maliciousIDs {
+		err = storage.Delete(ctx, id)
+		assert.Error(t, err, "Delete should reject malicious ID: %s", id)
+		if err != nil && id != "" {
+			assert.Contains(t, err.Error(), "path separators")
+		}
+	}
+}
+
+func TestJSONStorage_ValidIDs_Work(t *testing.T) {
+	tempDir := t.TempDir()
+	storage, err := NewJSONStorageImpl(JSONConfig{
+		Directory:   tempDir,
+		Compression: false,
+		Pretty:      false,
+	})
+	require.NoError(t, err)
+	defer storage.Close()
+
+	ctx := context.Background()
+
+	// Valid IDs should work
+	validIDs := []string{
+		"valid-id",
+		"valid_id",
+		"valid.id",
+		"snapshot-2024-01-01",
+		"v1.0.0",
+		"abc123",
+		"a",
+	}
+
+	for _, id := range validIDs {
+		snapshot := createTestSnapshot(id)
+		metadata := createTestMetadata()
+
+		// Store
+		err = storage.Store(ctx, snapshot, metadata)
+		require.NoError(t, err, "Store should accept valid ID: %s", id)
+
+		// Retrieve
+		retrieved, err := storage.Retrieve(ctx, id)
+		require.NoError(t, err, "Retrieve should work for valid ID: %s", id)
+		assert.Equal(t, id, retrieved.ID)
+
+		// Delete
+		err = storage.Delete(ctx, id)
+		require.NoError(t, err, "Delete should work for valid ID: %s", id)
+
+		// Verify deleted
+		_, err = storage.Retrieve(ctx, id)
+		assert.Error(t, err)
+	}
+}
+
 // Helper functions
 
 func createTestSnapshot(id string) metrics.Snapshot {

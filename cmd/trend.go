@@ -695,15 +695,27 @@ func displayFloatTrend(trends map[string]interface{}, key, label string, asPerce
 	}
 	fmt.Printf("\n%s:\n", label)
 	if asPercent {
-		fmt.Printf("  Start:     %.2f%%\n", data["start"].(float64)*100)
-		fmt.Printf("  End:       %.2f%%\n", data["end"].(float64)*100)
-		fmt.Printf("  Delta:     %+.2f%%\n", data["delta"].(float64)*100)
+		start, ok1 := data["start"].(float64)
+		end, ok2 := data["end"].(float64)
+		delta, ok3 := data["delta"].(float64)
+		if ok1 && ok2 && ok3 {
+			fmt.Printf("  Start:     %.2f%%\n", start*100)
+			fmt.Printf("  End:       %.2f%%\n", end*100)
+			fmt.Printf("  Delta:     %+.2f%%\n", delta*100)
+		}
 	} else {
-		fmt.Printf("  Start:     %.2f\n", data["start"])
-		fmt.Printf("  End:       %.2f\n", data["end"])
-		fmt.Printf("  Delta:     %+.2f\n", data["delta"])
+		start, ok1 := data["start"].(float64)
+		end, ok2 := data["end"].(float64)
+		delta, ok3 := data["delta"].(float64)
+		if ok1 && ok2 && ok3 {
+			fmt.Printf("  Start:     %.2f\n", start)
+			fmt.Printf("  End:       %.2f\n", end)
+			fmt.Printf("  Delta:     %+.2f\n", delta)
+		}
 	}
-	fmt.Printf("  Trend:     %s\n", data["direction"])
+	if direction, ok := data["direction"].(string); ok {
+		fmt.Printf("  Trend:     %s\n", direction)
+	}
 }
 
 // displayMBITrend outputs the MBI (Maintenance Burden Index) trend to console.
@@ -728,10 +740,33 @@ func displayIntTrend(trends map[string]interface{}, key, label string) {
 		return
 	}
 	fmt.Printf("\n%s:\n", label)
-	fmt.Printf("  Start:     %d\n", data["start"])
-	fmt.Printf("  End:       %d\n", data["end"])
-	fmt.Printf("  Delta:     %+d\n", data["delta"])
-	fmt.Printf("  Trend:     %s\n", data["direction"])
+
+	// Handle both int and float64 (from JSON unmarshal)
+	start, ok1 := getIntValue(data["start"])
+	end, ok2 := getIntValue(data["end"])
+	delta, ok3 := getIntValue(data["delta"])
+	if ok1 && ok2 && ok3 {
+		fmt.Printf("  Start:     %d\n", start)
+		fmt.Printf("  End:       %d\n", end)
+		fmt.Printf("  Delta:     %+d\n", delta)
+	}
+	if direction, ok := data["direction"].(string); ok {
+		fmt.Printf("  Trend:     %s\n", direction)
+	}
+}
+
+// getIntValue safely extracts an integer value from interface{} (handles int, int64, float64).
+func getIntValue(v interface{}) (int, bool) {
+	switch val := v.(type) {
+	case int:
+		return val, true
+	case int64:
+		return int(val), true
+	case float64:
+		return int(val), true
+	default:
+		return 0, false
+	}
 }
 
 // displayComplexityViolationsTrend outputs the complexity violations trend to console.

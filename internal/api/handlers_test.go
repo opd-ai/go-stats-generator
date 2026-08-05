@@ -6,8 +6,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/opd-ai/go-stats-generator/internal/api/storage"
 )
 
 func TestHandleHealth(t *testing.T) {
@@ -177,4 +181,93 @@ func TestAnalysisWorkflow(t *testing.T) {
 	}
 
 	t.Error("analysis did not complete within timeout")
+}
+
+func TestHandleAnalyze_PathTraversal_Rejected(t *testing.T) {
+	tempDir := t.TempDir()
+	// Create a test directory structure
+	allowedDir := filepath.Join(tempDir, "allowed")
+	_ = os.MkdirAll(allowedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(allowedDir, "test.go"), []byte("package main\n"), 0o644)
+
+	// Create a file outside the allowed directory
+	outsideDir := filepath.Join(tempDir, "outside")
+	_ = os.MkdirAll(outsideDir, 0o755)
+	_ = os.WriteFile(filepath.Join(outsideDir, "secret.go"), []byte("package secret\n"), 0o644)
+
+	server := NewServerWithConfig("1.0.0", storage.NewMemory(), allowedDir)
+
+	// Test various path traversal attempts
+	maliciousPaths := []string{
+		"../outside/secret.go",
+		"../../etc/passwd",
+		"..",
+		"../outside",
+		"./../outside/secret.go",
+		"/etc/passwd", // absolute path
+		"allowed/../../outside/secret.go",
+	}
+
+	for _, path := range maliciousPaths {
+		reqBody := AnalyzeRequest{Path: path}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/analyze", bytes.NewReader(body))
+		w := httptest.NewRecorder()
+
+		server.HandleAnalyze(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("path %q should be rejected with 400, got %d", path, w.Code)
+		}
+	}
+}
+
+func TestHandleAnalyze_ValidPath_WithinAllowedRoot(t *testing.T) {
+	tempDir := t.TempDir()
+	allowedDir := filepath.Join(tempDir, "allowed")
+	_ = os.MkdirAll(allowedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(allowedDir, "test.go"), []byte("package main\n"), 0o644)
+
+	server := NewServerWithConfig("1.0.0", storage.NewMemory(), allowedDir)
+
+	// Test valid relative paths within allowed root
+	validPaths := []string{
+		".",
+		"test.go",
+		"./test.go",
+	}
+
+	for _, path := range validPaths {
+		reqBody := AnalyzeRequest{Path: path}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/analyze", bytes.NewReader(body))
+		w := httptest.NewRecorder()
+
+		server.HandleAnalyze(w, req)
+
+		// Should be accepted (202) even if the analysis might fail for other reasons
+		if w.Code != http.StatusAccepted {
+			t.Errorf("path %q should be accepted with 202, got %d", path, w.Code)
+		}
+	}
+}
+
+func TestHandleAnalyze_BackwardCompatibility_NoAllowedRoot(t *testing.T) {
+	// Without allowedRoot, paths should be accepted (backward compatibility)
+	server := NewServer("1.0.0")
+
+	reqBody := AnalyzeRequest{
+		Path:      "../../testdata/simple",
+		SkipTests: true,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/analyze", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+
+	server.HandleAnalyze(w, req)
+
+	if w.Code != http.StatusAccepted {
+		t.Errorf("expected status %d, got %d", http.StatusAccepted, w.Code)
+	}
 }

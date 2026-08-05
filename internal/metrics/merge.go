@@ -4,6 +4,14 @@ package metrics
 // Accumulates counts, constraint usages, and instantiation lists from gen into merged for cross-file generic analysis.
 // Used during multi-file analysis to build comprehensive metrics about Go 1.18+ generics usage patterns.
 func MergeGenericsData(merged *GenericMetrics, gen GenericMetrics) {
+	// Initialize maps if nil to prevent panic on write
+	if merged.TypeParameters.Constraints == nil {
+		merged.TypeParameters.Constraints = make(map[string]int)
+	}
+	if merged.ConstraintUsage == nil {
+		merged.ConstraintUsage = make(map[string]int)
+	}
+
 	merged.TypeParameters.Count += gen.TypeParameters.Count
 	merged.TypeParameters.Complexity = append(
 		merged.TypeParameters.Complexity,

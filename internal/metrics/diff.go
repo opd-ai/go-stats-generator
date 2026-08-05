@@ -650,7 +650,7 @@ func calculateQualityScore(significantChanges int, improvements []Improvement) f
 		return 100.0
 	}
 	improvementRatio := float64(len(improvements)) / float64(significantChanges)
-	return improvementRatio * 100.0
+	return math.Min(improvementRatio*100.0, 100.0)
 }
 
 // Helper functions

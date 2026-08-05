@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -40,6 +41,7 @@ func NewMongo(connectionString string) (*Mongo, error) {
 	}
 
 	if err := client.Ping(ctx, nil); err != nil {
+		client.Disconnect(ctx)
 		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
 
@@ -52,6 +54,7 @@ func NewMongo(connectionString string) (*Mongo, error) {
 	}
 
 	if err := m.initSchema(); err != nil {
+		client.Disconnect(ctx)
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
@@ -83,7 +86,12 @@ func (m *Mongo) Store(result *AnalysisResult) {
 	var errorText *string
 
 	if result.Report != nil {
-		reportJSON, _ = json.Marshal(result.Report)
+		var err error
+		reportJSON, err = json.Marshal(result.Report)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "mongo: failed to marshal report for %s: %v\n", result.ID, err)
+			return
+		}
 	}
 	if result.Error != nil {
 		errStr := result.Error.Error()
@@ -98,7 +106,9 @@ func (m *Mongo) Store(result *AnalysisResult) {
 	}
 
 	opts := options.Replace().SetUpsert(true)
-	m.collection.ReplaceOne(ctx, bson.M{"_id": result.ID}, doc, opts)
+	if _, err := m.collection.ReplaceOne(ctx, bson.M{"_id": result.ID}, doc, opts); err != nil {
+		fmt.Fprintf(os.Stderr, "mongo: failed to store analysis result %s: %v\n", result.ID, err)
+	}
 }
 
 // Get retrieves an analysis result by ID.

@@ -281,4 +281,3 @@ func (wp *WorkerPool) ProcessFilesSequential(ctx context.Context, files []FileIn
 
 	return resultChan, nil
 }
-

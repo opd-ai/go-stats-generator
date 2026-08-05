@@ -46,8 +46,8 @@ func TestDefaultConfig(t *testing.T) {
 			t.Errorf("Expected SQLite Path to be '.go-stats-generator/metrics.db', got '%s'", sqlite.Path)
 		}
 
-		if sqlite.MaxConnections != 10 {
-			t.Errorf("Expected MaxConnections to be 10, got %d", sqlite.MaxConnections)
+		if sqlite.MaxConnections != 1 {
+			t.Errorf("Expected MaxConnections to be 1, got %d", sqlite.MaxConnections)
 		}
 
 		if !sqlite.EnableWAL {

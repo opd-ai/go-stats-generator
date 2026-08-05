@@ -585,3 +585,32 @@ func TestConsoleReporter_PlacementSorting(t *testing.T) {
 	assert.Equal(t, "MediumSeverity_SamePackage", methodOrder[1], "Medium severity should be second")
 	assert.Equal(t, "LowSeverity_SamePackage", methodOrder[2], "Low severity should be third")
 }
+
+func TestConsoleReporter_Truncate(t *testing.T) {
+	cfg := &config.OutputConfig{}
+	reporter := NewConsoleReporter(cfg)
+
+	tests := []struct {
+		name     string
+		input    string
+		maxLen   int
+		expected string
+	}{
+		{"no truncation needed", "hello", 10, "hello"},
+		{"exact length", "hello", 5, "hello"},
+		{"truncate with ellipsis", "hello world", 8, "hello..."},
+		{"maxLen = 3", "hello", 3, "hel"},
+		{"maxLen = 2", "hello", 2, "he"},
+		{"maxLen = 1", "hello", 1, "h"},
+		{"maxLen = 0", "hello", 0, ""},
+		{"empty string", "", 5, ""},
+		{"unicode characters", "hello 世界", 8, "hello..."},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := reporter.truncate(tt.input, tt.maxLen)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

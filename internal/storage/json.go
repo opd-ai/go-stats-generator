@@ -52,6 +52,10 @@ func validateSnapshotID(id string) error {
 	if filepath.Base(id) != id {
 		return fmt.Errorf("snapshot ID contains path separators: %s", id)
 	}
+	// Also check for backslash (Windows path separator) which filepath.Base doesn't catch on Unix
+	if strings.Contains(id, "\\") {
+		return fmt.Errorf("snapshot ID contains path separators: %s", id)
+	}
 	return nil
 }
 

@@ -60,13 +60,13 @@ func (a *Analyzer) buildReport(ctx context.Context, results <-chan scanner.Resul
 // Statement blocks are accumulated here and passed to AnalyzeDuplicationFromBlocks
 // after all files are processed, avoiding the need to retain any *ast.File in memory.
 type collectedMetrics struct {
-	functions    []metrics.FunctionMetrics
-	structs      []metrics.StructMetrics
-	interfaces   []metrics.InterfaceMetrics
-	generics     []metrics.GenericMetrics
-	dupBlocks    []analyzer.StatementBlock
+	functions     []metrics.FunctionMetrics
+	structs       []metrics.StructMetrics
+	interfaces    []metrics.InterfaceMetrics
+	generics      []metrics.GenericMetrics
+	dupBlocks     []analyzer.StatementBlock
 	dupTotalLines int
-	fileCount    int
+	fileCount     int
 }
 
 // analysisSet holds per-file analyzers initialized with the result's own token.FileSet.

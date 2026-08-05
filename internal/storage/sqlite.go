@@ -78,7 +78,11 @@ func NewSQLiteStorageImpl(config SQLiteConfig) (*SQLiteStorage, error) {
 
 	// Configure database
 	db.SetMaxOpenConns(config.MaxConnections)
-	db.SetMaxIdleConns(config.MaxConnections / 2)
+	if config.MaxConnections > 1 {
+		db.SetMaxIdleConns(config.MaxConnections / 2)
+	} else {
+		db.SetMaxIdleConns(1)
+	}
 
 	storage := &SQLiteStorage{
 		db:     db,
