@@ -965,6 +965,9 @@ func (ba *BurdenAnalyzer) walkRangeStmtNesting(n *ast.RangeStmt, currentDepth in
 func (ba *BurdenAnalyzer) walkSwitchStmtNesting(n *ast.SwitchStmt, currentDepth int, maxDepth *int, deepestLoc *token.Pos) {
 	newDepth := currentDepth + 1
 	ba.updateMaxDepth(newDepth, n.Pos(), maxDepth, deepestLoc)
+	if n.Body == nil {
+		return
+	}
 	for _, stmt := range n.Body.List {
 		ba.walkForNestingDepth(stmt, newDepth, maxDepth, deepestLoc)
 	}

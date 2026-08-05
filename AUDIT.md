@@ -93,9 +93,9 @@
 
 - [X] **#14 — Incorrect int-to-string conversion in builder pattern** — `internal/analyzer/pattern.go:289` — Logic bug — `string(rune(candidate.setterCount))` converts int to Unicode codepoint, not decimal. A count of 5 produces character U+0005, not "5". **Remediation:** Use `strconv.Itoa(candidate.setterCount)`. Validate: `go test ./internal/analyzer/...`
 
-- [ ] **#15 — Nil panic in duplication normalizeNode** — `internal/analyzer/duplication.go:348-350` — Nil safety — `normalizeNode` can return nil, and callers perform type assertion `.(ast.Expr)` on the result without nil check, causing panic on edge-case AST structures. **Remediation:** Add nil guard after normalizeNode returns. Validate: `go test ./internal/analyzer/...`
+- [X] **#15 — Nil panic in duplication normalizeNode** — `internal/analyzer/duplication.go:348-350` — Nil safety — `normalizeNode` can return nil, and callers perform type assertion `.(ast.Expr)` on the result without nil check, causing panic on edge-case AST structures. **Remediation:** Add nil guard after normalizeNode returns. Validate: `go test ./internal/analyzer/...`
 
-- [ ] **#16 — SwitchStmt Body nil dereference in burden analyzer** — `internal/analyzer/burden.go:968` — Nil safety — `n.Body.List` accessed without nil check on `n.Body`. Panics on `switch {}` with nil body (uncommon but valid AST). **Remediation:** Add `if n.Body == nil { return }`. Validate: `go test ./internal/analyzer/...`
+- [X] **#16 — SwitchStmt Body nil dereference in burden analyzer** — `internal/analyzer/burden.go:968` — Nil safety — `n.Body.List` accessed without nil check on `n.Body`. Panics on `switch {}` with nil body (uncommon but valid AST). **Remediation:** Add `if n.Body == nil { return }`. Validate: `go test ./internal/analyzer/...`
 
 - [X] **#17 — Naming analyzer state leak (inLoop never reset)** — `internal/analyzer/naming.go:294-296` — State leak — `inLoop`/`loopDepth` are set inside `ast.Inspect` but never reset when exiting a loop node. All code after the first loop is treated as "in loop". **Remediation:** Decrement on `node == nil` (ast.Inspect exit) or use a stack. Validate: `go test ./internal/analyzer/...`
 

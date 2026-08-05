@@ -345,9 +345,23 @@ func (da *DuplicationAnalyzer) deepCopyAndNormalize(node ast.Node) ast.Node {
 	case *ast.IndexExpr:
 		return da.normalizeIndexExpr(n)
 	case *ast.StarExpr:
-		return &ast.StarExpr{X: da.normalizeNode(n.X).(ast.Expr)}
+		if n.X == nil {
+			return &ast.StarExpr{X: nil}
+		}
+		normalizedX := da.normalizeNode(n.X)
+		if normalizedX == nil {
+			return &ast.StarExpr{X: nil}
+		}
+		return &ast.StarExpr{X: normalizedX.(ast.Expr)}
 	case *ast.ParenExpr:
-		return &ast.ParenExpr{X: da.normalizeNode(n.X).(ast.Expr)}
+		if n.X == nil {
+			return &ast.ParenExpr{X: nil}
+		}
+		normalizedX := da.normalizeNode(n.X)
+		if normalizedX == nil {
+			return &ast.ParenExpr{X: nil}
+		}
+		return &ast.ParenExpr{X: normalizedX.(ast.Expr)}
 	default:
 		return node
 	}
